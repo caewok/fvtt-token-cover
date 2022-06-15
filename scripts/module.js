@@ -9,7 +9,7 @@ import * as drawing from "./drawing.js";
 import * as bench from "./benchmark.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIRectangleMethods } from "./PIXIRectangle.js";
-import { objectIsVisibile } from "./token_visibility.js";
+import { objectIsVisible } from "./token_visibility.js";
 
 // Toggle settings
 export const SETTINGS = {
@@ -36,8 +36,7 @@ Hooks.once("init", async function() {
     objectIsVisible,
 
     bench,
-    drawing,
-    random,
+    drawing
   };
 });
 
