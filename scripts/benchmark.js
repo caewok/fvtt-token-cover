@@ -15,6 +15,51 @@ function randomInteger(min, max) {
   return Math.roundFast((Math.random() + min) * max)
 }
 
+/*
+Rectangle intersection vs just testing all four edges
+api = game.modules.get('tokenvisibility').api;
+randomRectangle = api.random.randomRectangle;
+randomSegment = api.random.randomSegment;
+QBenchmarkLoopWithSetupFn = api.bench.QBenchmarkLoopWithSetupFn;
+
+function setupFn() {
+  rect = randomRectangle({minWidth: 1000});
+  segment = randomSegment();
+  return [rect, segment];
+}
+
+edges = ["leftEdge",  "topEdge", "rightEdge", "bottomEdge"];
+function intersectSides(rect, segment) {
+  for (let i = 0; i < 4; i += 1 ) {
+    const edge = rect[edges[i]];
+    if ( foundry.utils.lineSegmentIntersects(edge.A, edge.B, segment.A, segment.B) ) { return true; }
+  }
+  return false;
+}
+
+intersectRectangle = function(rect, segment) {
+  return rect.lineSegmentIntersects(segment.A, segment.B);
+}
+
+function testFn() {
+  args = setupFn();
+  return [intersectSides(...args), intersectRectangle(...args)]
+//   return intersectSides(...args) === intersectRectangle(...args)
+}
+
+
+iterations = 10000
+await QBenchmarkLoopWithSetupFn(iterations, setupFn, intersectSides, "intersectSides")
+await QBenchmarkLoopWithSetupFn(iterations, setupFn, intersectRectangle, "intersectRectangle")
+
+
+
+
+
+*/
+
+
+
 /**
  * Benchmark token visibility.
  * For each token in the scene:

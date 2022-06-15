@@ -7,6 +7,7 @@ game
 import { MODULE_ID } from "./const.js";
 import * as drawing from "./drawing.js";
 import * as bench from "./benchmark.js";
+import * as random from "./random.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIRectangleMethods } from "./PIXIRectangle.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
@@ -38,7 +39,8 @@ Hooks.once("init", async function() {
     objectIsVisible,
 
     bench,
-    drawing
+    drawing,
+    random
   };
 });
 
