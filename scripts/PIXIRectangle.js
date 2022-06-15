@@ -76,19 +76,19 @@ function lineSegmentIntersects(a, b,
   // Line likely intersects, but some possibility that the line starts at, say, center left
   // and moves to center top which means it may or may not cross the rectangle
   switch ( zoneA ) {
-    case rectZones.LEFT: return intersectFn(this.edge.left.A, this.edge.left.B, a, b);
-    case rectZones.RIGHT: return intersectFn(this.edge.right.A, this.edge.right.B, a, b);
-    case rectZones.TOP: return intersectFn(this.edge.top.A, this.edge.top.B, a, b);
-    case rectZones.BOTTOM: return intersectFn(this.edge.bottom.A, this.edge.bottom.B, a, b);
+    case rectZones.LEFT: return intersectFn(this.leftEdge.A, this.leftEdge.B, a, b);
+    case rectZones.RIGHT: return intersectFn(this.rightEdge.A, this.rightEdge.B, a, b);
+    case rectZones.TOP: return intersectFn(this.topEdge.A, this.topEdge.B, a, b);
+    case rectZones.BOTTOM: return intersectFn(this.bottomEdge.A, this.bottomEdge.B, a, b);
 
-    case rectZones.TOPLEFT: return intersectFn(this.edge.top.A, this.edge.top.B, a, b)
-      || intersectFn(this.edge.left.A, this.edge.left.B, a, b);
-    case rectZones.TOPRIGHT: return intersectFn(this.edge.top.A, this.edge.top.B, a, b)
-      || intersectFn(this.edge.right.A, this.edge.right.B, a, b);
-    case rectZones.BOTTOMLEFT: return intersectFn(this.edge.bottom.A, this.edge.bottom.B, a, b)
-      || intersectFn(this.edge.left.A, this.edge.left.B, a, b);
-    case rectZones.BOTTOMRIGHT: return intersectFn(this.edge.bottom.A, this.edge.bottom.B, a, b)
-      || intersectFn(this.edge.right.A, this.edge.right.B, a, b);
+    case rectZones.TOPLEFT: return intersectFn(this.topEdge.A, this.topEdge.B, a, b)
+      || intersectFn(this.leftEdge.A, this.leftEdge.B, a, b);
+    case rectZones.TOPRIGHT: return intersectFn(this.topEdge.A, this.topEdge.B, a, b)
+      || intersectFn(this.rightEdge.A, this.rightEdge.B, a, b);
+    case rectZones.BOTTOMLEFT: return intersectFn(this.bottomEdge.A, this.bottomEdge.B, a, b)
+      || intersectFn(this.leftEdge.A, this.leftEdge.B, a, b);
+    case rectZones.BOTTOMRIGHT: return intersectFn(this.bottomEdge.A, this.bottomEdge.B, a, b)
+      || intersectFn(this.rightEdge.A, this.rightEdge.B, a, b);
   }
 }
 
@@ -103,25 +103,25 @@ export function registerPIXIRectangleMethods() {
 
   if ( !Object.hasOwn(PIXI.Rectangle.prototype, "leftEdge") ) {
     Object.defineProperty(PIXI.Rectangle.prototype, "leftEdge", {
-      get: () => leftEdge
+      get: leftEdge
     });
   }
 
   if ( !Object.hasOwn(PIXI.Rectangle.prototype, "rightEdge") ) {
     Object.defineProperty(PIXI.Rectangle.prototype, "rightEdge", {
-      get: () => rightEdge
+      get: rightEdge
     });
   }
 
   if ( !Object.hasOwn(PIXI.Rectangle.prototype, "topEdge") ) {
     Object.defineProperty(PIXI.Rectangle.prototype, "topEdge", {
-      get: () => topEdge
+      get: topEdge
     });
   }
 
   if ( !Object.hasOwn(PIXI.Rectangle.prototype, "bottomEdge") ) {
     Object.defineProperty(PIXI.Rectangle.prototype, "bottomEdge", {
-      get: () => bottomEdge
+      get: bottomEdge
     });
   }
 

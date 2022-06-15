@@ -506,7 +506,7 @@ function bboxKeyCornersForOrigin(bbox, origin) {
  */
 function sourceIntersectsBounds(source, bbox) {
   for ( const si of source.iterateEdges() ) {
-    if ( bbox.intersectsLineSegment(si.A, si.B,
+    if ( bbox.lineSegmentIntersects(si.A, si.B,
       { intersectFn: altLineSegmentIntersects }) ) { return true; }
   }
 
@@ -573,7 +573,7 @@ function constrainedTokenShape(token, { boundsScale = SETTINGS.boundsScale } = {
 
   // Only care about walls that strictly intersect the bbox or are inside the bbox.
   // Many times with a grid, a wall will overlap a bbox edge.
-  walls = walls.filter(w => bbox.intersectsLineSegment(w.A, w.B, { inside: true, intersectFn: altLineSegmentIntersects }));
+  walls = walls.filter(w => bbox.lineSegmentIntersects(w.A, w.B, { inside: true, intersectFn: altLineSegmentIntersects }));
   if ( !walls.length ) return bbox;
 
   // One or more walls are inside or intersect the bounding box.
