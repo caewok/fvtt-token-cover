@@ -4,11 +4,13 @@ Hooks
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { log } from "./util.js";
+import { * as drawing } from "./drawing.js";
+import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 
 
 Hooks.once("init", async function() {
-  log("Hello!");
+  registerLibWrapperMethods();
+  patchHelperMethods();
 });
 
 /**
