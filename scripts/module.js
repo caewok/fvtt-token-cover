@@ -9,7 +9,6 @@ import * as drawing from "./drawing.js";
 import * as bench from "./benchmark.js";
 import * as random from "./random.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
-import { registerPIXIRectangleMethods } from "./PIXIRectangle.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
 import { objectIsVisible } from "./token_visibility.js";
 
@@ -30,7 +29,6 @@ export const SETTINGS = {
 Hooks.once("init", async function() {
   registerLibWrapperMethods();
   patchHelperMethods();
-  registerPIXIRectangleMethods();
   registerPIXIPolygonMethods();
 
   game.modules.get(MODULE_ID).api = {
