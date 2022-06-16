@@ -75,22 +75,40 @@ function lineSegmentIntersects(a, b,
 
   // Line likely intersects, but some possibility that the line starts at, say, center left
   // and moves to center top which means it may or may not cross the rectangle
+  let edge1, edge2;
   switch ( zoneA ) {
-    case rectZones.LEFT: return intersectFn(this.leftEdge.A, this.leftEdge.B, a, b);
-    case rectZones.RIGHT: return intersectFn(this.rightEdge.A, this.rightEdge.B, a, b);
-    case rectZones.TOP: return intersectFn(this.topEdge.A, this.topEdge.B, a, b);
-    case rectZones.BOTTOM: return intersectFn(this.bottomEdge.A, this.bottomEdge.B, a, b);
+    case rectZones.LEFT:
+      edge1 = this.leftEdge;
+      return intersectFn(edge1.A, edge1.B, a, b);
+    case rectZones.RIGHT:
+      edge1 = this.rightEdge;
+      return intersectFn(edge1.A, edge1.B, a, b);
+    case rectZones.TOP:
+      edge1 = this.topEdge;
+      return intersectFn(edge1.A, edge1.B, a, b);
+    case rectZones.BOTTOM:
+      edge1 = this.bottomEdge;
+      return intersectFn(edge1.A, edge1.B, a, b);
 
-    case rectZones.TOPLEFT: return intersectFn(this.topEdge.A, this.topEdge.B, a, b)
-      || intersectFn(this.leftEdge.A, this.leftEdge.B, a, b);
-    case rectZones.TOPRIGHT: return intersectFn(this.topEdge.A, this.topEdge.B, a, b)
-      || intersectFn(this.rightEdge.A, this.rightEdge.B, a, b);
-    case rectZones.BOTTOMLEFT: return intersectFn(this.bottomEdge.A, this.bottomEdge.B, a, b)
-      || intersectFn(this.leftEdge.A, this.leftEdge.B, a, b);
-    case rectZones.BOTTOMRIGHT: return intersectFn(this.bottomEdge.A, this.bottomEdge.B, a, b)
-      || intersectFn(this.rightEdge.A, this.rightEdge.B, a, b);
+    case rectZones.TOPLEFT:
+      edge1 = this.topEdge;
+      edge2 = this.bottomEdge;
+      return intersectFn(edge1.A, edge1.B, a, b) || intersectFn(edge2.A, edge2.B, a, b);
+    case rectZones.TOPRIGHT:
+      edge1 = this.topEdge;
+      edge2 = this.rightEdge;
+      return intersectFn(edge1.A, edge1.B, a, b) || intersectFn(edge2.A, edge2.B, a, b);
+    case rectZones.BOTTOMLEFT:
+      edge1 = this.bottomEdge;
+      edge2 = this.leftEdge;
+      return intersectFn(edge1.A, edge1.B, a, b) || intersectFn(edge2.A, edge2.B, a, b);
+    case rectZones.BOTTOMRIGHT:
+      edge1 = this.bottomEdge;
+      edge2 = this.rightEdge;
+      return intersectFn(edge1.A, edge1.B, a, b) || intersectFn(edge2.A, edge2.B, a, b);
   }
 }
+
 
 // ----------------  ADD METHODS TO THE PIXI.RECTANGLE PROTOTYPE ------------------------
 export function registerPIXIRectangleMethods() {
