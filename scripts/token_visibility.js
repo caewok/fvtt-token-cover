@@ -87,22 +87,46 @@ export function testVisibility(wrapped, point, {tolerance=2, object=null}={}) { 
 }
 
 // ***** API
+
+/**
+ * Test if a token has cover with regard to another token by checking the vision of
+ * the first. Assumes FOV and just tests for LOS to the object.
+ * @param {Token} token
+ * @param {Token|Object}
+ */
+export function objectHasCoverFromToken(token, object, { percentArea = 0, boundsScale = 1 } = {}) {
+  return objectIsVisible(object.center, object, {
+    hasFOV: true,
+    percentArea,
+    boundsScale,
+    visionSources: new Set([token.vision]),
+    lightSources: new Set()
+  });
+}
+
 /**
  * Test if an object is visible from a given token.
  * Useful for checking visibility for cover under various limits.
  * Separately checks for line-of-sight and field-of-view.
  * @param {PointSource} source
  * @param {Token}       token
+ * @param {Object}      Optional parameters
+ *
  * Options:
- * @param {Boolean}     hasFOV        Assume that the token has unlimited field of vision?
- * @param {Number}      percent_area  Percent of the token that must be visible to count.
- * @param {Number}      bounds_scale  Scale the bounds of the token before considering visibility.
- * @return { los: {Boolean}, fov: {Boolean} }
+ * @param {boolean} hasFOV        Assume that the token has unlimited field of vision?
+ * @param {number} percent_area   Percent of the token that must be visible to count.
+ * @param {number} bounds_scale   Scale the bounds of the token before considering visibility.
+ * @param {VisionSource[]} visionSources  Sources of vision to test
+ * @param {LightSource[]} lightSources    Sources of light to test
+ *
+ * @return {boolean} True if object is visible
  */
 export function objectIsVisible(point, object, {
   hasFOV = canvas.scene.globalLight,
   percentArea = 0,
-  boundsScale = 1 } = {}) {
+  boundsScale = 1,
+  visionSources = canvas.effects.visionSources,
+  lightSources = canvas.effects.lightSources } = {}) {
 
   percentArea = Math.clamped(percentArea, 0, 1);
 
@@ -123,21 +147,19 @@ export function objectIsVisible(point, object, {
   const result = { hasLOS: false, hasFOV };
 
   if ( fastTestOnly ) {
-    testLOSFOV(canvas.effects.visionSources, canvas.effects.lightSources, new Set(), result, containsTestFn, point);
+    testLOSFOV(visionSources, lightSources, new Set(), result, containsTestFn, point);
     return result.hasFOV && result.hasLOS;
   }
 
-  // Note: Converting to arrays and filtering not much of a slowdown.
-  // Takes maybe 0.001 ms and checks have to be made eventually.
-  const visionSources = new Set();
-  const lightSources = new Set();
-  const lightVisionSources = new Set();
+  const visionSet = new Set();
+  const lightSet = new Set();
+  const lvSet = new Set();
 
   // Filter for relevant sources
-  canvas.effects.visionSources.forEach(v => v.active && visionSources.add(v));
-  canvas.effects.lightSources.forEach(l => {
+  visionSources.forEach(v => v.active && visionSet.add(v));
+  lightSources.forEach(l => {
     if ( !l.active || l.disabled ) { return; }
-    l.data.vision ? lightVisionSources.add(l) : lightSources.add(l);
+    l.data.vision ? lvSet.add(l) : lightSet.add(l);
   });
 
 
@@ -163,7 +185,7 @@ export function objectIsVisible(point, object, {
   // TO-DO: Move constraint test here? Would be much slower.
 
   if ( fastFilterOnly ) {
-    testLOSFOV(visionSources, lightSources, lightVisionSources, result, containsTestFn, point);
+    testLOSFOV(visionSet, lightSet, lvSet, result, containsTestFn, point);
     return result.hasFOV && result.hasLOS;
   }
 
@@ -171,7 +193,7 @@ export function objectIsVisible(point, object, {
     if ( percentArea <= .50 ) {
       // If less than 50% of the token area is required to be viewable, then
       // if the center point is viewable, the token is viewable from that source.
-      testLOSFOV(visionSources, lightSources, lightVisionSources, result, containsTestFn, point);
+      testLOSFOV(visionSet, lightSet, lvSet, result, containsTestFn, point);
 
       if ( result.hasFOV && result.hasLOS ) {
 //         log(`Returning true after testing center point with percentArea of ${percentArea}`);
@@ -182,9 +204,9 @@ export function objectIsVisible(point, object, {
       // If more than 50% of the token area is required to be viewable, then
       // the center point must be viewable for the token to be viewable from that source.
       // (necessary but not sufficient)
-      visionSources.forEach(v => v.fov.contains(point.x, point.y) || visionSources.delete(v));
-      lightSources.forEach(l => l.containsPoint(point) || lightSources.delete(l));
-      lightVisionSources.forEach(l => l.containsPoint(point) || lightVisionSources.delete(l) );
+      visionSet.forEach(v => v.fov.contains(point.x, point.y) || visionSet.delete(v));
+      lightSet.forEach(l => l.containsPoint(point) || lightSet.delete(l));
+      lvSet.forEach(l => l.containsPoint(point) || lvSet.delete(l) );
 
       if ( !visionSources.size && !lightVisionSources.size ) {
 //         log(`Returning false after testing center point with percentArea of ${percentArea}`);
@@ -220,11 +242,11 @@ export function objectIsVisible(point, object, {
     // otherwise, not clear whether has los
 
     if ( testWalls ) {
-      visionSources.filter(src =>
+      visionSet.filter(src =>
         testWallsForSource(constrained_bbox, point, src, result, { noAreaTest: !percentArea } ));
-      lightSources.filter(src =>
+      lightSet.filter(src =>
         testWallsForSource(constrained_bbox, point, src, result, { noAreaTest: !percentArea } ));
-      lightVisionSources.filter(src =>
+      lvSet.filter(src =>
         testWallsForSource(constrained_bbox, point, src, result, { noAreaTest: !percentArea } ));
 
 //       log(`After key points| hasLOS: ${result.hasLOS}; hasFOV: ${result.hasFOV}, visionSources: ${visionSources.length}, lightSources: ${lightSources.length}`);
@@ -247,16 +269,16 @@ export function objectIsVisible(point, object, {
       if ( areaTestOnly || percentArea !== 0 ) {
 //         log("Testing percent area");
         const bounds_poly = notConstrained ? constrained.toPolygon() : constrained;
-        testLOSFOV(visionSources, lightSources, lightVisionSources, result, areaTestFn, bounds_poly, percentArea);
+        testLOSFOV(visionSet, lightSet, lvSet, result, areaTestFn, bounds_poly, percentArea);
 
       } else if ( notConstrained ) {
 //         log("Testing unconstrained boundary");
-        testLOSFOV(visionSources, lightSources, lightVisionSources, result, sourceIntersectsBoundsTestFn, constrained_bbox);
+        testLOSFOV(visionSet, lightSet, lvSet, result, sourceIntersectsBoundsTestFn, constrained_bbox);
 
       } else {
 //         log("Testing constrained boundary");
         const constrained_edges = [...constrained.iterateEdges()];
-        testLOSFOV(visionSources, lightSources, lightVisionSources, result, sourceIntersectsPolygonTestFn,
+        testLOSFOV(visionSet, lightSet, lvSet, result, sourceIntersectsPolygonTestFn,
           constrained_bbox, constrained_edges);
       }
 
@@ -480,7 +502,7 @@ function polygonKeyPointsForOrigin(poly, origin) {
  */
 function bboxKeyCornersForOrigin(bbox, origin) {
   const z = bbox._zone(origin);
-  const zones = bbox._zones;
+  const zones = PIXI.Rectangle._zones;
 
   switch ( z ) {
     case zones.INSIDE: return null;

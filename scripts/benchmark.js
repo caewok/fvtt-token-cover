@@ -43,9 +43,11 @@ intersectRectangle = function(rect, segment) {
 
 function testFn() {
   args = setupFn();
-  return [intersectSides(...args), intersectRectangle(...args)]
+  return [...args, intersectSides(...args), intersectRectangle(...args)]
 //   return intersectSides(...args) === intersectRectangle(...args)
 }
+res = Array.fromRange(1000).map(elem => testFn())
+res.every(elem => elem)
 
 
 iterations = 10000
