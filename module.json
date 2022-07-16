@@ -19,7 +19,11 @@
     "requires": [
       {
         "id": "lib-wrapper",
-        "type": "module"
+        "type": "module",
+        "manifest": "https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/master/module.json",
+        "compatibility": {
+          "verified": "1.12.4"
+        }
       }
     ]
   },
