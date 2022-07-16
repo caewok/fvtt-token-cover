@@ -131,7 +131,7 @@ export function objectIsVisible(point, object, {
 
   // PercentArea: Percent of the token that must be visible to count.
   // BoundsScale: Scale the bounds of the token before considering visibility.
-  const { areaTestOnly, fastFilterOnly, testCenterPoint, testWalls, finalTest } = SETTINGS;
+  const { areaTestOnly, testCenterPoint, testWalls, finalTest } = SETTINGS;
 
   // Test each vision source
   // https://ptb.discord.com/channels/170995199584108546/956307084931112960/985541410495283250
@@ -155,36 +155,11 @@ export function objectIsVisible(point, object, {
     l.data.vision ? lvSet.add(l) : lightSet.add(l); // eslint-disable-line no-unused-expressions
   });
 
-
-  // Note: setting debug (and same for log function) not a noticeable slowdown
-  //   const debug = game.modules.get("_dev-mode")?.api?.getPackageDebugValue(MODULE_ID);
-  //   if ( debug) {
-  //     log(`testVisibility at ${point.x},${point.y} for ${object.name}
-  // hasLOS: ${result.hasLOS};
-  // hasFOV: ${result.hasFOV},
-  // visionSources: ${visionSources.length},
-  // lightSources: ${lightSources.length}`, object);
-  //     drawing.clearDrawings();
-  //     drawing.drawPoint(point);
-  //     visionSources.forEach(v => {
-  //       drawing.drawShape(v.los, { color: drawing.COLORS.lightblue });
-  //       drawing.drawShape(v.fov, { color: drawing.COLORS.lightgreen });
-  //     });
-  //     lightSources.forEach(l => {
-  //       drawing.drawShape(l.los, { color: drawing.COLORS.lightyellow });
-  //     });
-  //   }
-
   // Ignoring the somewhat artificial case of a token centered on a wall or corner, currently
   // ignored. Or a token that has walked through a wall at a corner.
   // Seems very difficult to construct a scenario in which the center point does not
   // control visibility as defined below.
   // TO-DO: Move constraint test here? Would be much slower.
-
-  if ( fastFilterOnly ) {
-    testLOSFOV(visionSet, lightSet, lvSet, result, containsTestFn, point);
-    return result.hasFOV && result.hasLOS;
-  }
 
   if ( testCenterPoint ) {
     if ( percentArea <= .50 ) {

@@ -134,10 +134,6 @@ export async function benchTokenVisibility(n = 100) {
   await QBenchmarkLoopFn(n, testFn, "Original", tokens);
   SETTINGS.useTestVisibility = true;
 
-  SETTINGS.fastFilterOnly = true;
-  await QBenchmarkLoopFn(n, testFn, "Fast Filter", tokens);
-  SETTINGS.fastFilterOnly = false;
-
   // ***** Area Percentage = 0 ***********
   console.log("Area percentage 0")
   SETTINGS.percentArea = 0;

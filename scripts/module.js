@@ -21,8 +21,7 @@ export const SETTINGS = {
   areaTestOnly: false,
   testWalls: true,
   testCenterPoint: true,
-  finalTest: true,
-  fastFilterOnly: false
+  finalTest: true
 };
 
 Hooks.once("init", async function() {
