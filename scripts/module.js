@@ -10,7 +10,7 @@ import * as bench from "./benchmark.js";
 import * as random from "./random.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
-import { objectIsVisible } from "./token_visibility.js";
+import { objectIsVisible, objectHasCoverFromToken } from "./token_visibility.js";
 
 // Toggle settings
 export const SETTINGS = {
@@ -35,6 +35,7 @@ Hooks.once("init", async function() {
     SETTINGS, // See also CONFIG.debug.polygons = true
 
     objectIsVisible,
+    objectHasCoverFromToken,
 
     bench,
     drawing,
