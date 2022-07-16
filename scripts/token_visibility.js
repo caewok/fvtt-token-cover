@@ -8,8 +8,8 @@ PIXI
 */
 "use strict";
 
-import { SETTINGS } from "./module.js";
-import { orient2dPixelLine } from "util.js";
+import { SETTINGS, getSetting } from "./settings.js";
+import { orient2dPixelLine } from "./util.js";
 
 /* Visibility algorithm
 Three tests, increasing in difficulty and stringency. User can select between 0% and 100%
@@ -38,6 +38,8 @@ If a wall blocks both rays, then we are done; return false.
 3. Intersect test.
 Intersect the constrained token shape against the source los or fov. If not testing area,
 then it is sufficient to test if the constrained token shape intersects the los/fov.
+
+1 + 3 alone appear to do better than 1 + 2 + 3, so skipping 2 for now.
 */
 
 // ***** WRAPPERS
@@ -64,6 +66,7 @@ export function tokenUpdateVisionSource(wrapped, { defer=false, deleted=false }=
  * Test whether a point on the Canvas is visible based on the current vision and LOS polygons.
  *
  * @param {Point} point                 The point in space to test, an object with coordinates x and y.
+ *
  * @param {object} [options]            Additional options which modify visibility testing.
  * @param {number} [options.tolerance=2]    A numeric radial offset which allows for a non-exact match. For example,
  *                                          if tolerance is 2 then the test will pass if the point is within 2px of a
@@ -72,15 +75,15 @@ export function tokenUpdateVisionSource(wrapped, { defer=false, deleted=false }=
  * @returns {boolean}                   Whether the point is currently visible.
  */
 export function testVisibility(wrapped, point, {tolerance=2, object=null}={}) { // eslint-disable-line no-unused-vars
-  if ( !object || !(object instanceof Token) || !SETTINGS.useTestVisibility ) return wrapped(point, {tolerance, object});
+  if ( !object || !(object instanceof Token) || !getSetting(SETTINGS.USE_MODULE) ) return wrapped(point, {tolerance, object});
 
 
   if ( !canvas.effects.visionSources.size ) return game.user.isGM;
 
   return objectIsVisible(point, object, {
     hasFOV: canvas.scene.globalLight,
-    percentArea: SETTINGS.percentArea,
-    boundsScale: SETTINGS.boundsScale });
+    percentArea: getSetting(SETTINGS.PERCENT_AREA),
+    boundsScale: getSetting(SETTINGS.BOUNDS_SCALE) });
 }
 
 // ***** API
@@ -91,7 +94,10 @@ export function testVisibility(wrapped, point, {tolerance=2, object=null}={}) { 
  * @param {Token} token
  * @param {Token|Object}
  */
-export function objectHasCoverFromToken(token, object, { percentArea = 0, boundsScale = 1 } = {}) {
+export function objectHasCoverFromToken(token, object, {
+  percentArea = getSetting(SETTINGS.PERCENT_AREA),
+  boundsScale = getSetting(SETTINGS.BOUNDS_SCALE) } = {}) {
+
   return objectIsVisible(object.center, object, {
     hasFOV: true,
     percentArea,
@@ -107,21 +113,20 @@ export function objectHasCoverFromToken(token, object, { percentArea = 0, bounds
  * Separately checks for line-of-sight and field-of-view.
  * @param {PointSource} source
  * @param {Token}       token
- * @param {Object}      Optional parameters
  *
- * Options:
- * @param {boolean} hasFOV        Assume that the token has unlimited field of vision?
- * @param {number} percent_area   Percent of the token that must be visible to count.
- * @param {number} bounds_scale   Scale the bounds of the token before considering visibility.
- * @param {VisionSource[]} visionSources  Sources of vision to test
- * @param {LightSource[]} lightSources    Sources of light to test
+ * @param {Object}      [options]  Additional options which modify visibility testing.
+ * @param {boolean} [options.hasFOV]        Assume that the token has unlimited field of vision?
+ * @param {number} [options.percent_area]   Percent of the token that must be visible to count.
+ * @param {number} [options.bounds_scale]   Scale the bounds of the token before considering visibility.
+ * @param {VisionSource[]} [options.visionSources]  Sources of vision to test
+ * @param {LightSource[]} [options.lightSources]    Sources of light to test
  *
  * @return {boolean} True if object is visible
  */
 export function objectIsVisible(point, object, {
   hasFOV = canvas.scene.globalLight,
-  percentArea = 0,
-  boundsScale = 1,
+  percentArea = getSetting(SETTINGS.PERCENT_AREA),
+  boundsScale = getSetting(SETTINGS.BOUNDS_SCALE),
   visionSources = canvas.effects.visionSources,
   lightSources = canvas.effects.lightSources } = {}) {
 
@@ -179,20 +184,6 @@ export function objectIsVisible(point, object, {
   const constrained = object._constrainedTokenShape;
   const constrained_bbox = constrained.getBounds();
   const notConstrained = constrained instanceof PIXI.Rectangle;
-
-  // Test the bounding box for line-of-sight for easy cases
-  // Draw ray from source to the two corners that are at the edge of the viewable
-  // bounding box.
-  // Test if walls intersect the rays or are between the rays
-
-  // If unconstrained token shape (rectangle):
-  // no walls: has los
-  // walls only on one side: has los
-  // walls don't intersect rays: has los
-
-  // If constrained token shape:
-  // no walls: has los
-  // otherwise, not clear whether has los
 
   // From this point, we are left testing remaining sources by checking whether the
   // polygon intersects the constrained bounding box.
