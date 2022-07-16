@@ -208,7 +208,7 @@ export function objectIsVisible(point, object, {
       lightSet.forEach(l => l.containsPoint(point) || lightSet.delete(l));
       lvSet.forEach(l => l.containsPoint(point) || lvSet.delete(l) );
 
-      if ( !visionSources.size && !lightVisionSources.size ) {
+      if ( !visionSet.size && !lightSet.size && !lvSet.size ) {
 //         log(`Returning false after testing center point with percentArea of ${percentArea}`);
         return false;
       }
