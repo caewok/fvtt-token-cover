@@ -131,7 +131,7 @@ export function objectIsVisible(point, object, {
 
   // PercentArea: Percent of the token that must be visible to count.
   // BoundsScale: Scale the bounds of the token before considering visibility.
-  const { areaTestOnly, fastTestOnly, fastFilterOnly, testCenterPoint, testWalls, finalTest } = SETTINGS;
+  const { areaTestOnly, fastFilterOnly, testCenterPoint, testWalls, finalTest } = SETTINGS;
 
   // Test each vision source
   // https://ptb.discord.com/channels/170995199584108546/956307084931112960/985541410495283250
@@ -144,12 +144,6 @@ export function objectIsVisible(point, object, {
   // Token's LOS. If that object is inside the FOV of a light source, it will still be visible.
 
   const result = { hasLOS: false, hasFOV };
-
-  if ( fastTestOnly ) {
-    testLOSFOV(visionSources, lightSources, new Set(), result, containsTestFn, point);
-    return result.hasFOV && result.hasLOS;
-  }
-
   const visionSet = new Set();
   const lightSet = new Set();
   const lvSet = new Set();

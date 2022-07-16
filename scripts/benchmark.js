@@ -134,11 +134,6 @@ export async function benchTokenVisibility(n = 100) {
   await QBenchmarkLoopFn(n, testFn, "Original", tokens);
   SETTINGS.useTestVisibility = true;
 
-  // ***** Fast Test
-  SETTINGS.fastTestOnly = true;
-  await QBenchmarkLoopFn(n, testFn, "Fast", tokens);
-  SETTINGS.fastTestOnly = false;
-
   SETTINGS.fastFilterOnly = true;
   await QBenchmarkLoopFn(n, testFn, "Fast Filter", tokens);
   SETTINGS.fastFilterOnly = false;
