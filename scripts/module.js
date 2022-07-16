@@ -19,7 +19,6 @@ export const SETTINGS = {
   boundsScale: 1,
   percentArea: 0,
   areaTestOnly: false,
-  testWalls: true,
   finalTest: true
 };
 
