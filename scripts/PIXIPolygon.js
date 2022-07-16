@@ -3,7 +3,7 @@
  * If the polygon is closed and close is false,
  * the last two points (which should equal the first two points) will be dropped.
  * Otherwise, all points will be returned regardless of the close value.
- * @return {x, y} PIXI.Point
+ * @returns {x, y} PIXI.Point
  */
 function* iteratePoints({close = true} = {}) {
   const dropped = (!this.isClosed || close) ? 0 : 2;
@@ -20,7 +20,7 @@ function* iteratePoints({close = true} = {}) {
  * the final edge closing the polygon will be ignored.
  * Otherwise, all edges, including the closing edge, will be returned regardless of the
  * close value.
- * @return Return an object { A: {x, y}, B: {x, y}} for each edge
+ * @returns Return an object { A: {x, y}, B: {x, y}} for each edge
  * Edges link, such that edge0.B === edge.1.A.
  */
 function* iterateEdges({close = true} = {}) {
@@ -32,6 +32,16 @@ function* iterateEdges({close = true} = {}) {
             B: { x: this.points[i + 2], y: this.points[i + 3] } }; // eslint-disable-line indent
   }
 }
+
+/**
+ * Area of polygon
+ * @returns {number}
+ */
+function area() {
+  const path = this.toClipperPoints;
+  return Math.abs(ClipperLib.Clipper.Area(path));
+}
+
 
 // ----------------  ADD METHODS TO THE PIXI.POLYGON PROTOTYPE --------------------------
 export function registerPIXIPolygonMethods() {
@@ -48,4 +58,10 @@ export function registerPIXIPolygonMethods() {
     configurable: true
   });
 
+  Object.defineProperty(PIXI.Polygon.prototype, "area", {
+    value: area,
+    writable: true,
+    configurable: true
+  });
 }
+
