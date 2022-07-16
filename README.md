@@ -29,7 +29,7 @@ Token Visibility instead considers the whole token shape—the orange outline in
 
 The GM can change the percent area required for a token to be visibile, and change how large the token boundary appears for purposes of the visibility test.
 
-<img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/settings.jpg" width="300" alt="Settings for the Token Visibility Module">
+<img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/settings.jpg" width="400" alt="Settings for the Token Visibility Module">
 
 Currently, Percent Token Size and Percent Token Area are GM world settings only. Please submit an issue in this Github if you have a use case that would warrant a more nuanced approach.
 
@@ -44,15 +44,17 @@ Token Area indicates how much of the token must be viewable to be seen. Note tha
 
 Setting the Percent Token Area to 1 means that the entire token area must be viewable for the token to be seen. Setting the Percent Token Area to 0 means that if any part of the token is viewable, then it is seen.
 
-Area set to 1.
-<img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/visibility-area-100.jpg" width="300" alt="Settings for the Token Visibility Module">
+| <img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/visibility-area-100.jpg" width="300" alt="Settings for the Token Visibility Module"> |
+|:--:|
+| <em>Area set to 1. Lizard only viewable once our wizard moves completely beyond the wall.<em> |
 
-Area set to 0.5.
-<img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/visibility-area-50.jpg" width="300" alt="Settings for the Token Visibility Module">
+| <img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/visibility-area-50.jpg" width="300" alt="Settings for the Token Visibility Module"> |
+|:--:|
+| <em>Area set to 0.5. Lizard viewable once our wizard can view half of it.</em> |
 
-Area set to 0.1.
-<img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/visibility-area-10.jpg" width="300" alt="Settings for the Token Visibility Module">
-
+| <img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/visibility-area-10.jpg" width="300" alt="Settings for the Token Visibility Module"> |
+|:--:|
+| <em>Area set to 0.1. Lizard viewable when nearly any of it can be seen beyond the wall.</em> |
 
 # API
 
@@ -75,9 +77,10 @@ api.objectIsVisible;
  * @param {Token} token
  * @param {Token|Object}
  *
- * @param {Object}      [options]  Additional options which modify visibility testing.
+ * @param {Object} [options]               Additional options which modify visibility testing.
  * @param {number} [options.percentArea]   Percent of the token that must be visible to count.
  * @param {number} [options.boundsScale]   Scale the bounds of the token before considering visibility.
+ *
  * @returns {boolean} True if object is visible
  */
 export function objectHasCoverFromToken(token, object, {
@@ -97,10 +100,10 @@ export function objectHasCoverFromToken(token, object, {
  * @param {PointSource} source
  * @param {Token}       token
  *
- * @param {Object}      [options]  Additional options which modify visibility testing.
- * @param {boolean} [options.hasFOV]        Assume that the token has unlimited field of vision?
- * @param {number} [options.percentArea]   Percent of the token that must be visible to count.
- * @param {number} [options.boundsScale]   Scale the bounds of the token before considering visibility.
+ * @param {Object} [options]                        Additional options which modify visibility testing.
+ * @param {boolean} [options.hasFOV]                Assume that the token has unlimited field of vision?
+ * @param {number} [options.percentArea]            Percent of the token that must be visible to count.
+ * @param {number} [options.boundsScale]            Scale the bounds of the token before considering visibility.
  * @param {VisionSource[]} [options.visionSources]  Sources of vision to test
  * @param {LightSource[]} [options.lightSources]    Sources of light to test
  *
