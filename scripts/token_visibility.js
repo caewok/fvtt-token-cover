@@ -127,10 +127,6 @@ export function objectIsVisible(point, object, {
 
   percentArea = Math.clamped(percentArea, 0, 1);
 
-  // PercentArea: Percent of the token that must be visible to count.
-  // BoundsScale: Scale the bounds of the token before considering visibility.
-  const { areaTestOnly } = SETTINGS;
-
   // Test each vision source
   // https://ptb.discord.com/channels/170995199584108546/956307084931112960/985541410495283250
   // Atropos — Today at 6:49 AM
@@ -181,7 +177,6 @@ export function objectIsVisible(point, object, {
     }
   }
 
-
   // Construct the constrained token shape if not yet present.
   // Store in token so it can be re-used (wrapped updateVisionSource will remove it when necessary)
   object._constrainedTokenShape ||= constrainedTokenShape(object, { boundsScale });
@@ -206,7 +201,7 @@ export function objectIsVisible(point, object, {
   // From this point, we are left testing remaining sources by checking whether the
   // polygon intersects the constrained bounding box.
 
-  if ( areaTestOnly || percentArea !== 0 ) {
+  if ( percentArea !== 0 ) {
     const bounds_poly = notConstrained ? constrained.toPolygon() : constrained;
     testLOSFOV(visionSet, lightSet, lvSet, result, areaTestFn, bounds_poly, percentArea);
 
@@ -219,11 +214,8 @@ export function objectIsVisible(point, object, {
       constrained_bbox, constrained_edges);
   }
 
-
   return result.hasFOV && result.hasLOS;
-
 }
-
 
 // ***** FUNCTIONS
 
