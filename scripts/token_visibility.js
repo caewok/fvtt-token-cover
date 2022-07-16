@@ -71,9 +71,8 @@ export function tokenUpdateVisionSource(wrapped, { defer=false, deleted=false }=
  * @returns {boolean}                   Whether the point is currently visible.
  */
 export function testVisibility(wrapped, point, {tolerance=2, object=null}={}) { // eslint-disable-line no-unused-vars
-  if ( !object || !(object instanceof Token) || !SETTINGS.useTestVisibility ) {
-    return wrapped(point, {tolerance, object});
-  }
+  if ( !object || !(object instanceof Token) || !SETTINGS.useTestVisibility ) return wrapped(point, {tolerance, object});
+
 
   if ( !canvas.effects.visionSources.size ) return game.user.isGM;
 
@@ -160,9 +159,7 @@ export function objectIsVisible(point, object, {
     // if the center point is viewable, the token is viewable from that source.
     testLOSFOV(visionSet, lightSet, lvSet, result, containsTestFn, point);
 
-    if ( result.hasFOV && result.hasLOS ) {
-      return true;
-    }
+    if ( result.hasFOV && result.hasLOS ) return true;
 
   } else { // Includes the 50% case at the moment
     // If more than 50% of the token area is required to be viewable, then
@@ -172,9 +169,7 @@ export function objectIsVisible(point, object, {
     lightSet.forEach(l => l.containsPoint(point) || lightSet.delete(l));
     lvSet.forEach(l => l.containsPoint(point) || lvSet.delete(l) );
 
-    if ( !visionSet.size && !lightSet.size && !lvSet.size ) {
-      return false;
-    }
+    if ( !visionSet.size && !lightSet.size && !lvSet.size ) return false;
   }
 
   // Construct the constrained token shape if not yet present.
@@ -399,7 +394,7 @@ function constrainedTokenShape(token, { boundsScale = SETTINGS.boundsScale } = {
  */
 function sourceSeesPolygon(source, poly) {
   const intersect = source.intersectPolygon(poly);
-  if ( !intersect.points.length ) { return 0; }
+  if ( !intersect.points.length ) return 0;
   return intersect.area() / poly.area();
 }
 
