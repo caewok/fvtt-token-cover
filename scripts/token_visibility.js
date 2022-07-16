@@ -290,9 +290,6 @@ export function objectIsVisible(point, object, {
 }
 
 
-
-
-
 // ***** FUNCTIONS
 
 /**
@@ -384,7 +381,7 @@ function testWallsForSource(constrained, origin, src, result, { noAreaTest = tru
   const keyPoints = (constrained instanceof PIXI.Polygon)
     ? polygonKeyPointsForOrigin(constrained, origin)
     : bboxKeyCornersForOrigin(constrained, origin);
-  if ( !keyPoints || !keyPoints.length ) { return; }
+  if ( !keyPoints || !keyPoints.length ) return;
   const rayA = new Ray(src, keyPoints[0]);
   const rayB = new Ray(src, keyPoints[1]);
 //   debug && drawing.drawSegment(rayA, { color: drawing.COLORS.lightblue }); // eslint-disable-line no-unused-expressions
@@ -417,9 +414,8 @@ function testWallsForSource(constrained, origin, src, result, { noAreaTest = tru
     case 1: result.LOS = noAreaTest; return true; // Walls only one side
   }
 
-  if ( wallsBoth.size || limitedBoth.size > 1 ) {
-    return false; // Walls on both sides; source cannot provide LOS.
-  }
+  // Walls on both sides; source cannot provide LOS.
+  if ( wallsBoth.size || limitedBoth.size > 1 ) return false;
 
   return true;
 }
@@ -434,10 +430,13 @@ function getWallsForRay(ray) {
   const limited = new Set();
   walls.forEach(w => {
     if ( foundry.utils.lineSegmentIntersects(w.A, w.B, ray.A, ray.B)
-      || !ClockwiseSweepPolygon.testWallInclusion(w, ray.A, "sight") ) { walls.delete(w); return; }
+      || !ClockwiseSweepPolygon.testWallInclusion(w, ray.A, "sight") ) {
+        walls.delete(w);
+        return;
+    }
 
     // The wall intersects and counts for sight. Remove if limited; store separately
-    if (w.document.sight === CONST.WALL_SENSE_TYPES.LIMITED) {
+    if ( w.document.sight === CONST.WALL_SENSE_TYPES.LIMITED ) {
       walls.delete(w);
       limited.set(w);
     }
@@ -471,9 +470,9 @@ function polygonKeyPointsForOrigin(poly, origin) {
 
     for ( const edge of poly.iterateEdges() ) {
       if ( (edge.A.x === pt.x && edge.A.y === pt.y)
-        || (edge.B.x === pt.x && edge.B.y === pt.y) ) { continue; }
+        || (edge.B.x === pt.x && edge.B.y === pt.y) ) continue;
 
-      if ( foundry.utils.lineSegmentIntersects(origin, pt, edge.A, edge.B )) {
+      if ( foundry.utils.lineSegmentIntersects(origin, pt, edge.A, edge.B) ) {
         isKey = false;
         break;
       }
@@ -486,7 +485,7 @@ function polygonKeyPointsForOrigin(poly, origin) {
     } else { // !isKey
       foundNonKeyFirst ||= !foundKey;
       foundNonKeyAfter ||= foundKey;
-      if ( foundNonKeyFirst && foundKey ) { break; } // Finished the key sequence
+      if ( foundNonKeyFirst && foundKey ) break; // Finished the key sequence
     }
   }
 
@@ -501,10 +500,8 @@ function polygonKeyPointsForOrigin(poly, origin) {
  * @return {Point[]|null} Returns null if origin is inside the bounding box.
  */
 function bboxKeyCornersForOrigin(bbox, origin) {
-  const z = bbox._zone(origin);
-  const zones = PIXI.Rectangle._zones;
-
-  switch ( z ) {
+  const zones = PIXI.Rectangle.CS_ZONES;
+  switch ( bbox._getZone(origin) ) {
     case zones.INSIDE: return null;
     case zones.TOPLEFT: return [{ x: bbox.left, y: bbox.bottom }, { x: bbox.right, y: bbox.top }];
     case zones.TOPRIGHT: return [{ x: bbox.left, y: bbox.top }, { x: bbox.right, y: bbox.bottom }];
@@ -529,9 +526,8 @@ function bboxKeyCornersForOrigin(bbox, origin) {
 function sourceIntersectsBounds(source, bbox) {
   for ( const si of source.iterateEdges() ) {
     if ( bbox.lineSegmentIntersects(si.A, si.B,
-      { intersectFn: altLineSegmentIntersects }) ) { return true; }
+      { intersectFn: altLineSegmentIntersects }) ) return true;
   }
-
   return false;
 }
 
@@ -549,11 +545,11 @@ function sourceIntersectsPolygonBounds(source, bbox, bounds_edges) {
 
   for ( const si of source.iterateEdges() ) {
     // Only if the segment intersects the bounding box or is completely inside, test each edge
-    if ( !bbox.lineSegmentIntersects(si.A, si.B, { inside: true }) ) { continue; }
+    if ( !bbox.lineSegmentIntersects(si.A, si.B, { inside: true }) ) continue;
 
     for (let j = 0; j < ln2; j += 1) {
       const sj = bounds_edges[j];
-      if ( altLineSegmentIntersects(si.A, si.B, sj.A, sj.B) ) { return true; }
+      if ( altLineSegmentIntersects(si.A, si.B, sj.A, sj.B) ) return true;
     }
   }
   return false;
@@ -608,8 +604,8 @@ function constrainedTokenShape(token, { boundsScale = SETTINGS.boundsScale } = {
   if ( constrained.points.length !== 10 ) return constrained;
 
   for ( const pt of constrained.iteratePoints({ close: false }) ) {
-    if ( !(pt.x.almostEqual(bbox.left) || pt.x.almostEqual(bbox.right)) ) { return constrained; }
-    if ( !(pt.x.almostEqual(bbox.top) || pt.y.almostEqual(bbox.bottom)) ) { return constrained; }
+    if ( !(pt.x.almostEqual(bbox.left) || pt.x.almostEqual(bbox.right)) ) return constrained;
+    if ( !(pt.x.almostEqual(bbox.top) || pt.y.almostEqual(bbox.bottom)) ) return constrained;
   }
 
   return bbox;
