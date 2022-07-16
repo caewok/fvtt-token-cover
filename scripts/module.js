@@ -18,8 +18,7 @@ export const SETTINGS = {
   useTestVisibility: true,
   boundsScale: 1,
   percentArea: 0,
-  areaTestOnly: false,
-  finalTest: true
+  areaTestOnly: false
 };
 
 Hooks.once("init", async function() {

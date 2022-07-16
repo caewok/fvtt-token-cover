@@ -129,7 +129,7 @@ export function objectIsVisible(point, object, {
 
   // PercentArea: Percent of the token that must be visible to count.
   // BoundsScale: Scale the bounds of the token before considering visibility.
-  const { areaTestOnly, finalTest } = SETTINGS;
+  const { areaTestOnly } = SETTINGS;
 
   // Test each vision source
   // https://ptb.discord.com/channels/170995199584108546/956307084931112960/985541410495283250
@@ -184,44 +184,42 @@ export function objectIsVisible(point, object, {
 
   // Construct the constrained token shape if not yet present.
   // Store in token so it can be re-used (wrapped updateVisionSource will remove it when necessary)
-  if ( finalTest ) {
-    object._constrainedTokenShape ||= constrainedTokenShape(object, { boundsScale });
-    const constrained = object._constrainedTokenShape;
-    const constrained_bbox = constrained.getBounds();
-    const notConstrained = constrained instanceof PIXI.Rectangle;
+  object._constrainedTokenShape ||= constrainedTokenShape(object, { boundsScale });
+  const constrained = object._constrainedTokenShape;
+  const constrained_bbox = constrained.getBounds();
+  const notConstrained = constrained instanceof PIXI.Rectangle;
 
-    // Test the bounding box for line-of-sight for easy cases
-    // Draw ray from source to the two corners that are at the edge of the viewable
-    // bounding box.
-    // Test if walls intersect the rays or are between the rays
+  // Test the bounding box for line-of-sight for easy cases
+  // Draw ray from source to the two corners that are at the edge of the viewable
+  // bounding box.
+  // Test if walls intersect the rays or are between the rays
 
-    // If unconstrained token shape (rectangle):
-    // no walls: has los
-    // walls only on one side: has los
-    // walls don't intersect rays: has los
+  // If unconstrained token shape (rectangle):
+  // no walls: has los
+  // walls only on one side: has los
+  // walls don't intersect rays: has los
 
-    // If constrained token shape:
-    // no walls: has los
-    // otherwise, not clear whether has los
+  // If constrained token shape:
+  // no walls: has los
+  // otherwise, not clear whether has los
 
-    // From this point, we are left testing remaining sources by checking whether the
-    // polygon intersects the constrained bounding box.
+  // From this point, we are left testing remaining sources by checking whether the
+  // polygon intersects the constrained bounding box.
 
-    if ( finalTest ) {
-      if ( areaTestOnly || percentArea !== 0 ) {
-        const bounds_poly = notConstrained ? constrained.toPolygon() : constrained;
-        testLOSFOV(visionSet, lightSet, lvSet, result, areaTestFn, bounds_poly, percentArea);
+  if ( areaTestOnly || percentArea !== 0 ) {
+    const bounds_poly = notConstrained ? constrained.toPolygon() : constrained;
+    testLOSFOV(visionSet, lightSet, lvSet, result, areaTestFn, bounds_poly, percentArea);
 
-      } else if ( notConstrained ) {
-        testLOSFOV(visionSet, lightSet, lvSet, result, sourceIntersectsBoundsTestFn, constrained_bbox);
+  } else if ( notConstrained ) {
+    testLOSFOV(visionSet, lightSet, lvSet, result, sourceIntersectsBoundsTestFn, constrained_bbox);
 
-      } else {
-        const constrained_edges = [...constrained.iterateEdges()];
-        testLOSFOV(visionSet, lightSet, lvSet, result, sourceIntersectsPolygonTestFn,
-          constrained_bbox, constrained_edges);
-      }
-    }
+  } else {
+    const constrained_edges = [...constrained.iterateEdges()];
+    testLOSFOV(visionSet, lightSet, lvSet, result, sourceIntersectsPolygonTestFn,
+      constrained_bbox, constrained_edges);
   }
+
+
   return result.hasFOV && result.hasLOS;
 
 }
