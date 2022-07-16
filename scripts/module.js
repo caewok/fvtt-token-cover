@@ -17,13 +17,7 @@ export const SETTINGS = {
   debug: false,
   useTestVisibility: true,
   boundsScale: 1,
-  percentArea: 0,
-  areaTestOnly: false,
-  fastTestOnly: false,
-  testWalls: true,
-  testCenterPoint: true,
-  finalTest: true,
-  fastFilterOnly: false
+  percentArea: 0
 };
 
 Hooks.once("init", async function() {
