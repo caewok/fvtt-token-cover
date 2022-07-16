@@ -6,7 +6,7 @@ canvas
 "use strict";
 
 import { randomUniform } from "./random.js";
-import { SETTINGS } from "./module.js";
+import { SETTINGS, getSetting, setSetting } from "./settings.js";
 
 
 /*
@@ -58,8 +58,10 @@ await QBenchmarkLoopWithSetupFn(iterations, setupFn, intersectRectangle, "inters
  */
 
 export async function benchTokenVisibility(n = 100) {
-  const default_setting = SETTINGS.useTestVisibility;
-  const default_percent_area = SETTINGS.percentArea;
+  const { PERCENT_AREA, USE_MODULE } = SETTINGS;
+
+  const default_use_module = getSetting(USE_MODULE);
+  const default_percent_area = getSetting(PERCENT_AREA);
 
   console.log(`Benching token visibility for ${canvas.tokens.placeables.length - 1} tokens.`);
 
@@ -80,37 +82,38 @@ export async function benchTokenVisibility(n = 100) {
     return out;
   };
 
-  SETTINGS.useTestVisibility = false;
+  await setSetting(USE_MODULE, false);
   await QBenchmarkLoopFn(n, testFn, "Original", tokens);
-  SETTINGS.useTestVisibility = true;
+  await setSetting(USE_MODULE, true);
 
   // ***** Area Percentage = 0 ***********
   console.log("Area percentage 0");
-  SETTINGS.percentArea = 0;
-  await QBenchmarkLoopFn(n, testFn, "PixelPerfect", tokens);
+  await setSetting(PERCENT_AREA, 0);
+  await QBenchmarkLoopFn(n, testFn, "TokenVisibility", tokens);
 
   // ***** Area Percentage = .25 ***********
   console.log("\nArea percentage .25");
-  SETTINGS.percentArea = 0.25;
-  await QBenchmarkLoopFn(n, testFn, "PixelPerfect", tokens);
+  await setSetting(PERCENT_AREA, 0.25);
+  await QBenchmarkLoopFn(n, testFn, "TokenVisibility", tokens);
+
+  // ***** Area Percentage = .5 ***********
+  console.log("\nArea percentage .5");
+  await setSetting(PERCENT_AREA, 0.5);
+  await QBenchmarkLoopFn(n, testFn, "TokenVisibility", tokens);
 
   // ***** Area Percentage = .75 ***********
   console.log("\nArea percentage .75");
-  SETTINGS.percentArea = .75;
-  await QBenchmarkLoopFn(n, testFn, "PixelPerfect", tokens);
+  await setSetting(PERCENT_AREA, 0.75);
+  await QBenchmarkLoopFn(n, testFn, "TokenVisibility", tokens);
 
   // ***** Area Percentage = 1 ***********
   console.log("\nArea percentage 1");
-  SETTINGS.percentArea = 1;
-  await QBenchmarkLoopFn(n, testFn, "PixelPerfect", tokens);
-
-  // One more original to finish it off
-  SETTINGS.useTestVisibility = false;
-  await QBenchmarkLoopFn(n, testFn, "Original", tokens);
+  await setSetting(PERCENT_AREA, 1);
+  await QBenchmarkLoopFn(n, testFn, "TokenVisibility", tokens);
 
   // Reset settings
-  SETTINGS.useTestVisibility = default_setting;
-  SETTINGS.percentArea = default_percent_area;
+  await setSetting(USE_MODULE, default_use_module);
+  await setSetting(PERCENT_AREA, default_percent_area);
 }
 
 
@@ -169,7 +172,7 @@ function precision(n, digits = 2) {
   * @param {Object} ...args       Additional arguments to pass to function
   * @return {Number[]}            Array with the time elapsed for each iteration.
   */
-export async function QBenchmarkLoop(iterations, thisArg, fn_name, ...args) {
+async function QBenchmarkLoop(iterations, thisArg, fn_name, ...args) {
   const name = `${thisArg.name || thisArg.constructor.name}.${fn_name}`;
   const fn = (...args) => thisArg[fn_name](...args);
   return await QBenchmarkLoopFn(iterations, fn, name, ...args);
@@ -185,7 +188,7 @@ export async function QBenchmarkLoop(iterations, thisArg, fn_name, ...args) {
   * @param {Object} ...args       Additional arguments to pass to function
   * @return {Number[]}            Array with the time elapsed for each iteration.
   */
-export async function QBenchmarkLoopFn(iterations, fn, name, ...args) {
+async function QBenchmarkLoopFn(iterations, fn, name, ...args) {
   const timings = [];
   const num_warmups = Math.ceil(iterations * .05);
 
@@ -214,7 +217,7 @@ export async function QBenchmarkLoopFn(iterations, fn, name, ...args) {
  * @param {Object} ...args        Additional arguments to pass to setup function
  * @return {Number[]}             Array with the time elapsed for each iteration.
  */
-export async function QBenchmarkLoopWithSetupFn(iterations, setupFn, fn, name, ...setupArgs) {
+async function QBenchmarkLoopWithSetupFn(iterations, setupFn, fn, name, ...setupArgs) {
   const timings = [];
   const num_warmups = Math.ceil(iterations * .05);
 
@@ -241,7 +244,7 @@ export async function QBenchmarkLoopWithSetupFn(iterations, setupFn, fn, name, .
  * @param {Function}  fn          Function to test
  * @param ...args                 Arguments passed to fn.
  */
-export async function benchmarkLoopFn(iterations, fn, name, ...args) {
+async function benchmarkLoopFn(iterations, fn, name, ...args) {
   const f = () => fn(...args);
   Object.defineProperty(f, "name", {value: `${name}`, configurable: true});
   await foundry.utils.benchmark(f, iterations, ...args);
@@ -257,7 +260,7 @@ export async function benchmarkLoopFn(iterations, fn, name, ...args) {
  * @param {Function}  fn          Function to test
  * @param ...args                 Arguments passed to fn.
  */
-export async function benchmarkLoop(iterations, thisArg, fn, ...args) {
+async function benchmarkLoop(iterations, thisArg, fn, ...args) {
   const f = () => thisArg[fn](...args);
   Object.defineProperty(f, "name", {value: `${thisArg.name || thisArg.constructor.name}.${fn}`, configurable: true});
   await foundry.utils.benchmark(f, iterations, ...args);

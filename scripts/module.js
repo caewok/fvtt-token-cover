@@ -5,20 +5,12 @@ game
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import * as drawing from "./drawing.js";
 import * as bench from "./benchmark.js";
-import * as random from "./random.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
 import { objectIsVisible, objectHasCoverFromToken } from "./token_visibility.js";
+import { registerSettings } from "./settings.js";
 
-// Toggle settings
-export const SETTINGS = {
-  debug: false,
-  useTestVisibility: true,
-  boundsScale: 1,
-  percentArea: 0
-};
 
 Hooks.once("init", async function() {
   registerLibWrapperMethods();
@@ -26,15 +18,15 @@ Hooks.once("init", async function() {
   registerPIXIPolygonMethods();
 
   game.modules.get(MODULE_ID).api = {
-    SETTINGS, // See also CONFIG.debug.polygons = true
-
     objectIsVisible,
     objectHasCoverFromToken,
 
-    bench,
-    drawing,
-    random
+    bench
   };
+});
+
+Hooks.once("setup", async function() {
+  registerSettings();
 });
 
 /**
