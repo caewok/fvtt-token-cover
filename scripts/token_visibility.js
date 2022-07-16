@@ -93,6 +93,11 @@ export function testVisibility(wrapped, point, {tolerance=2, object=null}={}) { 
  * the first. Assumes FOV and just tests for LOS to the object.
  * @param {Token} token
  * @param {Token|Object}
+ *
+ * @param {Object}      [options]  Additional options which modify visibility testing.
+ * @param {number} [options.percent_area]   Percent of the token that must be visible to count.
+ * @param {number} [options.bounds_scale]   Scale the bounds of the token before considering visibility.
+ * @returns {boolean} True if object is visible
  */
 export function objectHasCoverFromToken(token, object, {
   percentArea = getSetting(SETTINGS.PERCENT_AREA),
@@ -121,7 +126,7 @@ export function objectHasCoverFromToken(token, object, {
  * @param {VisionSource[]} [options.visionSources]  Sources of vision to test
  * @param {LightSource[]} [options.lightSources]    Sources of light to test
  *
- * @return {boolean} True if object is visible
+ * @returns {boolean} True if object is visible
  */
 export function objectIsVisible(point, object, {
   hasFOV = canvas.scene.globalLight,
