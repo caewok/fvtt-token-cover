@@ -158,7 +158,6 @@ export function objectIsVisible(point, object, {
   // ignored. Or a token that has walked through a wall at a corner.
   // Seems very difficult to construct a scenario in which the center point does not
   // control visibility as defined below.
-  // TO-DO: Move constraint test here? Would be much slower.
 
   if ( percentArea <= .50 ) {
     // If less than 50% of the token area is required to be viewable, then
@@ -167,7 +166,7 @@ export function objectIsVisible(point, object, {
 
     if ( result.hasFOV && result.hasLOS ) return true;
 
-  } else { // Includes the 50% case at the moment
+  } else {
     // If more than 50% of the token area is required to be viewable, then
     // the center point must be viewable for the token to be viewable from that source.
     // (necessary but not sufficient)
@@ -175,7 +174,7 @@ export function objectIsVisible(point, object, {
     lightSet.forEach(l => l.containsPoint(point) || lightSet.delete(l));
     lvSet.forEach(l => l.containsPoint(point) || lvSet.delete(l) );
 
-    if ( !visionSet.size && !lightSet.size && !lvSet.size ) return false;
+    if ( !visionSet.size && !lvSet.size ) return false;
   }
 
   // Construct the constrained token shape if not yet present.
