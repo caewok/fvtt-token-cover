@@ -2,6 +2,6 @@
     "tokenvisibility.settings.percent-area.Name": "Percent Token Area",
     "tokenvisibility.settings.percent-area.Hint": "Percentage of the token hit area that must be viewable to another token to be considered visible by that other token. If set to 0, then if any part of the token is viewable, it is considered visible.",
 
-    "tokenvisibility.settings.bounds-scale.Name": "Token Size Percentage",
+    "tokenvisibility.settings.bounds-scale.Name": "Percent Token Size",
     "tokenvisibility.settings.bounds-scale.Hint": "For the visibility calculation, multiply the token width and height by this percentage before considering visibility."
 }
