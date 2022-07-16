@@ -131,7 +131,7 @@ export function objectIsVisible(point, object, {
 
   // PercentArea: Percent of the token that must be visible to count.
   // BoundsScale: Scale the bounds of the token before considering visibility.
-  const { areaTestOnly, testCenterPoint, testWalls, finalTest } = SETTINGS;
+  const { areaTestOnly, testWalls, finalTest } = SETTINGS;
 
   // Test each vision source
   // https://ptb.discord.com/channels/170995199584108546/956307084931112960/985541410495283250
@@ -161,29 +161,28 @@ export function objectIsVisible(point, object, {
   // control visibility as defined below.
   // TO-DO: Move constraint test here? Would be much slower.
 
-  if ( testCenterPoint ) {
-    if ( percentArea <= .50 ) {
-      // If less than 50% of the token area is required to be viewable, then
-      // if the center point is viewable, the token is viewable from that source.
-      testLOSFOV(visionSet, lightSet, lvSet, result, containsTestFn, point);
+  if ( percentArea <= .50 ) {
+    // If less than 50% of the token area is required to be viewable, then
+    // if the center point is viewable, the token is viewable from that source.
+    testLOSFOV(visionSet, lightSet, lvSet, result, containsTestFn, point);
 
-      if ( result.hasFOV && result.hasLOS ) {
-        return true;
-      }
+    if ( result.hasFOV && result.hasLOS ) {
+      return true;
+    }
 
-    } else { // Includes the 50% case at the moment
-      // If more than 50% of the token area is required to be viewable, then
-      // the center point must be viewable for the token to be viewable from that source.
-      // (necessary but not sufficient)
-      visionSet.forEach(v => v.fov.contains(point.x, point.y) || visionSet.delete(v));
-      lightSet.forEach(l => l.containsPoint(point) || lightSet.delete(l));
-      lvSet.forEach(l => l.containsPoint(point) || lvSet.delete(l) );
+  } else { // Includes the 50% case at the moment
+    // If more than 50% of the token area is required to be viewable, then
+    // the center point must be viewable for the token to be viewable from that source.
+    // (necessary but not sufficient)
+    visionSet.forEach(v => v.fov.contains(point.x, point.y) || visionSet.delete(v));
+    lightSet.forEach(l => l.containsPoint(point) || lightSet.delete(l));
+    lvSet.forEach(l => l.containsPoint(point) || lvSet.delete(l) );
 
-      if ( !visionSet.size && !lightSet.size && !lvSet.size ) {
-        return false;
-      }
+    if ( !visionSet.size && !lightSet.size && !lvSet.size ) {
+      return false;
     }
   }
+
 
   // Construct the constrained token shape if not yet present.
   // Store in token so it can be re-used (wrapped updateVisionSource will remove it when necessary)

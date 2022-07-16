@@ -20,7 +20,6 @@ export const SETTINGS = {
   percentArea: 0,
   areaTestOnly: false,
   testWalls: true,
-  testCenterPoint: true,
   finalTest: true
 };
 

@@ -1,9 +1,6 @@
 /* globals
-game,
 foundry,
-ClockwiseSweepPolygon
-canvas,
-CONFIG
+canvas
 */
 
 "use strict";
@@ -11,9 +8,6 @@ CONFIG
 import { randomUniform } from "./random.js";
 import { SETTINGS } from "./module.js";
 
-function randomInteger(min, max) {
-  return Math.roundFast((Math.random() + min) * max)
-}
 
 /*
 Rectangle intersection vs just testing all four edges
@@ -54,13 +48,7 @@ iterations = 10000
 await QBenchmarkLoopWithSetupFn(iterations, setupFn, intersectSides, "intersectSides")
 await QBenchmarkLoopWithSetupFn(iterations, setupFn, intersectRectangle, "intersectRectangle")
 
-
-
-
-
 */
-
-
 
 /**
  * Benchmark token visibility.
@@ -68,7 +56,6 @@ await QBenchmarkLoopWithSetupFn(iterations, setupFn, intersectRectangle, "inters
  * - control the token
  * - test visibility of all other tokens
  */
-
 
 export async function benchTokenVisibility(n = 100) {
   const default_setting = SETTINGS.useTestVisibility;
@@ -80,53 +67,42 @@ export async function benchTokenVisibility(n = 100) {
   const testFn = function(tokens) {
     const out = [];
     for ( const token of tokens ) {
-       const tolerance = token.document.iconSize / 4;
+      const tolerance = token.document.iconSize / 4;
 
-       // randomize a bit to try to limit caching
-       const center = {
-         x: token.center.x + Math.roundFast(randomUniform(-10, 10)),
-         y: token.center.y + Math.roundFast(randomUniform(-10, 10))
-       };
+      // Randomize a bit to try to limit caching
+      const center = {
+        x: token.center.x + Math.roundFast(randomUniform(-10, 10)),
+        y: token.center.y + Math.roundFast(randomUniform(-10, 10))
+      };
 
-       out.push(canvas.effects.visibility.testVisibility(center, { tolerance, object: token }));
+      out.push(canvas.effects.visibility.testVisibility(center, { tolerance, object: token }));
     }
     return out;
-  }
+  };
 
   const reset = function() {
     // Reset
-    SETTINGS.testCenterPoint = true;
     SETTINGS.testWalls = true;
     SETTINGS.finalTest = true;
-  }
-
-  const testCenter = async function() {
-    SETTINGS.testCenterPoint = true;
-    SETTINGS.testWalls = false;
-    SETTINGS.finalTest = false;
-    await QBenchmarkLoopFn(n, testFn, "\tCenter only", tokens);
-  }
+  };
 
   const testWalls = async function() {
-    SETTINGS.testCenterPoint = false;
     SETTINGS.testWalls = true;
     SETTINGS.finalTest = false;
     await QBenchmarkLoopFn(n, testFn, "\tWalls only", tokens);
-  }
+  };
 
   const testFinal = async function() {
-    SETTINGS.testCenterPoint = false;
     SETTINGS.testWalls = false;
     SETTINGS.finalTest = true;
     await QBenchmarkLoopFn(n, testFn, "\tFinal only", tokens);
-  }
+  };
 
   const testCenterPlusFinal = async function() {
-    SETTINGS.testCenterPoint = true;
     SETTINGS.testWalls = false;
     SETTINGS.finalTest = true;
     await QBenchmarkLoopFn(n, testFn, "\tCenter+Final", tokens);
-  }
+  };
 
   reset();
 
@@ -135,53 +111,49 @@ export async function benchTokenVisibility(n = 100) {
   SETTINGS.useTestVisibility = true;
 
   // ***** Area Percentage = 0 ***********
-  console.log("Area percentage 0")
+  console.log("Area percentage 0");
   SETTINGS.percentArea = 0;
   await QBenchmarkLoopFn(n, testFn, "PixelPerfect", tokens);
 
   // ********** Area Test Only
-  console.log("Final: Area Only")
+  console.log("Final: Area Only");
   SETTINGS.areaTestOnly = true;
   await QBenchmarkLoopFn(n, testFn, "\tArea only", tokens);
   await testFinal();
   await testCenterPlusFinal();
 
-  console.log("Final: Not Area Only")
+  console.log("Final: Not Area Only");
   SETTINGS.areaTestOnly = false;
-  await testCenter();
   await testWalls();
   await testFinal();
   await testCenterPlusFinal();
   reset();
 
   // ***** Area Percentage = .25 ***********
-  console.log("\nArea percentage .25")
+  console.log("\nArea percentage .25");
   SETTINGS.percentArea = 0.25;
   await QBenchmarkLoopFn(n, testFn, "PixelPerfect", tokens);
 
-  await testCenter();
   await testWalls();
   await testFinal();
   await testCenterPlusFinal();
   reset();
 
   // ***** Area Percentage = .75 ***********
-  console.log("\nArea percentage .75")
+  console.log("\nArea percentage .75");
   SETTINGS.percentArea = .75;
   await QBenchmarkLoopFn(n, testFn, "PixelPerfect", tokens);
 
-  await testCenter();
   await testWalls();
   await testFinal();
   await testCenterPlusFinal();
   reset();
 
   // ***** Area Percentage = 1 ***********
-  console.log("\nArea percentage 1")
+  console.log("\nArea percentage 1");
   SETTINGS.percentArea = 1;
   await QBenchmarkLoopFn(n, testFn, "PixelPerfect", tokens);
 
-  await testCenter();
   await testWalls();
   await testFinal();
   await testCenterPlusFinal();
