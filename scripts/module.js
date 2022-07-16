@@ -1,14 +1,32 @@
 /* globals
-Hooks
+Hooks,
+game
 */
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { log } from "./util.js";
+import * as bench from "./benchmark.js";
+import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
+import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
+import { objectIsVisible, objectHasCoverFromToken } from "./token_visibility.js";
+import { registerSettings } from "./settings.js";
 
 
 Hooks.once("init", async function() {
-  log("Hello!");
+  registerLibWrapperMethods();
+  patchHelperMethods();
+  registerPIXIPolygonMethods();
+
+  game.modules.get(MODULE_ID).api = {
+    objectIsVisible,
+    objectHasCoverFromToken,
+
+    bench
+  };
+});
+
+Hooks.once("setup", async function() {
+  registerSettings();
 });
 
 /**
