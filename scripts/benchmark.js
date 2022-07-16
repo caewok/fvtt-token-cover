@@ -149,12 +149,14 @@ export async function benchTokenVisibility(n = 100) {
   await QBenchmarkLoopFn(n, testFn, "PixelPerfect", tokens);
 
   // ********** Area Test Only
+  console.log("Final: Area Only")
   SETTINGS.areaTestOnly = true;
   await QBenchmarkLoopFn(n, testFn, "\tArea only", tokens);
   await testFinal();
   await testCenterPlusFinal();
-  SETTINGS.areaTestOnly = false;
 
+  console.log("Final: Not Area Only")
+  SETTINGS.areaTestOnly = false;
   await testCenter();
   await testWalls();
   await testFinal();
