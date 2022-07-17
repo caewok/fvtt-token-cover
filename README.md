@@ -2,11 +2,11 @@
 [![Foundry Version](https://img.shields.io/badge/dynamic/json.svg?url=https://github.com/caewok/fvtt-token-visibility/releases/latest/download/module.json&label=Foundry%20Version&query=$.compatibleCoreVersion&colorB=blueviolet)](https://github.com/caewok/fvtt-token-visibility/releases/latest)
 [![License](https://img.shields.io/github/license/caewok/fvtt-token-visibility)](LICENSE)
 
-# Token Visibility
+# Alternative Token Visibility
 
 This module replaces Foundry's default method of measuring visibility of tokens with a more precise, but (at times) more computationally expensive, method.
 
-By measuring the precise token boundary and by considering intersecting walls, Token Visibility prevents tokens from being seen in situations where they partially overlap a wall. Token Visibility provides additional customizations to control when partially obscured tokens can be seen.
+By measuring the precise token boundary and by considering intersecting walls, Alt Token Visibility prevents tokens from being seen in situations where they partially overlap a wall. Alt Token Visibility provides additional customizations to control when partially obscured tokens can be seen.
 
 # Installation
 
@@ -23,13 +23,13 @@ Base Foundry calculates token (and other object) visibility by considering 9 poi
 
 <img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/token_dots.jpg" width="200" alt="9 red dots inside a large token square">
 
-Token Visibility instead considers the whole token shape—the orange outline in the above image.
+Alt Token Visibility instead considers the whole token shape—the orange outline in the above image.
 
 # Settings
 
 The GM can change the percent area required for a token to be visibile, and change how large the token boundary appears for purposes of the visibility test.
 
-<img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/settings.jpg" width="400" alt="Settings for the Token Visibility Module">
+<img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/settings.jpg" width="400" alt="Settings for the Alt Token Visibility Module">
 
 Currently, Percent Token Size and Percent Token Area are GM world settings only. Please submit an issue in this Github if you have a use case that would warrant a more nuanced approach.
 
@@ -44,15 +44,15 @@ Token Area indicates how much of the token must be viewable to be seen. Note tha
 
 Setting the Percent Token Area to 1 means that the entire token area must be viewable for the token to be seen. Setting the Percent Token Area to 0 means that if any part of the token is viewable, then it is seen.
 
-| <img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/visibility-area-100.jpg" width="300" alt="Settings for the Token Visibility Module"> |
+| <img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/visibility-area-100.jpg" width="300" alt="Settings for the Alt Token Visibility Module"> |
 |:--:|
 | <em>Area set to 1. Lizard only viewable once our wizard moves completely beyond the wall.<em> |
 
-| <img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/visibility-area-50.jpg" width="300" alt="Settings for the Token Visibility Module"> |
+| <img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/visibility-area-50.jpg" width="300" alt="Settings for the Alt Token Visibility Module"> |
 |:--:|
 | <em>Area set to 0.5. Lizard viewable once our wizard can view half of it.</em> |
 
-| <img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/visibility-area-10.jpg" width="300" alt="Settings for the Token Visibility Module"> |
+| <img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/visibility-area-10.jpg" width="300" alt="Settings for the Alt Token Visibility Module"> |
 |:--:|
 | <em>Area set to 0.1. Lizard viewable when nearly any of it can be seen beyond the wall.</em> |
 
@@ -119,9 +119,9 @@ export function objectIsVisible(point, object, {
 
 # Performance
 
-Depending on settings and scene layout, Token Visibility may be faster or slower than the default Foundry approach. (The default Foundry approach is already very fast, so the speed improvement, if any, is minimal.) It is usually slower.
+Depending on settings and scene layout, Alternative Token Visibility may be faster or slower than the default Foundry approach. (The default Foundry approach is already very fast, so the speed improvement, if any, is minimal.) It is usually slower.
 
-Setting area = 0 tends to be a bit faster than other area settings. When area is set to less than or equal to 50%, calculations for visible tokens tend to be faster. When area is set to greater than 50%, calculations for non-visible tokens tend to be faster. When a token partially overlaps a wall, Token Visibility must re-construct the visible shape, which is slow.
+Setting area = 0 tends to be a bit faster than other area settings. When area is set to less than or equal to 50%, calculations for visible tokens tend to be faster. When area is set to greater than 50%, calculations for non-visible tokens tend to be faster. When a token partially overlaps a wall, Alt Token Visibility must re-construct the visible shape, which is slow.
 
 You can test performance on a given scene by selecting a token on the scene and running the following code in the console. This will test whether the selected token can see every other token in the scene for a variety of area settings.
 
