@@ -1,3 +1,6 @@
+# 0.1.1
+Update name to better distinguish from core Foundry functionality.
+
 # 0.1
 Initial release.
 

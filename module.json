@@ -1,6 +1,6 @@
 {
   "id": "tokenvisibility",
-  "title": "Token Visibility",
+  "title": "Alternative Token Visibility",
   "version": "This is auto replaced",
   "library": false,
   "manifestPlusVersion": "1.0.0",
@@ -35,8 +35,8 @@
       "lang": "en",
       "name": "English",
       "path": "languages/en.json",
-      "title": "Token Visibility",
-      "description": "Advanced token visibility rules"
+      "title": "Alternative Token Visibility",
+      "description": "Alternative token visibility rules"
     }
   ],
   "url": "This is auto replaced",
