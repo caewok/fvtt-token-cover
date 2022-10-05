@@ -65,7 +65,7 @@ export function tokenUpdateVisionSource(wrapped, { defer=false, deleted=false }=
  */
 export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test) {
   // Only apply this test to tokens
-  if ( !target || !(object instanceof Token) || !getSetting(SETTINGS.USE_MODULE) )
+  if ( !target || !(target instanceof Token) || !getSetting(SETTINGS.USE_MODULE) )
     return wrapped(visionSource, mode, target, test);
 
   // Only keep the center test point
