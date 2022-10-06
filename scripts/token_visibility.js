@@ -60,31 +60,55 @@ export function tokenUpdateVisionSource(wrapped, { defer=false, deleted=false }=
 }
 
 /**
- * Wrap CanvasVisibility.prototype.testVisibility.
- * For now, override only for testing token object
- *
- * Test whether a point on the Canvas is visible based on the current vision and LOS polygons.
- *
- * @param {Point} point                 The point in space to test, an object with coordinates x and y.
- *
- * @param {object} [options]            Additional options which modify visibility testing.
- * @param {number} [options.tolerance=2]    A numeric radial offset which allows for a non-exact match. For example,
- *                                          if tolerance is 2 then the test will pass if the point is within 2px of a
- *                                          vision polygon.
- * @param {PIXI.DisplayObject} [options.object] An optional reference to the object whose visibility is being tested
- * @returns {boolean}                   Whether the point is currently visible.
+ * Wrap DetectionMode.prototype._testLOS
+ * Assumes the test.point is a center point.
  */
-export function testVisibility(wrapped, point, {tolerance=2, object=null}={}) { // eslint-disable-line no-unused-vars
-  if ( !object || !(object instanceof Token) || !getSetting(SETTINGS.USE_MODULE) ) return wrapped(point, {tolerance, object});
+export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test) {
+  // Only apply this test to tokens
+  if ( !target || !(target instanceof Token) || !getSetting(SETTINGS.USE_MODULE) )
+    return wrapped(visionSource, mode, target, test);
+
+  // Only keep the center test point
+  if ( target.center.x !== test.point.x && target.center.y !== test.point.y ) return false;
+
+  let hasLOS = wrapped(visionSource, mode, target, test);
+  const percentArea = getSetting(SETTINGS.PERCENT_AREA);
+  const boundsScale = getSetting(SETTINGS.BOUNDS_SCALE);
+
+  // If less than 50% of the token area is required to be viewable, then
+  // if the center point is viewable, the token is viewable from that source.
+  if ( hasLOS && percentArea < 0.50 ) return true;
+
+  // If more than 50% of the token area is required to be viewable, then
+  // the center point must be viewable for the token to be viewable from that source.
+  // (necessary but not sufficient)
+  if ( !hasLOS && percentArea >= 0.50 ) return false;
 
 
-  if ( !canvas.effects.visionSources.size ) return game.user.isGM;
+  // Construct the constrained token shape if not yet present.
+  // Store in token so it can be re-used (wrapped updateVisionSource will remove it when necessary)
+  target._constrainedTokenShape ||= constrainedTokenShape(target, { boundsScale });
+  const constrained = target._constrainedTokenShape;
+  const constrained_bbox = constrained.getBounds();
+  const notConstrained = constrained instanceof PIXI.Rectangle;
 
-  return objectIsVisible(point, object, {
-    hasFOV: canvas.scene.globalLight,
-    percentArea: getSetting(SETTINGS.PERCENT_AREA),
-    boundsScale: getSetting(SETTINGS.BOUNDS_SCALE) });
+  // Check whether the polygon intersects the constrained bounding box
+  if ( percentArea !== 0 ) {
+    const bounds_poly = notConstrained ? constrained.toPolygon() : constrained;
+    hasLOS = areaTestFn(visionSource.los, bounds_poly, percentArea);
+
+  } else if ( notConstrained ) {
+    hasLOS = sourceIntersectsBoundsTestFn(visionSource.los, constrained_bbox)
+
+  } else {
+    const constrained_edges = [...constrained.iterateEdges()];
+    hasLOS = sourceIntersectsPolygonTestFn(visionSource.los, constrained_bbox, constrained_edges)
+  }
+
+  return hasLOS;
 }
+
+
 
 // ***** API
 
@@ -179,7 +203,7 @@ export function objectIsVisible(point, object, {
     lightSet.forEach(l => l.containsPoint(point) || lightSet.delete(l));
     lvSet.forEach(l => l.containsPoint(point) || lvSet.delete(l) );
 
-    if ( !visionSet.size && !lvSet.size ) return false;
+    if ( !visionSet.size && !lvSet.size && !lightSet.size ) return false;
   }
 
   // Construct the constrained token shape if not yet present.

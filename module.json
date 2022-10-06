@@ -5,8 +5,8 @@
   "library": false,
   "manifestPlusVersion": "1.0.0",
   "compatibility": {
-    "minimum": "10.272",
-    "verified": "10"
+    "minimum": "10.286",
+    "verified": "10.286"
   },
   "authors": [
     {

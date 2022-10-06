@@ -1,3 +1,6 @@
+# 0.1.2
+Updates for compatibility with Foundry v10.286.
+
 # 0.1.1
 Update name to better distinguish from core Foundry functionality.
 
