@@ -16,7 +16,8 @@ Add this [Manifest URL](https://github.com/caewok/fvtt-token-visibility/releases
 - [libWrapper](https://github.com/ruipin/fvtt-lib-wrapper)
 
 ## Known conflicts
-None yet! Feel free to file an issue if/when you find one!
+- [Perfect Vision](https://github.com/dev7355608/perfect-vision). Likely incompatible because Perfect Vision overrides `testVisibility.`
+- [Levels](https://github.com/theripper93/Levels). Likely incompatible because Levels overrides the `contains` test in `ClockwiseSweepPolygon.`
 
 # Methodology
 Base Foundry calculates token (and other object) visibility by considering 9 points arranged around the token: the center point plus 8 points spaced out in a rectangular shape.
