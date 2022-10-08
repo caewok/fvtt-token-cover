@@ -386,6 +386,14 @@ function constrainedTokenShape(token, { boundsScale = SETTINGS.boundsScale } = {
   // Many times with a grid, a wall will overlap a bbox edge.
   walls = walls.filter(w =>
     bbox.lineSegmentIntersects(w.A, w.B, { inside: true, intersectFn: altLineSegmentIntersects }));
+
+  // Don't include walls that are in line with a boundary edge
+  walls = walls.filter(w => {
+    if ( w.A.x === w.B.x && (w.A.x === bbox.left || w.A.x === bbox.right) ) return false;
+    if ( w.A.y === w.B.y && (w.A.y === bbox.top || w.A.y === bbox.bottom) ) return false;
+    return true;
+  });
+
   if ( !walls.length ) return bbox;
 
   // One or more walls are inside or intersect the bounding box.
