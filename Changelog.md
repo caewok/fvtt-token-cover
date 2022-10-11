@@ -1,3 +1,6 @@
+# 0.1.3
+Fix issue #1 (Area vision failing when area === 0).
+
 # 0.1.2
 Updates for compatibility with Foundry v10.286.
 

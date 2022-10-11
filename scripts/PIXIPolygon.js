@@ -26,10 +26,13 @@ function* iteratePoints({close = true} = {}) {
 function* iterateEdges({close = true} = {}) {
   // Very similar to iteratePoints
   const dropped = (!this.isClosed || close) ? 0 : 2;
-  const iter = this.points.length - dropped - 2;
+  const ln = this.points.length;
+  const iter = ln - dropped;
   for (let i = 0; i < iter; i += 2) {
+    const j = (i + 2) % ln;
+
     yield { A: { x: this.points[i], y: this.points[i + 1] },       // eslint-disable-line indent
-            B: { x: this.points[i + 2], y: this.points[i + 3] } }; // eslint-disable-line indent
+            B: { x: this.points[j], y: this.points[j + 1] } }; // eslint-disable-line indent
   }
 }
 

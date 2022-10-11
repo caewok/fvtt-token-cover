@@ -9,7 +9,7 @@ PIXI
 "use strict";
 
 import { SETTINGS, getSetting } from "./settings.js";
-import { orient2dPixelLine } from "./util.js";
+import { orient2dPixelLine, lineSegmentCrosses, walkLineIncrement} from "./util.js";
 
 /* Visibility algorithm
 Three tests, increasing in difficulty and stringency. User can select between 0% and 100%
@@ -101,8 +101,16 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
     hasLOS = sourceIntersectsBoundsTestFn(visionSource.los, constrained_bbox)
 
   } else {
-    const constrained_edges = [...constrained.iterateEdges()];
-    hasLOS = sourceIntersectsPolygonTestFn(visionSource.los, constrained_bbox, constrained_edges)
+
+    /*
+    Doesn't seem to work b/c it returns true when separated by a wall
+    path1 = visionSource.los.toClipperPoints()
+    path2 = constrained.toClipperPoints();
+    diff = ClipperLib.Clipper.MinkowskiDiff(path1, path2, true)
+    ClipperLib.Clipper.PointInPolygon(new ClipperLib.IntPoint(0, 0), res[0])
+    */
+
+    hasLOS = sourceIntersectsPolygonTestFn(visionSource.los, constrained_bbox, constrained)
   }
 
   return hasLOS;
@@ -224,9 +232,8 @@ export function objectIsVisible(point, object, {
     testLOSFOV(visionSet, lightSet, lvSet, result, sourceIntersectsBoundsTestFn, constrained_bbox);
 
   } else {
-    const constrained_edges = [...constrained.iterateEdges()];
     testLOSFOV(visionSet, lightSet, lvSet, result, sourceIntersectsPolygonTestFn,
-      constrained_bbox, constrained_edges);
+      constrained_bbox, constrained);
   }
 
   return result.hasFOV && result.hasLOS;
@@ -303,11 +310,11 @@ const sourceIntersectsBoundsTestFn = function(poly, bbox) {
  * Helper used in testLOSFOV
  * @param {PIXI.Polygon} poly
  * @param {PIXI.Polygon} bbox Constrained boundary box
- * @param {PolygonEdge[]} edges  Edges for the constrained boundary box.
+ * @param {PIXI.Polygon} bounds Constrained polygon
  * @return {boolean} True if the bbox intersects the polygon.
  */
-const sourceIntersectsPolygonTestFn = function(poly, bbox, edges) {
-  return sourceIntersectsPolygonBounds(poly, bbox, edges);
+const sourceIntersectsPolygonTestFn = function(poly, bbox, bounds) {
+  return sourceIntersectsPolygonBounds(poly, bbox, bounds);
 };
 
 /**
@@ -319,7 +326,7 @@ const sourceIntersectsPolygonTestFn = function(poly, bbox, edges) {
 function sourceIntersectsBounds(source, bbox) {
   for ( const si of source.iterateEdges() ) {
     if ( bbox.lineSegmentIntersects(si.A, si.B,
-      { intersectFn: altLineSegmentIntersects }) ) return true;
+      { intersectFn: foundry.utils.lineSegmentIntersects }) ) return true;
   }
   return false;
 }
@@ -333,35 +340,64 @@ function sourceIntersectsBounds(source, bbox) {
  * (1) and (2) are to avoid situations in which the boundary polygon and the source polygon
  * are separated by a wall.
  */
-function sourceIntersectsPolygonBounds(source, bbox, bounds_edges) {
+function sourceIntersectsPolygonBounds(source, bbox, bounds) {
+  const bounds_edges = [...bounds.iterateEdges()];
   const ln2 = bounds_edges.length;
 
   for ( const si of source.iterateEdges() ) {
     // Only if the segment intersects the bounding box or is completely inside, test each edge
     if ( !bbox.lineSegmentIntersects(si.A, si.B, { inside: true }) ) continue;
 
-    for (let j = 0; j < ln2; j += 1) {
+    // Options to test if segment penetrates bounds:
+    // (1) segment crosses a bounding edge.
+    // (2) one segment endpoint is collinear to a bounding edge and the other is contained but not collinear.
+    // (3) both segment endpoints are collinear, and moving a short ways along the segment is contained but not collinear
+    // (4) both segment endpoints are collinear to the same edge. -- skip this segment
+    let aIsCollinear = false;
+    let bIsCollinear = false;
+    let overlappingEdge = false;
+
+    const pt = walkLineIncrement(si.A, si.B);
+    let ptIsCollinear = false;
+    for ( let j = 0; j < ln2; j += 1 ) {
       const sj = bounds_edges[j];
-      if ( altLineSegmentIntersects(si.A, si.B, sj.A, sj.B) ) return true;
+
+      // (1) Segment crosses a bounding edge.
+      if ( lineSegmentCrosses(sj.A, sj.B, si.A, si.B) ) return true;
+
+      const orientA = foundry.utils.orient2dFast(sj.A, sj.B, si.A);
+      const orientB = foundry.utils.orient2dFast(sj.A, sj.B, si.B);
+
+      //
+      if ( !(orientA || orientB) ) {
+        // (4) Segment endpoints collinear to same edge.
+        overlappingEdge = true;
+        break;
+      }
+
+      aIsCollinear ||= !orientA;
+      bIsCollinear ||= !orientB;
+      ptIsCollinear ||= foundry.utils.orient2dFast(sj.A, sj.B, pt);
     }
+
+    if ( overlappingEdge ) continue;
+
+    if ( aIsCollinear && bIsCollinear ) {
+      // (3) Both segment endpoints are collinear.
+      if ( ptIsCollinear && bounds.contains(pt.x, pt.y) ) return true;
+    } else if ( aIsCollinear && bounds.contains(si.B.x, si.B.y) ) {
+      // (2) One segment endpoint is collinear (A)
+      return true;
+
+    } else if ( bIsCollinear && bounds.contains(si.A.x, si.A.y) ) {
+      // (2) One segment endpoint is collinear (B)
+      return true;
+
+    }
+
   }
+
   return false;
-}
-
-/**
- * Alternative lineSegmentIntersects test that rejects collinear lines as well
- * as lines that intersect at an endpoint.
- */
-function altLineSegmentIntersects(a, b, c, d) {
-  // First test the orientation of A and B with respect to CD to reject collinear cases
-  const xa = orient2dPixelLine(a, b, c);
-  const xb = orient2dPixelLine(a, b, d);
-  if ( !xa || !xb ) return false;
-  const xab = (xa * xb) < 0;
-
-  // Also require an intersection of CD with respect to AB
-  const xcd = (foundry.utils.orient2dFast(c, d, a) * foundry.utils.orient2dFast(c, d, b)) < 0;
-  return xab && xcd;
 }
 
 /**
@@ -370,7 +406,9 @@ function altLineSegmentIntersects(a, b, c, d) {
  * @param {Token} token
  * @return {PIXI.Polygon}
  */
-function constrainedTokenShape(token, { boundsScale = SETTINGS.boundsScale } = {}) {
+export function constrainedTokenShape(token, { boundsScale } = {}) {
+  boundsScale ??= getSetting(SETTINGS.BOUNDS_SCALE);
+
   let bbox = token.bounds;
   if ( boundsScale !== 1) {
     // BoundsScale is a percentage where less than one means make the bounds smaller,
@@ -385,7 +423,15 @@ function constrainedTokenShape(token, { boundsScale = SETTINGS.boundsScale } = {
   // Only care about walls that strictly intersect the bbox or are inside the bbox.
   // Many times with a grid, a wall will overlap a bbox edge.
   walls = walls.filter(w =>
-    bbox.lineSegmentIntersects(w.A, w.B, { inside: true, intersectFn: altLineSegmentIntersects }));
+    bbox.lineSegmentIntersects(w.A, w.B, { inside: true, intersectFn: foundry.utils.lineSegmentIntersects }));
+
+  // Don't include walls that are in line with a boundary edge
+  walls = walls.filter(w => {
+    if ( w.A.x === w.B.x && (w.A.x === bbox.left || w.A.x === bbox.right) ) return false;
+    if ( w.A.y === w.B.y && (w.A.y === bbox.top || w.A.y === bbox.bottom) ) return false;
+    return true;
+  });
+
   if ( !walls.length ) return bbox;
 
   // One or more walls are inside or intersect the bounding box.

@@ -8,9 +8,8 @@ import { MODULE_ID } from "./const.js";
 import * as bench from "./benchmark.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
-import { objectIsVisible, objectHasCoverFromToken } from "./token_visibility.js";
+import { objectIsVisible, objectHasCoverFromToken, constrainedTokenShape } from "./token_visibility.js";
 import { registerSettings } from "./settings.js";
-
 
 Hooks.once("init", async function() {
   registerLibWrapperMethods();
@@ -20,7 +19,7 @@ Hooks.once("init", async function() {
   game.modules.get(MODULE_ID).api = {
     objectIsVisible,
     objectHasCoverFromToken,
-
+    constrainedTokenShape,
     bench
   };
 });
