@@ -9,7 +9,7 @@ PIXI
 "use strict";
 
 import { SETTINGS, getSetting } from "./settings.js";
-import { orient2dPixelLine, midPoint} from "./util.js";
+import { orient2dPixelLine, lineSegmentCrosses, walkLineIncrement} from "./util.js";
 
 /* Visibility algorithm
 Three tests, increasing in difficulty and stringency. User can select between 0% and 100%
@@ -326,7 +326,7 @@ const sourceIntersectsPolygonTestFn = function(poly, bbox, bounds) {
 function sourceIntersectsBounds(source, bbox) {
   for ( const si of source.iterateEdges() ) {
     if ( bbox.lineSegmentIntersects(si.A, si.B,
-      { intersectFn: altLineSegmentIntersects }) ) return true;
+      { intersectFn: foundry.utils.lineSegmentIntersects }) ) return true;
   }
   return false;
 }
@@ -349,82 +349,55 @@ function sourceIntersectsPolygonBounds(source, bbox, bounds) {
     if ( !bbox.lineSegmentIntersects(si.A, si.B, { inside: true }) ) continue;
 
     // Options to test if segment penetrates bounds:
-    // (1) segment is collinear to any bounding edge. Reject segment.
-    // (2) segment has 1 collinear endpoint:
-    //   - other endpoint is contained: return true (goes inside)
-    //   - crosses boundary with non-collinear endpoint: return true (crosses)
-    // (3) segment has 0 collinear endpoints: test for cross
-    // (4) segment has 2 collinear endpoints on different boundary edges: return true
+    // (1) segment crosses a bounding edge.
+    // (2) one segment endpoint is collinear to a bounding edge and the other is contained but not collinear.
+    // (3) both segment endpoints are collinear, and moving a short ways along the segment is contained but not collinear
+    // (4) both segment endpoints are collinear to the same edge. -- skip this segment
+    let aIsCollinear = false;
+    let bIsCollinear = false;
+    let overlappingEdge = false;
 
-
-
-
-    let collinear = false;
-    let a_collinear = false;
-    let b_collinear = false;
+    const pt = walkLineIncrement(si.A, si.B);
+    let ptIsCollinear = false;
     for ( let j = 0; j < ln2; j += 1 ) {
       const sj = bounds_edges[j];
-      const xa = !foundry.utils.orient2dFast(sj.A, sj.B, si.A);
-      const xb = !foundry.utils.orient2dFast(sj.A, sj.B, si.B);
 
-      a_collinear ||= xa;
-      b_collinear ||= xb;
+      // (1) Segment crosses a bounding edge.
+      if ( lineSegmentCrosses(sj.A, sj.B, si.A, si.B) ) return true;
 
-      if ( xa && xb ) {
-        collinear = true;
+      const orientA = foundry.utils.orient2dFast(sj.A, sj.B, si.A);
+      const orientB = foundry.utils.orient2dFast(sj.A, sj.B, si.B);
+
+      //
+      if ( !(orientA || orientB) ) {
+        // (4) Segment endpoints collinear to same edge.
+        overlappingEdge = true;
         break;
       }
 
-      // (4) Segment has 2 collinear endpoints on different boundary edges
-      if ( a_collinear && b_collinear ) return true;
+      aIsCollinear ||= !orientA;
+      bIsCollinear ||= !orientB;
+      ptIsCollinear ||= foundry.utils.orient2dFast(sj.A, sj.B, pt);
     }
 
-    // (1) Segment is collinear to a boundary edge
-    if ( collinear ) continue;
+    if ( overlappingEdge ) continue;
 
-    // (3) Segment has 0 collinear endpoints
-    if ( !a_collinear && !b_collinear ) {
-      for ( let j = 0; j < ln2; j += 1 ) {
-        const sj = bounds_edges[j];
-        if ( foundry.utils.lineSegmentIntersects(si.A, si.B, sj.A, sj.B) ) return true;
-      }
-    } else if ( a_collinear ^ b_collinear ) {
-      // If the line ends inside, then it counts
-      if ( a_collinear && bounds.contains(si.B) ) return true;
-      if ( b_collinear && bounds.contains(si.A) ) return true;
+    if ( aIsCollinear && bIsCollinear ) {
+      // (3) Both segment endpoints are collinear.
+      if ( ptIsCollinear && bounds.contains(pt.x, pt.y) ) return true;
+    } else if ( aIsCollinear && bounds.contains(si.B.x, si.B.y) ) {
+      // (2) One segment endpoint is collinear (A)
+      return true;
 
-      // If the line intersects any other line that does not share the endpoint
-      for ( let j = 0; j < ln2; j += 1 ) {
-        const sj = bounds_edges[j];
-        if ( foundry.utils.orient2dFast(sj.A, sj.B, si.A)
-          || foundry.utils.orient2dFast(sj.A, sj.B, si.B) ) continue;
-
-        if ( foundry.utils.lineSegmentIntersects(si.A, si.B, sj.A, sj.B) ) return true;
-      }
+    } else if ( bIsCollinear && bounds.contains(si.A.x, si.A.y) ) {
+      // (2) One segment endpoint is collinear (B)
+      return true;
 
     }
 
   }
+
   return false;
-}
-
-/**
- * Alternative lineSegmentIntersects test that rejects collinear lines as well
- * as lines that intersect at an endpoint.
- */
-function altLineSegmentIntersects(a, b, c, d) {
-  // First test the orientation of A and B with respect to CD to reject collinear cases
-  const xa = orient2dPixelLine(a, b, c);
-  const xb = orient2dPixelLine(a, b, d);
-//   const xa = foundry.utils.orient2dFast(a, b, c);
-//   const xb = foundry.utils.orient2dFast(a, b, d);
-
-  if ( !xa || !xb ) return false;
-  const xab = (xa * xb) < 0;
-
-  // Also require an intersection of CD with respect to AB
-  const xcd = (foundry.utils.orient2dFast(c, d, a) * foundry.utils.orient2dFast(c, d, b)) < 0;
-  return xab && xcd;
 }
 
 /**
@@ -450,7 +423,7 @@ export function constrainedTokenShape(token, { boundsScale } = {}) {
   // Only care about walls that strictly intersect the bbox or are inside the bbox.
   // Many times with a grid, a wall will overlap a bbox edge.
   walls = walls.filter(w =>
-    bbox.lineSegmentIntersects(w.A, w.B, { inside: true, intersectFn: altLineSegmentIntersects }));
+    bbox.lineSegmentIntersects(w.A, w.B, { inside: true, intersectFn: foundry.utils.lineSegmentIntersects }));
 
   // Don't include walls that are in line with a boundary edge
   walls = walls.filter(w => {

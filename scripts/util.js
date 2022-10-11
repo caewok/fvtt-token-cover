@@ -46,40 +46,59 @@ export function orient2dPixelLine(a, b, c) {
   return (orientation2 < cutoff) ? 0 : orientation;
 }
 
-export function midPoint(a, b) {
-  return { x: (a.x + b.x ) * 0.5,
-           y: (a.y + b.y ) * 0.5 };
+/**
+ * Like foundry.utils.lineSegmentIntersects but requires the two segments cross.
+ * In other words, sharing endpoints or an endpoint on the other segment does not count.
+ * @param {Point} a                   The first endpoint of segment AB
+ * @param {Point} b                   The second endpoint of segment AB
+ * @param {Point} c                   The first endpoint of segment CD
+ * @param {Point} d                   The second endpoint of segment CD
+ *
+ * @returns {boolean}                 Do the line segments cross?
+ */
+export function lineSegmentCrosses(a, b, c, d) {
+  const xa = foundry.utils.orient2dFast(a, b, c);
+  if ( !xa ) return false;
+
+  const xb = foundry.utils.orient2dFast(a, b, d);
+  if ( !xb ) return false;
+
+  const xc = foundry.utils.orient2dFast(c, d, a);
+  if ( !xc ) return false;
+
+  const xd = foundry.utils.orient2dFast(c, d, b);
+  if ( !xd ) return false;
+
+  const xab = (xa * xb) < 0; // Cannot be equal to 0.
+  const xcd = (xc * xd) < 0; // Cannot be equal to 0.
+
+  return xab && xcd;
 }
 
 /**
- * Dot product of two points.
- * @param {Point} a
- * @param {Point} b
- * @returns {Number}
+ * Version of Ray.prototype.towardsPointSquared
+ * Default is to move 1 pixel along the line.
+ * @param {Point} a           Starting point
+ * @param {Point} b           Ending point
+ * @param {number} distance2  Square of the distance to move
+ * @returns {Point} New point on the line, sqrt(distance2) from a.
  */
-export function dot(a, b) { return (a.x * b.x) + (a.y * b.y); }
-
-/**
- * Cross product of two points
- * @param {Point} p1
- * @param {Point} p2
- * @return {Number}
- */
-export function cross3d(a, b) {
-  const c = { x: 0, y: 0, z: 0 };
-  c.x = a.y * b.z - a.z * b.y;
-  c.y = a.z * b.x - a.x * b.z;
-  c.z = a.x * b.y - a.y * b.x;
-  return c;
+export function walkLineIncrement(a, b, distance2 = 1) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const t = Math.sqrt(distance2 / (Math.pow(dx, 2) + Math.pow(dy, 2)));
+  return {
+    x: a.x + (t * dx),
+    y: a.y + (t * dy)
+   };
 }
 
-/**
- * Normalize 2d vector such that the vector length is 1
- * @param {Point} v
- * @returns {Point}
- */
-export function normalize2d(v) {
-  const length = Math.sqrt(dot(v, v));
-  const mult = length >= EPSILON ? (1 / length) : 0;
-  return { x: v.x * mult, y: v.y * mult }
+export function walkLinePercentage(a, b, percent = .5) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+
+  return {
+    x: a.x + (percent * dx),
+    y: a.y + (percent * dy)
+  }
 }

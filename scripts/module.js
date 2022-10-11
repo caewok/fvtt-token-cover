@@ -10,7 +10,6 @@ import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
 import { objectIsVisible, objectHasCoverFromToken, constrainedTokenShape } from "./token_visibility.js";
 import { registerSettings } from "./settings.js";
-import { GJK2D } from "./GJK-EPA.js";
 
 Hooks.once("init", async function() {
   registerLibWrapperMethods();
@@ -21,7 +20,6 @@ Hooks.once("init", async function() {
     objectIsVisible,
     objectHasCoverFromToken,
     constrainedTokenShape,
-    GJK2D,
     bench
   };
 });
