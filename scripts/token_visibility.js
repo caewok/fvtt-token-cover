@@ -170,7 +170,7 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
 
 
   // Only apply this test to tokens
-  if ( !target || !(target instanceof Token) || !getSetting(SETTINGS.USE_MODULE) )
+  if ( !target || !(target instanceof Token) )
     return wrapped(visionSource, mode, target, test);
 
   // Only keep the center test point

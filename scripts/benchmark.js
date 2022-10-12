@@ -58,9 +58,9 @@ await QBenchmarkLoopWithSetupFn(iterations, setupFn, intersectRectangle, "inters
  */
 
 export async function benchTokenVisibility(n = 100) {
-  const { PERCENT_AREA, USE_MODULE } = SETTINGS;
+  const { PERCENT_AREA } = SETTINGS.VISION;
 
-  const default_use_module = getSetting(USE_MODULE);
+  const default_use_module = true;
   const default_percent_area = getSetting(PERCENT_AREA);
 
   console.log(`Benching token visibility for ${canvas.tokens.placeables.length - 1} tokens.`);
@@ -82,9 +82,9 @@ export async function benchTokenVisibility(n = 100) {
     return out;
   };
 
-  await setSetting(USE_MODULE, false);
+//   await setSetting(USE_MODULE, false);
   await QBenchmarkLoopFn(n, testFn, "Original", tokens);
-  await setSetting(USE_MODULE, true);
+//   await setSetting(USE_MODULE, true);
 
   // ***** Area Percentage = 0 ***********
   console.log("Area percentage 0");
@@ -112,7 +112,7 @@ export async function benchTokenVisibility(n = 100) {
   await QBenchmarkLoopFn(n, testFn, "TokenVisibility", tokens);
 
   // Reset settings
-  await setSetting(USE_MODULE, default_use_module);
+//   await setSetting(USE_MODULE, default_use_module);
   await setSetting(PERCENT_AREA, default_percent_area);
 }
 

@@ -344,14 +344,6 @@ export function registerSettings() {
     default: ""
   });
 
-
-  game.settings.register(MODULE_ID, SETTINGS.USE_MODULE, {
-    scope: "world",
-    config: false,
-    default: true,
-    type: Boolean
-  });
-
   log("Done registering settings.");
 }
 
