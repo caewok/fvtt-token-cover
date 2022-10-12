@@ -39,9 +39,9 @@
     "tokenvisibility.settings.cover-trigger-corner-low.Name": "Low cover trigger",
     "tokenvisibility.settings.cover-trigger-corner-low.Hint": "When this or more corners are blocked, the token will have low cover unless a higher level of cover applies.",
     "tokenvisibility.settings.cover-trigger-corner-medium.Name": "Medium cover trigger",
-    "tokenvisibility.settings.cover-trigger-corner-medium.Hint": "When this or more corners are blocked, the token will have medium cover unless a higher level of cover applies.",
+    "tokenvisibility.settings.cover-trigger-corner-medium.Hint": "When this or more corners are blocked, the token will have medium cover unless a higher level of cover applies. Hex grids will add one to this value.",
     "tokenvisibility.settings.cover-trigger-corner-high.Name": "High cover trigger",
-    "tokenvisibility.settings.cover-trigger-corner-high.Hint": "If this many corners or more are blocked, the token will have high cover. Set to 99 to prevent automatic assignment of high cover.",
+    "tokenvisibility.settings.cover-trigger-corner-high.Hint": "If this many corners or more are blocked, the token will have high cover. Hex grids will add one to this value. Set to 99 to prevent automatic assignment of high cover.",
 
     "tokenvisibility.settings.cover-trigger-area-low.Name": "Low cover trigger",
     "tokenvisibility.settings.cover-trigger-area-low.Hint": "If less than this percent of the token area is viewable, the token will have low cover.",
