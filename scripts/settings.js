@@ -201,7 +201,7 @@ export function registerSettings() {
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CORNERS.LOW}.Hint`),
     range: {
       max: 99,
-      min: 0,
+      min: 1,
       step: 1
     },
     scope: "world",
@@ -217,7 +217,7 @@ export function registerSettings() {
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CORNERS.MEDIUM}.Hint`),
     range: {
       max: 99,
-      min: 0,
+      min: 1,
       step: 1
     },
     scope: "world",
@@ -233,7 +233,7 @@ export function registerSettings() {
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CORNERS.HIGH}.Hint`),
     range: {
       max: 99,
-      min: 0,
+      min: 1,
       step: 1
     },
     scope: "world",
@@ -249,7 +249,7 @@ export function registerSettings() {
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_AREA.LOW}.Hint`),
     range: {
       max: 1,
-      min: 0,
+      min: 0.1,
       step: 0.1
     },
     scope: "world",
@@ -264,7 +264,7 @@ export function registerSettings() {
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_AREA.MEDIUM}.Hint`),
     range: {
       max: 1,
-      min: 0,
+      min: 0.1,
       step: 0.1
     },
     scope: "world",
@@ -279,7 +279,7 @@ export function registerSettings() {
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_AREA.HIGH}.Hint`),
     range: {
       max: 1,
-      min: 0,
+      min: 0.1,
       step: 0.1
     },
     scope: "world",
