@@ -42,7 +42,109 @@ then it is sufficient to test if the constrained token shape intersects the los/
 1 + 3 alone appear to do better than 1 + 2 + 3, so skipping 2 for now.
 */
 
+
+/* Token visibility testing workflow
+Token.prototype.isVisible
+- Constructs "tolerance" based on width and height of token
+- Calls canvas.effects.visibility.testVisibility(this.center, {tolerance, object: this})
+
+CanvasVisibility.prototype.testVisibility
+- Prepares array of points based on tolerance. Default is 2 px. Either [0, 0] or
+  set of 9 points: center, 8 points arranged in square, tolerance away from center
+- Creates a config = { object, tests: offsets.map(o => point, los)}
+- Calls lightSource.testVisibility for each active lightSource
+- Calls modes.basicSight.testVisibility for each visionSource. (basic detection test)
+- Calls detectionMode.testVisibility on each vision source with special detection modes
+
+DetectionMode.prototype.testVisibility
+- Calls DetectionMode.prototype._canDetect for the given visionSource and object
+- Calls DetectionMode.prototype._testPoint for each test object (test point) for the given visionSource and object
+
+DetectionMode.prototype._canDetect
+- Theoretical detection; should not consider relative positions of objects
+
+DetectionMode.prototype._testPoint
+- For given point, call _testLOS
+- For given point, call _testRange
+
+DetectionMode.prototype._testLOS
+- Tests whether the visionSource.los contains the test point
+
+DetectionMode.prototype._testRange
+- Tests whether the test point is within range of a light source visionSource.object.getLightRadius
+
+*/
+
+
+/* Token visibility options
+
+CENTER
+√ Test only the center point of a token.
+- Options:
+  1. Override Token.prototype.isVisible to pass tolerance = 0
+√ -->  2. Wrap CanvasVisibility.prototype.testVisibility to intercept the tolerance option
+  3. Override CanvasVisibility.prototype.testVisibility to change point construction
+  4. Wrap lightSource.testVisibility, modes.basicSight.testVisibility, and detectionMode.testVisibility
+
+When 3d walls present:
+- Override DetectionMode.prototype._testLOS to test for walls block?
+
+FOUNDRY
+- Test using the default foundry test points
+
+When 3d walls present:
+- Override DetectionMode.prototype._testLOS to test for walls block?
+
+AREA
+- Test what portion of token area is within LOS.
+- Wrap CanvasVisibility.prototype.testVisibility to set to single center point
+
+When 3d walls present:
+- Override DetectionMode.prototype._testLOS to test for walls block?
+--> Fall back on point testing?
+- Switch to AREA_3D?
+
+
+FOUNDRY_3D
+- Add additional test points to top and bottom of token
+- Wrap lightSource.testVisibility, modes.basicSight.testVisibility, and detectionMode.testVisibility
+
+When 3d walls present:
+- Override DetectionMode.prototype._testLOS to test for walls block?
+
+
+AREA_3D
+- Test what portion of token area is within LOS.
+- Test 3 times: xy, xz, and yz projections.
+- Wrap CanvasVisibility.prototype.testVisibility to set to single center point
+
+When 3d walls present:
+- Test 3 times: xy, xz, and yz projections.
+
+*/
+
 // ***** WRAPPERS
+
+/**
+ * Wrap CanvasVisibility.prototype.testVisibility
+ * Set tolerance to zero, to cause only a single centerpoint to be tested, for CENTER_TO_CENTER.
+ * @param {Point} point                         The point in space to test, an object with coordinates x and y.
+ * @param {object} [options]                    Additional options which modify visibility testing.
+ * @param {number} [options.tolerance=2]        A numeric radial offset which allows for a non-exact match.
+ *                                              For example, if tolerance is 2 then the test will pass if the point
+ *                                              is within 2px of a vision polygon.
+ * @param {PIXI.DisplayObject} [options.object] An optional reference to the object whose visibility is being tested
+ * @returns {boolean}                           Whether the point is currently visible.
+ */
+export function testVisibilityCanvasVisibility(wrapped, point, {tolerance=2, object=null}={}) {
+  const algorithm = getSetting(SETTINGS.VISION.ALGORITHM);
+
+  if ( object instanceof Token
+    && (algorithm === SETTINGS.VISION.CENTER
+    || algorithm === SETTINGS.VISION.AREA) ) tolerance = 0;
+
+  return wrapped(point, { tolerance, object });
+}
 
 /**
  * Wrap Token.prototype.updateVisionSource
@@ -64,6 +166,9 @@ export function tokenUpdateVisionSource(wrapped, { defer=false, deleted=false }=
  * Assumes the test.point is a center point.
  */
 export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test) {
+
+
+
   // Only apply this test to tokens
   if ( !target || !(target instanceof Token) || !getSetting(SETTINGS.USE_MODULE) )
     return wrapped(visionSource, mode, target, test);
@@ -72,8 +177,9 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   if ( target.center.x !== test.point.x && target.center.y !== test.point.y ) return false;
 
   let hasLOS = wrapped(visionSource, mode, target, test);
-  const percentArea = getSetting(SETTINGS.PERCENT_AREA);
-  const boundsScale = getSetting(SETTINGS.BOUNDS_SCALE);
+  const percentArea = getSetting(SETTINGS.VISION.PERCENT_AREA);
+  const boundsScale = 1;
+//   const boundsScale = getSetting(SETTINGS.VISION.BOUNDS_SCALE);
 
   // If less than 50% of the token area is required to be viewable, then
   // if the center point is viewable, the token is viewable from that source.
