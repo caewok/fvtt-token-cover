@@ -26,17 +26,25 @@ function setSettingVisibility(settingName, visible = true) {
 export const SETTINGS = {
   USE_MODULE: "use-module",
 
-  VISION: {
-    ALGORITHM: "vision-algorithm",
+  RANGE: {
+    ALGORITHM: "range-algorithm",
     TYPES: {
-      CENTER: "vision-center",
-      FOUNDRY: "vision-foundry",
-      AREA: "vision-area",
-      FOUNDRY_3D: "vision-foundry-3d",
-      AREA_3D: "vision-area-3d"
+      CENTER: "range-center",
+      FOUNDRY: "range-foundry",
+      FOUNDRY_3D: "range-foundry-3d"
+      // CORNERS?
+      // Less points in 3d, like 19? (top, bottom, 1 center point)
+    }
+  }
+
+  LOS: {
+    ALGORITHM: "los-algorithm",
+    TYPES: {
+      POINTS: "los-points"
+      AREA: "los-area",
     },
 
-    PERCENT_AREA: "vision-percent-area"
+    PERCENT_AREA: "los-percent-area"
   },
 
   COVER: {
@@ -77,17 +85,24 @@ export const SETTINGS = {
 };
 
 
-/* Visibility testing types:
+/* Range testing types:
 1. Center point -- Only test the center point of tokens.
 2. Foundry -- Use the Foundry 8 points.
+3. 3d Foundry -- Add additional points to top and bottom, 27 total
+
+For 3d, test points in 3 dimensions.
+*/
+
+/* LOS testing types:
+1. Points --- Use the same points from range, test if contained in LOS polygon.
 3. Area -- Use token area.
-4. 3d Foundry -- Add additional points to top and bottom
-5. 3d Area -- Use token area. Check xy, xz, and yz overhead views. If token area exceeded
-in any of the three views, it counts.
 
 For area, provide a slider for 0–100% of token area.
 Each token should have a setting for bounds scale for vision.
 
+For 3d points, don't test los contains for extra 3d Foundry points. (They would obv. be the same. )
+For 3d points, do test wall collisions for non-infinite walls.
+(Infinite walls included in LOS.)
 */
 
 /* Cover testing types:
@@ -126,39 +141,50 @@ dnd5e: half, 3/4, full
 export function registerSettings() {
   log("Registering token visibility settings.");
 
-  const VTYPES = SETTINGS.VISION.TYPES;
+  const RTYPES = SETTINGS.RANGE.TYPES;
+  const VTYPES = SETTINGS.LOS.TYPES;
   const CTYPES = SETTINGS.COVER.TYPES;
   const coverNames = getCoverNames();
 
 
-  game.settings.register(MODULE_ID, SETTINGS.VISION.ALGORITHM, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.VISION.ALGORITHM}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.VISION.ALGORITHM}.Hint`),
+  game.settings.register(MODULE_ID, SETTINGS.RANGE.ALGORITHM, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.ALGORITHM}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.ALGORITHM}.Hint`),
     scope: "world",
     config: true,
     type: String,
     choices: {
-      [VTYPES.CENTER]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.CENTER}`),
-      [VTYPES.FOUNDRY]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.FOUNDRY}`),
-      [VTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.AREA}`),
-      [VTYPES.FOUNDRY_3D]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.FOUNDRY_3D}`),
-      [VTYPES.AREA_3D]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.AREA_3D}`)
+      [RTYPES.CENTER]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.CENTER}`),
+      [RTYPES.FOUNDRY]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.FOUNDRY}`),
+      [RTYPES.FOUNDRY_3D]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.FOUNDRY_3D}`),
     },
-    default: VTYPES.FOUNDRY,
-    onChange: updateVisionSetting
+    default: RTYPES.FOUNDRY
   });
 
-  game.settings.register(MODULE_ID, SETTINGS.VISION.PERCENT_AREA, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.VISION.PERCENT_AREA}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.VISION.PERCENT_AREA}.Hint`),
+  game.settings.register(MODULE_ID, SETTINGS.LOS.ALGORITHM, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.ALGORITHM}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.ALGORITHM}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      [VTYPES.FOUNDRY]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.FOUNDRY}`),
+      [VTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.AREA}`)
+    },
+    default: VTYPES.FOUNDRY,
+    onChange: updateLosSetting
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.LOS.PERCENT_AREA, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.PERCENT_AREA}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.PERCENT_AREA}.Hint`),
     range: {
       max: 1,
       min: 0,
       step: 0.1
     },
     scope: "world",
-    config: () => getSetting(SETTINGS.VISION.ALGORITHM) === VTYPES.AREA
-      || getSetting(SETTINGS.VISION.ALGORITHM) === VTYPES.AREA_3D,
+    config: () => getSetting(SETTINGS.LOS.ALGORITHM) === VTYPES.AREA,
     default: 0,
     type: Number
   });
@@ -362,12 +388,12 @@ function getCoverNames() {
   return coverNames;
 }
 
-function updateVisionSetting(value) {
+function updateLosSetting(value) {
   log(`Changing to ${value}`);
   ui.notifications.notify(`Changing to ${value}`);
-  const VTYPES = SETTINGS.VISION.TYPES;
+  const VTYPES = SETTINGS.LOS.TYPES;
   const visible = value === VTYPES.AREA || value === VTYPES.AREA_3D;
-  setSettingVisibility(SETTINGS.VISION.PERCENT_AREA, visible);
+  setSettingVisibility(SETTINGS.LOS.PERCENT_AREA, visible);
 }
 
 function updateCoverSetting(value) {
@@ -392,23 +418,23 @@ function updateCoverSetting(value) {
 export function activateListenersSettingsConfig(wrapper, html) {
   log("activateListenersSettingsConfig", html);
 
-//   html.on("change", 'td[name="tokenvisibility.vision-algorithm"]', tempUpdateVisionSetting.bind(this));
-html.find(`[name="tokenvisibility.vision-algorithm"]`).change(tempUpdateVisionSetting.bind(this));
-//   html.find(`[name="${MODULE_ID}.${SETTINGS.VISION.ALGORITHM}"]`).change(tempUpdateVisionSetting.bind(this));
+  //   html.on("change", 'td[name="tokenvisibility.vision-algorithm"]', tempUpdateVisionSetting.bind(this));
+  html.find(`[name="tokenvisibility.vision-algorithm"]`).change(tempUpdateLosSetting.bind(this));
+  //   html.find(`[name="${MODULE_ID}.${SETTINGS.VISION.ALGORITHM}"]`).change(tempUpdateVisionSetting.bind(this));
 
-html.find(`[name="tokenvisibility.cover-algorithm"]`).change(tempUpdateCoverSetting.bind(this));
+  html.find(`[name="tokenvisibility.cover-algorithm"]`).change(tempUpdateCoverSetting.bind(this));
   wrapper(html);
 }
 
-let ORIGINAL_VISION_ALGORITHM;
+let ORIGINAL_LOS_ALGORITHM;
 let ORIGINAL_COVER_ALGORITHM;
 
-async function tempUpdateVisionSetting(event) {
+async function tempUpdateLosSetting(event) {
 //   log("tempUpdateVisionSetting", event);
 //   ui.notifications.notify(`tempUpdateVisionSetting`)
 
-  ORIGINAL_VISION_ALGORITHM = getSetting(SETTINGS.VISION.ALGORITHM);
-  await setSetting(SETTINGS.VISION.ALGORITHM, event.currentTarget.value);
+  ORIGINAL_LOS_ALGORITHM = getSetting(SETTINGS.LOS.ALGORITHM);
+  await setSetting(SETTINGS.LOS.ALGORITHM, event.currentTarget.value);
 //   updateVisionSetting(event.currentTarget.value);
 }
 
@@ -422,9 +448,9 @@ export async function closeSettingsConfig(wrapper, options = {}) {
 //   ui.notifications.notify("Closing settingsConfig");
   const out = wrapper(options);
 
-  if ( ORIGINAL_VISION_ALGORITHM ) {
-    setSetting(SETTINGS.VISION.ALGORITHM, ORIGINAL_VISION_ALGORITHM);
-    ORIGINAL_VISION_ALGORITHM = undefined;
+  if ( ORIGINAL_LOS_ALGORITHM ) {
+    setSetting(SETTINGS.LOS.ALGORITHM, ORIGINAL_LOS_ALGORITHM);
+    ORIGINAL_LOS_ALGORITHM = undefined;
   }
 
   if ( ORIGINAL_COVER_ALGORITHM ) {
@@ -440,7 +466,7 @@ export async function _onSubmitSettingsConfig(wrapper, options = {}) {
 //   log("on Submitting!")
 //   ui.notifications.notify("Submitting settingsConfig");
 
-  if ( ORIGINAL_VISION_ALGORITHM ) ORIGINAL_VISION_ALGORITHM = undefined;
+  if ( ORIGINAL_LOS_ALGORITHM ) ORIGINAL_LOS_ALGORITHM = undefined;
   if ( ORIGINAL_COVER_ALGORITHM ) ORIGINAL_COVER_ALGORITHM = undefined;
 
   return wrapper(options);
