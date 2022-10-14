@@ -164,7 +164,7 @@ function elevatePoints(tests, visionSource, object) {
   if ( !(object instanceof Token) ) return tests;
 
   // Create default elevations
-  visionSource.z ??= visionSource.object.elevation;
+  visionSource.z ??= visionSource.elevationZ;
   const objectHeight = object.topZ - object.bottomZ;
   const avgElevation = object.bottomZ + (objectHeight * 0.5);
   for ( const test of tests ) {
@@ -223,7 +223,7 @@ export function _testRangeDetectionMode(wrapper, visionSource, mode, target, tes
   const radius = visionSource.object.getLightRadius(mode.range);
   const dx = test.point.x - visionSource.x;
   const dy = test.point.y - visionSource.y;
-  const dz = test.point.z - visionSource.z;
+  const dz = test.point.z - visionSource.elevationZ;
   return ((dx * dx) + (dy * dy) + (dz * dz)) <= (radius * radius);
 }
 
