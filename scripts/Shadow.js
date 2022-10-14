@@ -19,7 +19,19 @@ s0 = Shadow.constructShadow(wall, visionSource, Shadow.zValue(0))
 s10 = Shadow.constructShadow(wall, visionSource, Shadow.zValue(10))
 
 
-s0 = Shadow.constructShadow(wall, visionSource, Shadow.zValue(30))
+s30 = Shadow.constructShadow(wall, visionSource, Shadow.zValue(30))
+
+// Project to bottom surface.
+Token losHeight = 30; elevation = 25
+surface elevation = 0
+wall at 20, 10
+
+// Project to top surface:
+token losHeight = 0; elevation = -5
+surface elevation = 30
+
+
+
 */
 
 /*
@@ -98,12 +110,12 @@ export class Shadow extends PIXI.Polygon {
    * @returns {Shadow}
    */
   static constructShadow(wall, source, surfaceElevation = 0) {
-    const wBottom = {
+    let wBottom = {
       A: new Point3d(wall.A.x, wall.A.y, wall.bottomZ),
       B: new Point3d(wall.B.x, wall.B.y, wall.bottomZ)
     };
 
-    const wTop = {
+    let wTop = {
       A: new Point3d(wall.A.x, wall.A.y, wall.topZ),
       B: new Point3d(wall.B.x, wall.B.y, wall.topZ)
     };
@@ -135,6 +147,8 @@ export class Shadow extends PIXI.Polygon {
       wBottom.B.z *= -1;
       wTop.A.z *= -1;
       wTop.B.z *= -1;
+
+      [wBottom, wTop] = [wTop, wBottom];
 
       V.z *= -1;
       O.z *= -1;
@@ -235,9 +249,9 @@ export class Shadow extends PIXI.Polygon {
     const gap = wBottom.A.z - O.z;
     if ( gap <= 0 ) return topPoints;
 
-    const iota = Math.atan((V.z - gap) / VW.distance); // Iota is in radians
+    const iota = Math.atan((V.z - wBottom.A.z) / VW.distance); // Iota is in radians
     // lambda is equal to iota b/c they form a rectangle.
-    const VOgapdist = (V.z / Math.tan(iota)) - VW.distance;
+    const VOgapdist = ((V.z - O.z) / Math.tan(iota)) - VW.distance;
 
     // Now calculate the hypotenuse for the extension on each endpoint
     const hypGapA = VOgapdist / Math.cos(alphaA);
