@@ -5,7 +5,7 @@ canvas
 */
 "use strict";
 
-import { perpendicularPoint, distanceBetweenPoints2d, zValue, log } from "./util.js";
+import { perpendicularPoint, distanceBetweenPoints, zValue, log } from "./util.js";
 import { COLORS, drawShape } from "./drawing.js";
 import { Point3d } from "./Point3d.js";
 
@@ -148,29 +148,29 @@ export class Shadow extends PIXI.Polygon {
     }
 
     // Need the point of the wall that forms a perpendicular line to the vision object
-    const Wix = perpendicularPoint(wall.A, wall.B, V);
+    const Wix = perpendicularPoint(wTop.A, wTop.B, V);
     if ( !Wix ) return null; // Line collinear with vision object
-    const VW = new Ray(V, Wix);
 
-    // Get the distances between Wix and the wall endpoints.
-    const distA = distanceBetweenPoints2d(wTop.A, VW.B);
-    const distB = distanceBetweenPoints2d(wTop.B, VW.B);
+    // Distance from the viewer to the wall in x,y dimension
+    const VWdist = distanceBetweenPoints(V.to2d(), Wix)
+
+    // Get the 2d distances between Wix and the wall endpoints.
+    const distA = distanceBetweenPoints(wTop.A.to2d(), Wix);
+    const distB = distanceBetweenPoints(wTop.B.to2d(), Wix);
 
     // Calculate the hypotenuse of the big triangle on each side.
     // That hypotenuse is used to extend a line from V past each endpoint.
     // First get the angle
-    const alphaA = Math.atan(distA / VW.distance);
-    const alphaB = Math.atan(distB / VW.distance);
+    const alphaA = Math.atan(distA / VWdist);
+    const alphaB = Math.atan(distB / VWdist);
 
-    const topShadowPoints = Shadow._topWallShadowPoints(wTop, V, O, VW, alphaA, alphaB);
-    const points = Shadow._bottomWallShadowPoints(wBottom, V, O, VW, alphaA, alphaB, topShadowPoints);
+    const topShadowPoints = Shadow._topWallShadowPoints(wTop, V, O, VWdist, alphaA, alphaB);
+    const points = Shadow._bottomWallShadowPoints(wBottom, V, O, VWdist, alphaA, alphaB, topShadowPoints);
 
     const out = new this(points);
 
+    // Store some values for debugging
     out.topPoints = topShadowPoints;
-    out.alphaA = alphaA;
-    out.alphaB = alphaB;
-    out.VW = VW;
     out.wall = wall;
     out.source = source;
     out.surfaceElevation = surfaceElevation;
@@ -187,7 +187,7 @@ export class Shadow extends PIXI.Polygon {
    * @param {Ray} VW                            Ray from source to wall, perpendicular to wall
    * @returns {Point[]} Array of 8 points representing the trapezoid
    */
-  static _topWallShadowPoints(wTop, V, O, VW, alphaA, alphaB) {
+  static _topWallShadowPoints(wTop, V, O, VWdist, alphaA, alphaB) {
     let VOdist = 0;
     if ( V.z <= wTop.A.z ) {
       // Source is below wall top; shadow is infinitely long
@@ -195,9 +195,9 @@ export class Shadow extends PIXI.Polygon {
       VOdist = canvas.scene.dimensions.maxR;
     } else {
       // Theta is the angle between the 3-D sight line and the sight line in 2-D
-      const theta = Math.atan((V.z - wTop.A.z) / VW.distance); // Theta is in radians
+      const theta = Math.atan((V.z - wTop.A.z) / VWdist); // Theta is in radians
       const WOdist = (wTop.A.z - O.z) / Math.tan(theta); // Tan wants radians
-      VOdist = VW.distance + WOdist;
+      VOdist = VWdist + WOdist;
     }
 
     // Now calculate the hypotenuse
@@ -218,15 +218,15 @@ export class Shadow extends PIXI.Polygon {
    * Shadow cast by the bottom of the wall from the source to the surface
    * Will be infinitely long, starts away from wall corners
    */
-  static _bottomWallShadowPoints(wBottom, V, O, VW, alphaA, alphaB, topPoints) {
+  static _bottomWallShadowPoints(wBottom, V, O, VWdist, alphaA, alphaB, topPoints) {
     // If the wall is "floating" above the surface, the shadow starts "after" the wall.
     // Need to determine the starting point.
     const gap = wBottom.A.z - O.z;
     if ( gap <= 0 ) return topPoints;
 
-    const iota = Math.atan((V.z - wBottom.A.z) / VW.distance); // Iota is in radians
+    const iota = Math.atan((V.z - wBottom.A.z) / VWdist); // Iota is in radians
     // lambda is equal to iota b/c they form a rectangle.
-    const VOgapdist = ((V.z - O.z) / Math.tan(iota)) - VW.distance;
+    const VOgapdist = ((V.z - O.z) / Math.tan(iota)) - VWdist;
 
     // Now calculate the hypotenuse for the extension on each endpoint
     const hypGapA = VOgapdist / Math.cos(alphaA);

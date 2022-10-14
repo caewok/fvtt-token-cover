@@ -3,6 +3,7 @@ PIXI
 */
 "use strict";
 
+import { EPSILON } from "./const.js";
 
 // Add methods to PIXI.Point
 export function registerPIXIPointMethods() {
@@ -32,6 +33,31 @@ export function registerPIXIPointMethods() {
 
   Object.defineProperty(PIXI.Point.prototype, "dot", {
     value: dot2d,
+    writable: true,
+    configurable: true
+  });
+
+  Object.defineProperty(PIXI.Point.prototype, "magnitude", {
+    value: magnitude2d,
+    writable: true,
+    configurable: true
+  });
+
+  Object.defineProperty(PIXI.Point.prototype, "magnitudeSquared", {
+    value: magnitudeSquared2d,
+    writable: true,
+    configurable: true
+  });
+
+  Object.defineProperty(PIXI.Point.prototype, "almostEqual", {
+    value: magnitudeSquared2d,
+    writable: true,
+    configurable: true
+  });
+
+  // For parallel with Point3d
+  Object.defineProperty(PIXI.Point.prototype, "to2d", {
+    value: function() { return this; },
     writable: true,
     configurable: true
   });
@@ -67,8 +93,8 @@ function add2d(other, outPoint = new PIXI.Point()) {
  * @returns {PIXI.Point}
  */
 function subtract2d(other, outPoint = new PIXI.Point()) {
-  outPoint.x = this.x + other.x;
-  outPoint.y = this.y + other.y;
+  outPoint.x = this.x - other.x;
+  outPoint.y = this.y - other.y;
 
   return outPoint;
 }
@@ -114,6 +140,35 @@ function dot2d(other) {
 }
 
 /**
+ * Magnitude (length, or sometimes distance) of this point.
+ * Square root of the sum of squares of each component.
+ * @returns {number}
+ */
+function magnitude2d() {
+  // Same as Math.sqrt(this.x * this.x + this.y * this.y)
+  return Math.hypot(this.x, this.y);
+}
+
+/**
+ * Magnitude squared.
+ * Avoids square root calculations.
+ * @returns {number}
+ */
+function magnitudeSquared2d() {
+  return Math.pow(this.x, 2) + Math.pow(this.y, 2);
+}
+
+/**
+ * Test if `this` is nearly equal to another point.
+ * @param {PIXI.Point} other
+ * @param {number} epsilon
+ * @returns {boolean}
+ */
+function almostEqual2d(other, epsilon = EPSILON) {
+  return this.x.almostEqual(other.x, epsilon) && this.y.almostEqual(other.y, epsilon);
+}
+
+/**
  * 3-D version of PIXI.Point
  * See https://pixijs.download/dev/docs/packages_math_src_Point.ts.html
  */
@@ -133,6 +188,13 @@ export class Point3d extends PIXI.Point {
    */
   to2d() {
     return new PIXI.Point(this.x, this.y);
+  }
+
+  /**
+   * For parallel with PIXI.Point
+   */
+  to3d() {
+    return this;
   }
 
   /**
@@ -254,8 +316,36 @@ export class Point3d extends PIXI.Point {
    * @return {number}
    */
   dot(other) {
-    const res = super.dot(other);
-    return res + (this.z * (other.z ?? 0));
+    return super.dot(other) + (this.z * (other.z ?? 0));
+  }
+
+  /**
+   * Magnitude (length, or sometimes distance) of this point.
+   * Square root of the sum of squares of each component.
+   * @returns {number}
+   */
+  magnitude() {
+    // Same as Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z)
+    return Math.hypot(this.x, this.y, this.z);
+  }
+
+  /**
+   * Magnitude squared.
+   * Avoids square root calculations.
+   * @returns {number}
+   */
+  magnitudeSquared() {
+    return super.magnitudeSquared + Math.pow(this.z, 2);
+  }
+
+  /**
+   * Test if `this` is nearly equal to another point.
+   * @param {PIXI.Point} other
+   * @param {number} epsilon
+   * @returns {boolean}
+   */
+  almostEqual(other, epsilon = EPSILON) {
+    return super.almostEqual(other, epsilon) && this.z.almostEqual(other.z ?? 0, epsilon);
   }
 
 }

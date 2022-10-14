@@ -9,7 +9,7 @@ PIXI
 "use strict";
 
 import { SETTINGS, getSetting } from "./settings.js";
-import { lineSegmentCrosses, walkLineIncrement, points3dAlmostEqual } from "./util.js";
+import { lineSegmentCrosses, walkLineIncrement } from "./util.js";
 import { Point3d } from "./Point3d.js";
 
 /* Visibility algorithm
@@ -233,10 +233,8 @@ export function tokenUpdateVisionSource(wrapped, { defer=false, deleted=false }=
  * Wrap DetectionMode.prototype._testLOS
  */
 export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test) {
-
   // Only apply this test to tokens
   if ( !(target instanceof Token) ) return wrapped(visionSource, mode, target, test);
-
 
   const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
   if ( algorithm === SETTINGS.LOS.TYPES.POINTS ) {
@@ -246,9 +244,10 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   } else if ( algorithm === SETTINGS.LOS.TYPES.AREA ) {
     // Only need to test area once, so use the center point to do this.
     const avgElevation = target.bottomZ + ((target.topZ - target.bottom.Z) * 0.5);
-    const { x, y } = target.center;
+    const center = new Point3d(target.center.x, target.center.y, avgElevation);
 
-    if ( !points3dAlmostEqual(test.point, { x, y, z: avgElevation }) ) return false;
+    if ( !test.point.almostEqual(center) ) return false;
+
     const hasLOS = wrapped(visionSource, mode, target, test);
     return testLOSArea(visionSource, target, hasLOS);
   }

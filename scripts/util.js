@@ -1,7 +1,8 @@
 /* globals
 game,
 foundry,
-canvas
+canvas,
+PIXI
 */
 "use strict";
 
@@ -29,23 +30,6 @@ export function log(...args) {
 export function zValue(value) {
   const { distance, size } = canvas.scene.grid;
   return (value * size) / distance;
-}
-
-/**
- * Test if two points are almost equal.
- * If points have keys, better to use p.equal
- * @param {Point} a   Point with 2 dimensions
- * @param {Point} b   Point with 2 dimensions
- * @returns {boolean}
- */
-export function points2dAlmostEqual(a, b, epsilon = EPSILON) {
-  return a.x.almostEqual(b.x, epsilon) && a.y.almostEqual(b.y, epsilon);
-}
-
-export function points3dAlmostEqual(a, b, epsilon = EPSILON) {
-  return a.x.almostEqual(b.x, epsilon)
-    && a.y.almostEqual(b.y, epsilon)
-    && a.z.almostEqual(b.z, epsilon);
 }
 
 
@@ -109,23 +93,20 @@ export function lineSegmentCrosses(a, b, c, d) {
  * @returns {Point} New point on the line, sqrt(distance2) from a.
  */
 export function walkLineIncrement(a, b, distance2 = 1) {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const t = Math.sqrt(distance2 / (Math.pow(dx, 2) + Math.pow(dy, 2)));
-  return {
-    x: a.x + (t * dx),
-    y: a.y + (t * dy)
-   };
+  const delta = b.subtract(a);
+  const mag2 = delta.magnitudeSquared();
+  const t = Math.sqrt(distance2 / mag2);
+
+  const outPoint = new PIXI.Point();
+  delta.multiplyScalar(t, outPoint).add(a, outPoint);
+  return outPoint;
 }
 
 export function walkLinePercentage(a, b, percent = .5) {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-
-  return {
-    x: a.x + (percent * dx),
-    y: a.y + (percent * dy)
-  }
+  const delta = b.subtract(a);
+  const outPoint = new PIXI.Point();
+  delta.multiplyScalar(percent, outPoint).add(a, outPoint);
+  return outPoint;
 }
 
 /**
@@ -139,33 +120,35 @@ export function walkLinePercentage(a, b, percent = .5) {
  *                 guaranteed to be within the line segment a|b.
  */
 export function perpendicularPoint(a, b, c) {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const dab = Math.pow(dx, 2) + Math.pow(dy, 2);
-  if ( !dab ) return null;
+  a = a.to2d();
+  b = b.to2d();
+  c = c.to2d();
 
-  const u = (((c.x - a.x) * dx) + ((c.y - a.y) * dy)) / dab;
-  return {
-    x: a.x + (u * dx),
-    y: a.y + (u * dy)
-  };
+  const delta = b.subtract(a);
+  const dab = delta.magnitudeSquared();
+
+  // Same as: const u = (((c.x - a.x) * delta.x) + ((c.y - a.y) * delta.y)) / dab;
+  const outPoint = new PIXI.Point();
+  c.subtract(a, outPoint).multiply(delta, outPoint);
+
+  const t = (outPoint.x + outPoint.y) / dab;
+
+  // Same as:
+  //     x: a.x + (t * delta.x),
+  //     y: a.y + (t * delta.y)
+  // Reuse the outPoint
+  delta.multiplyScalar(t, outPoint).add(a, outPoint);
+  return outPoint;
 }
 
-export function distanceBetweenPoints2d(a, b) {
-  return Math.hypot(b.x - a.x, b.y - a.y);
+export function distanceBetweenPoints(a, b) {
+  return b.subtract(a).magnitude();
 }
 
-export function distanceSquaredBetweenPoints2d(a, b) {
-  return Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2);
+export function distanceSquaredBetweenPoints(a, b) {
+  return b.subtract(a).magnitudeSquared();
 }
 
-export function distanceBetweenPoints3d(a, b) {
-  return Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
-}
-
-export function distanceSquaredBetweenPoints3d(a, b) {
-  return Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2) + Math.pow(b.z - a.z, 2);
-}
 
 /**
  * Quickly test whether the line segment AB intersects with a wall in 3d.
@@ -247,7 +230,7 @@ export function linePlane3dIntersection(a, b, c, d, epsilon = 1e-8) {
  * @returns {boolean} Does the line segment intersect the plane?
  * Note that if the segment is part of the plane, this returns false.
  */
-export function lineSegment3dPlaneIntersects(a, b, c, d, e = {x: c.x, y: c.y, z: c.z + 1}) {
+export function lineSegment3dPlaneIntersects(a, b, c, d, e = new Point3d(c.x, c.y, c.z + 1)) {
   // A and b must be on opposite sides.
   // Parallels the 2d case.
   const xa = orient3dFast(a, c, d, e);
@@ -262,17 +245,17 @@ export function lineSegment3dPlaneIntersects(a, b, c, d, e = {x: c.x, y: c.y, z:
  * @param {Point3d} b   Second point on the line
  * @param {Wall} wall   Wall to intersect
  */
-export function lineWall3dIntersection(a, b, wall, epsilon = 1e-8) {
-  const x = wall.A.x;
-  const y = wall.A.y;
-  const c = new Point3d(x, y, 0);
+export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
+  const Ax = wall.A.x;
+  const Ay = wall.A.y;
+
+  const c = new Point3d(Ax, Ay, 0);
 
   // Perpendicular vectors are (-dy, dx) and (dy, -dx)
-  const d = new Point3d(-(wall.B.y - y), (wall.B.x - x), 0);
+  const d = new Point3d(-(wall.B.y - Ay), (wall.B.x - Ax), 0);
 
   return linePlane3dIntersection(a, b, c, d, epsilon);
 }
-
 
 /**
  * See https://github.com/mourner/robust-predicates
@@ -291,17 +274,11 @@ export function lineWall3dIntersection(a, b, wall, epsilon = 1e-8) {
  * defined by the four points.
  */
 export function orient3dFast(a, b, c, d) {
-  const adx = a.x - d.x;
-  const bdx = b.x - d.x;
-  const cdx = c.x - d.x;
-  const ady = a.y - d.y;
-  const bdy = b.y - d.y;
-  const cdy = c.y - d.y;
-  const adz = a.z - d.z;
-  const bdz = b.z - d.z;
-  const cdz = c.z - d.z;
+  const deltaAD = a.subtract(d);
+  const deltaBD = b.subtract(d);
+  const deltaCD = c.subtract(d);
 
-  return (adx * ((bdy * cdz) - (bdz * cdy)))
-    + (bdx * ((cdy * adz) - (cdz * ady)))
-    + (cdx * ((ady * bdz) - (adz * bdy)));
+  return ( deltaAD.x * ((deltaBD.y * deltaCD.z) - (deltaBD.z * deltaCD.y)))
+    + (deltaBD.x * ((deltaCD.y * deltaAD.z) - (deltaCD.z * deltaAD.y)))
+    + (deltaCD.x * ((deltaAD.y * deltaBD.z) - (deltaAD.z * deltaBD.y)));
 }
