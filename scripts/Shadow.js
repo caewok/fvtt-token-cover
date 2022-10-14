@@ -5,17 +5,20 @@ canvas
 */
 "use strict";
 
-import { perpendicularPoint, distanceBetweenPoints2d, zValue } from "./util.js";
+import { perpendicularPoint, distanceBetweenPoints2d, zValue, log } from "./util.js";
 import { COLORS, drawShape } from "./drawing.js";
+import { Point3d } from "./Point3d.js";
 
 /* Testing
 api = game.modules.get("tokenvisibility").api
 Shadow = api.Shadow
 visionSource = _token.vision
 let [wall] = canvas.walls.placeables
-s0 = Shadow.constructDownwardShadow(wall, visionSource, Shadow.zValue(0))
-s10 = Shadow.constructDownwardShadow(wall, visionSource, Shadow.zValue(10))
+s0 = Shadow.constructShadow(wall, visionSource, Shadow.zValue(0))
+s10 = Shadow.constructShadow(wall, visionSource, Shadow.zValue(10))
 
+
+s0 = Shadow.constructShadow(wall, visionSource, Shadow.zValue(30))
 */
 
 /*
@@ -80,6 +83,9 @@ export class Shadow extends PIXI.Polygon {
 
   static zValue = zValue;
 
+
+
+
   /**
    * Build the parallelogram representing a shadow cast from a wall.
    * Looking top-down with a light or other source object at a given elevation
@@ -90,12 +96,20 @@ export class Shadow extends PIXI.Polygon {
    * @param {number} surfaceElevation=0         Elevation of the shadowed surface
    * @returns {Shadow}
    */
-  static constructDownwardShadow(wall, source, surfaceElevation = 0) {
+  static constructShadow(wall, source, surfaceElevation = 0) {
+    const wBottom = {
+      A: new Point3d(wall.A.x, wall.A.y, wall.bottomZ),
+      B: new Point3d(wall.B.x, wall.B.y, wall.bottomZ)
+    };
 
-    const Wtz = wall.topZ;
-    const Wbz = wall.bottomZ;
-    const Oe = surfaceElevation;
-    const Ve = source.elevationZ;
+    const wTop = {
+      A: new Point3d(wall.A.x, wall.A.y, wall.topZ),
+      B: new Point3d(wall.B.x, wall.B.y, wall.topZ)
+    };
+
+    const V = new Point3d(source.x, source.y, source.elevationZ);
+    const O = new Point3d(0, 0, surfaceElevation); // x and y TBD
+    let flipped = false;
 
     // Need at least one finite wall direction
     // Construct shadow based on max radius
@@ -106,29 +120,37 @@ export class Shadow extends PIXI.Polygon {
 //     }
 
     // If the source elevation equals the surface elevation, no shadows to be seen
-    if ( Oe === Ve ) return null;
+    if ( V.z === O.z ) return null;
 
     // Projecting downward from source; if below bottom of wall, no shadow.
-    else if ( Ve > Oe && Ve < Wbz ) return null;
+    else if ( V.z > O.z  && V.z < wBottom.A.z ) return null;
 
     // Projecting upward from source; if above bottom of wall, no shadow.
-    else if ( Ve < Oe && Ve > Wtz ) return null;
+    else if ( V.z < O.z && V.z > wTop.A.z ) return null;
 
-    else if ( Ve < Oe ) {
-      console.warn("constructDownwardShadow: Should be upward shadow.");
-      return null; // Need to flip and construct upwards to the surface
+    else if ( V.z < O.z ) {
+      // Flip, construct upwards to (underneath of) surface
+      wBottom.A.z *= -1;
+      wBottom.B.z *= -1;
+      wTop.A.z *= -1;
+      wTop.B.z *= -1;
+
+      V.z *= -1;
+      O.z *= -1;
+
+      flipped = true;
+
+      log("constructShadow: flipped.");
     }
 
-//     if ( Ve <= Wtz ) return null; // Vision object blocked completely by wall to the surface.
-
     // Need the point of the wall that forms a perpendicular line to the vision object
-    const Wix = perpendicularPoint(wall.A, wall.B, source);
+    const Wix = perpendicularPoint(wall.A, wall.B, V);
     if ( !Wix ) return null; // Line collinear with vision object
-    const VW = new Ray(source, Wix);
+    const VW = new Ray(V, Wix);
 
     // Get the distances between Wix and the wall endpoints.
-    const distA = distanceBetweenPoints2d(wall.A, VW.B);
-    const distB = distanceBetweenPoints2d(wall.B, VW.B);
+    const distA = distanceBetweenPoints2d(wTop.A, VW.B);
+    const distB = distanceBetweenPoints2d(wTop.B, VW.B);
 
     // Calculate the hypotenuse of the big triangle on each side.
     // That hypotenuse is used to extend a line from V past each endpoint.
@@ -136,8 +158,8 @@ export class Shadow extends PIXI.Polygon {
     const alphaA = Math.atan(distA / VW.distance);
     const alphaB = Math.atan(distB / VW.distance);
 
-    const topShadowPoints = Shadow._topWallShadowPoints(wall, source, surfaceElevation, VW, alphaA, alphaB);
-    const points = Shadow._bottomWallShadowPoints(wall, source, surfaceElevation, VW, alphaA, alphaB, topShadowPoints);
+    const topShadowPoints = Shadow._topWallShadowPoints(wTop, V, O, VW, alphaA, alphaB);
+    const points = Shadow._bottomWallShadowPoints(wBottom, V, O, VW, alphaA, alphaB, topShadowPoints);
 
     // If any elevation is negative, normalize so that the lowest elevation is 0
 //     const min_elevation = Math.min(Ve, Oe, We);
@@ -158,6 +180,11 @@ export class Shadow extends PIXI.Polygon {
     out.source = source;
     out.surfaceElevation = surfaceElevation;
 
+    if ( flipped ) {
+      // Flip back something?
+
+    }
+
     return out;
   }
 
@@ -170,20 +197,16 @@ export class Shadow extends PIXI.Polygon {
    * @param {Ray} VW                            Ray from source to wall, perpendicular to wall
    * @returns {Point[]} Array of 8 points representing the trapezoid
    */
-  static _topWallShadowPoints(wall, source, surfaceElevation, VW, alphaA, alphaB) {
-    const Wtz = wall.topZ;
-    const Ve = source.elevationZ;
-    const Oe = surfaceElevation;
-
+  static _topWallShadowPoints(wTop, V, O, VW, alphaA, alphaB) {
     let VOdist = 0;
-    if ( Ve <= Wtz ) {
+    if ( V.z <= wTop.A.z ) {
       // Source is below wall top; shadow is infinitely long
       // Use maxRadius for the scene
       VOdist = canvas.scene.dimensions.maxR;
     } else {
       // Theta is the angle between the 3-D sight line and the sight line in 2-D
-      const theta = Math.atan((Ve - Wtz) / VW.distance); // Theta is in radians
-      const WOdist = (Wtz - Oe) / Math.tan(theta); // Tan wants radians
+      const theta = Math.atan((V.z - wTop.A.z) / VW.distance); // Theta is in radians
+      const WOdist = (wTop.A.z - O.z) / Math.tan(theta); // Tan wants radians
       VOdist = VW.distance + WOdist;
     }
 
@@ -195,29 +218,25 @@ export class Shadow extends PIXI.Polygon {
     // Each distance is the hypotenuse on the side.
     // given angle alpha.
     // Should form the parallelogram with wall T on one parallel side
-    const VOa = Ray.towardsPoint(source, wall.A, hypA);
-    const VOb = Ray.towardsPoint(source, wall.B, hypB);
+    const VOa = Ray.towardsPoint(V, wTop.A, hypA);
+    const VOb = Ray.towardsPoint(V, wTop.B, hypB);
 
-    return [wall.A, VOa.B, VOb.B, wall.B];
+    return [wTop.A, VOa.B, VOb.B, wTop.B];
   }
 
   /**
    * Shadow cast by the bottom of the wall from the source to the surface
    * Will be infinitely long, starts away from wall corners
    */
-  static _bottomWallShadowPoints(wall, source, surfaceElevation, VW, alphaA, alphaB, topPoints) {
-    const Wbz = wall.bottomZ;
-    const Ve = source.elevationZ;
-    const Oe = surfaceElevation;
-
+  static _bottomWallShadowPoints(wBottom, V, O, VW, alphaA, alphaB, topPoints) {
     // If the wall is "floating" above the surface, the shadow starts "after" the wall.
     // Need to determine the starting point.
-    const gap = Wbz - Oe;
+    const gap = wBottom.A.z - O.z;
     if ( gap <= 0 ) return topPoints;
 
-    const iota = Math.atan((Ve - gap) / VW.distance); // Iota is in radians
+    const iota = Math.atan((V.z - gap) / VW.distance); // Iota is in radians
     // lambda is equal to iota b/c they form a rectangle.
-    const VOgapdist = (Ve / Math.tan(iota)) - VW.distance;
+    const VOgapdist = (V.z / Math.tan(iota)) - VW.distance;
 
     // Now calculate the hypotenuse for the extension on each endpoint
     const hypGapA = VOgapdist / Math.cos(alphaA);
@@ -226,8 +245,8 @@ export class Shadow extends PIXI.Polygon {
     const endA = topPoints[1];
     const endB = topPoints[2];
 
-    const startA = Ray.towardsPoint(wall.A, endA, hypGapA);
-    const startB = Ray.towardsPoint(wall.B, endB, hypGapB);
+    const startA = Ray.towardsPoint(wBottom.A, endA, hypGapA);
+    const startB = Ray.towardsPoint(wBottom.B, endB, hypGapB);
 
     return [startA.B, endA, endB, startB.B];
   }

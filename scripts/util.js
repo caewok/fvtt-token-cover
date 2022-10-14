@@ -5,11 +5,8 @@ canvas
 */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, EPSILON } from "./const.js";
 import { Point3d } from "./Point3d.js";
-
-// Minimum absolute difference of floats before they are considered equal
-const EPSILON = 1e-08;
 
 /**
  * Log message only when debug flag is enabled from DevMode module.
