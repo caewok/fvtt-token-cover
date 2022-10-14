@@ -1,6 +1,5 @@
 /* globals
 game,
-canvas,
 ui
 */
 
@@ -32,16 +31,15 @@ export const SETTINGS = {
       CENTER: "range-center",
       FOUNDRY: "range-foundry",
       FOUNDRY_3D: "range-foundry-3d"
-      // CORNERS?
-      // Less points in 3d, like 19? (top, bottom, 1 center point)
+      // Corners and corners 3d?
     }
-  }
+  },
 
   LOS: {
     ALGORITHM: "los-algorithm",
     TYPES: {
-      POINTS: "los-points"
-      AREA: "los-area",
+      POINTS: "los-points",
+      AREA: "los-area"
     },
 
     PERCENT_AREA: "los-percent-area"
@@ -156,7 +154,7 @@ export function registerSettings() {
     choices: {
       [RTYPES.CENTER]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.CENTER}`),
       [RTYPES.FOUNDRY]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.FOUNDRY}`),
-      [RTYPES.FOUNDRY_3D]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.FOUNDRY_3D}`),
+      [RTYPES.FOUNDRY_3D]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.FOUNDRY_3D}`)
     },
     default: RTYPES.FOUNDRY
   });
@@ -168,10 +166,10 @@ export function registerSettings() {
     config: true,
     type: String,
     choices: {
-      [VTYPES.FOUNDRY]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.FOUNDRY}`),
+      [VTYPES.POINTS]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.POINTS}`),
       [VTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.AREA}`)
     },
-    default: VTYPES.FOUNDRY,
+    default: VTYPES.POINTS,
     onChange: updateLosSetting
   });
 
@@ -196,9 +194,9 @@ export function registerSettings() {
     config: true,
     type: String,
     choices: {
+      [CTYPES.CENTER_CENTER]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CENTER}`),
       [CTYPES.CENTER_CORNER]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CORNER}`),
       [CTYPES.CORNER_CORNER]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CORNER_CORNER}`),
-      [CTYPES.CENTER_CENTER]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CENTER}`),
       [CTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA}`),
       [CTYPES.CENTER_CUBE]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CUBE}`),
       [CTYPES.CUBE_CUBE]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CUBE_CUBE}`),
@@ -392,7 +390,7 @@ function updateLosSetting(value) {
   log(`Changing to ${value}`);
   ui.notifications.notify(`Changing to ${value}`);
   const VTYPES = SETTINGS.LOS.TYPES;
-  const visible = value === VTYPES.AREA || value === VTYPES.AREA_3D;
+  const visible = value === VTYPES.AREA;
   setSettingVisibility(SETTINGS.LOS.PERCENT_AREA, visible);
 }
 
@@ -419,7 +417,7 @@ export function activateListenersSettingsConfig(wrapper, html) {
   log("activateListenersSettingsConfig", html);
 
   //   html.on("change", 'td[name="tokenvisibility.vision-algorithm"]', tempUpdateVisionSetting.bind(this));
-  html.find(`[name="tokenvisibility.vision-algorithm"]`).change(tempUpdateLosSetting.bind(this));
+  html.find(`[name="tokenvisibility.los-algorithm"]`).change(tempUpdateLosSetting.bind(this));
   //   html.find(`[name="${MODULE_ID}.${SETTINGS.VISION.ALGORITHM}"]`).change(tempUpdateVisionSetting.bind(this));
 
   html.find(`[name="tokenvisibility.cover-algorithm"]`).change(tempUpdateCoverSetting.bind(this));

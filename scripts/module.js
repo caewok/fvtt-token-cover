@@ -10,8 +10,12 @@ import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
 import { objectIsVisible, objectHasCoverFromToken, constrainedTokenShape } from "./token_visibility.js";
 import { registerSettings } from "./settings.js";
+import { registerElevationAdditions } from "./elevation.js";
+import { Shadow } from "./Shadow.js";
+import { Point3d } from "./Point3d.js";
 
 Hooks.once("init", async function() {
+  registerElevationAdditions();
   registerLibWrapperMethods();
   patchHelperMethods();
   registerPIXIPolygonMethods();
@@ -20,7 +24,9 @@ Hooks.once("init", async function() {
     objectIsVisible,
     objectHasCoverFromToken,
     constrainedTokenShape,
-    bench
+    bench,
+    Shadow,
+    Point3d
   };
 });
 

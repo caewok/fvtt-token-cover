@@ -4,7 +4,7 @@
 
     "tokenvisibility.settings.range-center": "Token center only (1 point)",
     "tokenvisibility.settings.range-foundry": "Foundry default (9 points)",
-    "tokenvisibility.settings.range-foundry-3d": "Foundry 3d (27 points)",
+    "tokenvisibility.settings.range-foundry-3d": "Foundry 3d (19 points)",
 
     "tokenvisibility.settings.los-algorithm.Name": "Line of Sight Algorithm",
     "tokenvisibility.settings.los-algorithm.Hint": "How to test a token's line-of-sight to another.\nPoints will use the points from Range Algorithm. Area is generally more performance-intensive, but not always.\\nSee https://github.com/caewok/fvtt-token-visibility#settings for a full explanation.",

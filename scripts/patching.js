@@ -6,7 +6,11 @@ libWrapper
 import { tokenUpdateVisionSource, _testLOSDetectionMode, testVisibilityCanvasVisibility } from "./token_visibility.js";
 import { MODULE_ID } from "./const.js";
 import { log } from "./util.js";
-import { activateListenersSettingsConfig, closeSettingsConfig, _onSubmitSettingsConfig } from "./settings.js";
+import {
+  activateListenersSettingsConfig,
+  closeSettingsConfig,
+  _onSubmitSettingsConfig
+} from "./settings.js";
 
 export function registerLibWrapperMethods() {
   libWrapper.register(MODULE_ID, "Token.prototype.updateVisionSource", tokenUpdateVisionSource, libWrapper.WRAPPER);

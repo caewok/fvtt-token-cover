@@ -9,7 +9,8 @@ PIXI
 "use strict";
 
 import { SETTINGS, getSetting } from "./settings.js";
-import { orient2dPixelLine, lineSegmentCrosses, walkLineIncrement} from "./util.js";
+import { lineSegmentCrosses, walkLineIncrement, points3dAlmostEqual } from "./util.js";
+import { Point3d } from "./Point3d.js";
 
 /* Visibility algorithm
 Three tests, increasing in difficulty and stringency. User can select between 0% and 100%
@@ -76,58 +77,40 @@ DetectionMode.prototype._testRange
 */
 
 
-/* Token visibility options
-
+/* Token range options
 CENTER
-√ Test only the center point of a token.
-- Options:
-  1. Override Token.prototype.isVisible to pass tolerance = 0
-√ -->  2. Wrap CanvasVisibility.prototype.testVisibility to intercept the tolerance option
-  3. Override CanvasVisibility.prototype.testVisibility to change point construction
-  4. Wrap lightSource.testVisibility, modes.basicSight.testVisibility, and detectionMode.testVisibility
-
-When 3d walls present:
-- Override DetectionMode.prototype._testLOS to test for walls block?
+√ Wrap CanvasVisibility.prototype.testVisibility to intercept the tolerance option.
 
 FOUNDRY
-- Test using the default foundry test points
-
-When 3d walls present:
-- Override DetectionMode.prototype._testLOS to test for walls block?
-
-AREA
-- Test what portion of token area is within LOS.
-- Wrap CanvasVisibility.prototype.testVisibility to set to single center point
-
-When 3d walls present:
-- Override DetectionMode.prototype._testLOS to test for walls block?
---> Fall back on point testing?
-- Switch to AREA_3D?
-
+- Default, just wrap
 
 FOUNDRY_3D
-- Add additional test points to top and bottom of token
-- Wrap lightSource.testVisibility, modes.basicSight.testVisibility, and detectionMode.testVisibility
+√ Wrap _testRange and call 2 times per point (top, bottom). Also test the dead center first.
 
-When 3d walls present:
-- Override DetectionMode.prototype._testLOS to test for walls block?
+3D: test range in 3 dimensions. Always do this for 2d as well.
+√ Wrap _testRange and test 3d distance if _testRange returns true.
+(The 3d distance will always be >= than 2d distance)
+*/
 
+/* Token los options
+POINTS
+- Base Foundry (Don't need to shift points to top and bottom)
 
-AREA_3D
-- Test what portion of token area is within LOS.
-- Test 3 times: xy, xz, and yz projections.
-- Wrap CanvasVisibility.prototype.testVisibility to set to single center point
+AREA
+- Constrain token boundary by walls.
+- Determine overlap area between token boundary and LOS.
 
-When 3d walls present:
-- Test 3 times: xy, xz, and yz projections.
+3D: Cast shadows to token elevation (top if viewer is looking down; bottom if viewer is looking up)
+  Block off token boundary covered by shadows, determine remaining token area.
 
 */
+
 
 // ***** WRAPPERS
 
 /**
  * Wrap CanvasVisibility.prototype.testVisibility
- * Set tolerance to zero, to cause only a single centerpoint to be tested, for CENTER_TO_CENTER.
+ * Set tolerance to zero, to cause only a single centerpoint to be tested, for RANGE.CENTER.
  * @param {Point} point                         The point in space to test, an object with coordinates x and y.
  * @param {object} [options]                    Additional options which modify visibility testing.
  * @param {number} [options.tolerance=2]        A numeric radial offset which allows for a non-exact match.
@@ -137,14 +120,99 @@ When 3d walls present:
  * @returns {boolean}                           Whether the point is currently visible.
  */
 export function testVisibilityCanvasVisibility(wrapped, point, {tolerance=2, object=null}={}) {
-  const algorithm = getSetting(SETTINGS.VISION.ALGORITHM);
-
-  if ( object instanceof Token
-    && (algorithm === SETTINGS.VISION.CENTER
-    || algorithm === SETTINGS.VISION.AREA) ) tolerance = 0;
-
+  const algorithm = getSetting(SETTINGS.RANGE.ALGORITHM);
+  if ( object instanceof Token && algorithm === SETTINGS.RANGE.CENTER ) tolerance = 0;
   return wrapped(point, { tolerance, object });
 }
+
+
+/**
+ * Wrap DetectionMode.prototype.testVisibility
+ * Create extra points if necessary
+ * @param {VisionSource} visionSource           The vision source being tested
+ * @param {TokenDetectionMode} mode             The detection mode configuration
+ * @param {CanvasVisibilityTestConfig} config   The visibility test configuration
+ * @returns {boolean}                           Is the test target visible?
+ */
+export function testVisibilityDetectionMode(wrapped, visionSource, mode, {object, tests}={}) {
+  tests = elevatePoints(tests, visionSource, object);
+  return wrapped(visionSource, mode, { object, tests });
+}
+
+/**
+ * @param {object[]} tests                      Test object, containing point and los Map
+ * @param {VisionSource} visionSource           The vision source being tested
+ * @param {PlaceableObject} object              The target placeable
+ * @returns {object[]} tests, with elevation and possibly other tests added.
+ */
+function elevatePoints(tests, visionSource, object) {
+  if ( !(object instanceof Token) ) return tests;
+
+  // Create default elevations
+  visionSource.z ??= visionSource.object.elevation;
+  const objectHeight = object.topZ - object.bottom.Z;
+  const avgElevation = object.bottomZ + (objectHeight * 0.5);
+  for ( const test of tests ) {
+    test.point.z ??= avgElevation;
+  }
+
+  // If top/bottom equal or not doing 3d points, no need for extra test points
+  if ( !objectHeight || !getSetting(SETTINGS.RANGE.FOUNDRY_3D) ) {
+    return tests;
+  }
+
+  // Add points to the tests array representing top and bottom
+  const tests3d = [tests[0]];
+  const ln = tests.length;
+  for ( let i = 1; i < ln; i += 1 ) {
+    const test = tests[i];
+    const { x, y } = test.point;
+    if ( test.los.size > 0 ) console.warn("Test point has los mapping already.");
+
+    tests3d.push(
+      // Use the same map so that x,y contains tests are cached and not repeated.
+      buildTestObject(x, y, object.topZ, test.los),
+      buildTestObject(x, y, object.bottomZ, test.los)
+    );
+  }
+
+  return tests3d;
+}
+
+/**
+ * Helper function to construct a test object for testVisiblity
+ * @param {number} x
+ * @param {number} y
+ * @param {number} z
+ * @returns {object}  Object with { point, los }
+ *  See CanvasVisibility.prototype.testVisibility
+ */
+function buildTestObject(x, y, z = 0, los = new Map()) {
+  return { point: new Point3d(x, y, z), los };
+}
+
+/**
+ * Wrap DetectionMode.prototype._testRange
+ * If using RANGE.FOUNDRY_3D, shift points to top and bottom.
+ * Test 3d if 2d range is true.
+ * @param {VisionSource} visionSource           The vision source being tested
+ * @param {TokenDetectionMode} mode             The detection mode configuration
+ * @param {PlaceableObject} target              The target object being tested
+ * @param {CanvasVisibilityTest} test           The test case being evaluated
+ * @returns {boolean}                           Is the target within range?
+ */
+export function _testRangeDetectionMode(wrapper, visionSource, mode, target, test) {
+  const inRange = wrapper(visionSource, mode, target, test);
+  if ( !(target instanceof Token) || !inRange ) return inRange;
+
+  const radius = visionSource.object.getLightRadius(mode.range);
+  const dx = test.point.x - visionSource.x;
+  const dy = test.point.y - visionSource.y;
+  const dz = test.point.z - visionSource.z;
+  return ((dx * dx) + (dy * dy) + (dz * dz)) <= (radius * radius);
+}
+
+
 
 /**
  * Wrap Token.prototype.updateVisionSource
@@ -163,20 +231,44 @@ export function tokenUpdateVisionSource(wrapped, { defer=false, deleted=false }=
 
 /**
  * Wrap DetectionMode.prototype._testLOS
- * Assumes the test.point is a center point.
  */
 export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test) {
 
-
-
   // Only apply this test to tokens
-  if ( !target || !(target instanceof Token) )
-    return wrapped(visionSource, mode, target, test);
+  if ( !(target instanceof Token) ) return wrapped(visionSource, mode, target, test);
 
-  // Only keep the center test point
-  if ( target.center.x !== test.point.x && target.center.y !== test.point.y ) return false;
 
-  let hasLOS = wrapped(visionSource, mode, target, test);
+  const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
+  if ( algorithm === SETTINGS.LOS.TYPES.POINTS ) {
+    const hasLOS = wrapped(visionSource, mode, target, test);
+    return testLOSPoint(visionSource, target, test, hasLOS);
+
+  } else if ( algorithm === SETTINGS.LOS.TYPES.AREA ) {
+    // Only need to test area once, so use the center point to do this.
+    const avgElevation = target.bottomZ + ((target.topZ - target.bottom.Z) * 0.5);
+    const { x, y } = target.center;
+
+    if ( !points3dAlmostEqual(test.point, { x, y, z: avgElevation }) ) return false;
+    const hasLOS = wrapped(visionSource, mode, target, test);
+    return testLOSArea(visionSource, target, hasLOS);
+  }
+}
+
+function testLOSPoint(visionSource, target, test, hasLOS ) {
+  // If not in the line of sight, no need to test for wall collisions
+  if ( !hasLOS ) return false;
+
+  // If no wall heights, then don't bother checking wall collisions
+  if ( !game.modules.get("wall-height")?.active ) return true;
+
+  // Test shadows and return true if not in shadow?
+
+  // Test all non-infinite walls for collisions
+  const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ)
+  return !ClockwiseSweepPolygon.testCollision3d(origin, test.point, { type: "sight", mode: "any", wallTypes: "limited" });
+}
+
+function testLOSArea(visionSource, target, hasLOS) {
   const percentArea = getSetting(SETTINGS.VISION.PERCENT_AREA);
   const boundsScale = 1;
 //   const boundsScale = getSetting(SETTINGS.VISION.BOUNDS_SCALE);
@@ -189,7 +281,6 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   // the center point must be viewable for the token to be viewable from that source.
   // (necessary but not sufficient)
   if ( !hasLOS && percentArea >= 0.50 ) return false;
-
 
   // Construct the constrained token shape if not yet present.
   // Store in token so it can be re-used (wrapped updateVisionSource will remove it when necessary)
@@ -204,25 +295,32 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
     hasLOS = areaTestFn(visionSource.los, bounds_poly, percentArea);
 
   } else if ( notConstrained ) {
-    hasLOS = sourceIntersectsBoundsTestFn(visionSource.los, constrained_bbox)
+    hasLOS = sourceIntersectsBoundsTestFn(visionSource.los, constrained_bbox);
 
   } else {
 
     /*
-    Doesn't seem to work b/c it returns true when separated by a wall
+    Following doesn't seem to work b/c it returns true when separated by a wall:
     path1 = visionSource.los.toClipperPoints()
     path2 = constrained.toClipperPoints();
     diff = ClipperLib.Clipper.MinkowskiDiff(path1, path2, true)
     ClipperLib.Clipper.PointInPolygon(new ClipperLib.IntPoint(0, 0), res[0])
     */
 
-    hasLOS = sourceIntersectsPolygonTestFn(visionSource.los, constrained_bbox, constrained)
+    hasLOS = sourceIntersectsPolygonTestFn(visionSource.los, constrained_bbox, constrained);
   }
 
   return hasLOS;
 }
 
+/**
+ * For a given los polygon, get the shadows at a given elevation.
+ * Used to determine if there is line-of-sight to a tokken at a specific elevation with shadows.
+ */
+function shadowsForPolygonAtElevation(polygon, sourceElevation, targetElevation) {
 
+
+}
 
 // ***** API
 
