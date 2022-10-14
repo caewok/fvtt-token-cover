@@ -122,15 +122,6 @@ export class Shadow extends PIXI.Polygon {
 
     const V = new Point3d(source.x, source.y, source.elevationZ);
     const O = new Point3d(0, 0, surfaceElevation); // x and y TBD
-    let flipped = false;
-
-    // Need at least one finite wall direction
-    // Construct shadow based on max radius
-//     if ( !isFinite(Wtz) && !isFinite(Wbz) ) {
-//       console.warning("Constructing infinite shadow.");
-//       const dist = canvas.scene.dimensions.maxR;
-//       return null;
-//     }
 
     // If the source elevation equals the surface elevation, no shadows to be seen
     if ( V.z === O.z ) return null;
@@ -153,8 +144,6 @@ export class Shadow extends PIXI.Polygon {
       V.z *= -1;
       O.z *= -1;
 
-      flipped = true;
-
       log("constructShadow: flipped.");
     }
 
@@ -176,15 +165,6 @@ export class Shadow extends PIXI.Polygon {
     const topShadowPoints = Shadow._topWallShadowPoints(wTop, V, O, VW, alphaA, alphaB);
     const points = Shadow._bottomWallShadowPoints(wBottom, V, O, VW, alphaA, alphaB, topShadowPoints);
 
-    // If any elevation is negative, normalize so that the lowest elevation is 0
-//     const min_elevation = Math.min(Ve, Oe, We);
-//     if ( min_elevation < 0 ) {
-//       const adder = Math.abs(min_elevation);
-//       Ve = Ve + adder;
-//       Oe = Oe + adder;
-//       We = We + adder;
-//     }
-
     const out = new this(points);
 
     out.topPoints = topShadowPoints;
@@ -194,11 +174,6 @@ export class Shadow extends PIXI.Polygon {
     out.wall = wall;
     out.source = source;
     out.surfaceElevation = surfaceElevation;
-
-    if ( flipped ) {
-      // Flip back something?
-
-    }
 
     return out;
   }
