@@ -3,7 +3,13 @@ libWrapper
 */
 "use strict";
 
-import { tokenUpdateVisionSource, _testLOSDetectionMode, testVisibilityCanvasVisibility } from "./token_visibility.js";
+import {
+  tokenUpdateVisionSource,
+  _testLOSDetectionMode,
+  testVisibilityCanvasVisibility,
+  _createPolygonPointSource
+} from "./token_visibility.js";
+
 import { MODULE_ID } from "./const.js";
 import { log } from "./util.js";
 import {
@@ -13,6 +19,7 @@ import {
 } from "./settings.js";
 
 export function registerLibWrapperMethods() {
+  libWrapper.register(MODULE_ID, "PointSource.prototype._createPolygon", _createPolygonPointSource, libWrapper.WRAPPER);
   libWrapper.register(MODULE_ID, "Token.prototype.updateVisionSource", tokenUpdateVisionSource, libWrapper.WRAPPER);
   libWrapper.register(MODULE_ID, "DetectionMode.prototype._testLOS", _testLOSDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
   libWrapper.register(MODULE_ID, "SettingsConfig.prototype.activateListeners", activateListenersSettingsConfig, libWrapper.WRAPPER);

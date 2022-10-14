@@ -11,6 +11,7 @@ PIXI
 import { SETTINGS, getSetting } from "./settings.js";
 import { lineSegmentCrosses, walkLineIncrement } from "./util.js";
 import { Point3d } from "./Point3d.js";
+import { Shadow } from "./Shadow.js";
 
 /* Visibility algorithm
 Three tests, increasing in difficulty and stringency. User can select between 0% and 100%
@@ -107,6 +108,20 @@ AREA
 
 
 // ***** WRAPPERS
+
+/**
+ * Wrap PointSource.prototype._createPolygon
+ * Add a map to temporarily store shadows
+ */
+export function _createPolygonPointSource(wrapped) {
+  this._losShadows ??= new Map();
+  this._losShadows.clear();
+
+  return wrapped();
+}
+
+/**
+ * Wrap PointSource.prototype._update
 
 /**
  * Wrap CanvasVisibility.prototype.testVisibility
@@ -212,8 +227,6 @@ export function _testRangeDetectionMode(wrapper, visionSource, mode, target, tes
   return ((dx * dx) + (dy * dy) + (dz * dz)) <= (radius * radius);
 }
 
-
-
 /**
  * Wrap Token.prototype.updateVisionSource
  * Reset the constrained token shape when updating vision for a token.
@@ -288,6 +301,60 @@ function testLOSArea(visionSource, target, hasLOS) {
   const constrained_bbox = constrained.getBounds();
   const notConstrained = constrained instanceof PIXI.Rectangle;
 
+  // Test top and bottom of target shape.
+  const targetElevationTop = visionSource.elevationZ === target.topZ ? target.topZ - Shadow.zValue(1) : target.topZ;
+  const targetElevationBottom =  visionSource.elevationZ === target.bottomZ ? target.bottomZ + Shadow.zValue(1) : target.bottomZ;
+
+  const shadowLOSTop = shadowPolygonForElevation(visionSource, targetElevationTop);
+  const shadowLOSBottom = shadowPolygonForElevation(visionSource, targetElevationBottom);
+
+
+  let constrainedTop = constrained;
+  let constrainedBottom = constrained;
+  if ( shadowLOSTop ) {
+    constrainedTop = intersectConstrainedShapeWithLOS(constrainedTop, shadowLOSTop);
+    constrainedTop = polygonToRectangle(constrainedTop);
+  }
+
+  if ( shadowLOSBottom ) {
+    constrainedBottom = intersectConstrainedShapeWithLOS(constrainedBottom, shadowLOSBottom);
+    constrainedBottom = polygonToRectangle(constrainedBottom);
+  }
+
+  const notConstrainedTop = constrainedTop instanceof PIXI.Rectangle;
+  const notConstrainedBottom = constrainedBottom instanceof PIXI.Rectangle;
+
+  if ( shadowLOSTop && shadowLOSBottom ) {
+    console.warn("Not yet implemented!")
+  }
+
+
+
+
+  if ( !shadowLOSTop && !shadowLOSBottom ) {
+    // Can assume 2d approach
+    if ( percentArea !== 0 ) {
+      const bounds_poly = notConstrained ? constrained.toPolygon() : constrained;
+      hasLOS = areaTestFn(visionSource.los, bounds_poly, percentArea);
+
+    } else if ( notConstrained ) {
+      hasLOS = sourceIntersectsBoundsTestFn(visionSource.los, constrained_bbox);
+
+    } else {
+      hasLOS = sourceIntersectsPolygonTestFn(visionSource.los, constrained_bbox, constrained);
+    }
+
+    return hasLOS;
+  }
+
+
+
+
+  // TO-DO: What about an alternative of running CWSweep on xy, xz, and yz axes?
+
+
+
+
   // Check whether the polygon intersects the constrained bounding box
   if ( percentArea !== 0 ) {
     const bounds_poly = notConstrained ? constrained.toPolygon() : constrained;
@@ -312,13 +379,95 @@ function testLOSArea(visionSource, target, hasLOS) {
   return hasLOS;
 }
 
+function polygonToRectangle(polygon) {
+  if ( polygon.length === 1 ) polygon = polygon[0];
+  else if ( polygon.length ) return polygon;
+
+  if ( polygon.isClosed && points.length !== 10
+    || !polygon.isClosed && points.length !== 8 ) return polygon;
+
+  // Layout must be clockwise.
+  // Layout options:
+  // - 0, 1           2, 3          4, 5          6, 7
+  // - left,top       right,top     right,bottom  left,bottom
+  // - right,top      right,bottom  left,bottom   left,top
+  // - right,bottom   left,bottom   left,top      right,top
+  // - left,bottom    left,top      right,top     right,bottom
+
+  const pts = polygon.points;
+  if ( (pts[0] === pts[2] && pts[4] === pts[6] && pts[3] === pts[5] && pts[7] === pts[1])
+    || (pts[1] === pts[3] && pts[5] === pts[7] && pts[2] === pts[4] && pts[6] === pts[0]) ) {
+
+    const left = Math.min(pts[0], pts[2], pts[4], pts[6]);
+    const right = Math.max(pts[0], pts[2], pts[4], pts[6]);
+    const top = Math.min(pts[1], pts[3], pts[5], pts[7]);
+    const bottom = Math.max(pts[1], pts[3], pts[5], pts[7]);
+
+    return new PIXI.Rectangle(left, right, left - right, top - bottom);
+  }
+
+  return polygon;
+}
+
+function intersectConstrainedShapeWithLOS(constrained, shadowLOS, { scalingFactor = 1, cleanDelta = 0.1 } = {}) {
+  if ( constrained instanceof PIXI.Rectangle && shadowLOS instanceof PIXI.Polygon ) {
+    // Weiler-Atherton is faster for intersecting regular shapes
+    // Use Clipper for now
+  }
+
+  if ( constrained instanceof PIXI.Rectangle ) constrained = constrained.toPolygon();
+
+  const c = new ClipperLib.Clipper();
+  const solution = new ClipperLib.Paths();
+  c.addPath(constrained.toClipperPoints({scalingFactor}), ClipperLib.PolyType.ptSubject, true);
+
+  if ( shadowLOS instanceof PIXI.Polygon )
+    c.addPath(shadowLOS.toClipperPoints({scalingFactor}), ClipperLib.PolyType.ptClip, true);
+  else c.addPaths(shadowLOS, ClipperLib.PolyType.ptClip, true);
+
+  c.Execute(ClipperLib.ClipType.ctIntersection, solution);
+
+  return Shadow.clipperPathsToPolygons(solution);
+}
+
 /**
  * For a given los polygon, get the shadows at a given elevation.
  * Used to determine if there is line-of-sight to a tokken at a specific elevation with shadows.
  */
-function shadowsForPolygonAtElevation(polygon, sourceElevation, targetElevation) {
+function shadowPolygonForElevation(visionSource, targetElevation) {
+  let shadowLOS = visionSource._losShadows.get(targetElevation)
+  if ( shadowLOS ) return null;
+
+  if ( visionSource.elevationZ === targetElevation ) {
+    log("Elevations are equal; no shadows.");
+    visionSource._losShadows.set(targetElevation, null);
+    return null;
+  }
+
+  log("Building shadows.")
+
+  // Only walls that encounter LOS will shadow the LOS
+  const los = visionSource.los;
+  const bounds = los.bounds;
+  const collisionTest = (o, rect) => isFinite(o.t.topZ) || isFinite(o.t.bottomZ);
+  const walls = canvas.walls.quadtree.getObjects(bounds, { collisionTest });
+
+  if ( !walls.length) {
+    log("No limited walls; no shadows.");
+    visionSource._losShadows.set(targetElevation, null);
+    return null;
+  }
+
+  const shadows = [];
+  for ( const wall of walls ) {
+    const shadow = Shadow.construct(wall, visionSource, targetElevation);
+    if ( shadow ) shadows.push(shadow);
+  }
 
 
+  const combined = Shadow.combinePolygonWithShadows(los, shadows);
+  visionSource._losShadows.set(targetElevation, combined);
+  return combined;
 }
 
 // ***** API

@@ -1,7 +1,8 @@
 /* globals
 PIXI,
 Ray,
-canvas
+canvas,
+ClipperLib
 */
 "use strict";
 
@@ -15,11 +16,11 @@ Point3d = api.Point3d
 Shadow = api.Shadow
 visionSource = _token.vision
 let [wall] = canvas.walls.placeables
-s0 = Shadow.constructShadow(wall, visionSource, Shadow.zValue(0))
-s10 = Shadow.constructShadow(wall, visionSource, Shadow.zValue(10))
+s0 = Shadow.construct(wall, visionSource, Shadow.zValue(0))
+s10 = Shadow.construct(wall, visionSource, Shadow.zValue(10))
 
 
-s30 = Shadow.constructShadow(wall, visionSource, Shadow.zValue(30))
+s30 = Shadow.construct(wall, visionSource, Shadow.zValue(30))
 
 // Project to bottom surface.
 Token losHeight = 30; elevation = 25
@@ -109,7 +110,7 @@ export class Shadow extends PIXI.Polygon {
    * @param {number} surfaceElevation=0         Elevation of the shadowed surface
    * @returns {Shadow}
    */
-  static constructShadow(wall, source, surfaceElevation = 0) {
+  static construct(wall, source, surfaceElevation = 0) {
     let wBottom = {
       A: new Point3d(wall.A.x, wall.A.y, wall.bottomZ),
       B: new Point3d(wall.B.x, wall.B.y, wall.bottomZ)
@@ -241,7 +242,6 @@ export class Shadow extends PIXI.Polygon {
     return [startA.B, endA, endB, startB.B];
   }
 
-
   /**
    * Draw a shadow shape on canvas. Used for debugging.
    * Optional:
@@ -254,5 +254,71 @@ export class Shadow extends PIXI.Polygon {
     canvas.controls.debug.beginFill(fill, alpha);
     drawShape(this, { color, width });
     canvas.controls.debug.endFill();
+  }
+
+  /**
+   * Combine multiple shadows using Clipper.
+   * @param {Shadow[]} shadows  One or more Shadows in an array
+   * @param {object} [options]    Options that vary Clipper results.
+   * @param {number} [options.scalingFactor]  Scaling used for more precise clipper integers
+   * @param {number} [options.cleanDelta]     Passed to ClipperLib.Clipper.CleanPolygons.
+   * @returns {ClipperPaths} The paths representing the combined shadows.
+   */
+  static combine(shadows, { scalingFactor = 1, cleanDelta = 0.1 } = {}) {
+    const ln = shadows.length;
+    if ( !ln ) console.error("Shadow.combine requires an array of shadows.");
+
+    if ( ln === 1 ) return [shadows[0].toClipperPoints({scalingFactor})];
+
+    const c = new ClipperLib.Clipper();
+    const combinedShadows = new ClipperLib.Paths();
+
+    // Arbitrarily set the first shadow to the subject; rest to clip
+    c.addPath(shadows[0].toClipperPoints({scalingFactor}), ClipperLib.PolyType.ptSubject, true);
+    for ( let i = 1; i < ln; i += 1 ) {
+      const shadow = shadows[i];
+      c.AddPath(shadow.toClipperPoints({scalingFactor}), ClipperLib.PolyType.ptClip, true);
+    }
+
+    // To avoid the checkerboard issue, use a positive fill type so any overlap is filled.
+    c.Execute(ClipperLib.ClipType.ctUnion,
+      combinedShadows,
+      ClipperLib.PolyFillType.pftPositive,
+      ClipperLib.PolyFillType.pftPositive);
+
+    // Clean and return the paths for potential further processing.
+    ClipperLib.Clipper.CleanPolygons(combinedShadows, cleanDelta * scalingFactor);
+    return combinedShadows;
+  }
+
+  /**
+   * Given a boundary polygon and an array of Shadows (holes), combine using Clipper.
+   * @param {PIXI.Polygon} boundary   Polygon, such as an los polygon
+   * @param {Shadow[]} shadows        Array of Shadows
+   * @param {object} [options]    Options that vary Clipper results.
+   * @param {number} [options.scalingFactor]  Scaling used for more precise clipper integers
+   * @param {number} [options.cleanDelta]     Passed to ClipperLib.Clipper.CleanPolygons.
+   * @returns {PIXI.Polygon[]} Array of PIXI.Polygons with the property "isHole" set.
+   */
+  static combinePolygonWithShadows(boundary, shadows,{ scalingFactor = 1, cleanDelta = 0.1 } = {}) {
+    if ( !shadows.length ) return boundary;
+
+    const combinedShadowPaths = Shadow.combine(shadows);
+    const c = new ClipperLib.Clipper();
+    const solution = new ClipperLib.Paths();
+    c.AddPath(boundary.toClipperPoints({scalingFactor}), ClipperLib.PolyType.ptSubject, true);
+    c.AddPaths(combinedShadows, ClipperLib.PolyType.ptClip, true);
+    c.Execute(ClipperLib.ClipType.ctDifference, solution);
+
+    ClipperLib.Clipper.CleanPolygons(solution, cleanDelta * scalingFactor);
+    return solution;
+  }
+
+  static clipperPathsToPolygons(paths) {
+    return paths.map(pts => {
+      const poly = PIXI.Polygon.fromClipperPoints(pts, scalingFactor);
+      poly.isHole = !ClipperLib.Clipper.Orientation(pts);
+      return poly;
+    });
   }
 }
