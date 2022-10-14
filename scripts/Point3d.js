@@ -3,6 +3,116 @@ PIXI
 */
 "use strict";
 
+
+// Add methods to PIXI.Point
+export function registerPIXIPointMethods() {
+  Object.defineProperty(PIXI.Point.prototype, "add", {
+    value: add2d,
+    writable: true,
+    configurable: true
+  });
+
+  Object.defineProperty(PIXI.Point.prototype, "subtract", {
+    value: subtract2d,
+    writable: true,
+    configurable: true
+  });
+
+  Object.defineProperty(PIXI.Point.prototype, "multiply", {
+    value: multiply2d,
+    writable: true,
+    configurable: true
+  });
+
+  Object.defineProperty(PIXI.Point.prototype, "multiplyScalar", {
+    value: multiplyScalar2d,
+    writable: true,
+    configurable: true
+  });
+
+  Object.defineProperty(PIXI.Point.prototype, "dot", {
+    value: dot2d,
+    writable: true,
+    configurable: true
+  });
+
+  Object.defineProperty(PIXI.Point.prototype, "to3d", {
+    value: function() { return new Point3d(this.x, this.y); },
+    writable: true,
+    configurable: true
+  });
+}
+
+/**
+ * Add a point to this one.
+ * Based on https://api.pixijs.io/@pixi/math-extras/src/pointExtras.ts.html
+ * @param {PIXI.Point} other    The point to add to `this`.
+ * @param {PIXI.Point} [outPoint]    A point-like object in which to store the value.
+ *   (Will create new point if none provided.)
+ * @returns {PIXI.Point}
+ */
+function add2d(other, outPoint = new PIXI.Point()) {
+  outPoint.x = this.x + other.x;
+  outPoint.y = this.y + other.y;
+
+  return outPoint;
+}
+
+/**
+ * Subtract a point from this one.
+ * Based on https://api.pixijs.io/@pixi/math-extras/src/pointExtras.ts.html
+ * @param {PIXI.Point} other    The point to subtract from `this`.
+ * @param {PIXI.Point} [outPoint]    A point-like object in which to store the value.
+ *   (Will create new point if none provided.)
+ * @returns {PIXI.Point}
+ */
+function subtract2d(other, outPoint = new PIXI.Point()) {
+  outPoint.x = this.x + other.x;
+  outPoint.y = this.y + other.y;
+
+  return outPoint;
+}
+
+/**
+ * Multiply `this` point by another.
+ * Based on https://api.pixijs.io/@pixi/math-extras/src/pointExtras.ts.html
+ * @param {PIXI.Point} other    The point to subtract from `this`.
+ * @param {PIXI.Point} [outPoint]    A point-like object in which to store the value.
+ *   (Will create new point if none provided.)
+ * @returns {PIXI.Point}
+ */
+function multiply2d(other, outPoint = new PIXI.Point()) {
+  outPoint.x = this.x * other.x;
+  outPoint.y = this.y * other.y;
+
+  return outPoint;
+}
+
+/**
+ * Multiply `this` point by a scalar
+ * Based on https://api.pixijs.io/@pixi/math-extras/src/pointExtras.ts.html
+ * @param {PIXI.Point} other    The point to subtract from `this`.
+ * @param {PIXI.Point} [outPoint]    A point-like object in which to store the value.
+ *   (Will create new point if none provided.)
+ * @returns {PIXI.Point}
+ */
+function multiplyScalar2d(scalar, outPoint = new PIXI.Point()) {
+  outPoint.x = this.x * scalar;
+  outPoint.y = this.y * scalar;
+
+  return outPoint;
+}
+
+/**
+ * Dot product of this point with another.
+ * (Sum of the products of the components)
+ * @param {PIXI.Point} other
+ * @return {number}
+ */
+function dot2d(other) {
+  return (this.x * other.x) + (this.y * other.y);
+}
+
 /**
  * 3-D version of PIXI.Point
  * See https://pixijs.download/dev/docs/packages_math_src_Point.ts.html
@@ -16,6 +126,13 @@ export class Point3d extends PIXI.Point {
   constructor(x = 0, y = 0, z = 0) {
     super(x, y);
     this.z = z;
+  }
+
+  /**
+   * Drop the z dimension; return a new PIXI.Point
+   */
+  to2d() {
+    return new PIXI.Point(this.x, this.y);
   }
 
   /**
@@ -65,8 +182,7 @@ export class Point3d extends PIXI.Point {
    * @returns {Point3d} The point instance itself
    */
   set(x = 0, y = x, z = 0) {
-    this.x = x;
-    this.y = y;
+    super.set(x, y);
     this.z = z;
     return this;
   }
@@ -74,14 +190,13 @@ export class Point3d extends PIXI.Point {
   /**
    * Add a point to this one.
    * Based on https://api.pixijs.io/@pixi/math-extras/src/pointExtras.ts.html
-   * @param {Point3d|PIXI.Point} other    The point to add to `this`.
+   * @param {PIXI.Point} other    The point to add to `this`.
    * @param {Point3d} [outPoint]    A point-like object in which to store the value.
    *   (Will create new point if none provided.)
    * @returns {Point3d}
    */
   add(other, outPoint = new Point3d()) {
-    outPoint.x = this.x + other.x;
-    outPoint.y = this.y + other.y;
+    super.add(other, outPoint);
     outPoint.z = this.z + (other.z ?? 0);
 
     return outPoint;
@@ -96,8 +211,7 @@ export class Point3d extends PIXI.Point {
    * @returns {Point3d}
    */
   subtract(other, outPoint = new Point3d()) {
-    outPoint.x = this.x - other.x;
-    outPoint.y = this.y - other.y;
+    super.subtract(other, outPoint);
     outPoint.z = this.z - (other.z ?? 0);
 
     return outPoint;
@@ -112,8 +226,7 @@ export class Point3d extends PIXI.Point {
    * @returns {Point3d}
    */
   multiply(other, outPoint = new Point3d()) {
-    outPoint.x = this.x * other.x;
-    outPoint.y = this.y * other.y;
+    super.multiply(other, outPoint);
     outPoint.z = this.z * (other.z ?? 0);
 
     return outPoint;
@@ -128,8 +241,7 @@ export class Point3d extends PIXI.Point {
    * @returns {Point3d}
    */
   multiplyScalar(scalar, outPoint = new Point3d()) {
-    outPoint.x = this.x * scalar;
-    outPoint.y = this.y * scalar;
+    super.multiplyScalar(scalar, outPoint);
     outPoint.z = this.z * scalar;
 
     return outPoint;
@@ -142,7 +254,8 @@ export class Point3d extends PIXI.Point {
    * @return {number}
    */
   dot(other) {
-    return (this.x * other.x) + (this.y * other.y) + (this.z * (other.z ?? 0));
+    const res = super.dot(other);
+    return res + (this.z * (other.z ?? 0));
   }
 
 }

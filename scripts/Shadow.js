@@ -11,6 +11,7 @@ import { Point3d } from "./Point3d.js";
 
 /* Testing
 api = game.modules.get("tokenvisibility").api
+Point3d = api.Point3d
 Shadow = api.Shadow
 visionSource = _token.vision
 let [wall] = canvas.walls.placeables

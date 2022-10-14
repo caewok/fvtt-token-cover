@@ -12,10 +12,11 @@ import { objectIsVisible, objectHasCoverFromToken, constrainedTokenShape } from 
 import { registerSettings } from "./settings.js";
 import { registerElevationAdditions } from "./elevation.js";
 import { Shadow } from "./Shadow.js";
-import { Point3d } from "./Point3d.js";
+import { Point3d, registerPIXIPointMethods } from "./Point3d.js";
 
 Hooks.once("init", async function() {
   registerElevationAdditions();
+  registerPIXIPointMethods();
   registerLibWrapperMethods();
   patchHelperMethods();
   registerPIXIPolygonMethods();
