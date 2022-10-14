@@ -7,7 +7,9 @@ import {
   tokenUpdateVisionSource,
   _testLOSDetectionMode,
   testVisibilityCanvasVisibility,
-  _createPolygonPointSource
+  _createPolygonPointSource,
+  testVisibilityDetectionMode,
+  _testRangeDetectionMode
 } from "./token_visibility.js";
 
 import { MODULE_ID } from "./const.js";
@@ -26,6 +28,8 @@ export function registerLibWrapperMethods() {
   libWrapper.register(MODULE_ID, "SettingsConfig.prototype.close", closeSettingsConfig, libWrapper.WRAPPER);
   libWrapper.register(MODULE_ID, "SettingsConfig.prototype._onSubmit", _onSubmitSettingsConfig, libWrapper.WRAPPER);
   libWrapper.register(MODULE_ID, "CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+  libWrapper.register(MODULE_ID, "DetectionMode.prototype.testVisibility", testVisibilityDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+  libWrapper.register(MODULE_ID, "DetectionMode.prototype._testRange", _testRangeDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 }
 
 export function patchHelperMethods() {

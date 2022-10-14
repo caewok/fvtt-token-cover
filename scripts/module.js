@@ -8,7 +8,7 @@ import { MODULE_ID } from "./const.js";
 import * as bench from "./benchmark.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
-import { objectIsVisible, objectHasCoverFromToken, constrainedTokenShape } from "./token_visibility.js";
+import { objectIsVisible, objectHasCoverFromToken, constrainedTokenShape, testLOSArea, testLOSPoint } from "./token_visibility.js";
 import { registerSettings } from "./settings.js";
 import { registerElevationAdditions } from "./elevation.js";
 import { Shadow } from "./Shadow.js";
@@ -27,7 +27,9 @@ Hooks.once("init", async function() {
     constrainedTokenShape,
     bench,
     Shadow,
-    Point3d
+    Point3d,
+    testLOSArea,
+    testLOSPoint
   };
 });
 

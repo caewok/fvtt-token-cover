@@ -136,7 +136,7 @@ export function _createPolygonPointSource(wrapped) {
  */
 export function testVisibilityCanvasVisibility(wrapped, point, {tolerance=2, object=null}={}) {
   const algorithm = getSetting(SETTINGS.RANGE.ALGORITHM);
-  if ( object instanceof Token && algorithm === SETTINGS.RANGE.CENTER ) tolerance = 0;
+  if ( object instanceof Token && algorithm === SETTINGS.RANGE.TYPES.CENTER ) tolerance = 0;
   return wrapped(point, { tolerance, object });
 }
 
@@ -165,14 +165,14 @@ function elevatePoints(tests, visionSource, object) {
 
   // Create default elevations
   visionSource.z ??= visionSource.object.elevation;
-  const objectHeight = object.topZ - object.bottom.Z;
+  const objectHeight = object.topZ - object.bottomZ;
   const avgElevation = object.bottomZ + (objectHeight * 0.5);
   for ( const test of tests ) {
     test.point.z ??= avgElevation;
   }
 
   // If top/bottom equal or not doing 3d points, no need for extra test points
-  if ( !objectHeight || !getSetting(SETTINGS.RANGE.FOUNDRY_3D) ) {
+  if ( !objectHeight || getSetting(SETTINGS.RANGE.ALGORITHM) !== SETTINGS.RANGE.TYPES.FOUNDRY_3D ) {
     return tests;
   }
 
@@ -266,7 +266,7 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   }
 }
 
-function testLOSPoint(visionSource, target, test, hasLOS ) {
+export function testLOSPoint(visionSource, target, test, hasLOS ) {
   // If not in the line of sight, no need to test for wall collisions
   if ( !hasLOS ) return false;
 
@@ -280,7 +280,7 @@ function testLOSPoint(visionSource, target, test, hasLOS ) {
   return !ClockwiseSweepPolygon.testCollision3d(origin, test.point, { type: "sight", mode: "any", wallTypes: "limited" });
 }
 
-function testLOSArea(visionSource, target, hasLOS) {
+export function testLOSArea(visionSource, target, hasLOS) {
   const percentArea = getSetting(SETTINGS.VISION.PERCENT_AREA);
   const boundsScale = 1;
 //   const boundsScale = getSetting(SETTINGS.VISION.BOUNDS_SCALE);
