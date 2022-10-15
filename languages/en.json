@@ -1,7 +1,61 @@
 {
-    "tokenvisibility.settings.percent-area.Name": "Percent Token Area",
-    "tokenvisibility.settings.percent-area.Hint": "Percentage of the token hit area that must be viewable to another token to be considered visible by that other token. If set to 0, then if any part of the token is viewable, it is considered visible.",
+    "tokenvisibility.settings.range-algorithm.Name": "Range Algorithm",
+    "tokenvisibility.settings.range-algorithm.Hint": "How to test whether a token is within range of another. Also controls number of points for line-of-sight points algorithm. Algorithms sorted from least to most performance-intensive.\nSee https://github.com/caewok/fvtt-token-visibility#settings for a full explanation.",
 
-    "tokenvisibility.settings.bounds-scale.Name": "Percent Token Size",
-    "tokenvisibility.settings.bounds-scale.Hint": "For the visibility calculation, multiply the token width and height by this percentage before considering visibility."
+    "tokenvisibility.settings.range-center": "Token center only (1 point)",
+    "tokenvisibility.settings.range-foundry": "Foundry default (9 points)",
+    "tokenvisibility.settings.range-foundry-3d": "Foundry 3d (17 points)",
+
+    "tokenvisibility.settings.los-algorithm.Name": "Line of Sight Algorithm",
+    "tokenvisibility.settings.los-algorithm.Hint": "How to test a token's line-of-sight to another.\nPoints will use the points from Range Algorithm. Area is generally more performance-intensive, but not always.\\nSee https://github.com/caewok/fvtt-token-visibility#settings for a full explanation.",
+
+    "tokenvisibility.settings.los-percent-area.Name": "Percent Token Area",
+    "tokenvisibility.settings.los-percent-area.Hint": "Percentage of the token hit area that must be viewable to another token to be considered visible by that other token. If set to 0, then if any part of the token is viewable, it is considered visible.",
+
+    "tokenvisibility.settings.los-points": "Points on token",
+    "tokenvisibility.settings.los-area": "Token area",
+
+    "tokenvisibility.settings.cover-algorithm.Name": "Cover Algorithm",
+    "tokenvisibility.settings.cover-algorithm.Hint": "How to test whether a token has cover in relation to another.\nAlgorithms loosely sorted from least to most performance-intensive.\nSee https://github.com/caewok/fvtt-token-visibility#settings for a full explanation.",
+
+    "tokenvisibility.settings.cover-center-to-corners": "Center to Corners",
+    "tokenvisibility.settings.cover-corner-to-corners": "Corner to Corners (dnd5e DMG)",
+    "tokenvisibility.settings.cover-center-to-center": "Center to Center (PF2e)",
+    "tokenvisibility.settings.cover-area": "Area",
+    "tokenvisibility.settings.cover-center-to-cube": "Center to Corners 3d",
+    "tokenvisibility.settings.cover-cube-to-cube": "Corner to Corners 3d",
+    "tokenvisibility.settings.cover-area-3d": "Area 3d",
+
+    "tokenvisibility.settings.cover-name-low.Name": "Low cover name",
+    "tokenvisibility.settings.cover-name-low.Hint": "Name of low cover displayed to users.",
+    "tokenvisibility.settings.cover-name-medium.Name": "Medium cover name",
+    "tokenvisibility.settings.cover-name-medium.Hint": "Name of medium cover displayed to users.",
+    "tokenvisibility.settings.cover-name-high.Name": "High cover name",
+    "tokenvisibility.settings.cover-name-high.Hint": "Name of high cover displayed to users.",
+
+    "tokenvisibility.settings.cover-effect-low.Name": "Low active effect name",
+    "tokenvisibility.settings.cover-effect-low.Hint": "Name of the active effect to add to a token with low cover. Leave blank for none.",
+    "tokenvisibility.settings.cover-effect-medium.Name": "Medium active effect name",
+    "tokenvisibility.settings.cover-effect-medium.Hint": "Name of the active effect to add to a token with medium cover. Leave blank for none.",
+    "tokenvisibility.settings.cover-effect-high.Name": "High active effect name",
+    "tokenvisibility.settings.cover-effect-high.Hint": "Name of the active effect to add to the token with high cover. Leave blank for none.",
+
+    "tokenvisibility.settings.cover-trigger-corner-low.Name": "Low cover trigger",
+    "tokenvisibility.settings.cover-trigger-corner-low.Hint": "When this or more corners are blocked, the token will have low cover unless a higher level of cover applies.",
+    "tokenvisibility.settings.cover-trigger-corner-medium.Name": "Medium cover trigger",
+    "tokenvisibility.settings.cover-trigger-corner-medium.Hint": "When this or more corners are blocked, the token will have medium cover unless a higher level of cover applies. Hex grids will add one to this value.",
+    "tokenvisibility.settings.cover-trigger-corner-high.Name": "High cover trigger",
+    "tokenvisibility.settings.cover-trigger-corner-high.Hint": "If this many corners or more are blocked, the token will have high cover. Hex grids will add one to this value. Set to 99 to prevent automatic assignment of high cover.",
+
+    "tokenvisibility.settings.cover-trigger-area-low.Name": "Low cover trigger",
+    "tokenvisibility.settings.cover-trigger-area-low.Hint": "If less than this percent of the token area is viewable, the token will have low cover.",
+    "tokenvisibility.settings.cover-trigger-area-medium.Name": "Medium cover trigger",
+    "tokenvisibility.settings.cover-trigger-area-medium.Hint": "If less than this percent of the token area is viewable, the token will have medium cover.",
+    "tokenvisibility.settings.cover-trigger-area-high.Name": "High cover trigger",
+    "tokenvisibility.settings.cover-trigger-area-high.Hint": "If less than this percent of the token area is viewable, the token will have high cover.",
+
+    "tokenvisibility.settings.cover-trigger-center.Name": "Trigger",
+    "tokenvisibility.settings.cover-trigger-center.Hint": "When the line from one token center to another token center is blocked, use this cover type. (PF2e uses Medium, or Standard, cover.)"
+
+
 }
