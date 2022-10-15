@@ -156,6 +156,15 @@ export function testVisibilityDetectionMode(wrapped, visionSource, mode, {object
   const debug = game.modules.get(MODULE_ID).api.debug;
   debug && drawing.clearDrawings();
   tests = elevatePoints(tests, visionSource, object);
+
+  if ( getSetting(SETTINGS.LOS.ALGORITHM) === SETTINGS.LOS.TYPES.AREA ) {
+    // link tests to the center test for los area
+    const ln = tests.length;
+    for ( let i = 1; i < ln; i += 1 ) {
+      tests[i].centerPoint = tests[0];
+    }
+  }
+
   return wrapped(visionSource, mode, { object, tests });
 }
 
@@ -276,10 +285,12 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
     const avgElevation = target.bottomZ + ((target.topZ - target.bottomZ) * 0.5);
     const center = new Point3d(target.center.x, target.center.y, avgElevation);
 
-    if ( !test.point.almostEqual(center) ) return false;
+    if ( !test.point.almostEqual(center) ) return test.centerPoint.hasLOSArea;
 
-    const hasLOS = wrapped(visionSource, mode, target, test);
-    return testLOSArea(visionSource, target, hasLOS);
+    let hasLOS = wrapped(visionSource, mode, target, test);
+    hasLOS = testLOSArea(visionSource, target, hasLOS);
+    test.hasLOSArea = hasLOS;
+    return hasLOS;
   }
 }
 
@@ -355,7 +366,7 @@ export function areaTest(los, constrainedTokenShape) {
 
     if ( !(los instanceof ClipperPaths) ) {
       const hasLOS = sourceIntersectsPolygonBounds(los, constrainedTokenShape);
-//       debug && drawing.drawShape(los, { color: drawing.COLORS.blue });
+      debug && drawing.drawShape(los, { color: drawing.COLORS.blue });
       debug && drawing.drawShape(constrainedTokenShape, { color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red });
       return hasLOS;
     }
@@ -375,14 +386,14 @@ export function areaTest(los, constrainedTokenShape) {
     if ( los instanceof ClipperPaths ) los = los.simplify();
     if ( visibleTokenShape instanceof ClipperPaths ) visibleTokenShape = visibleTokenShape.simplify();
 
-//     if ( los instanceof ClipperPaths ) {
-//       const polys = los.toPolygons();
-//       for ( const poly of polys ) {
-//         drawing.drawShape(poly, { color: drawing.COLORS.blue, width: poly.isHole ? 1 : 2 });
-//       }
-//     } else {
-//       drawing.drawShape(los, { color: drawing.COLORS.blue, width: 2 });
-//     }
+    if ( los instanceof ClipperPaths ) {
+      const polys = los.toPolygons();
+      for ( const poly of polys ) {
+        drawing.drawShape(poly, { color: drawing.COLORS.blue, width: poly.isHole ? 1 : 2 });
+      }
+    } else {
+      drawing.drawShape(los, { color: drawing.COLORS.blue, width: 2 });
+    }
 
     if ( visibleTokenShape instanceof ClipperPaths ) {
       const polys = visibleTokenShape.toPolygons();
@@ -487,7 +498,8 @@ function sourceIntersectsPolygonBounds(source, bounds) {
  * @return {PIXI.Polygon}
  */
 export function constrainedTokenShape(token, { boundsScale } = {}) {
-  boundsScale ??= getSetting(SETTINGS.BOUNDS_SCALE);
+//   boundsScale ??= getSetting(SETTINGS.BOUNDS_SCALE);
+  boundsScale ??= 1;
 
   let bbox = token.bounds;
   if ( boundsScale !== 1) {

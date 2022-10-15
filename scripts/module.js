@@ -8,6 +8,7 @@ import { MODULE_ID } from "./const.js";
 import * as bench from "./benchmark.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
+import { registerPIXIRectangleMethods } from "./PIXIRectangle.js";
 import {
   constrainedTokenShape,
   testLOSArea,
@@ -24,6 +25,7 @@ import { Point3d, registerPIXIPointMethods } from "./Point3d.js";
 Hooks.once("init", async function() {
   registerElevationAdditions();
   registerPIXIPointMethods();
+  registerPIXIRectangleMethods();
   registerLibWrapperMethods();
   patchHelperMethods();
   registerPIXIPolygonMethods();
