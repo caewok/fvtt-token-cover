@@ -129,6 +129,12 @@ export class Shadow extends PIXI.Polygon {
     // If the source elevation equals the surface elevation, no shadows to be seen
     if ( V.z === O.z ) return null;
 
+    // Viewer and the surface elevation both above the wall, so no shadow
+    else if ( V.z > wTop.A.z && O.z > wTop.A.z ) return null;
+
+    // Viewer and the surface elevation both below the wall, so no shadow
+    else if ( V.z < wBottom.A.z && O.z < wBottom.A.z ) return null;
+
     // Projecting downward from source; if below bottom of wall, no shadow.
     else if ( V.z > O.z && V.z < wBottom.A.z ) return null;
 
