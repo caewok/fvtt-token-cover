@@ -8,7 +8,14 @@ import { MODULE_ID } from "./const.js";
 import * as bench from "./benchmark.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
-import { objectIsVisible, objectHasCoverFromToken, constrainedTokenShape, testLOSArea, testLOSPoint } from "./token_visibility.js";
+import {
+  constrainedTokenShape,
+  testLOSArea,
+  testLOSPoint,
+  intersectConstrainedShapeWithLOS,
+  shadowPolygonForElevation
+} from "./token_visibility.js";
+
 import { registerSettings } from "./settings.js";
 import { registerElevationAdditions } from "./elevation.js";
 import { Shadow } from "./Shadow.js";
@@ -22,14 +29,15 @@ Hooks.once("init", async function() {
   registerPIXIPolygonMethods();
 
   game.modules.get(MODULE_ID).api = {
-    objectIsVisible,
-    objectHasCoverFromToken,
     constrainedTokenShape,
     bench,
     Shadow,
     Point3d,
     testLOSArea,
-    testLOSPoint
+    testLOSPoint,
+    intersectConstrainedShapeWithLOS,
+    shadowPolygonForElevation,
+    debug: false
   };
 });
 

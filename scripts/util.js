@@ -46,14 +46,14 @@ export function zValue(value) {
  *                    Negative: c clockwise/right of A|B
  *                    Zero: A|B|C collinear.
  */
-export function orient2dPixelLine(a, b, c) {
-  const orientation = foundry.utils.orient2dFast(a, b, c);
-  const dist2 = Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2);
-  const orientation2 = Math.pow(orientation, 2);
-  const cutoff = 0.5 * dist2; // 0.5 is (√2 / 2)^2.
-
-  return (orientation2 < cutoff) ? 0 : orientation;
-}
+// export function orient2dPixelLine(a, b, c) {
+//   const orientation = foundry.utils.orient2dFast(a, b, c);
+//   const dist2 = Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2);
+//   const orientation2 = Math.pow(orientation, 2);
+//   const cutoff = 0.5 * dist2; // 0.5 is (√2 / 2)^2.
+//
+//   return (orientation2 < cutoff) ? 0 : orientation;
+// }
 
 /**
  * Like foundry.utils.lineSegmentIntersects but requires the two segments cross.
@@ -62,10 +62,27 @@ export function orient2dPixelLine(a, b, c) {
  * @param {Point} b                   The second endpoint of segment AB
  * @param {Point} c                   The first endpoint of segment CD
  * @param {Point} d                   The second endpoint of segment CD
+ * @param {object} [options]
+ * @param {object} [delta]            If provided, reject if an endpoint is within this delta of the other line.
  *
  * @returns {boolean}                 Do the line segments cross?
  */
-export function lineSegmentCrosses(a, b, c, d) {
+export function lineSegmentCrosses(a, b, c, d, { delta } = {}) {
+  if ( typeof delta !== "undefined" ) {
+//     const p1 = perpendicularPoint(a, b, d);
+//     if ( distanceBetweenPoints(d, p1) <= delta ) return false;
+//
+//     const p2 = perpendicularPoint(a, b, c);
+//     if ( distanceBetweenPoints(c, p2) <= delta ) return false;
+
+    // Don't test the other line b/c crossing AB in a T-shape is sufficient
+    const p3 = perpendicularPoint(c, d, a);
+    if ( distanceBetweenPoints(a, p3) <= delta ) return false;
+
+    const p4 = perpendicularPoint(c, d, b);
+    if ( distanceBetweenPoints(b, p4) <= delta ) return false;
+  }
+
   const xa = foundry.utils.orient2dFast(a, b, c);
   if ( !xa ) return false;
 
@@ -82,6 +99,25 @@ export function lineSegmentCrosses(a, b, c, d) {
   const xcd = (xc * xd) < 0; // Cannot be equal to 0.
 
   return xab && xcd;
+}
+
+/**
+ * Test orientation of a line to a point.
+ * If the point is within √2 / 2 of the line, it is collinear
+ * @param {Point} a                   The first endpoint of segment AB
+ * @param {Point} b                   The second endpoint of segment AB
+ * @param {Point} c                   Point to test
+ * @returns {number}
+ */
+export function orient2dPixel(a, b, c) {
+  a = a.to2d();
+  b = b.to2d();
+  c = c.to2d();
+
+  const p = perpendicularPoint(a, b, c);
+  if ( distanceSquaredBetweenPoints(c, p3) <= 0.5 ) return 0;
+
+  return foundry.utils.orient2d(a, b, c);
 }
 
 /**

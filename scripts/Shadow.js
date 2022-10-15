@@ -1,20 +1,27 @@
 /* globals
 PIXI,
 Ray,
-canvas,
-ClipperLib
+canvas
 */
 "use strict";
 
 import { perpendicularPoint, distanceBetweenPoints, zValue, log } from "./util.js";
 import { COLORS, drawShape } from "./drawing.js";
 import { Point3d } from "./Point3d.js";
+import { ClipperPaths } from "./ClipperPaths.js";
 
 /* Testing
 api = game.modules.get("tokenvisibility").api
 Point3d = api.Point3d
 Shadow = api.Shadow
 visionSource = _token.vision
+shadowPolygonForElevation = api.shadowPolygonForElevation
+polygonToRectangle = api.polygonToRectangle
+intersectConstrainedShapeWithLOS = api.intersectConstrainedShapeWithLOS
+
+target = _token
+
+
 let [wall] = canvas.walls.placeables
 s0 = Shadow.construct(wall, visionSource, Shadow.zValue(0))
 s10 = Shadow.construct(wall, visionSource, Shadow.zValue(10))
@@ -30,8 +37,6 @@ wall at 20, 10
 // Project to top surface:
 token losHeight = 0; elevation = -5
 surface elevation = 30
-
-
 
 */
 
@@ -97,9 +102,6 @@ export class Shadow extends PIXI.Polygon {
 
   static zValue = zValue;
 
-
-
-
   /**
    * Build the parallelogram representing a shadow cast from a wall.
    * Looking top-down with a light or other source object at a given elevation
@@ -122,13 +124,13 @@ export class Shadow extends PIXI.Polygon {
     };
 
     const V = new Point3d(source.x, source.y, source.elevationZ);
-    const O = new Point3d(0, 0, surfaceElevation); // x and y TBD
+    const O = new Point3d(0, 0, surfaceElevation); // X and y TBD
 
     // If the source elevation equals the surface elevation, no shadows to be seen
     if ( V.z === O.z ) return null;
 
     // Projecting downward from source; if below bottom of wall, no shadow.
-    else if ( V.z > O.z  && V.z < wBottom.A.z ) return null;
+    else if ( V.z > O.z && V.z < wBottom.A.z ) return null;
 
     // Projecting upward from source; if above bottom of wall, no shadow.
     else if ( V.z < O.z && V.z > wTop.A.z ) return null;
@@ -153,7 +155,7 @@ export class Shadow extends PIXI.Polygon {
     if ( !Wix ) return null; // Line collinear with vision object
 
     // Distance from the viewer to the wall in x,y dimension
-    const VWdist = distanceBetweenPoints(V.to2d(), Wix)
+    const VWdist = distanceBetweenPoints(V.to2d(), Wix);
 
     // Get the 2d distances between Wix and the wall endpoints.
     const distA = distanceBetweenPoints(wTop.A.to2d(), Wix);
@@ -257,68 +259,23 @@ export class Shadow extends PIXI.Polygon {
   }
 
   /**
-   * Combine multiple shadows using Clipper.
-   * @param {Shadow[]} shadows  One or more Shadows in an array
-   * @param {object} [options]    Options that vary Clipper results.
-   * @param {number} [options.scalingFactor]  Scaling used for more precise clipper integers
-   * @param {number} [options.cleanDelta]     Passed to ClipperLib.Clipper.CleanPolygons.
-   * @returns {ClipperPaths} The paths representing the combined shadows.
-   */
-  static combine(shadows, { scalingFactor = 1, cleanDelta = 0.1 } = {}) {
-    const ln = shadows.length;
-    if ( !ln ) console.error("Shadow.combine requires an array of shadows.");
-
-    if ( ln === 1 ) return [shadows[0].toClipperPoints({scalingFactor})];
-
-    const c = new ClipperLib.Clipper();
-    const combinedShadows = new ClipperLib.Paths();
-
-    // Arbitrarily set the first shadow to the subject; rest to clip
-    c.addPath(shadows[0].toClipperPoints({scalingFactor}), ClipperLib.PolyType.ptSubject, true);
-    for ( let i = 1; i < ln; i += 1 ) {
-      const shadow = shadows[i];
-      c.AddPath(shadow.toClipperPoints({scalingFactor}), ClipperLib.PolyType.ptClip, true);
-    }
-
-    // To avoid the checkerboard issue, use a positive fill type so any overlap is filled.
-    c.Execute(ClipperLib.ClipType.ctUnion,
-      combinedShadows,
-      ClipperLib.PolyFillType.pftPositive,
-      ClipperLib.PolyFillType.pftPositive);
-
-    // Clean and return the paths for potential further processing.
-    ClipperLib.Clipper.CleanPolygons(combinedShadows, cleanDelta * scalingFactor);
-    return combinedShadows;
-  }
-
-  /**
    * Given a boundary polygon and an array of Shadows (holes), combine using Clipper.
    * @param {PIXI.Polygon} boundary   Polygon, such as an los polygon
    * @param {Shadow[]} shadows        Array of Shadows
    * @param {object} [options]    Options that vary Clipper results.
    * @param {number} [options.scalingFactor]  Scaling used for more precise clipper integers
    * @param {number} [options.cleanDelta]     Passed to ClipperLib.Clipper.CleanPolygons.
-   * @returns {PIXI.Polygon[]} Array of PIXI.Polygons with the property "isHole" set.
+   * @returns {ClipperPaths|PIXI.Polygon} Array of Clipper paths representing the resulting combination.
    */
-  static combinePolygonWithShadows(boundary, shadows,{ scalingFactor = 1, cleanDelta = 0.1 } = {}) {
+  static combinePolygonWithShadows(boundary, shadows, { scalingFactor = 1, cleanDelta = 0.1 } = {}) {
     if ( !shadows.length ) return boundary;
 
-    const combinedShadowPaths = Shadow.combine(shadows);
-    const c = new ClipperLib.Clipper();
-    const solution = new ClipperLib.Paths();
-    c.AddPath(boundary.toClipperPoints({scalingFactor}), ClipperLib.PolyType.ptSubject, true);
-    c.AddPaths(combinedShadows, ClipperLib.PolyType.ptClip, true);
-    c.Execute(ClipperLib.ClipType.ctDifference, solution);
+    const shadowPaths = ClipperPaths.fromPolygons(shadows, { scalingFactor });
+    const combinedShadowPaths = shadowPaths.combine();
+    combinedShadowPaths.clean(cleanDelta);
 
-    ClipperLib.Clipper.CleanPolygons(solution, cleanDelta * scalingFactor);
-    return solution;
-  }
-
-  static clipperPathsToPolygons(paths) {
-    return paths.map(pts => {
-      const poly = PIXI.Polygon.fromClipperPoints(pts, scalingFactor);
-      poly.isHole = !ClipperLib.Clipper.Orientation(pts);
-      return poly;
-    });
+    const out = combinedShadowPaths.diffPolygon(boundary);
+    out.clean(cleanDelta);
+    return out;
   }
 }

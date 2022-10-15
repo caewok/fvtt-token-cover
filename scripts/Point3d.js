@@ -50,7 +50,7 @@ export function registerPIXIPointMethods() {
   });
 
   Object.defineProperty(PIXI.Point.prototype, "almostEqual", {
-    value: magnitudeSquared2d,
+    value: almostEqual2d,
     writable: true,
     configurable: true
   });
