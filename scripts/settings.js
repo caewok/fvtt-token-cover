@@ -48,13 +48,12 @@ export const SETTINGS = {
   COVER: {
     ALGORITHM: "cover-algorithm",
     TYPES: {
-      CENTER_CORNER: "cover-center-to-corners",
-      CORNER_CORNER: "cover-corner-to-corners",
+      CENTER_CORNERS: "cover-center-to-corners",
+      CORNER_CORNERS: "cover-corner-to-corners",
       CENTER_CENTER: "cover-center-to-center",
-      AREA: "cover-area",
       CENTER_CUBE: "cover-center-to-cube",
       CUBE_CUBE: "cover-cube-to-cube",
-      AREA_3D: "cover-area-3d"
+      AREA: "cover-area"
     },
     NAMES: {
       LOW: "cover-name-low",
@@ -195,14 +194,13 @@ export function registerSettings() {
     type: String,
     choices: {
       [CTYPES.CENTER_CENTER]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CENTER}`),
-      [CTYPES.CENTER_CORNER]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CORNER}`),
-      [CTYPES.CORNER_CORNER]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CORNER_CORNER}`),
-      [CTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA}`),
+      [CTYPES.CENTER_CORNERS]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CORNERS}`),
+      [CTYPES.CORNER_CORNERS]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CORNER_CORNERS}`),
       [CTYPES.CENTER_CUBE]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CUBE}`),
       [CTYPES.CUBE_CUBE]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CUBE_CUBE}`),
-      [CTYPES.AREA_3D]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA_3D}`)
+      [CTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA}`)
     },
-    default: CTYPES.CENTER_CORNER,
+    default: CTYPES.CENTER_CORNERS,
     onChange: updateCoverSetting
   });
 
@@ -214,9 +212,9 @@ export function registerSettings() {
     default: coverNames.medium,
     type: String,
     choices: {
-      low: coverNames.low,
-      medium: coverNames.medium,
-      high: coverNames.high
+      LOW: coverNames.low,
+      MEDIUM: coverNames.medium,
+      HIGH: coverNames.high
     }
   });
 
@@ -230,7 +228,6 @@ export function registerSettings() {
     },
     scope: "world",
     config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.AREA
-      && getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.AREA_3D
       && getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
     default: 1,
     type: Number
@@ -246,7 +243,6 @@ export function registerSettings() {
     },
     scope: "world",
     config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.AREA
-      && getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.AREA_3D
       && getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
     default: 3,
     type: Number
@@ -262,7 +258,6 @@ export function registerSettings() {
     },
     scope: "world",
     config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.AREA
-      && getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.AREA_3D
       && getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
     default: 99,
     type: Number
@@ -277,8 +272,7 @@ export function registerSettings() {
       step: 0.1
     },
     scope: "world",
-    config: () => getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.AREA
-      || getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.AREA_3D,
+    config: () => getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.AREA,
     default: .5,
     type: Number
   });
@@ -292,8 +286,7 @@ export function registerSettings() {
       step: 0.1
     },
     scope: "world",
-    config: () => getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.AREA
-      || getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.AREA_3D,
+    config: () => getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.AREA,
     default: .75,
     type: Number
   });
@@ -307,8 +300,7 @@ export function registerSettings() {
       step: 0.1
     },
     scope: "world",
-    config: () => getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.AREA
-      || getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.AREA_3D,
+    config: () => getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.AREA,
     default: 1,
     type: Number
   });
@@ -398,7 +390,7 @@ function updateCoverSetting(value) {
   log(`Changing to ${value}`);
   ui.notifications.notify(`Changing to ${value}`);
   const CTYPES = SETTINGS.COVER.TYPES;
-  const area_visible = value === CTYPES.AREA || value === CTYPES.AREA_3D;
+  const area_visible = value === CTYPES.AREA;
   const center_visible = value === CTYPES.CENTER_CENTER;
   const corners_visible = !(area_visible || center_visible);
 
