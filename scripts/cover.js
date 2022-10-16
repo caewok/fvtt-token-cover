@@ -122,6 +122,8 @@ export function coverCenterToCorners(token, target) {
 
   const tokenPoint = new Point3d(token.center.x, token.center.y, token.topZ);
   const targetPoints = get2dCorners(target);
+  debug && drawPointToPoints(tokenPoint, targetPoints);
+
   return testPointToPoints(tokenPoint, targetPoints);
 }
 
@@ -140,6 +142,14 @@ export function coverCornerToCorners(token, target) {
   const tokenCorners = get2dCorners(token, false);
   const targetPoints = get2dCorners(target);
   const coverByCorner = tokenCorners.map(pt => testPointToPoints(pt, targetPoints));
+
+  if ( debug ) {
+    const maxI = coverByCorner.indexOf(Math.max(...coverByCorner));
+    for ( let i = 0; i < coverByCorner.length; i += 1 ) {
+      drawPointToPoints(tokenCorners[i], targetPoints, { alpha: i === maxI ? 1 : 0.2 });
+    }
+  }
+
   return Math.max(...coverByCorner);
 }
 
@@ -160,6 +170,7 @@ export function coverCenterToCube(token, target) {
 
   const tokenPoint = new Point3d(token.center.x, token.center.y, token.topZ);
   const targetPoints = get3dCorners(target);
+  debug && drawPointToPoints(tokenPoint, targetPoints);
   return testPointToPoints(tokenPoint, targetPoints);
 }
 
@@ -186,6 +197,14 @@ export function coverCubeToCube(token, target) {
   for ( const tokenCorner of tokenCorners ) {
     res.push(...testPointToPoints(tokenCorner, targetPoints));
   }
+
+  if ( debug ) {
+    const maxI = res.indexOf(Math.max(...res));
+    for ( let i = 0; i < res.length; i += 1 ) {
+      drawPointToPoints(tokenCorners[i], targetPoints, { alpha: i === maxI ? 1 : 0.2 });
+    }
+  }
+
   return Math.max(...res);
 }
 
@@ -203,7 +222,7 @@ export function coverArea(token, target) {
 
   if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_AREA.HIGH) ) return COVER_TYPES.HIGH;
   if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_AREA.MEDIUM) ) return COVER_TYPES.MEDIUM;
-  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_AREA.LOW) ) return COVER_TYPES.LOWx;
+  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_AREA.LOW) ) return COVER_TYPES.LOW;
   return COVER_TYPES.NONE;
 }
 
@@ -264,24 +283,37 @@ function get3dCorners(target) {
  * @returns {COVER_TYPE}
  */
 function testPointToPoints(tokenPoint, targetPoints) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
   let numCornersBlocked = 0;
   const ln = targetPoints.length;
   for ( let i = 0; i < ln; i += 1 ) {
     const targetPoint = targetPoints[i];
     const collision = ClockwiseSweepPolygon.testCollision3d(tokenPoint, targetPoint, { type: "sight", mode: "any" });
     if ( collision ) numCornersBlocked += 1;
+  }
+
+  if ( numCornersBlocked >= getSetting(SETTINGS.COVER.TRIGGER_CORNERS.HIGH) ) return COVER_TYPES.HIGH;
+  if ( numCornersBlocked >= getSetting(SETTINGS.COVER.TRIGGER_CORNERS.MEDIUM) ) return COVER_TYPES.MEDIUM;
+  if ( numCornersBlocked >= getSetting(SETTINGS.COVER.TRIGGER_CORNERS.LOW) ) return COVER_TYPES.LOWx;
+
+  return COVER_TYPES.NONE;
+}
+
+/**
+ * For debugging.
+ * Color lines from point to points as red or green depending on collisions.
+ * @param {Point3d} tokenPoint        Point on the token to use.
+ * @param {Point3d[]} targetPoints    Array of points on the target to test
+ */
+function drawPointToPoints(tokenPoint, targetPoints, { alpha = 1 } = {}) {
+  const ln = targetPoints.length;
+  for ( let i = 0; i < ln; i += 1 ) {
+    const targetPoint = targetPoints[i];
+    const collision = ClockwiseSweepPolygon.testCollision3d(tokenPoint, targetPoint, { type: "sight", mode: "any" });
 
     debug && drawing.drawSegment(  // eslint-disable-line no-unused-expressions
       {A: tokenPoint, B: targetPoint},
-      { color: collision ? drawing.COLORS.red : drawing.COLORS.green });
+      { alpha, color: collision ? drawing.COLORS.red : drawing.COLORS.green });
   }
-
-  if ( numCornersBlocked <= getSetting(SETTINGS.COVER.TRIGGER_CORNERS.HIGH) ) return COVER_TYPES.HIGH;
-  if ( numCornersBlocked <= getSetting(SETTINGS.COVER.TRIGGER_CORNERS.MEDIUM) ) return COVER_TYPES.MEDIUM;
-  if ( numCornersBlocked <= getSetting(SETTINGS.COVER.TRIGGER_CORNERS.LOW) ) return COVER_TYPES.LOWx;
-
-  return COVER_TYPES.NONE;
 }
 
 export function calculatePercentCover(visionSource, target) {
