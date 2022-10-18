@@ -19,6 +19,7 @@ import * as visibility from "./token_visibility.js";
 import * as cover from "./cover.js";
 import * as drawing from "./drawing.js";
 import { Shadow } from "./Shadow.js";
+import { Matrix } from "./Matrix.js";
 
 
 Hooks.once("init", async function() {
@@ -33,6 +34,7 @@ Hooks.once("init", async function() {
     bench,
     drawing,
     Shadow,
+    Matrix,
     Point3d,
     visibility,
     cover,
