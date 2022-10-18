@@ -452,93 +452,55 @@ export class Matrix {
     return outMatrix;
   }
 
+ multiply4x4StrassenInline(other, outMatrix = Matrix.empty(4, 4)) {
+    const a00 = this.arr[0][0];
+    const a01 = this.arr[0][1];
+    const a02 = this.arr[0][2];
+    const a03 = this.arr[0][3];
+    const a10 = this.arr[1][0];
+    const a11 = this.arr[1][1];
+    const a12 = this.arr[1][2];
+    const a13 = this.arr[1][3];
+    const a20 = this.arr[2][0];
+    const a21 = this.arr[2][1];
+    const a22 = this.arr[2][2];
+    const a23 = this.arr[2][3];
+    const a30 = this.arr[3][0];
+    const a31 = this.arr[3][1];
+    const a32 = this.arr[3][2];
+    const a33 = this.arr[3][3];
+
+    const b00 = other.arr[0][0];
+    const b01 = other.arr[0][1];
+    const b02 = other.arr[0][2];
+    const b03 = other.arr[0][3];
+    const b10 = other.arr[1][0];
+    const b11 = other.arr[1][1];
+    const b12 = other.arr[1][2];
+    const b13 = other.arr[1][3];
+    const b20 = other.arr[2][0];
+    const b21 = other.arr[2][1];
+    const b22 = other.arr[2][2];
+    const b23 = other.arr[2][3];
+    const b30 = other.arr[3][0];
+    const b31 = other.arr[3][1];
+    const b32 = other.arr[3][2];
+    const b33 = other.arr[3][3];
+
+
+
+
+ }
+
+
  /**
   * https://medium.com/@ananyasingh1618/strassens-multiplication-matrix-62bbb10225e6
+  * About 75% slower than loop with multiple even if you remove the checks for add and subtract
   */
-  multiply4x4strassen(other, outMatrix = Matrix.empty(4, 4)) {
-    const A11 = new Matrix([
-      [this.arr[0][0], this.arr[0][1]],
-      [this.arr[1][0], this.arr[1][1]]
-    ]);
 
-    const A12 = new Matrix([
-      [this.arr[0][2], this.arr[0][3]],
-      [this.arr[1][2], this.arr[1][3]]
-    ]);
-
-    const A21 = new Matrix([
-      [this.arr[2][0], this.arr[2][1]],
-      [this.arr[3][0], this.arr[3][1]]
-    ]);
-
-    const A22 = new Matrix([
-      [this.arr[2][2], this.arr[2][3]],
-      [this.arr[3][2], this.arr[3][3]]
-    ]);
-
-    const B11 = new Matrix([
-      [other.arr[0][0], other.arr[0][1]],
-      [other.arr[1][0], other.arr[1][1]]
-    ]);
-
-    const B12 = new Matrix([
-      [other.arr[0][2], other.arr[0][3]],
-      [other.arr[1][2], other.arr[1][3]]
-    ]);
-
-    const B21 = new Matrix([
-      [other.arr[2][0], other.arr[2][1]],
-      [other.arr[3][0], other.arr[3][1]]
-    ]);
-
-    const B22 = new Matrix([
-      [other.arr[2][2], other.arr[2][3]],
-      [other.arr[3][2], other.arr[3][3]]
-    ]);
-
-    const tmp1 = Matrix.empty(2, 2);
-    const tmp2 = Matrix.empty(2, 2);
-
-    const Q = A21.add(A22, tmp1).multiply2x2(B11);
-    const R = A11.multiply2x2(B12.subtract(B22, tmp1));
-    const S = A22.multiply2x2(B21.subtract(B11, tmp1));
-    const T = A11.add(A12, tmp1).multiply2x2(B22);
-
-    const P = A11.add(A22, tmp1).multiply2x2(B11.add(B22, tmp2));
-    const U = A21.subtract(A11, tmp1).multiply2x2(B11.add(B12, tmp2));
-    const V = A12.subtract(A22, tmp1).multiply2x2(B21.add(B22, tmp2));
-
-    const C11 = P.add(S, tmp1).subtract(T, tmp2).add(V);
-    const C12 = R.add(T);
-    const C21 = Q.add(S);
-    const C22 = P.add(R, tmp1).subtract(Q, tmp2).add(U);
-
-    outMatrix.arr[0][0] = C11.arr[0][0];
-    outMatrix.arr[0][1] = C11.arr[0][1];
-    outMatrix.arr[1][0] = C11.arr[1][0];
-    outMatrix.arr[1][1] = C11.arr[1][1];
-
-    outMatrix.arr[0][2] = C12.arr[0][0];
-    outMatrix.arr[0][3] = C12.arr[0][1];
-    outMatrix.arr[1][2] = C12.arr[1][0];
-    outMatrix.arr[1][3] = C12.arr[1][1];
-
-    outMatrix.arr[2][0] = C21.arr[0][0];
-    outMatrix.arr[2][1] = C21.arr[0][1];
-    outMatrix.arr[3][0] = C21.arr[1][0];
-    outMatrix.arr[3][1] = C21.arr[1][1];
-
-    outMatrix.arr[2][2] = C22.arr[0][0];
-    outMatrix.arr[2][3] = C22.arr[0][1];
-    outMatrix.arr[3][2] = C22.arr[1][0];
-    outMatrix.arr[3][3] = C22.arr[1][1];
-
-    return outMatrix;
-  }
 
   /**
    * Faster 4x4 multiplication
-   * Just writing it out longhand. Grrr.
    * https://jsbench.me/bpl9dgtem6/1
    * regular looped multiply is 60% slower.
    * FYI, this could be faster but appears to be modular arithmetic:
