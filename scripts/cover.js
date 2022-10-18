@@ -1,6 +1,7 @@
 /* globals
 ClockwiseSweepPolygon,
-game
+game,
+PIXI
 */
 "use strict";
 
@@ -86,7 +87,7 @@ export function targetCover(token, target) {
  */
 export function coverCenterToCenter(token, target) {
   const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log(`Cover algorithm: Center-to-Center`);
+  debug && console.log("Cover algorithm: Center-to-Center"); // eslint-disable-line no-unused-expressions
 
   // TO-DO: Test visibility? This is hard b/c testVisibility assumes a token is selected.
   // Test visibility is thus a per-user test.
@@ -118,39 +119,40 @@ export function coverCenterToCenter(token, target) {
  */
 export function coverCenterToCorners(token, target) {
   const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log(`Cover algorithm: Center-to-Corners`);
+  debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
 
   const tokenPoint = new Point3d(token.center.x, token.center.y, token.topZ);
-  const targetPoints = get2dCorners(target);
-  debug && drawPointToPoints(tokenPoint, targetPoints);
+  const targetPoints = getCorners(target);
+  debug && drawPointToPoints(tokenPoint, targetPoints); // eslint-disable-line no-unused-expressions
 
   return testPointToPoints(tokenPoint, targetPoints);
 }
 
 /**
  * Test cover based on corner-to-corners test. This is the test in DMG for dnd5e.
- * Runs a collision test on all corners of the token, and takes the best one.
+ * Runs a collision test on all corners of the token, and takes the best one
+ * from the perspective of the token (the corner that provides least cover).
  * @param {Token} token
  * @param {Token} target
  * @returns {COVER_TYPE}
  */
 export function coverCornerToCorners(token, target) {
   const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log(`Cover algorithm: Corner-to-Corners`);
+  debug && console.log("Cover algorithm: Corner-to-Corners"); // eslint-disable-line no-unused-expressions
 
   // TO-DO: Hex corners!
-  const tokenCorners = get2dCorners(token, false);
-  const targetPoints = get2dCorners(target);
+  const tokenCorners = getCorners(token, token.topZ);
+  const targetPoints = getCorners(target);
   const coverByCorner = tokenCorners.map(pt => testPointToPoints(pt, targetPoints));
 
   if ( debug ) {
-    const maxI = coverByCorner.indexOf(Math.max(...coverByCorner));
+    const maxI = coverByCorner.indexOf(Math.min(...coverByCorner));
     for ( let i = 0; i < coverByCorner.length; i += 1 ) {
       drawPointToPoints(tokenCorners[i], targetPoints, { alpha: i === maxI ? 1 : 0.2 });
     }
   }
 
-  return Math.max(...coverByCorner);
+  return Math.min(...coverByCorner);
 }
 
 /**
@@ -163,14 +165,21 @@ export function coverCornerToCorners(token, target) {
  */
 export function coverCenterToCube(token, target) {
   const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log(`Cover algorithm: Center-to-Cube`);
+  debug && console.log("Cover algorithm: Center-to-Cube"); // eslint-disable-line no-unused-expressions
 
   const targetHeight = target.topZ - target.bottomZ;
   if ( !targetHeight ) return coverCenterToCorners(token, target);
 
   const tokenPoint = new Point3d(token.center.x, token.center.y, token.topZ);
-  const targetPoints = get3dCorners(target);
-  debug && drawPointToPoints(tokenPoint, targetPoints);
+
+  let targetPoints;
+  if ( target.topZ - target.bottomZ ) {
+    targetPoints = [...getCorners(target, target.topZ), ...getCorners(target, target.bottomZ)];
+  } else {
+    targetPoints = getCorners(target);
+  }
+
+  debug && drawPointToPoints(tokenPoint, targetPoints); // eslint-disable-line no-unused-expressions
   return testPointToPoints(tokenPoint, targetPoints);
 }
 
@@ -184,28 +193,30 @@ export function coverCenterToCube(token, target) {
  */
 export function coverCubeToCube(token, target) {
   const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log(`Cover algorithm: Cube-to-Cube`);
+  debug && console.log("Cover algorithm: Cube-to-Cube"); // eslint-disable-line no-unused-expressions
 
   const targetHeight = target.topZ - target.bottomZ;
   if ( !targetHeight ) return coverCenterToCorners(token, target);
 
-  const tokenCorners = get3dCorners(token);
-  const targetPoints = get3dCorners(target);
-
-  // Just try them all!
-  const res = [];
-  for ( const tokenCorner of tokenCorners ) {
-    res.push(...testPointToPoints(tokenCorner, targetPoints));
+  const tokenCorners = getCorners(token, token.topZ);
+  let targetPoints;
+  if ( target.topZ - target.bottomZ ) {
+    targetPoints = [...getCorners(target, target.topZ), ...getCorners(target, target.bottomZ)];
+  } else {
+    targetPoints = getCorners(target);
   }
 
+  // Just try them all!
+  const coverByCorner = tokenCorners.map(pt => testPointToPoints(pt, targetPoints));
+
   if ( debug ) {
-    const maxI = res.indexOf(Math.max(...res));
-    for ( let i = 0; i < res.length; i += 1 ) {
-      drawPointToPoints(tokenCorners[i], targetPoints, { alpha: i === maxI ? 1 : 0.2 });
+    const maxI = coverByCorner.indexOf(Math.min(...coverByCorner));
+    for ( let i = 0; i < coverByCorner.length; i += 1 ) {
+      drawPointToPoints(tokenCorners[i], targetPoints, { alpha: i === maxI ? 1 : 0.05, width: i === maxI ? 3 : 1 });
     }
   }
 
-  return Math.max(...res);
+  return Math.min(...coverByCorner);
 }
 
 /**
@@ -216,13 +227,13 @@ export function coverCubeToCube(token, target) {
  */
 export function coverArea(token, target) {
   const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log(`Cover algorithm: Area`);
+  debug && console.log("Cover algorithm: Area"); // eslint-disable-line no-unused-expressions
 
   const percentCover = calculatePercentCover(token.vision, target);
 
-  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_AREA.HIGH) ) return COVER_TYPES.HIGH;
-  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_AREA.MEDIUM) ) return COVER_TYPES.MEDIUM;
-  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_AREA.LOW) ) return COVER_TYPES.LOW;
+  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
+  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
+  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
   return COVER_TYPES.NONE;
 }
 
@@ -232,48 +243,30 @@ export function coverArea(token, target) {
  * @param {Token} target
  * @returns {Point3d[]} Array of corner points.
  */
-function get2dCorners(target, useAverage = true) {
+function getCorners(target, elevation) {
   // TO-DO: HEX corners!
-  const bounds = target.bounds;
 
-  const elevation = useAverage
-    ? target.bottomZ + ((target.topZ - target.bottomZ) * 0.5)
-    : target.topZ;
+  if ( typeof elevation === "undefined" ) elevation = target.bottomZ + ((target.topZ - target.bottomZ) * 0.5);
 
-  return [
-    new Point3d(bounds.left, bounds.top, elevation),
-    new Point3d(bounds.right, bounds.top, elevation),
-    new Point3d(bounds.right, bounds.bottom, elevation),
-    new Point3d(bounds.left, bounds.bottom, elevation)
-  ];
-}
+  // Use a token shape constrained by walls to avoid testing corners that are behind walls.
+  const constrained = getConstrainedTokenShape(target);
 
-/**
- * Helper that constructs 3d points for the corners of a target
- * @param {Token} target
- * @returns {Point3d[]} Array of corner points.
- */
-function get3dCorners(target) {
-  // TO-DO: HEX corners!
-  const bounds = target.bounds;
+  if ( constrained instanceof PIXI.Rectangle ) {
+    // Token unconstrained by walls.
+    // Use corners 1 pixel in to ensure collisions if there is an adjacent wall.
+    constrained.pad(-1);
+    return [
+      new Point3d(constrained.left, constrained.top, elevation),
+      new Point3d(constrained.right, constrained.top, elevation),
+      new Point3d(constrained.right, constrained.bottom, elevation),
+      new Point3d(constrained.left, constrained.bottom, elevation)
+    ];
+  }
 
-  const pts = [
-    new Point3d(bounds.left, bounds.top, target.topZ),
-    new Point3d(bounds.right, bounds.top, target.topZ),
-    new Point3d(bounds.right, bounds.bottom, target.topZ),
-    new Point3d(bounds.left, bounds.bottom, target.topZ)
-  ];
-
-  if ( !(target.topZ - target.bottomZ) ) return pts;
-
-  pts.push(
-    new Point3d(bounds.left, bounds.top, target.bottomZ),
-    new Point3d(bounds.right, bounds.top, target.bottomZ),
-    new Point3d(bounds.right, bounds.bottom, target.bottomZ),
-    new Point3d(bounds.left, bounds.bottom, target.bottomZ)
-  );
-
-  return pts;
+  // Constrained is polygon. Only use corners of polygon
+  // Scale down polygon to avoid adjacent walls.
+  const padConstrained = constrained.pad(-2, { scalingFactor: 100 });
+  return [...padConstrained.iteratePoints({close: false})].map(pt => new Point3d(pt.x, pt.y, elevation));
 }
 
 /**
@@ -291,9 +284,11 @@ function testPointToPoints(tokenPoint, targetPoints) {
     if ( collision ) numCornersBlocked += 1;
   }
 
-  if ( numCornersBlocked >= getSetting(SETTINGS.COVER.TRIGGER_CORNERS.HIGH) ) return COVER_TYPES.HIGH;
-  if ( numCornersBlocked >= getSetting(SETTINGS.COVER.TRIGGER_CORNERS.MEDIUM) ) return COVER_TYPES.MEDIUM;
-  if ( numCornersBlocked >= getSetting(SETTINGS.COVER.TRIGGER_CORNERS.LOW) ) return COVER_TYPES.LOWx;
+  const percentCornersBlocked = numCornersBlocked / ln;
+
+  if ( percentCornersBlocked >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
+  if ( percentCornersBlocked >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
+  if ( percentCornersBlocked >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
 
   return COVER_TYPES.NONE;
 }
@@ -304,7 +299,9 @@ function testPointToPoints(tokenPoint, targetPoints) {
  * @param {Point3d} tokenPoint        Point on the token to use.
  * @param {Point3d[]} targetPoints    Array of points on the target to test
  */
-function drawPointToPoints(tokenPoint, targetPoints, { alpha = 1 } = {}) {
+function drawPointToPoints(tokenPoint, targetPoints, { alpha = 1, width = 1 } = {}) {
+  const debug = game.modules.get(MODULE_ID).api.debug;
+
   const ln = targetPoints.length;
   for ( let i = 0; i < ln; i += 1 ) {
     const targetPoint = targetPoints[i];
@@ -312,7 +309,7 @@ function drawPointToPoints(tokenPoint, targetPoints, { alpha = 1 } = {}) {
 
     debug && drawing.drawSegment(  // eslint-disable-line no-unused-expressions
       {A: tokenPoint, B: targetPoint},
-      { alpha, color: collision ? drawing.COLORS.red : drawing.COLORS.green });
+      { alpha, width, color: collision ? drawing.COLORS.red : drawing.COLORS.green });
   }
 }
 
