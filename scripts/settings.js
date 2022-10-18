@@ -68,16 +68,12 @@ export const SETTINGS = {
 
     TRIGGER_CENTER: "cover-trigger-center",
 
-    TRIGGER_CORNERS: {
-      LOW: "cover-trigger-corner-low",
-      MEDIUM: "cover-trigger-corner-medium",
-      HIGH: "cover-trigger-corner-high"
+    TRIGGER_PERCENT: {
+      LOW: "cover-trigger-percent-low",
+      MEDIUM: "cover-trigger-percent-medium",
+      HIGH: "cover-trigger-percent-high"
     },
-    TRIGGER_AREA: {
-      LOW: "cover-trigger-area-low",
-      MEDIUM: "cover-trigger-area-medium",
-      HIGH: "cover-trigger-area-high"
-    }
+
   }
 };
 
@@ -218,89 +214,44 @@ export function registerSettings() {
     }
   });
 
-  game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_CORNERS.LOW, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CORNERS.LOW}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CORNERS.LOW}.Hint`),
-    range: {
-      max: 99,
-      min: 1,
-      step: 1
-    },
-    scope: "world",
-    config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.AREA
-      && getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
-    default: 1,
-    type: Number
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_CORNERS.MEDIUM, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CORNERS.MEDIUM}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CORNERS.MEDIUM}.Hint`),
-    range: {
-      max: 99,
-      min: 1,
-      step: 1
-    },
-    scope: "world",
-    config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.AREA
-      && getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
-    default: 3,
-    type: Number
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_CORNERS.HIGH, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CORNERS.HIGH}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CORNERS.HIGH}.Hint`),
-    range: {
-      max: 99,
-      min: 1,
-      step: 1
-    },
-    scope: "world",
-    config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.AREA
-      && getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
-    default: 99,
-    type: Number
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_AREA.LOW, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_AREA.LOW}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_AREA.LOW}.Hint`),
+  game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_PERCENT.LOW, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}.Hint`),
     range: {
       max: 1,
       min: 0.1,
       step: 0.1
     },
     scope: "world",
-    config: () => getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.AREA,
+    config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
     default: .5,
     type: Number
   });
 
-  game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_AREA.MEDIUM, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_AREA.MEDIUM}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_AREA.MEDIUM}.Hint`),
+  game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM}.Hint`),
     range: {
       max: 1,
       min: 0.1,
       step: 0.1
     },
     scope: "world",
-    config: () => getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.AREA,
+    config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
     default: .75,
     type: Number
   });
 
-  game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_AREA.HIGH, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_AREA.HIGH}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_AREA.HIGH}.Hint`),
+  game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_PERCENT.HIGH, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}.Hint`),
     range: {
       max: 1,
       min: 0.1,
       step: 0.1
     },
     scope: "world",
-    config: () => getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.AREA,
+    config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
     default: 1,
     type: Number
   });

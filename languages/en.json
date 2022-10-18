@@ -40,19 +40,12 @@
     "tokenvisibility.settings.cover-effect-high.Name": "High active effect name",
     "tokenvisibility.settings.cover-effect-high.Hint": "Name of the active effect to add to the token with high cover. Leave blank for none.",
 
-    "tokenvisibility.settings.cover-trigger-corner-low.Name": "Low cover trigger",
-    "tokenvisibility.settings.cover-trigger-corner-low.Hint": "When this or more corners are blocked, the token will have low cover unless a higher level of cover applies.",
-    "tokenvisibility.settings.cover-trigger-corner-medium.Name": "Medium cover trigger",
-    "tokenvisibility.settings.cover-trigger-corner-medium.Hint": "When this or more corners are blocked, the token will have medium cover unless a higher level of cover applies. Hex grids will add one to this value.",
-    "tokenvisibility.settings.cover-trigger-corner-high.Name": "High cover trigger",
-    "tokenvisibility.settings.cover-trigger-corner-high.Hint": "If this many corners or more are blocked, the token will have high cover. Hex grids will add one to this value. Set to 99 to prevent automatic assignment of high cover.",
-
-    "tokenvisibility.settings.cover-trigger-area-low.Name": "Low cover trigger",
-    "tokenvisibility.settings.cover-trigger-area-low.Hint": "If less than this percent of the token area is viewable, the token will have low cover.",
-    "tokenvisibility.settings.cover-trigger-area-medium.Name": "Medium cover trigger",
-    "tokenvisibility.settings.cover-trigger-area-medium.Hint": "If less than this percent of the token area is viewable, the token will have medium cover.",
-    "tokenvisibility.settings.cover-trigger-area-high.Name": "High cover trigger",
-    "tokenvisibility.settings.cover-trigger-area-high.Hint": "If less than this percent of the token area is viewable, the token will have high cover.",
+    "tokenvisibility.settings.cover-trigger-percent-low.Name": "Low cover trigger",
+    "tokenvisibility.settings.cover-trigger-percent-low.Hint": "If less than this percent of the corners or token area (depending on algorithm) is viewable, the token will have low cover.",
+    "tokenvisibility.settings.cover-trigger-percent-medium.Name": "Medium cover trigger",
+    "tokenvisibility.settings.cover-trigger-percent-medium.Hint": "If less than this percent of the corners or token area (depending on algorithm) is viewable, the token will have medium cover.",
+    "tokenvisibility.settings.cover-trigger-percent-high.Name": "High cover trigger",
+    "tokenvisibility.settings.cover-trigger-percent-high.Hint": "If less than this percent of the corner or token area (depending on algorithm) is viewable, the token will have high cover.",
 
     "tokenvisibility.settings.cover-trigger-center.Name": "Trigger",
     "tokenvisibility.settings.cover-trigger-center.Hint": "When the line from one token center to another token center is blocked, use this cover type. (PF2e uses Medium, or Standard, cover.)"
