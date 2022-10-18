@@ -337,18 +337,20 @@ export function testLOSArea(visionSource, target, centerPointIsVisible) {
     // If percentArea equals zero, it might be possible to skip intersectConstrainedShapeWithLOS
     // and instead just measure if a token boundary has been breached.
 
-    const bottomTest = targetBoundsTest(shadowLOS.bottom, constrained);
+    const bottomTest = shadowLOS.bottom ? targetBoundsTest(shadowLOS.bottom, constrained) : undefined;
     if ( bottomTest ) return true;
 
-    const topTest = targetBoundsTest(shadowLOS.top, constrained);
+    const topTest = shadowLOS.top ? targetBoundsTest(shadowLOS.top, constrained) : undefined;
     if ( topTest ) return true;
 
-    if ( typeof bottomTest !== "undefined" && typeof topTest !== "undefined" ) return false;
+    if ( typeof bottomTest !== "undefined" || typeof topTest !== "undefined" ) return false;
   }
 
   const targetPercentAreaBottom = shadowLOS.bottom ? calculatePercentSeen(shadowLOS.bottom, constrained) : 0;
   const targetPercentAreaTop = shadowLOS.top ? calculatePercentSeen(shadowLOS.top, constrained) : 0;
   const targetPercentSeen = Math.max(targetPercentAreaBottom, targetPercentAreaTop);
+
+  if ( targetPercentSeen.almostEqual(0) ) return false;
 
   return (targetPercentSeen > percentArea) || targetPercentSeen.almostEqual(percentArea);
 }
