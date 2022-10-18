@@ -175,12 +175,12 @@ export class Matrix {
 
     if ( angleX && angleY ) {
       const rotY = Matrix.rotationY(angleY);
-      rot = rot.multiply(rotY);
+      rot = rot.multiply4x4(rotY);
     }
 
     if ( (angleX || angleY) && angleZ ) {
       const rotZ = Matrix.rotationZ(angleZ);
-      rot = rot.multiply(rotZ);
+      rot = rot.multiply4x4(rotZ);
     }
 
     return rot;
@@ -452,45 +452,6 @@ export class Matrix {
     return outMatrix;
   }
 
- multiply4x4StrassenInline(other, outMatrix = Matrix.empty(4, 4)) {
-    const a00 = this.arr[0][0];
-    const a01 = this.arr[0][1];
-    const a02 = this.arr[0][2];
-    const a03 = this.arr[0][3];
-    const a10 = this.arr[1][0];
-    const a11 = this.arr[1][1];
-    const a12 = this.arr[1][2];
-    const a13 = this.arr[1][3];
-    const a20 = this.arr[2][0];
-    const a21 = this.arr[2][1];
-    const a22 = this.arr[2][2];
-    const a23 = this.arr[2][3];
-    const a30 = this.arr[3][0];
-    const a31 = this.arr[3][1];
-    const a32 = this.arr[3][2];
-    const a33 = this.arr[3][3];
-
-    const b00 = other.arr[0][0];
-    const b01 = other.arr[0][1];
-    const b02 = other.arr[0][2];
-    const b03 = other.arr[0][3];
-    const b10 = other.arr[1][0];
-    const b11 = other.arr[1][1];
-    const b12 = other.arr[1][2];
-    const b13 = other.arr[1][3];
-    const b20 = other.arr[2][0];
-    const b21 = other.arr[2][1];
-    const b22 = other.arr[2][2];
-    const b23 = other.arr[2][3];
-    const b30 = other.arr[3][0];
-    const b31 = other.arr[3][1];
-    const b32 = other.arr[3][2];
-    const b33 = other.arr[3][3];
-
-
-
-
- }
 
 
  /**
@@ -566,5 +527,3 @@ export class Matrix {
     return outMatrix;
   }
 }
-
-
