@@ -126,6 +126,80 @@ function reverseOrientation() {
   return this;
 }
 
+/**
+ * Use Clipper to pad (offset) polygon by delta.
+ * @returns {PIXI.Polygon}
+ */
+function pad(delta, { miterLimit = 2, scalingFactor = 1 } = {}) {
+  if ( miterLimit < 2) {
+    console.warn("miterLimit for PIXI.Polygon.prototype.offset must be ≥ 2.");
+    miterLimit = 2;
+  }
+
+  const solution = new ClipperLib.Paths();
+  const c = new ClipperLib.ClipperOffset(miterLimit);
+  c.AddPath(this.toClipperPoints({scalingFactor}), ClipperLib.JoinType.jtMiter, ClipperLib.EndType.etClosedPolygon);
+  c.Execute(solution, delta);
+  return PIXI.Polygon.fromClipperPoints(solution.length ? solution[0] : [], {scalingFactor});
+}
+
+/**
+ * Convex hull algorithm.
+ * Returns a polygon representing the convex hull of the given points.
+ * Excludes collinear points.
+ * Runs in O(n log n) time
+ * @param {PIXI.Point[]} points
+ * @returns {PIXI.Polygon}
+ */
+function convexhull(points) {
+  const ln = points.length;
+  if ( ln <= 1 ) return points;
+
+  const newPoints = [...points];
+  newPoints.sort(convexHullCmpFn);
+
+  // Andrew's monotone chain algorithm.
+  const upperHull = constructHullHalf(points);
+  for ( let i = 0; i < ln; i += 1 ) {
+    testHullPoint(upperHull, newPoints[p]);
+  }
+  upperHull.pop();
+
+  const lowerHull = [];
+  for ( let i = ln - 1; i >= 0; i -= 1 ) {
+    testHullPoint(lowerHull, newPoints[p]);
+  }
+  lowerHull.pop();
+
+  if ( upperHull.length === 1
+    && lowerHull.length === 1
+    && upperHull[0].x == lowerHull[0].x
+    && upperHull[0].y == lowerHull[0].y ) return new PIXI.Polygon(upperHull);
+
+  return new PIXI.Polygon(upperHull.concat(lowerHull));
+}
+
+function convexHullCmpFn(a, b) {
+  const dx = a.x - b.x;
+  return dx ? dx : a.y - b.y;
+}
+
+/**
+ * Test the point against existing hull points.
+ * @parma {PIXI.Point[]} hull
+ * @param {PIXI.Point} point
+*/
+function testHullPoint(hull, p) {
+  const p = points[i];
+  while ( hull.length >= 2 ) {
+    const q = hull[hull.length - 1];
+    const r = hull[hull.length - 2];
+    if ( (q.x - r.x) * (p.y - r.y) >= (q.y - r.y) * (p.x - r.x) ) hull.pop();
+    else break;
+  }
+  hull.push(p);
+}
+
 
 // ----------------  ADD METHODS TO THE PIXI.POLYGON PROTOTYPE --------------------------
 export function registerPIXIPolygonMethods() {
@@ -178,6 +252,18 @@ export function registerPIXIPolygonMethods() {
 
   Object.defineProperty(PIXI.Polygon.prototype, "linesCross", {
     value: linesCross,
+    writable: true,
+    configurable: true
+  });
+
+  Object.defineProperty(PIXI.Polygon.prototype, "pad", {
+    value: pad,
+    writable: true,
+    configurable: true
+  });
+
+  Object.defineProperty(PIXI.Polygon, "convexhull", {
+    value: convexhull,
     writable: true,
     configurable: true
   });
