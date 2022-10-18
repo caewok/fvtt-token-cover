@@ -20,7 +20,7 @@ import * as cover from "./cover.js";
 import * as drawing from "./drawing.js";
 import { Shadow } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
-
+import { Area3d } from "./Area3d.js";
 
 Hooks.once("init", async function() {
   registerElevationAdditions();
@@ -36,6 +36,7 @@ Hooks.once("init", async function() {
     Shadow,
     Matrix,
     Point3d,
+    Area3d,
     visibility,
     cover,
     COVER_TYPES,
