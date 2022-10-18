@@ -94,9 +94,9 @@ export class Area3d {
 
     const targetBounds = this.target.bounds;
 
-    const maxX = Math.max(this.tokenCenter.x, targetBounds.left);
+    const maxX = Math.max(this.tokenCenter.x, targetBounds.right);
     const maxY = Math.max(this.tokenCenter.y, targetBounds.bottom);
-    const minX = Math.min(this.tokenCenter.x, targetBounds.x);
+    const minX = Math.min(this.tokenCenter.x, targetBounds.left);
     const minY = Math.min(this.tokenCenter.y, targetBounds.top);
 
     return new PIXI.Rectangle(minX, minY, maxX - minX, maxY - minY);
