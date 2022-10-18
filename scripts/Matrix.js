@@ -76,7 +76,7 @@ export class Matrix {
   }
 
   static identity(rows, cols) {
-    const arr = Matrix.zeroes();
+    const arr = Matrix.zeroes(rows, cols);
     const iMax = Math.min(rows, cols);
     for ( let i = 0; i < iMax; i += 1 ) {
       arr[[i][i]] = 1;
@@ -102,6 +102,8 @@ export class Matrix {
    * @returns {Matrix}
    */
   static rotationX(angle) {
+    if ( !angle ) return Matrix.identity(4, 4);
+
     let c = Math.cos(angle);
     let s = Math.sin(angle);
 
@@ -126,6 +128,8 @@ export class Matrix {
    * @returns {Matrix}
    */
   static rotationY(angle) {
+    if ( !angle ) return Matrix.identity(4, 4);
+
     let c = Math.cos(angle);
     let s = Math.sin(angle);
 
@@ -150,6 +154,8 @@ export class Matrix {
    * @returns {Matrix}
    */
   static rotationZ(angle) {
+    if ( !angle ) return Matrix.identity(4, 4);
+
     let c = Math.cos(angle);
     let s = Math.sin(angle);
 
