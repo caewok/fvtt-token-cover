@@ -253,7 +253,7 @@ export class Area3d {
    * @returns {Point3d[]}
    */
   static token3dPoints(token, useConstrained = true) {
-    let tokenShape = this.token.bounds;
+    let tokenShape = token.bounds;
     if ( useConstrained ) tokenShape = getConstrainedTokenShape(token);
 
     const { bottomZ, topZ } = token;
