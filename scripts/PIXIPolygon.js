@@ -1,4 +1,9 @@
-import { orient2dPixel } from "./util.js";
+/* globals
+PIXI,
+ClipperLib,
+foundry
+*/
+"use strict";
 
 /**
  * Iterate over the polygon's {x, y} points in order.
@@ -159,22 +164,22 @@ function convexhull(points) {
   newPoints.sort(convexHullCmpFn);
 
   // Andrew's monotone chain algorithm.
-  const upperHull = constructHullHalf(points);
+  const upperHull = [];
   for ( let i = 0; i < ln; i += 1 ) {
-    testHullPoint(upperHull, newPoints[p]);
+    testHullPoint(upperHull, newPoints[i]);
   }
   upperHull.pop();
 
   const lowerHull = [];
   for ( let i = ln - 1; i >= 0; i -= 1 ) {
-    testHullPoint(lowerHull, newPoints[p]);
+    testHullPoint(lowerHull, newPoints[i]);
   }
   lowerHull.pop();
 
   if ( upperHull.length === 1
     && lowerHull.length === 1
-    && upperHull[0].x == lowerHull[0].x
-    && upperHull[0].y == lowerHull[0].y ) return new PIXI.Polygon(upperHull);
+    && upperHull[0].x === lowerHull[0].x
+    && upperHull[0].y === lowerHull[0].y ) return new PIXI.Polygon(upperHull);
 
   return new PIXI.Polygon(upperHull.concat(lowerHull));
 }
@@ -190,10 +195,10 @@ function convexHullCmpFn(a, b) {
  * @param {PIXI.Point} point
 */
 function testHullPoint(hull, p) {
-  const p = points[i];
   while ( hull.length >= 2 ) {
     const q = hull[hull.length - 1];
     const r = hull[hull.length - 2];
+    // TO-DO: Isn't this a version of orient2d? Replace?
     if ( (q.x - r.x) * (p.y - r.y) >= (q.y - r.y) * (p.x - r.x) ) hull.pop();
     else break;
   }
