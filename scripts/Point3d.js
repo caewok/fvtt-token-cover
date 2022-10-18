@@ -63,10 +63,25 @@ export function registerPIXIPointMethods() {
   });
 
   Object.defineProperty(PIXI.Point.prototype, "to3d", {
-    value: function() { return new Point3d(this.x, this.y); },
+    value: to3d,
     writable: true,
     configurable: true
   });
+}
+
+/**
+ * Convert 2d point to 3d
+ * @param [object] [options]    Choices that affect the axes used.
+ * @param [string] [options.x]  What 2d axis to use for the 3d x axis
+ * @param [string] [options.y]  What 2d axis to use for the 3d y axis
+ * @param [string] [options.z]  What 2d axis to use for the 3d z axis
+ * @returns {Point3d}
+ */
+function to3d({ x = "x", y = "y", z} = {}) {
+  const x3d = x ? this[x] : 0;
+  const y3d = y ? this[y] : 0;
+  const z3d = z ? this[z] : 0;
+  return new Point3d(x3d, y3d, z3d);
 }
 
 /**
@@ -185,9 +200,13 @@ export class Point3d extends PIXI.Point {
 
   /**
    * Drop the z dimension; return a new PIXI.Point
+   * @param [object] [options]    Options that affect which axes are used
+   * @param [string] [options.x]  Which 3d axis to use for the x axis
+   * @param [string] [options.y]  Which 3d axis to use for the y axis
+   * @returns {PIXI.Point}
    */
-  to2d() {
-    return new PIXI.Point(this.x, this.y);
+  to2d({x = "x", y = "y"} = {}) {
+    return new PIXI.Point(this[x], this[y]);
   }
 
   /**
