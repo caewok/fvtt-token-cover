@@ -110,7 +110,7 @@ export class Area3d {
     this.token = token;
     this.target = target;
 
-    this.tokenCenter = new Point3d(token.cneter.x, token.center.y, token.topZ);
+    this.tokenCenter = new Point3d(token.center.x, token.center.y, token.topZ);
     this.targetCenter = Area3d.tokenCenter(target);
   }
 
