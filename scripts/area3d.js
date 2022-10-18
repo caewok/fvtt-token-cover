@@ -166,11 +166,10 @@ export class Area3d {
     const rotZ = Matrix.rotationZ(angleZ);
 
     // Temporarily move so we can find the correct angle from the rotated position
-    const tTargetCenter = Matrix.empty(4, 4);
-    Matrix.fromPoint3d(targetCenter)
-      .multiply4x4(tZ, tTargetCenter)
-      .multiply4x4(rotZ, tTargetCenter)
-      .multiply4x4(tZinv, tTargetCenter);
+    const tTargetCenter = Matrix.fromPoint3d(targetCenter)
+      .multiply(tZ)
+      .multiply(rotZ)
+      .multiply(tZinv);
 
     // Then rotate around x axis so target is directly below token. Usually 90º unless elevations differ
     const tokenCenterYZ = tokenCenter.to2d({x: "y", y: "z"});
@@ -191,7 +190,7 @@ export class Area3d {
   _transformTarget() {
     const t = Area3d.token3dPoints(this.target);
     return this.transformedTargetPoints = t.map(pt =>
-      Matrix.fromPoint3d(pt).multiply4x4(this.M).toPoint3d());
+      Matrix.fromPoint3d(pt).multiply(this.M).toPoint3d());
   }
 
   /**
@@ -201,7 +200,7 @@ export class Area3d {
     const walls = this.blockingWalls.map(w => w.map(pt => Area3d.wall3dPoints(pt)));
 
     return this.transformedWalls = walls.map(w =>
-      w.map(pt => Matrix.fromPoint3d(pt).multiply4x4(this.M).toPoint3d()));
+      w.map(pt => Matrix.fromPoint3d(pt).multiply(this.M).toPoint3d()));
   }
 
   /**
