@@ -203,7 +203,7 @@ export class Matrix {
    */
   equal(other) {
     const d1 = this.dim1;
-    const d2 = this.dim2
+    const d2 = this.dim2;
     if ( d1 !== other.dim1 || d2 !== other.dim2 ) return false;
 
     for ( let i = 0; i < d1; i += 1 ) {
@@ -228,7 +228,7 @@ export class Matrix {
 
     for ( let i = 0; i < d1; i += 1 ) {
       for ( let j = 0; j < d2; j += 1 ) {
-        if ( !this.arr[i][j].almostEqual(other.arr[i][j]) ) return false;
+        if ( !this.arr[i][j].almostEqual(other.arr[i][j], epsilon) ) return false;
       }
     }
 
@@ -314,7 +314,7 @@ export class Matrix {
 
     for ( let i = 0; i < d1; i += 1 ) {
       for ( let j = 0; j < d2; j += 1 ) {
-        outMatrix.arr[i][j] = this.arr[i][j] + other.arr[i][j];
+        outMatrix.arr[i][j] = this.arr[i][j] - other.arr[i][j];
       }
     }
     return outMatrix;
@@ -452,22 +452,101 @@ export class Matrix {
     return outMatrix;
   }
 
-  multiply4x4(other, outMatrix = Matrix.empty(4, 4)) {
+ /**
+  * https://medium.com/@ananyasingh1618/strassens-multiplication-matrix-62bbb10225e6
+  */
+  multiply4x4strassen(other, outMatrix = Matrix.empty(4, 4)) {
+    const A11 = new Matrix([
+      [this.arr[0][0], this.arr[0][1]],
+      [this.arr[1][0], this.arr[1][1]]
+    ]);
 
+    const A12 = new Matrix([
+      [this.arr[0][2], this.arr[0][3]],
+      [this.arr[1][2], this.arr[1][3]]
+    ]);
 
+    const A21 = new Matrix([
+      [this.arr[2][0], this.arr[2][1]],
+      [this.arr[3][0], this.arr[3][1]]
+    ]);
+
+    const A22 = new Matrix([
+      [this.arr[2][2], this.arr[2][3]],
+      [this.arr[3][2], this.arr[3][3]]
+    ]);
+
+    const B11 = new Matrix([
+      [other.arr[0][0], other.arr[0][1]],
+      [other.arr[1][0], other.arr[1][1]]
+    ]);
+
+    const B12 = new Matrix([
+      [other.arr[0][2], other.arr[0][3]],
+      [other.arr[1][2], other.arr[1][3]]
+    ]);
+
+    const B21 = new Matrix([
+      [other.arr[2][0], other.arr[2][1]],
+      [other.arr[3][0], other.arr[3][1]]
+    ]);
+
+    const B22 = new Matrix([
+      [other.arr[2][2], other.arr[2][3]],
+      [other.arr[3][2], other.arr[3][3]]
+    ]);
+
+    const tmp1 = Matrix.empty(2, 2);
+    const tmp2 = Matrix.empty(2, 2);
+
+    const Q = A21.add(A22, tmp1).multiply2x2(B11);
+    const R = A11.multiply2x2(B12.subtract(B22, tmp1));
+    const S = A22.multiply2x2(B21.subtract(B11, tmp1));
+    const T = A11.add(A12, tmp1).multiply2x2(B22);
+
+    const P = A11.add(A22, tmp1).multiply2x2(B11.add(B22, tmp2));
+    const U = A21.subtract(A11, tmp1).multiply2x2(B11.add(B12, tmp2));
+    const V = A12.subtract(A22, tmp1).multiply2x2(B21.add(B22, tmp2));
+
+    const C11 = P.add(S, tmp1).subtract(T, tmp2).add(V);
+    const C12 = R.add(T);
+    const C21 = Q.add(S);
+    const C22 = P.add(R, tmp1).subtract(Q, tmp2).add(U);
+
+    outMatrix.arr[0][0] = C11.arr[0][0];
+    outMatrix.arr[0][1] = C11.arr[0][1];
+    outMatrix.arr[1][0] = C11.arr[1][0];
+    outMatrix.arr[1][1] = C11.arr[1][1];
+
+    outMatrix.arr[0][2] = C12.arr[0][0];
+    outMatrix.arr[0][3] = C12.arr[0][1];
+    outMatrix.arr[1][2] = C12.arr[1][0];
+    outMatrix.arr[1][3] = C12.arr[1][1];
+
+    outMatrix.arr[2][0] = C21.arr[0][0];
+    outMatrix.arr[2][1] = C21.arr[0][1];
+    outMatrix.arr[3][0] = C21.arr[1][0];
+    outMatrix.arr[3][1] = C21.arr[1][1];
+
+    outMatrix.arr[2][2] = C22.arr[0][0];
+    outMatrix.arr[2][3] = C22.arr[0][1];
+    outMatrix.arr[3][2] = C22.arr[1][0];
+    outMatrix.arr[3][3] = C22.arr[1][1];
+
+    return outMatrix;
   }
 
   /**
    * Faster 4x4 multiplication
-   * https://medium.com/@ananyasingh1618/strassens-multiplication-matrix-62bbb10225e6
+   * Just writing it out longhand. Grrr.
+   * https://jsbench.me/bpl9dgtem6/1
+   * regular looped multiply is 60% slower.
    * FYI, this could be faster but appears to be modular arithmetic:
    * https://www.nature.com/articles/s41586-022-05172-4.pdf
    * @param {Matrix} other
    * @returns {Matrix}
    */
-  multiply4x4(other) {
-
-
+  multiply4x4(other, outMatrix = Matrix.empty(4, 4)) {
     const a00 = this.arr[0][0];
     const a01 = this.arr[0][1];
     const a02 = this.arr[0][2];
@@ -502,133 +581,28 @@ export class Matrix {
     const b32 = other.arr[3][2];
     const b33 = other.arr[3][3];
 
-    // ostensibly correct
-    const a00 = this.arr[0][0];
-    const a01 = this.arr[0][1];
-    const a02 = this.arr[0][2];
-    const a03 = this.arr[0][3];
+    outMatrix.arr[0][0] = a00 * b00 + a01 * b10 + a02 * b20 + a03 * b30;
+    outMatrix.arr[0][1] = a00 * b01 + a01 * b11 + a02 * b21 + a03 * b31;
+    outMatrix.arr[0][2] = a00 * b02 + a01 * b12 + a02 * b22 + a03 * b32;
+    outMatrix.arr[0][3] = a00 * b03 + a01 * b13 + a02 * b23 + a03 * b33;
 
-    const b02 = other.arr[0][2];
+    outMatrix.arr[1][0] = a10 * b00 + a11 * b10 + a12 * b20 + a13 * b30;
+    outMatrix.arr[1][1] = a10 * b01 + a11 * b11 + a12 * b21 + a13 * b31;
+    outMatrix.arr[1][2] = a10 * b02 + a11 * b12 + a12 * b22 + a13 * b32;
+    outMatrix.arr[1][3] = a10 * b03 + a11 * b13 + a12 * b23 + a13 * b33;
 
-    const b22 = other.arr[2][2];
-    const b32 = other.arr[3][2];
+    outMatrix.arr[2][0] = a20 * b00 + a21 * b10 + a22 * b20 + a23 * b30;
+    outMatrix.arr[2][1] = a20 * b01 + a21 * b11 + a22 * b21 + a23 * b31;
+    outMatrix.arr[2][2] = a20 * b02 + a21 * b12 + a22 * b22 + a23 * b32;
+    outMatrix.arr[2][3] = a20 * b03 + a21 * b13 + a22 * b23 + a23 * b33;
 
-    const h2 = (a00 + a20 + a22) * (b00 + b20 + b22);
-    const h3 = (a00 + a20 + a23) * (b01 + b31 + b32);
-    const h4 = (a02 + a10 + a12) * (b02 + b03 + b23);
-    const h5 = (a00 + a20) * (b00 + b01 + b02 + b20 + b22 + b31 + b32);
-    const h6 = (a02 + a12) * (b02 + b03 + b21 + b22 + b23 + b31 + b32);
-    const h7 = (a03 + a32 + a33) * (b20 + b22 + b30);
-    const h8 = (a03 + a30 + a33) * (b02 + b03 + b33);
-    const h9 = (a02 + a12 + a13) * (b21 + b31 + b32);
-    const h10 = (a03 + a33) * (b02 + b03 + b20 + b22 + b30 + b32 + b33);
-    const h11 = a22 * (b00 + b11 + b12 + b20 + b21);
-    const h12 = (a01 + a21 + a22) * (b11 + b12 + b21);
-    const h13 = a23 * (b01 + b10 + b12 + b30 + b31);
-    const h14 = (a01 + a21) * (b10 + b11 + b12 + b21 + b30);
-    const h15 = (a01 + a21 + a23) * (b10 + b12 + b30);
-    const h16 = a10 * (b01 + b03 + b11 + b12 + b23);
-    const h17 = (a01 + a10 + a11) * (b01 + b11 + b12);
-    const h18 = (a01 + a11) * (b01 + b11 + b12 + b13 + b33);
-    const h19 = a13 * (b12 + b13 + b21 + b31 + b33);
-    const h20 = (a01 + a12 + a13 + a21 + a22) * b21;
-    const h21 = (a01 + a11 + a13) * (b12 + b13 + b33);
-    const h22 = a32 * (b12 + b13 + b20 + b23 + b30);
-    const h23 = (a00 + a02 + a03 + a12 + a13 + a20 + a23) * (b31 + b32);
-    const h24 = (a01 + a31 + a32) * (b12 + b13 + b23);
-    const h25 = (a01 + a31) * (b00 + b10 + b12 + b13 + b23);
-    const h26 = (a01 + a30 + a31) * (b00 + b10 + b12);
+    outMatrix.arr[3][0] = a30 * b00 + a31 * b10 + a32 * b20 + a33 * b30;
+    outMatrix.arr[3][1] = a30 * b01 + a31 * b11 + a32 * b21 + a33 * b31;
+    outMatrix.arr[3][2] = a30 * b02 + a31 * b12 + a32 * b22 + a33 * b32;
+    outMatrix.arr[3][3] = a30 * b03 + a31 * b13 + a32 * b23 + a33 * b33;
 
-    const h28 = (a01 + a10 + a11 + a20 + a23) * b01;
-    const h29 = (a01 + a10 + a12 + a31 + a32) * b23;
-    const h30 = (a01 + a20 + a22 + a30 + a31) * b00;
-    const h31 = a30 * (b00 + b03 + b10 + b12 + b33);
-    const h32 = (a01 + a21 + a23 + a32 + a33) * b30;
-    const h33 = (a01 + a11 + a13 + a30 + a33) * b33;
-    const h34 = (a10 + a20 + a30) * (b00 + b01 + b03);
-    const h35 = (a01 + a10 + a11 + a21 + a22) * (b11 + b12);
-    const h36 = (a01 + a13 + a21 + a32) * (b12 + b13 + b21 + b30);
-    const h37 = (a01 + a10 + a22 + a31) * (b00 + b11 + b12 + b23);
-    const h38 = (a11 + a21 + a31) * (b10 + b11 + b13);
-
-
-    const h41 = (a00 + a02 + a03 + a10 + a12 + a30 + a33) * (b02 + b03);
-    const h42 = (a01 + a21 + a23 + a30 + a31) * (b10 + b12);
-    const h43 = (a13 + a23 + a33) * (b30 + b31 + b33);
-    const h44 = (a12 + a22 + a32) * (b20 + b21 + b23);
-    const h45 = (a00 + a02 + a03 + a20 + a22 + a32 + a33) * (b20 + b22);
-    const h46 = (a01 + a11 + a23 + a30) * (b01 + b10 + b12 + b33);
-    const h47 = (a01 + a11 + a13 + a31) * (b12 + b13);
-
-    // ostensibly correct
-    const h1 = a00 * b02;
-    const h27 = a03 * b32;
-    const h39 = a01 * b12;
-    const h40 = a02 * b22;
-
-    const multiplication = Matrix.empty(4, 4);
-    multiplication.arr[0][0] = h15 + h26 + h2 + h30 + h32 + h39 + h40 + h42 + h45 + h7;
-    multiplication.arr[1][0] = h11 + h12 + h14 + h20 + h22 + h24 + h25 + h29 + h35 + h36 + h37 + h38 + h44 + h47;
-    multiplication.arr[2][0] = h11 + h12 + h14 + h15 + h26 + h30 + h39 + h42;
-    multiplication.arr[3][0] = h15 + h22 + h24 + h25 + h26 + h32 + h39 + h42;
-
-    multiplication.arr[0][1] = h12 + h17 + h20 + h23 + h27 + h28 + h35 + h39 + h3 + h9;
-    multiplication.arr[1][1] = h12 + h17 + h18 + h19 + h20 + h21 + h35 + h39;
-    multiplication.arr[2][1] = h12 + h13 + h14 + h15 + h17 + h28 + h35 + h39;
-    multiplication.arr[3][1] = h13 + h14 + h15 + h18 + h19 + h21 + h32 + h33 + h36 + h38 + h42 + h43 + h46 + h47;
-
-
-    multiplication.arr[1][2] = h16 + h17 + h18 + h19 + h21 + h39 + h40 + h4 + h6 + h9;
-    multiplication.arr[2][2] = h11 + h12 + h13 + h14 + h15 + h1 + h2 + h39 + h3 + h5;
-    multiplication.arr[3][2] = h10 + h22 + h24 + h25 + h26 + h27 + h31 + h39 + h7 + h8;
-
-    multiplication.arr[0][3] = h1 + h21 + h24 + h29 + h33 + h39 + h41 + h47 + h4 + h8;
-    multiplication.arr[1][3] = h16 + h17 + h18 + h21 + h24 + h29 + h39 + h47;
-    multiplication.arr[2][3] = h16 + h17 + h18 + h25 + h26 + h28 + h30 + h31 + h34 + h35 + h37 + h38 + h42 + h46;
-    multiplication.arr[3][3] = h21 + h24 + h25 + h26 + h31 + h33 + h39 + h47;
-
-    // ostensibly correct
-    multiplication.arr[0][2] = h1 + h27 + h39 + h40;
-
-    return multiplication;
+    return outMatrix;
   }
 }
 
 
-ax 1
-
-ax 2
-
-ax 3
-
-ax 4
-
-bx2 bx3
-
-bx 4
-
-by3 by A by 1 by 2
-
-ay1
-
-ay2
-
-ay3 ay 4
-
-bz1 bz2
-
-az 1
-
-X
-
-az 4
-
-bw, bw₂ bw3 bw4 awi aw₂ aw3 awa
-
-az 2
-
-az3
-
-1 ax1*bx1+ax2 *by₁+ax3*bz1+ax4*bw1 ax 1*bx2+ax2 *by₂+ax 3* bz₂+ax 4*bw 2 ax₁*bx3+ax₂*byz+ax3*bzz+ax 4*bw3 ax1*bx4+ax2*by ₁+ax 3 *bz4+ax 4*bw4 ay₁*bx1+ay2*by₁+ays*bz₁+ay,*bwi ay₁*bx2+aya*by₂+ayz*bz₂+ays*bw₂ ay₁*bx3+ay₂*by3+ays*bzz+ay4*bw3 ay₁*bx4+ay2*by+ay3*bz4+ay 4*bw4 aw₁ *bx₁+aw₂ *by₁+awz *bz₁+aw4*bw, aw₁*bx₂+aw₂*by₂+awz *bz₂+aw4*bw₂ aw₁*bx3+aw₂*byz+awz *bzz+aw₁*bw; aw₁*bx+aw₂ * by₂+awz *bz+aw 4 *bw4|
-
-az1*bx1+az₂*by₁+azz *bz₁+az₁*bw azı*bx2+aza*by₂+azz *bz₂+az 4*bwa az₁*bx3+az₂*byz+azz *bzz+az4*bW3 az1*bx4+az2*by 4+az3*bz4+az₁ *bw4
