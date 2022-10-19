@@ -189,7 +189,7 @@ export class Area3d {
    */
   _transformTarget() {
     const t = Area3d.token3dPoints(this.target);
-    return this.transformedTargetPoints = t.map(pt =>
+    return t.map(pt =>
       Matrix.fromPoint3d(pt).multiply(this.M).toPoint3d());
   }
 
@@ -199,7 +199,7 @@ export class Area3d {
   _transformWalls() {
     const walls = this.blockingWalls.map(w => w.map(pt => Area3d.wall3dPoints(pt)));
 
-    return this.transformedWalls = walls.map(w =>
+    return walls.map(w =>
       w.map(pt => Matrix.fromPoint3d(pt).multiply(this.M).toPoint3d()));
   }
 
