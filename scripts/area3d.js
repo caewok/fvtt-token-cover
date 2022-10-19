@@ -163,25 +163,68 @@ export class Area3d {
     const tZ = Matrix.translation(-tokenCenter.x, -tokenCenter.y, -tokenCenter.z);
     const tZinv = Matrix.translation(tokenCenter.x, tokenCenter.y, tokenCenter.z);
 
-    // Rotation around z axis to be even with the y axis
-    const tokenCenterXY = tokenCenter.to2d({x: "x", y: "y"});
-    const targetCenterXY = targetCenter.to2d({x: "x", y: "y"});
-    const axisY = new PIXI.Point(tokenCenter.x, tokenCenter.y - 100);
-    const angleZ = -Area3d.angleBetweenSegments(tokenCenterXY, targetCenterXY, tokenCenterXY, axisY);
+    // Rotate around z axis so target center is even with the token y axis
+    const tokenCenterXY = tokenCenter.to2d();
+    const targetCenterXY = targetCenter.to2d();
+    let angleZ = Area3d.angleBetweenSegments(tokenCenterXY, targetCenterXY, tokenCenterXY, new PIXI.Point(tokenCenterXY.x, tokenCenterXY.y - 1))
+    if ( targetCenterXY.x > tokenCenterXY.x ) angleZ *= -1;
     const rotZ = Matrix.rotationZ(angleZ);
 
+
+
+    // Matrix.fromPoint3d(targetCenter).multiply(tZ).multiply(rotZ).multiply(tZinv).toPoint2d()
+
+
     // Temporarily move so we can find the correct angle from the rotated position
-    const tTargetCenter = Matrix.fromPoint3d(targetCenter)
+    const targetCenterYZ = Matrix.fromPoint3d(targetCenter)
       .multiply(tZ)
       .multiply(rotZ)
-      .multiply(tZinv);
+      .multiply(tZinv)
+      .toPoint2d( {xIndex: 1, yIndex: 2} ); // use y,z coordinates for the 2d point
 
     // Then rotate around x axis so target is directly below token. Usually 90º unless elevations differ
-    const tokenCenterYZ = tokenCenter.to2d({x: "y", y: "z"});
-    const targetCenterYZ = tTargetCenter.toPoint3d().to2d({x: "y", y: "z"});
-    const axisZ = new PIXI.Point(tokenCenter.y, tokenCenter.z - 100);
-    const angleX = Area3d.angleBetweenSegments(tokenCenterYZ, targetCenterYZ, tokenCenterYZ, axisZ);
+    const tokenCenterYZ = tokenCenter.to2d({x: "y", y: "z"})
+    let angleX = Area3d.angleBetweenSegments(tokenCenterYZ, targetCenterYZ, tokenCenterYZ, new PIXI.Point(tokenCenterYZ.x, tokenCenterYZ.y - 1));
+    if ( targetCenterYZ.x < 0 ) angleX *= -1;
     const rotX = Matrix.rotationX(angleX);
+
+
+    // Matrix.fromPoint3d(targetCenter).multiply(tZ).multiply(rotZ).multiply(rotX).multiply(tZinv).toPoint3d()
+
+
+//
+//     const origin = new PIXI.Point(0, 0);
+//     const axis = new PIXI.Point(0, -1);
+//
+//     // Move token center to origin, b/c we are rotating around it
+//     const tZ = Matrix.translation(-tokenCenter.x, -tokenCenter.y, -tokenCenter.z);
+//     const tZinv = Matrix.translation(tokenCenter.x, tokenCenter.y, tokenCenter.z);
+//
+//     // Rotation around z axis to be even with the y axis
+//     const targetCenterMatrix = Matrix.fromPoint3d(targetCenter).multiply(tZ);
+//
+//     const targetCenterXY = targetCenterMatrix.toPoint2d();
+//     let angleZ = Area3d.angleBetweenSegments(origin, targetCenterXY, origin, axis);
+//     if ( targetCenterXY.x < 0 ) angleZ *= -1;
+//     const rotZ = Matrix.rotationZ(angleZ);
+//
+//     // Temporarily move so we can find the correct angle from the rotated position
+//     const targetCenterYZ = targetCenterMatrix.multiply(rotZ).toPoint2d({xIndex: 1, yIndex: 2});
+//
+//     // Then rotate around x axis so target is directly below token. Usually 90º unless elevations differ
+//     let angleX = Area3d.angleBetweenSegments(origin, targetCenterYZ, origin, axis);
+//     if ( targetCenterYZ.x > 0 ) angleX *= -1;
+//     const rotX = Matrix.rotationX(angleX);
+
+    // For debugging
+    this._transformMatrixCalcs = {
+      tZ,
+      tZinv,
+      angleX,
+      angleZ,
+      rotX,
+      rotZ
+    };
 
     this._M = Matrix.empty(4, 4);
     tZ.multiply4x4(rotZ, this.M)

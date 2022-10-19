@@ -241,56 +241,55 @@ export class Matrix {
     return true;
   }
 
-
   /**
-   * Convert to 3d point
-   * If 1 x 4 or 4 x 1, take the fourth element to be the homogenous coord; divide
-   * @returns {Point3d}
-   */
-  toPoint3d() {
-    const d1 = this.dim1;
-    const d2 = this.dim2;
-
-    if ( d1 === 1 && d2 === 3 ) {
-      return new Point3d(this.arr[0][0], this.arr[0][1], this.arr[0][2]);
-    } else if ( d1 === 1 && d2 === 4 ) {
-      const div = this.arr[0][3];
-      return new Point3d(this.arr[0][0] / div, this.arr[0][1] / div, this.arr[0][2] / div);
-    } else if ( d1 === 3 && d2 === 1 ) {
-      return new Point3d(this.arr[0][0], this.arr[1][0], this.arr[2][0]);
-    } else if ( d1 === 4 && d2 === 1 ) {
-      const div = this.arr[3][0];
-      return new Point3d(this.arr[0][0] / div, this.arr[1][0] / div, this.arr[2][0] / div);
-    }
-
-    console.error("Cannot conver matrix to 3dPoint.");
-    return undefined;
-  }
-
-  /**
-   * Convert to 2d point
-   * If 1 x 3 or 3 x 1, take the third element to be the homogenous coord; divide
+   * Convert matrix to a PIXI.Point.
+   * Any index in the first row can be chosen for x and y.
+   * If homogenous is true, the last column [0, col - 1] is assumed to be the divisor.
+   * @param {object} [options]    Options to affect how the matrix is interpreted.
+   * @param {number} [options.xIndex]       Column for the x variable.
+   * @param {number} [options.yIndex]       Column for the y variable.
+   * @param {boolean} [options.homogenous]  Whether to convert homogenous coordinates.
    * @returns {PIXI.Point}
    */
-  toPoint2d() {
-    const d1 = this.dim1;
-    const d2 = this.dim2;
+  toPoint2d({ xIndex = 0, yIndex = 1, homogenous = true  } = {}) {
+    let x = this.arr[0][xIndex];
+    let y = this.arr[0][yIndex];
 
-    if ( d1 === 1 && d2 === 2 ) {
-      return new Point3d(this.arr[0][0], this.arr[0][1]);
-    } else if ( d1 === 1 && d2 === 3 ) {
-      const div = this.arr[0][2];
-      return new Point3d(this.arr[0][0] / div, this.arr[0][1] / div);
-    } else if ( d1 === 2 && d2 === 1 ) {
-      return new Point3d(this.arr[0][0], this.arr[1][0]);
-    } else if ( d1 === 3 && d2 === 1 ) {
-      const div = this.arr[2][0];
-      return new Point3d(this.arr[0][0] / div, this.arr[1][0] / div);
+    if ( homogenous ) {
+      const h = this.arr[0][this.dim2 - 1];
+      x /= h;
+      y /= h;
     }
 
-    console.error("Cannot conver matrix to 2d point.");
-    return undefined;
+    return new PIXI.Point(x, y);
   }
+
+  /**
+   * Convert matrix to a Point3d.
+   * Any index in the first row can be chosen for x and y and z.
+   * If homogenous is true, the last column [0, col - 1] is assumed to be the divisor.
+   * @param {object} [options]    Options to affect how the matrix is interpreted.
+   * @param {number} [options.xIndex]       Column for the x variable.
+   * @param {number} [options.yIndex]       Column for the y variable.
+   * @param {number} [options.zIndex]       Column for the z variable.
+   * @param {boolean} [options.homogenous]  Whether to convert homogenous coordinates.
+   * @returns {PIXI.Point}
+   */
+  toPoint3d({ xIndex = 0, yIndex = 1, zIndex = 2, homogenous = true  } = {}) {
+    let x = this.arr[0][xIndex];
+    let y = this.arr[0][yIndex];
+    let z = this.arr[0][zIndex];
+
+    if ( homogenous ) {
+      const h = this.arr[0][this.dim2 - 1];
+      x /= h;
+      y /= h;
+      z /= h;
+    }
+
+    return new Point3d(x, y, z);
+  }
+
 
   add(other, outMatrix = Matrix.empty(other.dim1, other.dim2)) {
     const d1 = this.dim1;
