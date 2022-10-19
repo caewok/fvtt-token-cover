@@ -435,8 +435,9 @@ export class Area3d {
       // Assuming for the moment that points are clockwise
       // Start by adding the initial top right and bottom right
       const right = points[seen[0]];
-      out.points.push(new Point3d(right.x, right.y, topZ));
       out.points.push(new Point3d(right.x, right.y, bottomZ));
+      out.points.push(new Point3d(right.x, right.y, topZ));
+
 
       const numSides = sLn - 1;
       for ( let i = 0; i < numSides; i += 1 ) {
@@ -445,10 +446,10 @@ export class Area3d {
         out.sides.push(side);
 
         // Top right
-        side.push(pLn - 2);
+        side.push(pLn - 1);
 
         // Bottom right
-        side.push(pLn - 1);
+        side.push(pLn - 2);
 
         // Bottom left
         const left = points[seen[i + 1]];
