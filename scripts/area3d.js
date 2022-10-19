@@ -190,6 +190,14 @@ export class Area3d {
   }
 
   /**
+   * Transform the token center
+   * Only used for debugging
+   */
+  _transformTokenCenter() {
+    return Matrix.fromPoint3d(this.tokenCenter).multiply(this.M).toPoint3d();
+  }
+
+  /**
    * Transform the target location.
    */
   _transformTarget() {
