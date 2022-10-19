@@ -346,7 +346,7 @@ export class Area3d {
 
       // Every 4th is a new side
       if ( (i + 1) % 4 === 0 ) {
-        sides.push(pts[i - 2], pt, pts[i - 2], pts[i - 3]);
+        sides.push([pts[i - 2], pt, pts[i - 2], pts[i - 3]]);
       }
 
       seen.push(pt);
