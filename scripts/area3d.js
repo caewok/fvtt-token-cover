@@ -28,6 +28,7 @@ import { Shadow } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
 import { Point3d } from "./Point3d.js";
 import { getConstrainedTokenShape } from "./token_visibility.js";
+import { elementsByIndex, segmentBlocks } from "./util.js";
 import * as drawing from "./drawing.js"; // For debugging
 
 export class Area3d {
@@ -45,7 +46,7 @@ export class Area3d {
 
   _blockingWalls = null;
 
-  _transformedTargetPoints = undefined;
+  _transformedTarget = undefined;
 
   _transformedWalls = undefined;
 
@@ -72,8 +73,8 @@ export class Area3d {
    * Get the transformed target points
    * @type {Point3d[]}
    */
-  get transformedTargetPoints() {
-    return this._transformedTargetPoints || (this._transformedTargetPoints = this._transformTarget());
+  get transformedTarget() {
+    return this._transformedTarget || (this._transformedTarget = this._transformTarget());
   }
 
   /**
@@ -201,9 +202,9 @@ export class Area3d {
    * Transform the target location.
    */
   _transformTarget() {
-    const t = Area3d.token3dPoints(this.target);
-    return t.map(pt =>
-      Matrix.fromPoint3d(pt).multiply(this.M).toPoint3d());
+    const t = this._target3dPoints();
+    t.points = t.points.map(pt => Matrix.fromPoint3d(pt).multiply(this.M).toPoint3d());
+    return t;
   }
 
   /**
@@ -257,6 +258,169 @@ export class Area3d {
   _findBlockingWalls() {
     const collisionTest = (o, rect) => this._testWallInclusion(o.t, rect);
     return canvas.walls.quadtree.getObjects(this.boundsXY, { collisionTest });
+  }
+
+  /**
+   * Get the 3d points representing the target, along with
+   * indices indicating the potentially viewable sides.
+   * @returns {object} [object]
+   *   [object.points]  Points used
+   * Indices for object.points:
+   *   [object.top]     Top points, or undefined
+   *   [object.bottom]  Bottom points, or undefined
+   *   [object.sides]   Array of sides
+   */
+  _target3dPoints() {
+    // In 2d XY coordinates, check what points are visible.
+    const center = this.token.center;
+    const centerZ = this.tokenCenter.z;
+    const target = this.target;
+    const { bottomZ, topZ } = target;
+    const targetShape = getConstrainedTokenShape(target);
+    const targetPoly = targetShape instanceof PIXI.Rectangle ? targetShape.toPolygon() : targetShape;
+
+    const out = {
+      points: [],
+      sides: []
+    };
+
+    const edges = [...targetPoly.iterateEdges()];
+    const points = [...targetPoly.iteratePoints()];
+    let seen = [];
+    const ln = points.length;
+    for ( let i = 0; i < ln; i += 1 ) {
+      const pt = points[i];
+      if ( !edges.some(edge => segmentBlocks(center, pt, edge.A, edge.B)) ) seen.push(i);
+    }
+
+    // Re-arrange so the first viewable point moving clockwise is index 0
+    const sLn = seen.length;
+    let splitIndex;
+    for ( let i = 1; i < sLn; i += 1 ) {
+      if ( seen[i - 1] + 1 !== seen[i] ) {
+        splitIndex = i;
+        break;
+      }
+    }
+    if ( splitIndex ) seen = [...seen.slice(splitIndex), ...seen.slice(0, splitIndex)];
+
+    if ( centerZ > topZ ) {
+      // Looking down at the target
+      // Top face only
+      out.top = Array.fromRange(points.length);
+
+      // Make the 3d top points
+      out.points = points.map(pt => new Point3d(pt.x, pt.y, topZ));
+
+      if ( seen.length < 2 ) return out;
+
+      // Add the bottom seen points and corresponding indices for the sides
+      // Assuming for the moment that points are clockwise
+      // Start by adding the initial bottom right
+      const right = points[seen[0]];
+      out.points.push(new Point3d(right.x, right.y, bottomZ));
+
+      const numSides = sLn - 1;
+      for ( let i = 0; i < numSides; i += 1 ) {
+        const pLn = out.points.length;
+        const side = [];
+        out.sides.push(side);
+
+        // Top right
+        side.push(seen[i]);
+
+        // Bottom right
+        side.push(pLn - 1);
+
+        // Bottom left
+        const left = points[seen[i + 1]];
+        out.points.push(new Point3d(left.x, left.y, bottomZ));
+        side.push(pLn);
+
+        // Top left
+        side.push(seen[i + 1]);
+
+      }
+
+    } else if ( centerZ < bottomZ ) {
+      // Looking up at the target
+      // Bottom face only
+
+      out.bottom = Array.fromRange(points.length);
+
+      // Make the 3d top points
+      out.points = points.map(pt => new Point3d(pt.x, pt.y, bottomZ));
+
+      if ( seen.length < 2 ) return out;
+
+      // Add the bottom seen points and corresponding indices for the sides
+      // Assuming for the moment that points are clockwise
+      // Start by adding the initial bottom right
+      const right = points[seen[0]];
+      out.points.push(new Point3d(right.x, right.y, topZ));
+
+      const numSides = sLn - 1;
+      for ( let i = 0; i < numSides; i += 1 ) {
+        const pLn = out.points.length;
+        const side = [];
+        out.sides.push(side);
+
+        // Top right
+        side.push(pLn - 1);
+
+        // Bottom right
+        side.push(seen[i]);
+
+        // Bottom left
+        side.push(seen[i + 1]);
+
+        // Top left
+        const left = points[seen[i + 1]];
+        out.points.push(new Point3d(left.x, left.y, topZ));
+        side.push(pLn);
+
+      }
+
+
+    } else {
+      // Looking face-on.
+      // No top or bottom faces.
+
+      if ( seen.length < 2 ) return out;
+
+      // Add the bottom seen points and corresponding indices for the sides
+      // Assuming for the moment that points are clockwise
+      // Start by adding the initial top right and bottom right
+      const right = points[seen[0]];
+      out.points.push(new Point3d(right.x, right.y, topZ));
+      out.points.push(new Point3d(right.x, right.y, bottomZ));
+
+      const numSides = sLn - 1;
+      for ( let i = 0; i < numSides; i += 1 ) {
+        const pLn = out.points.length;
+        const side = [];
+        out.sides.push(side);
+
+        // Top right
+        side.push(pLn - 2);
+
+        // Bottom right
+        side.push(pLn - 1);
+
+        // Bottom left
+        const left = points[seen[i + 1]];
+        out.points.push(new Point3d(left.x, left.y, bottomZ));
+        side.push(pLn);
+
+        // Top left
+        out.points.push(new Point3d(left.x, left.y, topZ));
+        side.push(pLn + 1);
+
+      }
+    }
+
+    return out;
+
   }
 
   /**
@@ -334,36 +498,6 @@ export class Area3d {
     ];
   }
 
-  _transformedTargetFaces() {
-    const pts = this.transformedTargetPoints;
-    const ln = pts.length;
-    if ( ln < 4 ) return [];
-
-    const topSide = [];
-    const bottomSide = [];
-    const sides = [];
-
-    for ( let i = 0; i < ln; i += 1 ) {
-      const pt = pts[i];
-
-      // Even points are bottom; odd points are top
-      if ( i % 2 === 0 ) bottomSide.push(pt);
-      else topSide.push(pt);
-
-      // Every 2nd is a new side
-      if ( i > 2 && (i + 1) % 2 === 0 ) {
-        sides.push([pts[i - 2], pt, pts[i - 1], pts[i - 3]]);
-      }
-    }
-    // Final side
-    sides.push([pts[ln - 1], pts[1], pts[0], pts[ln - 2]]);
-
-    return [
-      topSide,
-      bottomSide,
-      ...sides
-    ];
-  }
 
   /**
    * For debugging.
@@ -378,16 +512,26 @@ export class Area3d {
    * Draw the transformed target.
    */
   _drawTransformedTarget() {
-    const t = this.transformedTargetPoints;
-    t.forEach(pt => drawing.drawPoint(pt, { color: drawing.COLORS.red }));
+    const t = this.transformedTarget;
+    t.points.forEach(pt => drawing.drawPoint(pt, { color: drawing.COLORS.red }));
 
-    const faces = this._transformedTargetFaces();
-    faces.forEach(f => {
-      drawing.drawSegment({A: f[0], B: f[1]}, { color: drawing.COLORS.red });
-      drawing.drawSegment({A: f[1], B: f[2]}, { color: drawing.COLORS.red });
-      drawing.drawSegment({A: f[2], B: f[3]}, { color: drawing.COLORS.red });
-      drawing.drawSegment({A: f[3], B: f[0]}, { color: drawing.COLORS.red });
-    });
+    if ( t.top ) this._drawSide(t.points, t.top, { color: drawing.COLORS.red });
+    if ( t.bottom ) this._drawSide(t.points, t.bottom, { color: drawing.COLORS.red });
+
+    for ( const side of t.sides ) {
+      this._drawSide(t.points, side, { color: drawing.COLORS.red });
+    }
+  }
+
+  _drawSide(points, index, { color = drawing.COLORS.blue } = {}) {
+    const ln = index.length;
+    if ( ln !== 4 ) console.error("_drawSide expects sides with 4 points.");
+
+    const pts = elementsByIndex(points, index);
+    for ( let i = 1; i < ln; i += 1 ) {
+      drawing.drawSegment({A: pts[i - 1], B: pts[i]}, { color });
+    }
+    drawing.drawSegment({A: pts[ln - 1], B: pts[0]}, { color });
   }
 
   /**

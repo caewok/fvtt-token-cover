@@ -25,6 +25,17 @@ export function log(...args) {
 }
 
 /**
+ * Get elements of an array by a list of indices
+ * https://stackoverflow.com/questions/43708721/how-to-select-elements-from-an-array-based-on-the-indices-of-another-array-in-ja
+ * @param {Array} arr       Array with elements to select
+ * @param {number[]} indices   Indices to choose from arr. Indices not in arr will be undefined.
+ * @returns {Array}
+ */
+export function elementsByIndex(arr, indices) {
+  return indices.map(aIndex => arr[aIndex]);
+}
+
+/**
  * Convert a grid units value to pixel units, for equivalency with x,y values.
  */
 export function zValue(value) {
@@ -69,12 +80,6 @@ export function zValue(value) {
  */
 export function lineSegmentCrosses(a, b, c, d, { delta } = {}) {
   if ( typeof delta !== "undefined" ) {
-//     const p1 = perpendicularPoint(a, b, d);
-//     if ( distanceBetweenPoints(d, p1) <= delta ) return false;
-//
-//     const p2 = perpendicularPoint(a, b, c);
-//     if ( distanceBetweenPoints(c, p2) <= delta ) return false;
-
     // Don't test the other line b/c crossing AB in a T-shape is sufficient
     const p3 = perpendicularPoint(c, d, a);
     if ( distanceBetweenPoints(a, p3) <= delta ) return false;
@@ -102,6 +107,27 @@ export function lineSegmentCrosses(a, b, c, d, { delta } = {}) {
 }
 
 /**
+ * Test if an edge CD blocks a line segment AB in 2d.
+ * Endpoints count, so if AB crosses C or D, it is blocked.
+ * But if AB ends at C or on CD, it does not.
+ * It is assumed that A is the start of the segment/ray and so only B is tested.
+ * @param {Point} a                   The first endpoint of segment AB
+ * @param {Point} b                   The second endpoint of segment AB
+ * @param {Point} c                   The first endpoint of segment CD
+ * @param {Point} d                   The second endpoint of segment CD
+ * @returns {boolean} Does the edge CD block?
+ */
+export function segmentBlocks(a, b, c, d) {
+  if ( b.almostEqual(c) || b.almostEqual(d) ) return false;
+
+  if ( lineSegmentCrosses(a, b, c, d) ) return true;
+
+  if ( foundry.utils.lineSegmentIntersects(a, b, c, d) && (!foundry.utils.orient2dFast(a, b, c) || !foundry.utils.orient2dFast(a, b, d)) ) return true;
+
+  return false;
+}
+
+/**
  * Test orientation of a line to a point.
  * If the point is within √2 / 2 of the line, it is collinear
  * @param {Point} a                   The first endpoint of segment AB
@@ -115,7 +141,7 @@ export function orient2dPixel(a, b, c) {
   c = c.to2d();
 
   const p = perpendicularPoint(a, b, c);
-  if ( distanceSquaredBetweenPoints(c, p3) <= 0.5 ) return 0;
+  if ( distanceSquaredBetweenPoints(c, p) <= 0.5 ) return 0;
 
   return foundry.utils.orient2d(a, b, c);
 }
