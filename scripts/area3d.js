@@ -31,7 +31,7 @@ import { getConstrainedTokenShape } from "./token_visibility.js";
 import * as drawing from "./drawing.js"; // For debugging
 
 export class Area3d {
-  M = Matrix.empty(4, 4);
+  _M = undefined;
 
   token = undefined;
 
@@ -82,6 +82,10 @@ export class Area3d {
    */
   get transformedWalls() {
     return this._transformedWalls || (this._transformedWalls = this._transformWalls());
+  }
+
+  get M() {
+    return this._M || (this._M = this._calculateTransformMatrix());
   }
 
   /**
@@ -178,10 +182,11 @@ export class Area3d {
     const angleX = Area3d.angleBetweenSegments(tokenCenterYZ, targetCenterYZ, tokenCenterYZ, axisZ);
     const rotX = Matrix.rotationX(angleX);
 
-    this.M = Matrix.empty(4, 4);
+    this._M = Matrix.empty(4, 4);
     tZ.multiply4x4(rotZ, this.M)
       .multiply4x4(rotX, this.M)
       .multiply4x4(tZinv, this.M);
+    return this._M;
   }
 
   /**
