@@ -339,32 +339,28 @@ export class Area3d {
     const ln = pts.length;
     if ( ln < 4 ) return [];
 
-    const top = [];
-    const bottom = [];
+    const topSide = [];
+    const bottomSide = [];
     const sides = [];
-    const seen = [];
 
     for ( let i = 0; i < ln; i += 1 ) {
       const pt = pts[i];
-      if ( seen.some(s => s.almostEqual(pt)) ) continue;
 
       // Even points are bottom; odd points are top
-      if ( i % 2 === 0 ) bottom.push(pt);
-      else top.push(pt);
+      if ( i % 2 === 0 ) bottomSide.push(pt);
+      else topSide.push(pt);
 
-      // Every 4th is a new side
-      if ( (i + 1) % 4 === 0 ) {
-        sides.push([pts[i - 2], pt, pts[i - 2], pts[i - 3]]);
+      // Every 2nd is a new side
+      if ( i > 2 && (i + 1) % 2 === 0 ) {
+        sides.push([pts[i - 2], pt, pts[i - 1], pts[i - 3]]);
       }
-
-      seen.push(pt);
     }
     // Final side
     sides.push([pts[ln - 1], pts[1], pts[0], pts[ln - 2]]);
 
     return [
-      top,
-      bottom,
+      topSide,
+      bottomSide,
       ...sides
     ];
   }
