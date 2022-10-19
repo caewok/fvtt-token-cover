@@ -76,12 +76,12 @@ export class Matrix {
   }
 
   static identity(rows, cols) {
-    const arr = Matrix.zeroes(rows, cols);
+    const mat = Matrix.zeroes(rows, cols);
     const iMax = Math.min(rows, cols);
     for ( let i = 0; i < iMax; i += 1 ) {
-      arr[[i][i]] = 1;
+      mat.arr[i][i] = 1;
     }
-    return arr;
+    return mat;
   }
 
   static fromPoint3d(p, { homogenous = true } = {}) {
