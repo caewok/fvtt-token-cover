@@ -12,7 +12,7 @@ export class Plane {
    * @param {Point3d} normal    Normal vector to the plane
    * @param {Point3d} point     Point on the plane
    */
-  constructor(normal = new Point3d(0, 0, 1), point = new Point3d(0, 0, 0)) {
+  constructor(point = new Point3d(0, 0, 0), normal = new Point3d(0, 0, 1)) {
     this.normal = normal;
     this.point = point;
   }
@@ -32,6 +32,8 @@ export class Plane {
     return new Plane(normal, a);
   }
 
+
+
   /**
    * Line, defined by a point and a vector
    * https://www.wikiwand.com/en/Line%E2%80%93plane_intersection
@@ -39,7 +41,7 @@ export class Plane {
    * @param {Point3d} l0
    * @returns {Point3d|null}
    */
-  lineIntersection(l, l0) {
+  lineIntersection(l0, l) {
     const p_no = this.normal;
     const p_co = this.point;
 
@@ -61,7 +63,7 @@ export class Plane {
    * @returns {Point3d|null}
    */
   lineSegmentIntersection(p0, p1) {
-    return this.lineIntersection(p1.subtract(p0), p0);
+    return this.lineIntersection(p0, p1.subtract(p0));
 
 //     const p_no = this.normal;
 //     const p_co = this.point;

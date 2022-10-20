@@ -354,7 +354,7 @@ export class Point3d extends PIXI.Point {
    * @returns {number}
    */
   magnitudeSquared() {
-    return super.magnitudeSquared + Math.pow(this.z, 2);
+    return super.magnitudeSquared() + Math.pow(this.z, 2);
   }
 
   /**
