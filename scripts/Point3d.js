@@ -55,6 +55,12 @@ export function registerPIXIPointMethods() {
     configurable: true
   });
 
+  Object.defineProperty(PIXI.Point.prototype, "normalize", {
+    value: normalize,
+    writable: true,
+    configurable: true
+  });
+
   // For parallel with Point3d
   Object.defineProperty(PIXI.Point.prototype, "to2d", {
     value: function() { return this; },
@@ -181,6 +187,17 @@ function magnitudeSquared2d() {
  */
 function almostEqual2d(other, epsilon = EPSILON) {
   return this.x.almostEqual(other.x, epsilon) && this.y.almostEqual(other.y, epsilon);
+}
+
+/**
+ * Normalize the point.
+ * @param {PIXI.Point} [outPoint]    A point-like object in which to store the value.
+ *   (Will create new point if none provided.)
+ * @returns {PIXI.Point}
+ */
+function normalize(outPoint = new PIXI.Point()) {
+  this.multiplyScalar(1 / this.magnitude(), outPoint);
+  return outPoint;
 }
 
 /**
@@ -373,12 +390,21 @@ export class Point3d extends PIXI.Point {
    * @param {Point3d} [outPoint]  A point-like object in which to store the value.
    * @returns {Point3d}
    */
-   cross(other, outPoint = new Point3d()) {
-     outPoint.x = this.y * other.z - this.z * other.y;
-     outPoint.y = this.z * other.x - this.x * other.z;
-     outPoint.z = this.x * other.y - this.y * other.x;
+  cross(other, outPoint = new Point3d()) {
+    outPoint.x = this.y * other.z - this.z * other.y;
+    outPoint.y = this.z * other.x - this.x * other.z;
+    outPoint.z = this.x * other.y - this.y * other.x;
 
-      return outPoint;
-   }
+    return outPoint;
+  }
 
+  /**
+   * Normalize the point.
+   * @param {Point3d} [outPoint]    A point-like object in which to store the value.
+   *   (Will create new point if none provided.)
+   * @returns {Point3d}
+   */
+  normalize(outPoint = new Point3d()) {
+    return super.normalize(outPoint);
+  }
 }

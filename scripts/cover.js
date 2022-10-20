@@ -245,6 +245,7 @@ export function coverArea(token, target) {
  */
 function getCorners(target, elevation) {
   // TO-DO: HEX corners!
+  // TO-DO: Corners for larger tokens, where we should be testing each grid square separately
 
   if ( typeof elevation === "undefined" ) elevation = target.bottomZ + ((target.topZ - target.bottomZ) * 0.5);
 

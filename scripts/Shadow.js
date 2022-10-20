@@ -1,14 +1,14 @@
 /* globals
 PIXI,
-Ray,
 canvas
 */
 "use strict";
 
-import { perpendicularPoint, distanceBetweenPoints, distanceSquaredBetweenPoints, zValue, log } from "./util.js";
+import { distanceSquaredBetweenPoints, zValue } from "./util.js";
 import { COLORS, drawShape } from "./drawing.js";
 import { Point3d } from "./Point3d.js";
 import { ClipperPaths } from "./ClipperPaths.js";
+import { Plane } from "./Plane.js";
 
 /* Testing
 api = game.modules.get("tokenvisibility").api
@@ -102,59 +102,39 @@ export class Shadow extends PIXI.Polygon {
 
   static zValue = zValue;
 
- /**
-  * Build parallelogram using plane-line intersection method.
-  * @param {Wall} wall
-  * @param {Point3d} sourcePoint
-  * @param {Plane} surfacePlane
-  * @return {Shadow} Shadow, in the plane coordinates
-  */
-  static constructWallWithPlane(wall, sourcePoint, surfacePlane) {
-    let wBottom = {
-      A: new Point3d(wall.A.x, wall.A.y, wall.bottomZ),
-      B: new Point3d(wall.B.x, wall.B.y, wall.bottomZ)
-    };
 
-    let wTop = {
-      A: new Point3d(wall.A.x, wall.A.y, wall.topZ),
-      B: new Point3d(wall.B.x, wall.B.y, wall.topZ)
-    };
-
-
+  /**
+   * Build shadow given a segment and a plane
+   * Assume A and B represent a wall or shape that moves straight down to plane.
+   * So shadow is from A outward and B outward.
+   * @param {Point3d} A
+   * @param {Point3d} B
+   * @param {Point3d} origin
+   * @param {Plane} surfacePlane
+   * @returns {Point3d[]}
+   */
+  static segmentWithPlane(A, B, origin, surfacePlane) {
     // Find the intersection points of the wall with the surfacePlane
-    let ixWallA = surfacePlane.lineSegmentIntersection(wTop.A, wBottom.A);
-    let ixWallB = surfacePlane.lineSegmentIntersection(wTop.B, wBottom.B);
+    const ixWallA = surfacePlane.lineSegmentIntersection(A, new Point3d(A.x, A.y, A.z - 1));
+    const ixWallB = surfacePlane.lineSegmentIntersection(B, new Point3d(B.x, B.y, B.z - 1));
 
+    let ixShadowA = surfacePlane.lineSegmentIntersection(origin, A);
+    let ixShadowB = surfacePlane.lineSegmentIntersection(origin, B);
 
-    if ( isFinite(wall.bottomZ) ) {
-      ixShadowBottomA = surfacePlane.lineSegmentIntersection(sourcePoint, wBottom.A);
-      ixShadowBottomB = surfacePlane.lineSegmentIntersection(sourcePoint, wBottom.B);
+    const distWallA = distanceSquaredBetweenPoints(origin, ixWallA);
+    const distWallB = distanceSquaredBetweenPoints(origin, ixWallB);
 
-    } else {
+    const distShadowA = distanceSquaredBetweenPoints(origin, ixShadowA);
+    const distShadowB = distanceSquaredBetweenPoints(origin, ixShadowB);
 
-    }
+    if ( distShadowA < distWallA && distShadowB < distWallB ) return null;
 
-    if ( isFinite(wall.topZ) ) {
-      ixShadowTopA = surfacePlane.lineSegmentIntersection(sourcePoint, wTop.A);
-      ixShadowTopB = surfacePlane.lineSegmentIntersection(sourcePoint, wTop.B);
-
-    } else {
-
-    }
-
-
-    const ixTopA = surfacePlane.lineSegmentIntersection(sourcePoint, wTop.A);
-    const ixTopB = surfacePlane.lineSegmentIntersection(sourcePoint, wTop.B);
-    const ixBottomA = surfacePlane.lineSegmentIntersection(sourcePoint, wBottom.A);
-    const ixBottomB = surfacePlane.lineSegmentIntersection(sourcePoint, wBottom.B);
-
-    return {
-      ixTopA,
-      ixTopB,
-      ixBottomA,
-      ixBottomB
-    }
-
+    return [
+      ixWallA,
+      ixShadowA,
+      ixShadowB,
+      ixWallB
+    ];
   }
 
   /**
@@ -165,7 +145,7 @@ export class Shadow extends PIXI.Polygon {
    * @param {Plane} surfacePlane
    * @returns {Point3d[]} Four points representing the shadow trapezoid
    */
-  static constructXYWallWithPlane(wall, origin, surfacePlane) {
+  static XYWallWithPlane(wall, origin, surfacePlane) {
     const bottomZ = isFinite(wall.bottomZ) ? wall.bottomZ : -canvas.dimensions.maxR;
     const topZ = isFinite(wall.topZ) ? wall.topZ : canvas.dimensions.maxR;
     const { A, B } = wall;
@@ -225,12 +205,12 @@ export class Shadow extends PIXI.Polygon {
 
     }
 
-      return [
-        ixShadowBottomA,
-        ixShadowTopA,
-        ixShadowTopB,
-        ixShadowBottomB
-      ];
+    return [
+      ixShadowBottomA,
+      ixShadowTopA,
+      ixShadowTopB,
+      ixShadowBottomB
+    ];
   }
 
   /**
@@ -241,7 +221,7 @@ export class Shadow extends PIXI.Polygon {
    * @returns {Shadow}
    */
   static construct(wall, source, surfaceElevation = 0) {
-    const { A, B, bottomZ, topZ } = wall;
+    const { bottomZ, topZ } = wall;
     const { x, y, elevationZ } = source;
 
     // If the source elevation equals the surface elevation, no shadows to be seen.
@@ -262,7 +242,7 @@ export class Shadow extends PIXI.Polygon {
     const surfacePlane = new Plane(new Point3d(0, 0, surfaceElevation));
     const sourcePoint = new Point3d(x, y, elevationZ);
 
-    const points = Shadow.constructXYWallWithPlane(wall, sourcePoint, surfacePlane).map(pt => pt.to2d());
+    const points = Shadow.XYWallWithPlane(wall, sourcePoint, surfacePlane).map(pt => pt.to2d());
     return new Shadow(points);
   }
 
