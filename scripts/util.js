@@ -24,6 +24,9 @@ export function log(...args) {
   }
 }
 
+
+
+
 /**
  * Get elements of an array by a list of indices
  * https://stackoverflow.com/questions/43708721/how-to-select-elements-from-an-array-based-on-the-indices-of-another-array-in-ja

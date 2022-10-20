@@ -367,4 +367,18 @@ export class Point3d extends PIXI.Point {
     return super.almostEqual(other, epsilon) && this.z.almostEqual(other.z ?? 0, epsilon);
   }
 
+  /**
+   * Cross product between this point, considered here as a vector, and another vector.
+   * @param {Point3d} other
+   * @param {Point3d} [outPoint]  A point-like object in which to store the value.
+   * @returns {Point3d}
+   */
+   cross(other, outPoint = new Point3d()) {
+     outPoint.x = this.y * other.z - this.z * other.y;
+     outPoint.y = this.z * other.x - this.x * other.z;
+     outPoint.z = this.x * other.y - this.y * other.x;
+
+      return outPoint;
+   }
+
 }

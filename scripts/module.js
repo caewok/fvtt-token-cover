@@ -22,6 +22,7 @@ import * as util from "./util.js";
 import { Shadow } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
 import { Area3d } from "./Area3d.js";
+import { Plane } from "./Plane.js";
 
 Hooks.once("init", async function() {
   registerElevationAdditions();
@@ -38,6 +39,7 @@ Hooks.once("init", async function() {
     Matrix,
     Point3d,
     Area3d,
+    Plane,
     visibility,
     util,
     cover,

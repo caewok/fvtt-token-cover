@@ -102,6 +102,17 @@ export class Shadow extends PIXI.Polygon {
 
   static zValue = zValue;
 
+
+  /**
+   * Build the parallelogram representing a shadow cast from a 2d wall line with elevation.
+   * Usually b/c Area3d has transformed a wall.
+   * Assume viewer --> wall line casts a shadow.
+   */
+  static constructFrom3dWall(wall, source, surfaceElevation = 0) {
+
+
+  }
+
   /**
    * Build the parallelogram representing a shadow cast from a wall.
    * Looking top-down with a light or other source object at a given elevation
