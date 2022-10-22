@@ -1,4 +1,5 @@
 /* globals
+PIXI
 */
 "use strict";
 
@@ -124,6 +125,34 @@ export class Matrix {
   }
 
   /**
+   * See https://webglfundamentals.org/webgl/lessons/webgl-3d-camera.html
+   * Construct a camera matrix given the position of the camera, position of the
+   * target the camera is observing, the a vector pointing directly up.
+   * @param {Point3d} cameraPosition
+   * @param {Point3d} target
+   * @param {Point3d} up
+   * @returns {Matrix} 4x4 matrix
+   */
+  static lookAt(cameraPosition, targetPosition, up) {
+    const zAxis = cameraPosition.subtract(targetPosition);
+    zAxis.normalize(zAxis);
+
+    const xAxis = up.cross(zAxis);
+    xAxis.normalize(xAxis);
+
+    const yAxis = zAxis.cross(xAxis);
+    yAxis.normalize(yAxis);
+
+    return new Matrix([
+      [xAxis.x, xAxis.y, xAxis.z, 0],
+      [yAxis.x, yAxis.y, yAxis.z, 0],
+      [zAxis.x, zAxis.y, zAxis.z, 0],
+      [cameraPosition.x, cameraPosition.y, cameraPosition.z, 1]
+    ]);
+  }
+
+
+  /**
    * Rotation matrix for a given angle, rotating around Y axis.
    * @param {number} angle
    * @returns {Matrix}
@@ -223,13 +252,13 @@ export class Matrix {
     const cNeg = 1 - c;
     const xy = axis.x * axis.y * cNeg;
     const yz = axis.y * axis.z * cNeg;
-    const xz = axis.x * axis.z * cNeg
+    const xz = axis.x * axis.z * cNeg;
     const xs = axis.x * s;
     const ys = axis.y * s;
     const zs = axis.z * s;
 
     return new Matrix([
-      [c + axis.x * axis.x * cNeg, xy - zs, xz + ys, 0],
+      [c + (axis.x * axis.x * cNeg), xy - zs, xz + ys, 0],
 
       [xy + zs, c + (axis.y * axis.y * cNeg), yz - xs, 0],
 
@@ -288,8 +317,8 @@ export class Matrix {
     const d2 = this.dim2;
     for ( let i = 0; i < d1; i += 1 ) {
       for ( let j = 0; j < d2; j += 1 ) {
-       if ( this.arr[i][j].almostEqual(0, epsilon) ) this.arr[i][j] = 0;
-       else if ( this.arr[i][j].almostEqual(1, epsilon) ) this.arr[i][j] = 1;
+        if ( this.arr[i][j].almostEqual(0, epsilon) ) this.arr[i][j] = 0;
+        else if ( this.arr[i][j].almostEqual(1, epsilon) ) this.arr[i][j] = 1;
       }
     }
   }
@@ -304,7 +333,7 @@ export class Matrix {
    * @param {boolean} [options.homogenous]  Whether to convert homogenous coordinates.
    * @returns {PIXI.Point}
    */
-  toPoint2d({ xIndex = 0, yIndex = 1, homogenous = true  } = {}) {
+  toPoint2d({ xIndex = 0, yIndex = 1, homogenous = true } = {}) {
     let x = this.arr[0][xIndex];
     let y = this.arr[0][yIndex];
 
@@ -328,7 +357,7 @@ export class Matrix {
    * @param {boolean} [options.homogenous]  Whether to convert homogenous coordinates.
    * @returns {PIXI.Point}
    */
-  toPoint3d({ xIndex = 0, yIndex = 1, zIndex = 2, homogenous = true  } = {}) {
+  toPoint3d({ xIndex = 0, yIndex = 1, zIndex = 2, homogenous = true } = {}) {
     let x = this.arr[0][xIndex];
     let y = this.arr[0][yIndex];
     let z = this.arr[0][zIndex];
@@ -510,14 +539,6 @@ export class Matrix {
     return outMatrix;
   }
 
-
-
- /**
-  * https://medium.com/@ananyasingh1618/strassens-multiplication-matrix-62bbb10225e6
-  * About 75% slower than loop with multiple even if you remove the checks for add and subtract
-  */
-
-
   /**
    * Faster 4x4 multiplication
    * https://jsbench.me/bpl9dgtem6/1
@@ -562,25 +583,25 @@ export class Matrix {
     const b32 = other.arr[3][2];
     const b33 = other.arr[3][3];
 
-    outMatrix.arr[0][0] = a00 * b00 + a01 * b10 + a02 * b20 + a03 * b30;
-    outMatrix.arr[0][1] = a00 * b01 + a01 * b11 + a02 * b21 + a03 * b31;
-    outMatrix.arr[0][2] = a00 * b02 + a01 * b12 + a02 * b22 + a03 * b32;
-    outMatrix.arr[0][3] = a00 * b03 + a01 * b13 + a02 * b23 + a03 * b33;
+    outMatrix.arr[0][0] = (a00 * b00) + (a01 * b10) + (a02 * b20) + (a03 * b30);
+    outMatrix.arr[0][1] = (a00 * b01) + (a01 * b11) + (a02 * b21) + (a03 * b31);
+    outMatrix.arr[0][2] = (a00 * b02) + (a01 * b12) + (a02 * b22) + (a03 * b32);
+    outMatrix.arr[0][3] = (a00 * b03) + (a01 * b13) + (a02 * b23) + (a03 * b33);
 
-    outMatrix.arr[1][0] = a10 * b00 + a11 * b10 + a12 * b20 + a13 * b30;
-    outMatrix.arr[1][1] = a10 * b01 + a11 * b11 + a12 * b21 + a13 * b31;
-    outMatrix.arr[1][2] = a10 * b02 + a11 * b12 + a12 * b22 + a13 * b32;
-    outMatrix.arr[1][3] = a10 * b03 + a11 * b13 + a12 * b23 + a13 * b33;
+    outMatrix.arr[1][0] = (a10 * b00) + (a11 * b10) + (a12 * b20) + (a13 * b30);
+    outMatrix.arr[1][1] = (a10 * b01) + (a11 * b11) + (a12 * b21) + (a13 * b31);
+    outMatrix.arr[1][2] = (a10 * b02) + (a11 * b12) + (a12 * b22) + (a13 * b32);
+    outMatrix.arr[1][3] = (a10 * b03) + (a11 * b13) + (a12 * b23) + (a13 * b33);
 
-    outMatrix.arr[2][0] = a20 * b00 + a21 * b10 + a22 * b20 + a23 * b30;
-    outMatrix.arr[2][1] = a20 * b01 + a21 * b11 + a22 * b21 + a23 * b31;
-    outMatrix.arr[2][2] = a20 * b02 + a21 * b12 + a22 * b22 + a23 * b32;
-    outMatrix.arr[2][3] = a20 * b03 + a21 * b13 + a22 * b23 + a23 * b33;
+    outMatrix.arr[2][0] = (a20 * b00) + (a21 * b10) + (a22 * b20) + (a23 * b30);
+    outMatrix.arr[2][1] = (a20 * b01) + (a21 * b11) + (a22 * b21) + (a23 * b31);
+    outMatrix.arr[2][2] = (a20 * b02) + (a21 * b12) + (a22 * b22) + (a23 * b32);
+    outMatrix.arr[2][3] = (a20 * b03) + (a21 * b13) + (a22 * b23) + (a23 * b33);
 
-    outMatrix.arr[3][0] = a30 * b00 + a31 * b10 + a32 * b20 + a33 * b30;
-    outMatrix.arr[3][1] = a30 * b01 + a31 * b11 + a32 * b21 + a33 * b31;
-    outMatrix.arr[3][2] = a30 * b02 + a31 * b12 + a32 * b22 + a33 * b32;
-    outMatrix.arr[3][3] = a30 * b03 + a31 * b13 + a32 * b23 + a33 * b33;
+    outMatrix.arr[3][0] = (a30 * b00) + (a31 * b10) + (a32 * b20) + (a33 * b30);
+    outMatrix.arr[3][1] = (a30 * b01) + (a31 * b11) + (a32 * b21) + (a33 * b31);
+    outMatrix.arr[3][2] = (a30 * b02) + (a31 * b12) + (a32 * b22) + (a33 * b32);
+    outMatrix.arr[3][3] = (a30 * b03) + (a31 * b13) + (a32 * b23) + (a33 * b33);
 
     return outMatrix;
   }
@@ -601,7 +622,7 @@ export class Matrix {
    *
    */
   invert(outMatrix = Matrix.empty(this.dim1, this.dim2)) {
-    if ( this.dim1 < 2 || this.dim1 !== this.dim2  ) {
+    if ( this.dim1 < 2 || this.dim1 !== this.dim2 ) {
       console.error("Cannot use invert on a non-square matrix.");
       return undefined;
     }
@@ -641,7 +662,7 @@ export class Matrix {
    * Return the determinant of this matrix;
    */
   determinant() {
-    if ( this.dim1 < 2 || this.dim1 !== this.dim2  ) {
+    if ( this.dim1 < 2 || this.dim1 !== this.dim2 ) {
       console.error("Cannot calculate determinant of non-square matrix.");
       return undefined;
     }
@@ -662,7 +683,7 @@ export class Matrix {
    * @returns {number}
    */
   optimizedNDet(n, m, x, y, k) {
-    const mk = x.join('') + y.join('');
+    const mk = x.join("") + y.join("");
     if ( !k[mk] ) {
       if ( n > 2 ) {
         let d = 0;
