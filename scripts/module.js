@@ -23,6 +23,7 @@ import { Shadow } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
 import { Area3d } from "./Area3d.js";
 import { Plane } from "./Plane.js";
+import { ClipperPaths } from "./ClipperPaths.js";
 
 Hooks.once("init", async function() {
   registerElevationAdditions();
@@ -40,6 +41,7 @@ Hooks.once("init", async function() {
     Point3d,
     Area3d,
     Plane,
+    ClipperPaths,
     visibility,
     util,
     cover,

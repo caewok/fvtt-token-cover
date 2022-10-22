@@ -275,6 +275,12 @@ export class Shadow extends PIXI.Polygon {
     if ( !shadows.length ) return boundary;
 
     const shadowPaths = ClipperPaths.fromPolygons(shadows, { scalingFactor });
+
+    // Make all the shadow paths orient the same direction
+    shadowPaths.paths.forEach(path => {
+      if ( !ClipperLib.Clipper.Orientation(path) ) path.reverse();
+    })
+
     const combinedShadowPaths = shadowPaths.combine();
     combinedShadowPaths.clean(cleanDelta);
 
