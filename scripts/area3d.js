@@ -268,6 +268,42 @@ export class Area3d {
   }
 
   /**
+   * For debugging, draw a given side after transforming to 2d along with walls and shadows
+   */
+  _drawSideTransform(side) {
+
+    const tTarget = this.transformedTarget;
+
+    if ( side === "top" ) {
+      if ( !tTarget.top ) {
+        console.warn("No top side.");
+        return;
+      }
+      side = tTarget.sides.length - 1;
+    } else if ( side === "bottom" ) {
+      if ( !tTarget.bottom ) {
+        console.warn("No bottom side.");
+        return;
+      }
+      side = tTarget.sides.length - 1;
+    }
+    const sideTransform = this._sideTransforms[side];
+    if ( !sideTransform ) {
+      console.warn("Side not found");
+      return;
+    }
+
+    drawing.drawShape(sideTransform.sidePoly, { color: drawing.COLORS.red });
+
+    if ( !sideTransform.blockingPolygons ) return;
+
+    // The first (usually) is the wall, followed by shadows
+    sideTransform.blockingPolygons.forEach((poly, idx) => {
+       drawing.drawShape(poly, { color: idx ? drawing.COLORS.gray : drawing.COLORS.blue });
+    });
+  }
+
+  /**
    * Construct wall shadows in the transformed coordinates.
    * Shadows for where walls block vision of the token due to angle of token view --> wall edge.
    * Each edge is considered a separate "wall".
@@ -311,6 +347,8 @@ export class Area3d {
       side1: target.w * (target.topZ - target.bottomZ),
       side2: target.h * (target.topZ - target.bottomZ)
     };
+    this._sideTransforms = [];
+
 
     for ( const side of sides ) {
       const sidePoints = elementsByIndex(tTarget.points, side);
@@ -326,7 +364,11 @@ export class Area3d {
       sidesArea += sideArea;
       sideAreasArray.push(sideArea); // Debugging
 
-      let blockingPolygons = [];
+      const blockingPolygonPoints = [];
+
+      // debugging
+      const sideTransform = { sidePoly };
+      this._sideTransforms.push(sideTransform);
 
       for ( const wall of tWalls ) {
         // If the wall is represented by 4 distinct XY points, use to block the side
@@ -344,7 +386,7 @@ export class Area3d {
 
             const z = new Point3d(0, 0, 1);
             const ixPoints = wall.map(pt => sidePlane.lineIntersection(pt, z));
-            if ( ixPoints.every(pt => Boolean(pt)) ) blockingPolygons.push(ixPoints);
+            if ( ixPoints.every(pt => Boolean(pt)) ) blockingPolygonPoints.push(ixPoints);
           }
         }
 
@@ -353,23 +395,23 @@ export class Area3d {
           const A = wall[i];
           const B = wall[(i + 1) % ln];
           const shadow = Shadow.segmentWithPlane(A, B, origin, sidePlane);
-          if ( shadow ) blockingPolygons.push(shadow);
+          if ( shadow ) blockingPolygonPoints.push(shadow);
         }
       }
 
-      if ( !blockingPolygons.length ) {
+      if ( !blockingPolygonPoints.length ) {
         obscuredSideAreasArray.push(sideArea); // Debugging
         obscuredSidesArea += sideArea;
         continue;
       }
 
       // Transform all blocking polygon points to the coordinates of the side
-      blockingPolygons = blockingPolygons.map(pts => {
+      sideTransform.blockingPolygons = blockingPolygonPoints.map(pts => {
         const tPts = pts.map(pt => Matrix.fromPoint3d(pt).multiply(rotInv).toPoint2d());
         return new PIXI.Polygon(tPts);
       });
 
-      const obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, blockingPolygons);
+      const obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, sideTransform.blockingPolygons);
 
       const obscuredArea = obscuredSide.area();
       obscuredSideAreasArray.push(obscuredArea); // Debugging
