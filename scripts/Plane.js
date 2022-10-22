@@ -30,7 +30,7 @@ export class Plane {
     const vAC = c.subtract(a);
 
     const normal = vAB.cross(vAC);
-    return new Plane(normal, a);
+    return new Plane(a, normal);
   }
 
   /**
@@ -43,21 +43,54 @@ export class Plane {
      return Math.acos(v1.dot(v2) / v1.magnitude());
   }
 
+  static angleBetweenSegments(a, b, c, d) {
+    // Dot product of the two vectors
+    // Divide by magnitude of the first
+    // Divide by magnitude of the second
+    const V1 = b.subtract(a);
+    const V2 = d.subtract(c);
+    const mag = (V1.magnitude() * V2.magnitude());
+    if ( !mag ) return 0;
+
+    return Math.acos(V1.dot(V2) / (V1.magnitude() * V2.magnitude()));
+  }
+
+  isPointOnPlane(p) {
+    // https://math.stackexchange.com/questions/684141/check-if-a-point-is-on-a-plane-minimize-the-use-of-multiplications-and-divisio
+    const vs = this.getVectorsOnPlane();
+    const a = this.point;
+    const b = this.point.add(vs.v);
+    const c = this.point.add(vs.u);
+
+    const m = new Matrix([
+      [a.x, b.x, c.x, p.x],
+      [a.y, b.y, c.y, p.y],
+      [a.z, b.z, c.z, p.z],
+      [1,   1,   1,   1]
+    ]);
+
+    return m.determinant().almostEqual(0);
+  }
+
+
   /**
    * Get vectors on the plane.
    * @param {number} x    X coordinate on the plane.
    * @param {number} y    Y coordinate on the plane.
-   * @returns {object} {u: Point3d, v: Point3d} Two vectors on the plane
+   * @returns {object} {u: Point3d, v: Point3d} Two vectors on the plane, normalized
    */
-  vectorsOnPlane() {
+  getVectorsOnPlane() {
     // https://math.stackexchange.com/questions/64430/find-extra-arbitrary-two-points-for-a-plane-given-the-normal-and-a-point-that-l
     // Find the minimum index
     const n = this.normal
     const w = (n.x < n.y && n.x < n.z) ? new Point3d(1,0,0)
       : n.y < n.z ? new Point3d(0 ,1, 0) : new Point3d(0, 0, 1);
 
-    const u = w.cross(n);
-    const v = n.cross(u);
+    const u = new Point3d()
+    const v = new Point3d();
+    w.cross(n, u).normalize(u);
+    n.cross(u, v).normalize(v);
+
     return { u, v }
   }
 
@@ -65,13 +98,151 @@ export class Plane {
    * Calculate the rotation matrix to shift points on the plane to a 2d version.
    * @returns {Matrix} 4x4 rotation matrix
    */
-  calculate2dRotationMatrix() {
+   calculate2dRotationMatrix() {
+     const n = this.normal;
+     const p0 = this.point;
+     const vs = this.getVectorsOnPlane()
+     const u = vs.u
+     const v = vs.v
+
+    // Translate such that 0,0,0 in world is the pl.point
+    return new Matrix([
+      [u.x, u.y, u.z, 0], // x-axis
+      [v.x, v.y, v.z, 0], // y-axis
+      [n.x, n.y, n.z, 0], // z-axis
+      [p0.x, p0.y, p0.z, 1] // translation
+    ]);
+   }
+
+//   calculate2dRotationMatrix() {
+//     // Comparable to area3d.prototype._calculateTransformMatrix
+//
+//     // Move normal to origin to rotate around
+//     const nStart = this.point;
+//     const nEnd = this.point.add(this.normal);
+//
+//     const tZ = Matrix.translation(-nStart.x, -nStart.y, -nStart.z);
+//     const tZinv = Matrix.translation(nStart.x, nStart.y, nStart.z);
+//
+//     // Rotate around z axis so we are even with the x axis
+//     const nStartXY = nStart.to2d();
+//     const nEndXY = nEnd.to2d();
+//     let angleZ = Area3d.angleBetweenSegments(nStartXY, nEndXY, nStartXY, new PIXI.Point(nStartXY.x + 1, nStartXY.y))
+//     if ( nEndXY.x > nEndXY.x ) angleZ *= -1;
+//     const rotZ = Matrix.rotationZ(angleZ);
+//
+//     // Temporarily move so we can find the correct angle from the rotated position
+//     const nEndXZ = Matrix.fromPoint3d(nEnd)
+//       .multiply(tZ)
+//       .multiply(rotZ)
+//       .multiply(tZinv)
+//       .toPoint2d( {xIndex: 0, yIndex: 2} ); // use x,z coordinates for the 2d point
+//
+//     // Then rotate around y axis so vector is pointing down
+//     const nStartXZ = nStart.to2d({x: "x", y: "z"})
+//     let angleY = Area3d.angleBetweenSegments(nStartXZ, nEndXZ, nStartXZ, new PIXI.Point(nStartXZ.x, nStartXZ.y - 1));
+//     if ( nStartXZ.y >= 0 ) angleY *= -1;
+//     const rotY = Matrix.rotationY(angleY);
+//
+//     const M = Matrix.empty(4, 4);
+//     tZ.multiply4x4(rotZ, M)
+//       .multiply4x4(rotY, M)
+//       .multiply4x4(tZinv, M);
+//     return M;
+//   }
     // https://math.stackexchange.com/questions/4339940/rotating-3d-coordinates-to-2d-plane
-    //const c = vs.u.cross(vs.v);
-    const c = this.normal;
-    const angle = Plane.angleBetweenVectors(c, new Point3d(0, 0, 1));
-    return Matrix.rotationZ(angle)
-  }
+    // https://stackoverflow.com/questions/6264664/transform-3d-points-to-2d
+    // https://stackoverflow.com/questions/49769459/convert-points-on-a-3d-plane-to-2d-coordinates
+
+//     const A = this.point;
+//     const N = this.normal;
+//
+//     const vs = this.vectorsOnPlane()
+//     const uAB = vs.u.normalize();
+//     const uN = N.normalize();
+//
+//     const V = uAB.cross(uN);
+//     const u = A.add(uAB);
+//     const v = A.add(V);
+//     const n = A.add(uN);
+//
+//     const D = new Matrix([
+//      [0, 1, 0, 0],
+//      [0, 0, 1, 0],
+//      [0, 0, 0, 1],
+//      [1, 1, 1, 1]
+//     ]);
+//
+//     const S = new Matrix([
+//       [A.x, u.x, v.x, n.x],
+//       [A.y, u.y, v.y, n.y],
+//       [A.z, u.z, v.z, n.z],
+//       [1,   1,   1,   1]
+//     ]);
+//
+//     const Sinv = S.invert();
+//     return D.multiply4x4(Sinv);
+//   }
+
+
+//     const nStart = sidePlane.point;
+//     const nEnd = sidePlane.point.add(sidePlane.normal);
+//
+//     const tZ = Matrix.translation(-nStart.x, -nStart.y, -nStart.z);
+//     const tZinv = Matrix.translation(nStart.x, nStart.y, nStart.z);
+//
+//     vs = sidePlane.
+//     c1 = sidePlane.point
+//     c2 =
+//
+//
+//     // Define a 45º plane. Parallel to Y, moving upward in Z
+//
+//     a = new Point3d(0, 0, 0)
+//     b = new Point3d(0, 10, 0)
+//     c = new Point3d(10, 0, 10)
+//     pl = Plane.fromPoints(a, b, c)
+//     M = pl.calculate2dRotationMatrix()
+//     M = calculate2dRotationMatrix(pl)
+//
+//     vs = pl.getVectorsOnPlane()
+//        tZ = Matrix.translation(-vs.u.x, -vs.u.y, -vs.u.z);
+//
+//        c = vs.u.cross(vs.v)
+//        k = new Point3d(0, 0, 1)
+//
+//        angle = Math.acos(c.dot(k) / c.magnitude())
+//
+//        a = c.cross(k)
+//
+//        M = Matrix.rotationAngleAxis(angle, a)
+//
+//        p1 = Matrix.fromPoint3d(a).multiply(M).toPoint3d()
+//        p2 = Matrix.fromPoint3d(b).multiply(M).toPoint3d()
+//        p3 = Matrix.fromPoint3d(c).multiply(M).toPoint3d()
+//
+//        d = new Point3d(30, 20, 30)
+//        p4 = Matrix.fromPoint3d(d).multiply(M).toPoint3d()
+
+
+
+//      V = pl.normal;
+//      Z = new Point3d(0, 0, 1);
+//      theta = Math.acos(Z.dot(V));
+//      R = V.cross(Z);
+//
+//     M = Matrix.rotationAngleAxis(theta, R)
+//
+//     Matrix.fromPoint3d(a).multiply(M).toPoint3d()
+//     Matrix.fromPoint3d(b).multiply(M).toPoint3d()
+//     Matrix.fromPoint3d(c).multiply(M).toPoint3d()
+//     Matrix.fromPoint3d(d).multiply(M).toPoint3d()
+//
+//     //const c = vs.u.cross(vs.v);
+//     const c = this.normal;
+//     const angle = Plane.angleBetweenVectors(c, new Point3d(0, 0, 1));
+//     return Matrix.rotationZ(angle)
+
 
   /**
    * Line, defined by a point and a vector

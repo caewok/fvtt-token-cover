@@ -27,6 +27,7 @@ Area:
 import { Shadow } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
 import { Point3d } from "./Point3d.js";
+import { Plane } from "./Plane.js";
 import { getConstrainedTokenShape } from "./token_visibility.js";
 import { elementsByIndex, segmentBlocks } from "./util.js";
 import * as drawing from "./drawing.js"; // For debugging
@@ -166,11 +167,13 @@ export class Area3d {
     // Rotate around z axis so target center is even with the token y axis
     const tokenCenterXY = tokenCenter.to2d();
     const targetCenterXY = targetCenter.to2d();
-    let angleZ = Area3d.angleBetweenSegments(tokenCenterXY, targetCenterXY, tokenCenterXY, new PIXI.Point(tokenCenterXY.x, tokenCenterXY.y - 1))
+    let angleZ = Area3d.angleBetweenSegments(
+      tokenCenterXY,
+      targetCenterXY,
+      tokenCenterXY,
+      new PIXI.Point(tokenCenterXY.x, tokenCenterXY.y - 1));
     if ( targetCenterXY.x > tokenCenterXY.x ) angleZ *= -1;
     const rotZ = Matrix.rotationZ(angleZ);
-
-
 
     // Matrix.fromPoint3d(targetCenter).multiply(tZ).multiply(rotZ).multiply(tZinv).toPoint2d()
 
@@ -180,11 +183,15 @@ export class Area3d {
       .multiply(tZ)
       .multiply(rotZ)
       .multiply(tZinv)
-      .toPoint2d( {xIndex: 1, yIndex: 2} ); // use y,z coordinates for the 2d point
+      .toPoint2d( {xIndex: 1, yIndex: 2} ); // Use y,z coordinates for the 2d point
 
     // Then rotate around x axis so target is directly below token. Usually 90º unless elevations differ
-    const tokenCenterYZ = tokenCenter.to2d({x: "y", y: "z"})
-    let angleX = Area3d.angleBetweenSegments(tokenCenterYZ, targetCenterYZ, tokenCenterYZ, new PIXI.Point(tokenCenterYZ.x, tokenCenterYZ.y - 1));
+    const tokenCenterYZ = tokenCenter.to2d({x: "y", y: "z"});
+    let angleX = Area3d.angleBetweenSegments(
+      tokenCenterYZ,
+      targetCenterYZ,
+      tokenCenterYZ,
+      new PIXI.Point(tokenCenterYZ.x, tokenCenterYZ.y - 1));
     if ( targetCenterYZ.x < 0 ) angleX *= -1;
     const rotX = Matrix.rotationX(angleX);
 
@@ -254,7 +261,7 @@ export class Area3d {
    * Transform the wall locations.
    */
   _transformWalls() {
-    const walls = this.blockingWalls.map(w => w.map(pt => Area3d.wall3dPoints(pt)));
+    const walls = this.blockingWalls.map(w => Area3d.wall3dPoints(w));
 
     return walls.map(w =>
       w.map(pt => Matrix.fromPoint3d(pt).multiply(this.M).toPoint3d()));
@@ -269,13 +276,111 @@ export class Area3d {
    * - Assume the surface elevation for the shadow to be the center of the target.
    * (As opposed to projecting the shadow onto the precise 3d target shape)
    */
-  _constructWallShadows() {
-    // For now, do nothing.
-    // Ultimately would like to:
+  _percentAreaVisible() {
     // 1. Treat each square of the target as a separate plane.
     // 2. Project shadow from the wall onto the plane.
     // 3. Calculate area of the planes w/ shadows and walls block vs. area w/o.
+    const origin = this.tokenCenter;
+    const target = this.target;
+    const tTarget = this.transformedTarget;
+    const tWalls = this.transformedWalls;
 
+    // For each side of the target:
+    // 1. Project the wall edge onto the plane of the target.
+    // - skip wall projection if points are collinear
+    // - diff the target side vs the wall projection in clipper
+    // 2. Project shadow from each wall edge.
+    // - diff the target side from each wall edge
+    // 3. calculate area of remaining side
+    // 4. sum areas with diff divided by areas of target sides alone
+
+    const sides = tTarget.sides;
+    if ( tTarget.top ) sides.push(tTarget.top);
+    if ( tTarget.bottom ) sides.push(tTarget.bottom);
+
+    if ( !sides.length ) return;
+
+    let obscuredSidesArea = 0;
+    let sidesArea = 0;
+
+    // For debugging
+    const obscuredSideAreasArray = [];
+    const sideAreasArray = [];
+    const originalSideAreas = {
+      top: target.w * target.h,
+      side1: target.w * (target.topZ - target.bottomZ),
+      side2: target.h * (target.topZ - target.bottomZ)
+    };
+
+    for ( const side of sides ) {
+      const sidePoints = elementsByIndex(tTarget.points, side);
+      const sidePlane = Plane.fromPoints(sidePoints[0], sidePoints[1], sidePoints[2]);
+      const rot = sidePlane.calculate2dRotationMatrix();
+      rot.clean();
+      const rotInv = rot.invert();
+      rotInv.clean();
+
+      const tSidePoints = sidePoints.map(pt => Matrix.fromPoint3d(pt).multiply(rotInv).toPoint2d());
+      const sidePoly = new PIXI.Polygon(tSidePoints);
+      const sideArea = sidePoly.area();
+      sidesArea += sideArea;
+      sideAreasArray.push(sideArea); // Debugging
+
+      let blockingPolygons = [];
+
+      for ( const wall of tWalls ) {
+        // If the wall is represented by 4 distinct XY points, use to block the side
+        const ln = wall.length;
+        if ( ln === 4 ) {
+          const w0 = wall[0].to2d();
+          const w1 = wall[1].to2d();
+          const w2 = wall[2].to2d();
+          if ( !(w0.almostEqual(wall[1])
+            || w0.almostEqual(wall[2])
+            || w0.almostEqual(wall[3])
+            || w1.almostEqual(wall[2])
+            || w1.almostEqual(wall[3])
+            || w2.almostEqual(wall[3])) ) {
+
+            const z = new Point3d(0, 0, 1);
+            const ixPoints = wall.map(pt => sidePlane.lineIntersection(pt, z));
+            if ( ixPoints.every(pt => Boolean(pt)) ) blockingPolygons.push(ixPoints);
+          }
+        }
+
+        // For each wall edge, construct shadow
+        for ( let i = 0; i < ln; i += 1 ) {
+          const A = wall[i];
+          const B = wall[(i + 1) % ln];
+          const shadow = Shadow.segmentWithPlane(A, B, origin, sidePlane);
+          if ( shadow ) blockingPolygons.push(shadow);
+        }
+      }
+
+      if ( !blockingPolygons.length ) {
+        obscuredSideAreasArray.push(sideArea); // Debugging
+        obscuredSidesArea += sideArea;
+        continue;
+      }
+
+      // Transform all blocking polygon points to the coordinates of the side
+      blockingPolygons = blockingPolygons.map(pts => {
+        const tPts = pts.map(pt => Matrix.fromPoint3d(pt).multiply(rotInv).toPoint2d());
+        return new PIXI.Polygon(tPts);
+      });
+
+      const obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, blockingPolygons);
+
+      const obscuredArea = obscuredSide.area();
+      obscuredSideAreasArray.push(obscuredArea); // Debugging
+      obscuredSidesArea += obscuredArea;
+    }
+
+    this._obscuredSideAreasArray = obscuredSideAreasArray;
+    this._sideAreas = sideAreasArray;
+    this._originalSideAreas = originalSideAreas;
+
+    return sidesArea ? obscuredSidesArea / sidesArea : 0;
   }
 
   /**

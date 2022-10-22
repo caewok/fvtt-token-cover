@@ -203,6 +203,42 @@ export class Matrix {
   }
 
   /**
+   * Construct a 4x4 matrix to rotate by angle around an axis.
+   * https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
+   * @param {number} angle  Angle, in radians
+   * @param {Point3d} axis  Axis
+   */
+  static rotationAngleAxis(angle, axis) {
+    axis.normalize(axis);
+
+    let c = Math.cos(angle);
+    let s = Math.sin(angle);
+
+    // Math.cos(Math.PI / 2) ~ 0 but not quite.
+    // Same for Math.sin(Math.PI).
+    if ( c.almostEqual(0) ) c = 0;
+    if ( s.almostEqual(0) ) s = 0;
+
+    const cNeg = 1 - c;
+    const xy = axis.x * axis.y * cNeg;
+    const yz = axis.y * axis.z * cNeg;
+    const xz = axis.x * axis.z * cNeg
+    const xs = axis.x * s;
+    const ys = axis.y * s;
+    const zs = axis.z * s;
+
+    return new Matrix([
+      [c + axis.x * axis.x * cNeg, xy - zs, xz + ys, 0],
+
+      [xy + zs, c + (axis.y * axis.y * cNeg), yz - xs, 0],
+
+      [xz - ys, yz + xs, c + (axis.z * axis.z * cNeg), 0],
+
+      [0, 0, 0, 1]
+    ]);
+  }
+
+  /**
    * Test if this matrix is exactly equal to another
    * @param {Matrix} other
    * @returns {boolean}
@@ -229,7 +265,7 @@ export class Matrix {
    */
   almostEqual(other, epsilon = 1e-8) {
     const d1 = this.dim1;
-    const d2 = this.dim2
+    const d2 = this.dim2;
     if ( d1 !== other.dim1 || d2 !== other.dim2 ) return false;
 
     for ( let i = 0; i < d1; i += 1 ) {
@@ -239,6 +275,22 @@ export class Matrix {
     }
 
     return true;
+  }
+
+  /**
+   * "Clean" a matrix by converting near zero and near 1 entries to integers.
+   * Often due to floating point approximations
+   * Destructive operation in that it affects values in this matrix.
+   */
+  clean(epsilon = 1e-08) {
+    const d1 = this.dim1;
+    const d2 = this.dim2;
+    for ( let i = 0; i < d1; i += 1 ) {
+      for ( let j = 0; j < d2; j += 1 ) {
+       if ( this.arr[i][j].almostEqual(0, epsilon) ) this.arr[i][j] = 0;
+       else if ( this.arr[i][j].almostEqual(1, epsilon) ) this.arr[i][j] = 1;
+      }
+    }
   }
 
   /**
@@ -530,5 +582,109 @@ export class Matrix {
     outMatrix.arr[3][3] = a30 * b03 + a31 * b13 + a32 * b23 + a33 * b33;
 
     return outMatrix;
+  }
+
+  /**
+   * Invert a matrix.
+   * https://stackoverflow.com/questions/1148309/inverting-a-4x4-matrix
+   * https://github.com/willnode/N-Matrix-Programmer
+   * https://github.com/willnode/matrix-inversion/blob/main/javascript/index.js
+   * @param {Matrix} outMatrix
+   * @returns {Matrix}
+   * Testing:
+     m = new Matrix([[1, 2], [3, 4]])
+     m = new Matrix([[1, 4, 5], [3, 2, 4], [3, 1, 3]])
+     m = new Matrix([[1,4,5,6], [3,2,4,5], [3,1,3,4], [13,14,15,16]])
+     i = m.multiply(m.invert())
+     i.almostEqual(Matrix.identity(m.dim1,m.dim2))
+   *
+   */
+  invert(outMatrix = Matrix.empty(this.dim1, this.dim2)) {
+    if ( this.dim1 < 2 || this.dim1 !== this.dim2  ) {
+      console.error("Cannot use invert on a non-square matrix.");
+      return undefined;
+    }
+
+    const n = this.dim1;
+    const x = Array.fromRange(n);
+    const y = Array.fromRange(n);
+    const k = {};
+    let det = this.optimizedNDet(n, this.arr, x, y, k);
+    if ( !det ) throw new Error("Matrix is not invertible");
+
+    det = 1 / det;
+
+    // Fix for 2 x 2 matrices
+    if ( n === 2 ) {
+      outMatrix.arr[0][0] = det * this.arr[1][1];
+      outMatrix.arr[0][1] = det * -this.arr[0][1];
+      outMatrix.arr[1][0] = det * -this.arr[1][0];
+      outMatrix.arr[1][1] = det * this.arr[0][0];
+    } else {
+
+      for ( let iy = 0; iy < n; iy += 1 ) {
+        for ( let ix = 0; ix < n; ix += 1 ) {
+          const plus = (ix + iy) % 2 === 0 ? 1 : -1;
+          const xf = x.filter(e => e !== ix);
+          const yf = y.filter(e => e !== iy);
+          const der = this.optimizedNDet(n - 1, this.arr, yf, xf, k);
+          outMatrix.arr[iy][ix] = det * plus * der;
+        }
+      }
+    }
+
+    return outMatrix;
+  }
+
+  /**
+   * Return the determinant of this matrix;
+   */
+  determinant() {
+    if ( this.dim1 < 2 || this.dim1 !== this.dim2  ) {
+      console.error("Cannot calculate determinant of non-square matrix.");
+      return undefined;
+    }
+    const n = this.dim1;
+    const x = Array.fromRange(n);
+    const y = Array.fromRange(n);
+    const k = {};
+    return this.optimizedNDet(n, this.arr, x, y, k);
+  }
+
+  /**
+   * Calculate the determinant, recursively.
+   * @param {number} n        Matrix rows or columns
+   * @param {number[][]} m    Matrix
+   * @param {number[]} x
+   * @param {number[]} y
+   * @param {{string: number}} k
+   * @returns {number}
+   */
+  optimizedNDet(n, m, x, y, k) {
+    const mk = x.join('') + y.join('');
+    if ( !k[mk] ) {
+      if ( n > 2 ) {
+        let d = 0;
+        let plus = 1;
+        for ( let i = 0; i < n; i += 1 ) {
+          const ix = x[i];
+          const iy = y[0];
+          const xf = x.filter(e => e !== ix);
+          const yf = y.filter(e => e !== iy);
+          const der = this.optimizedNDet(n - 1, m, xf, yf, k);
+          d += m[iy][ix] * plus * der;
+          plus *= -1;
+        }
+        k[mk] = d;
+
+      } else {
+        const a = m[y[0]][x[0]];
+        const b = m[y[0]][x[1]];
+        const c = m[y[1]][x[0]];
+        const d = m[y[1]][x[1]];
+        k[mk] = (a * d) - (b * c);
+      }
+    }
+    return k[mk];
   }
 }
