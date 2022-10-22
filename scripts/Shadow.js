@@ -115,11 +115,17 @@ export class Shadow extends PIXI.Polygon {
    */
   static segmentWithPlane(A, B, origin, surfacePlane) {
     // Find the intersection points of the wall with the surfacePlane
-    const ixWallA = surfacePlane.lineSegmentIntersection(A, new Point3d(A.x, A.y, A.z - 1));
-    const ixWallB = surfacePlane.lineSegmentIntersection(B, new Point3d(B.x, B.y, B.z - 1));
+    const ixWallA = surfacePlane.lineIntersection(A, new Point3d(0, 0, -1))
+    const ixWallB = surfacePlane.lineIntersection(B, new Point3d(0, 0, -1))
+
+//     const ixWall = surfacePlane.lineSegmentIntersection(A, B);
 
     let ixShadowA = surfacePlane.lineSegmentIntersection(origin, A);
     let ixShadowB = surfacePlane.lineSegmentIntersection(origin, B);
+
+//     if ( ixShadowB.z > origin.z ) {
+//       // Wall
+//     }
 
     const distWallA = distanceSquaredBetweenPoints(origin, ixWallA);
     const distWallB = distanceSquaredBetweenPoints(origin, ixWallB);

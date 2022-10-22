@@ -367,7 +367,7 @@ export class Area3d {
       const blockingPolygonPoints = [];
 
       // debugging
-      const sideTransform = { sidePoly };
+      const sideTransform = { sidePoly, shadows: [] };
       this._sideTransforms.push(sideTransform);
 
       for ( const wall of tWalls ) {
@@ -395,7 +395,10 @@ export class Area3d {
           const A = wall[i];
           const B = wall[(i + 1) % ln];
           const shadow = Shadow.segmentWithPlane(A, B, origin, sidePlane);
-          if ( shadow ) blockingPolygonPoints.push(shadow);
+          if ( shadow ) {
+            blockingPolygonPoints.push(shadow);
+            sideTransform.shadows.push(shadow); // Debugging
+          }
         }
       }
 
@@ -462,7 +465,7 @@ export class Area3d {
    */
   _target3dPoints() {
     // In 2d XY coordinates, check what points are visible.
-    const center = this.token.center;
+    const center = this.tokenCenter;
     const centerZ = this.tokenCenter.z;
     const target = this.target;
     const { bottomZ, topZ } = target;
