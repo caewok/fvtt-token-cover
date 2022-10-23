@@ -65,9 +65,11 @@ function linesCross(lines) {
   const fu = foundry.utils;
   if ( !this.isClockwise ) this.reverseOrientation();
 
-  const edges = this.iterateEdges();
-  let currEdge = edges.next().value;
-  for ( const nextEdge of edges ) {
+  const edges = [...this.iterateEdges()];
+  const ln = edges.length;
+  let currEdge = edges[ln - 1]; // Start with end so we can cycle through without %
+  for ( let i = 0; i < ln; i += 1 ) {
+    const nextEdge = edges[i];
     const { A: currA, B: currB } = currEdge;
     const { A: nextA, B: nextB } = nextEdge;
 
