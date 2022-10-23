@@ -1,10 +1,11 @@
 /* globals
 PIXI,
-canvas
+canvas,
+ClipperLib
 */
 "use strict";
 
-import { distanceSquaredBetweenPoints, zValue } from "./util.js";
+import { distanceSquaredBetweenPoints, zValue, log } from "./util.js";
 import { COLORS, drawShape } from "./drawing.js";
 import { Point3d } from "./Point3d.js";
 import { ClipperPaths } from "./ClipperPaths.js";
@@ -114,26 +115,97 @@ export class Shadow extends PIXI.Polygon {
    * @returns {Point3d[]}
    */
   static segmentWithPlane(A, B, origin, surfacePlane) {
+    const upV = new Point3d(0, 0, 1);
+
+    // Direction of the surfacePlane in relation to the origin.
+    const ixOrigin = surfacePlane.lineIntersection(origin, upV);
+
+    const dir = ixOrigin.subtract(origin).z;
+    if ( !dir ) return null; // Origin is on the plane
+
+    // Truncate wall to be below the origin
+    const res = truncateWallAtElevation(A, B, origin.z, dir);
+    if ( !res ) return null;
+    A = res.A;
+    B = res.B;
+
+    // Where does the (infinite) wall cross the surface?
+    const ixAB = surfacePlane.lineIntersection(A, B);
+    if ( ixAB ) {
+      // Truncate wall to be above the surface
+      // Can use the intersection point: will create a triangle shadow.
+      // (Think flagpole shadow.)
+      const res = truncateWallAtElevation(A, B, ixAB.z, -dir, 0);
+      if ( !res ) return null; // Wall completely behind the surface
+      A = res.A;
+      B = res.B;
+    } else {
+      // Does not cross the surface. Reject if endpoint is on the wrong side.
+      if ( dir > 0 && A.z < surfacePlane.point.z || dir < 0 && A.z > surfacePlane.point.z ) return null;
+    }
+
+    // Intersection points of origin --> wall endpoint --> surface
+    // If the intersection point is above the origin, then the surface is twisted
+    // such that the surface is between the origin and the wall at that point.
+    const ixShadowA = surfacePlane.lineSegmentIntersection(origin, A);
+    if ( dir > 0 && ixShadowA.z < origin.z || dir < 0 && ixShadowA.z > origin.z ) return null;
+
+    const ixShadowB = surfacePlane.lineSegmentIntersection(origin, B);
+    if ( dir > 0 && ixShadowB.z < origin.z || dir < 0 && ixShadowB.z > origin.z ) return null;
+
     // Find the intersection points of the wall with the surfacePlane
-    const ixWallA = surfacePlane.lineIntersection(A, new Point3d(0, 0, -1))
-    const ixWallB = surfacePlane.lineIntersection(B, new Point3d(0, 0, -1))
+    const ixWallA = surfacePlane.lineIntersection(A, upV);
+    const ixWallB = surfacePlane.lineIntersection(B, upV);
 
-//     const ixWall = surfacePlane.lineSegmentIntersection(A, B);
+    // Surface intersection must be behind the wall
+//     const ixWallABehindWall = dir < 0 ? A.z - ixWallA.z : ixWallA.z - A.z;
+//     const ixWallBBehindWall = dir < 0 ? B.z - ixWallB.z : ixWallB.z - B.z;
+//
+//     // TO-DO: Is it possible to get the proportion that hits the plane?
+//     if ( ixWallABehindWall <= 0 || ixWallBBehindWall <= 0 ) return null;
 
-    let ixShadowA = surfacePlane.lineSegmentIntersection(origin, A);
-    let ixShadowB = surfacePlane.lineSegmentIntersection(origin, B);
+    // Surface intersection must be further from origin than the wall point
+    const distWallA = distanceSquaredBetweenPoints(origin, A);
+    const distIxWallA = distanceSquaredBetweenPoints(origin, ixWallA);
+    if ( distWallA >= distIxWallA ) {
+      log("segmentWithPlane distWallA >= distIxWallA")
+      return null;
+    }
 
-//     if ( ixShadowB.z > origin.z ) {
-//       // Wall
-//     }
+    const distWallB = distanceSquaredBetweenPoints(origin, B);
+    const distIxWallB = distanceSquaredBetweenPoints(origin, ixWallB);
+    if ( distWallB >= distIxWallB ) {
+      log("segmentWithPlane distWallB >= distIxWallB")
+      return null;
+    }
 
-    const distWallA = distanceSquaredBetweenPoints(origin, ixWallA);
-    const distWallB = distanceSquaredBetweenPoints(origin, ixWallB);
+    // const ixWallAbehindOrigin = dir < 0 ? origin.z - ixWallA.z : ixWallA.z - origin.z;
+//     const ixWallBbehindOrigin = dir < 0 ? origin.z - ixWallB.z : ixWallB.z - origin.z;
+//
+//     // TO-DO: Is it possible to get the proportion that hits the plane in front of origin?
+//     // Is it worth it?
+//     if ( ixWallAbehind < 0 || ixWallBbehind < 0 ) return null;
 
-    const distShadowA = distanceSquaredBetweenPoints(origin, ixShadowA);
-    const distShadowB = distanceSquaredBetweenPoints(origin, ixShadowB);
+    // Surface intersection must be further from origin than the wall point
+    if ( distWallA >= ixShadowA ) {
+      log("segmentWithPlane distWallA >= ixShadowA")
+      return null;
+    }
 
-    if ( distShadowA < distWallA && distShadowB < distWallB ) return null;
+    if ( distWallB >= ixShadowB ) {
+      log("segmentWithPlane distWallB >= ixShadowB")
+      return null;
+    }
+
+
+
+   //  const ixShadowAbehind = dir < 0 ? origin.z - ixShadowA.z : ixShadowA.z - origin.z;
+//     const ixShadowBbehind = dir < 0 ? origin.z - ixShadowB.z : ixShadowB.z - origin.z;
+//
+//     // TO-DO: Is it possible to get the proportion that hits the plane in front of origin?
+//     // Is it worth it?
+//     if ( ixShadowAbehind < 0 || ixShadowBbehind < 0 ) return null;
+
 
     return [
       ixWallA,
@@ -285,7 +357,7 @@ export class Shadow extends PIXI.Polygon {
     // Make all the shadow paths orient the same direction
     shadowPaths.paths.forEach(path => {
       if ( !ClipperLib.Clipper.Orientation(path) ) path.reverse();
-    })
+    });
 
     const combinedShadowPaths = shadowPaths.combine();
     combinedShadowPaths.clean(cleanDelta);
@@ -294,4 +366,67 @@ export class Shadow extends PIXI.Polygon {
     out.clean(cleanDelta);
     return out;
   }
+}
+
+/**
+ * Project a 2d or 3d line
+ * @param {Point3d|PIXI.Point} A
+ * @param {Point3d|PIXI.Point} B
+ * @returns {Point3d|PIXI.Point}
+ */
+function project(A, B, t) {
+  const delta = B.subtract(A);
+  return A.add(delta.multiplyScalar(t));
+}
+
+/**
+ * Find the 3d point on a 3d line that equals a z coordinate.
+ * @param {Point3d} A
+ * @param {Point3d} B
+ * @param {number} z
+ * @returns {object{point:{Point3d}, proportion: {number}}}
+ */
+function towardZ(A, B, z) {
+  const delta = B.subtract(A);
+  const t = (z - A.z) / delta.z;
+  return {
+    point: A.add(delta.multiplyScalar(t)),
+    t
+  };
+}
+
+/**
+ * Truncate a wall so that only the portion below an elevation ("z") point is seen
+ * @param {Point3d} A
+ * @param {Point3d} B
+ * @param {number} z
+ * @param {number} dir    Direction to truncate.
+ *   If negative, force wall to be below z. If positive, force wall to be above z.
+ * @return {object{ A: {Point3d}, B: {Point3d}}|null}
+ */
+function truncateWallAtElevation(A, B, z, dir = -1, dist = 0.001) {
+  const distAz = dir < 0 ? z - A.z : A.z - z;
+  const distBz = dir < 0 ? z - B.z : B.z - z;
+
+  if ( distAz > 0 && distBz > 0 ) {
+    // do nothing
+  } else if ( distAz <= 0 && distBz <= 0 ) {
+    return null;
+  } else if ( distAz <= 0 || distBz <= 0 ) {
+    // Find the point on AB that is even in elevation with z
+    // Shorten the wall to somewhere just in front of z
+    const {t} = towardZ(A, B, z);
+
+    if ( distAz <= 0 ) {
+      const newT = t + dist;
+      if ( newT > 1 ) return null;
+      A = project(A, B, newT);
+
+    } else { // Bbehind <= 0
+      const newT = t - dist;
+      if ( newT < 0 ) return null;
+      B = project(A, B, newT);
+    }
+  }
+  return { A, B, distAz, distBz };
 }

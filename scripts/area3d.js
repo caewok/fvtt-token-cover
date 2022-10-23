@@ -231,9 +231,22 @@ export class Area3d {
     if ( !sideTransform.blockingPolygons ) return;
 
     // The first (usually) is the wall, followed by shadows
-    sideTransform.blockingPolygons.forEach((poly, idx) => {
-      drawing.drawShape(poly, { color: idx ? drawing.COLORS.gray : drawing.COLORS.blue });
+    sideTransform.blockingPolygons.forEach(poly => {
+      if ( poly instanceof Shadow ) {
+        poly.draw();
+      } else {
+        drawing.drawShape(poly, { color: drawing.COLORS.blue, width: 2 });
+      }
+
     });
+  }
+
+  _drawSideTransforms() {
+    const tTarget = this.transformedTarget;
+    const nSides = tTarget.sides.length
+    for ( let i = 0; i < nSides; i += 1 ) {
+      this._drawSideTransform(i);
+    }
   }
 
   /**
@@ -249,8 +262,8 @@ export class Area3d {
     // 1. Treat each square of the target as a separate plane.
     // 2. Project shadow from the wall onto the plane.
     // 3. Calculate area of the planes w/ shadows and walls block vs. area w/o.
-    const origin = this.tokenCenter;
-    const target = this.target;
+    const origin = new Point3d(0, 0, 0)
+
     const tTarget = this.transformedTarget;
     const tWalls = this.transformedWalls;
 
@@ -273,6 +286,7 @@ export class Area3d {
     let sidesArea = 0;
 
     // For debugging
+    const target = this.target;
     const obscuredSideAreasArray = [];
     const sideAreasArray = [];
     const originalSideAreas = {
@@ -286,21 +300,16 @@ export class Area3d {
     for ( const side of sides ) {
       const sidePoints = elementsByIndex(tTarget.points, side);
       const sidePlane = Plane.fromPoints(sidePoints[0], sidePoints[1], sidePoints[2]);
-      const rot = sidePlane.calculate2dRotationMatrix();
-      rot.clean();
-      const rotInv = rot.invert();
-      rotInv.clean();
 
-      const tSidePoints = sidePoints.map(pt => Matrix.fromPoint3d(pt).multiply(rotInv).toPoint2d());
-      const sidePoly = new PIXI.Polygon(tSidePoints);
+      // Measure area from point of view of the token
+      // TO-DO: Canvas perspective?  https://www.scratchapixel.com/lessons/3d-basic-rendering/computing-pixel-coordinates-of-3d-point/mathematics-computing-2d-coordinates-of-3d-points
+      const sidePoly = new PIXI.Polygon(sidePoints);
       const sideArea = sidePoly.area();
       sidesArea += sideArea;
       sideAreasArray.push(sideArea); // Debugging
 
-      const blockingPolygonPoints = [];
-
       // Debugging
-      const sideTransform = { sidePoly, shadows: [] };
+      const sideTransform = { sidePoly, shadows: [], blockingPolygons: [] };
       this._sideTransforms.push(sideTransform);
 
       for ( const wall of tWalls ) {
@@ -317,9 +326,7 @@ export class Area3d {
             || w1.almostEqual(wall[3])
             || w2.almostEqual(wall[3])) ) {
 
-            const z = new Point3d(0, 0, 1);
-            const ixPoints = wall.map(pt => sidePlane.lineIntersection(pt, z));
-            if ( ixPoints.every(pt => Boolean(pt)) ) blockingPolygonPoints.push(ixPoints);
+            sideTransform.blockingPolygons.push(new PIXI.Polygon(wall));
           }
         }
 
@@ -329,23 +336,18 @@ export class Area3d {
           const B = wall[(i + 1) % ln];
           const shadow = Shadow.segmentWithPlane(A, B, origin, sidePlane);
           if ( shadow ) {
-            blockingPolygonPoints.push(shadow);
-            sideTransform.shadows.push(shadow); // Debugging
+            const shadowPoly = new Shadow(shadow);
+            sideTransform.blockingPolygons.push(shadowPoly);
+            sideTransform.shadows.push({A, B, origin, surfacePlane: sidePlane}); // Debugging
           }
         }
       }
 
-      if ( !blockingPolygonPoints.length ) {
+      if ( !sideTransform.blockingPolygons.length ) {
         obscuredSideAreasArray.push(sideArea); // Debugging
         obscuredSidesArea += sideArea;
         continue;
       }
-
-      // Transform all blocking polygon points to the coordinates of the side
-      sideTransform.blockingPolygons = blockingPolygonPoints.map(pts => {
-        const tPts = pts.map(pt => Matrix.fromPoint3d(pt).multiply(rotInv).toPoint2d());
-        return new PIXI.Polygon(tPts);
-      });
 
       const obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, sideTransform.blockingPolygons);
 
