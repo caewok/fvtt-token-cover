@@ -207,6 +207,25 @@ function testHullPoint(hull, p) {
   hull.push(p);
 }
 
+/**
+ * Translate, shifting this polygon in the x and y direction. Return new polygon.
+ * @param {Number} dx  Movement in the x direction.
+ * @param {Number} dy  Movement in the y direction.
+ * @return {PIXI.Polygon}
+ */
+function translate(dx, dy) {
+  const pts = [];
+  const ln = this.points.length;
+  for (let i = 0; i < ln; i += 2) {
+    pts.push(this.points[i] + dx, this.points[i + 1] + dy);
+  }
+  const out = new this.constructor(pts);
+  out._isClockwise = this._isClockwise;
+  if ( this.bounds ) out.bounds = out.getBounds(); // Bounds will have changed due to translate
+
+  return out;
+}
+
 
 // ----------------  ADD METHODS TO THE PIXI.POLYGON PROTOTYPE --------------------------
 export function registerPIXIPolygonMethods() {
@@ -271,6 +290,12 @@ export function registerPIXIPolygonMethods() {
 
   Object.defineProperty(PIXI.Polygon, "convexhull", {
     value: convexhull,
+    writable: true,
+    configurable: true
+  });
+
+  Object.defineProperty(PIXI.Polygon.prototype, "translate", {
+    value: translate,
     writable: true,
     configurable: true
   });
