@@ -154,7 +154,7 @@ export class ClipperPaths {
     const combined = new ClipperPaths();
     combined.scalingFactor = this.scalingFactor;
 
-    c.addPath(this.paths, ClipperLib.PolyType.ptSubject, true);
+    c.AddPaths(this.paths, ClipperLib.PolyType.ptSubject, true);
 
     // To avoid the checkerboard issue, use a positive fill type so any overlap is filled.
     c.Execute(ClipperLib.ClipType.ctUnion,

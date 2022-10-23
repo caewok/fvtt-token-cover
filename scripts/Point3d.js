@@ -55,6 +55,12 @@ export function registerPIXIPointMethods() {
     configurable: true
   });
 
+  Object.defineProperty(PIXI.Point.prototype, "normalize", {
+    value: normalize,
+    writable: true,
+    configurable: true
+  });
+
   // For parallel with Point3d
   Object.defineProperty(PIXI.Point.prototype, "to2d", {
     value: function() { return this; },
@@ -63,10 +69,25 @@ export function registerPIXIPointMethods() {
   });
 
   Object.defineProperty(PIXI.Point.prototype, "to3d", {
-    value: function() { return new Point3d(this.x, this.y); },
+    value: to3d,
     writable: true,
     configurable: true
   });
+}
+
+/**
+ * Convert 2d point to 3d
+ * @param [object] [options]    Choices that affect the axes used.
+ * @param [string] [options.x]  What 2d axis to use for the 3d x axis
+ * @param [string] [options.y]  What 2d axis to use for the 3d y axis
+ * @param [string] [options.z]  What 2d axis to use for the 3d z axis
+ * @returns {Point3d}
+ */
+function to3d({ x = "x", y = "y", z} = {}) {
+  const x3d = x ? this[x] : 0;
+  const y3d = y ? this[y] : 0;
+  const z3d = z ? this[z] : 0;
+  return new Point3d(x3d, y3d, z3d);
 }
 
 /**
@@ -169,6 +190,17 @@ function almostEqual2d(other, epsilon = EPSILON) {
 }
 
 /**
+ * Normalize the point.
+ * @param {PIXI.Point} [outPoint]    A point-like object in which to store the value.
+ *   (Will create new point if none provided.)
+ * @returns {PIXI.Point}
+ */
+function normalize(outPoint = new PIXI.Point()) {
+  this.multiplyScalar(1 / this.magnitude(), outPoint);
+  return outPoint;
+}
+
+/**
  * 3-D version of PIXI.Point
  * See https://pixijs.download/dev/docs/packages_math_src_Point.ts.html
  */
@@ -185,9 +217,13 @@ export class Point3d extends PIXI.Point {
 
   /**
    * Drop the z dimension; return a new PIXI.Point
+   * @param [object] [options]    Options that affect which axes are used
+   * @param [string] [options.x]  Which 3d axis to use for the x axis
+   * @param [string] [options.y]  Which 3d axis to use for the y axis
+   * @returns {PIXI.Point}
    */
-  to2d() {
-    return new PIXI.Point(this.x, this.y);
+  to2d({x = "x", y = "y"} = {}) {
+    return new PIXI.Point(this[x], this[y]);
   }
 
   /**
@@ -335,7 +371,7 @@ export class Point3d extends PIXI.Point {
    * @returns {number}
    */
   magnitudeSquared() {
-    return super.magnitudeSquared + Math.pow(this.z, 2);
+    return super.magnitudeSquared() + Math.pow(this.z, 2);
   }
 
   /**
@@ -348,4 +384,27 @@ export class Point3d extends PIXI.Point {
     return super.almostEqual(other, epsilon) && this.z.almostEqual(other.z ?? 0, epsilon);
   }
 
+  /**
+   * Cross product between this point, considered here as a vector, and another vector.
+   * @param {Point3d} other
+   * @param {Point3d} [outPoint]  A point-like object in which to store the value.
+   * @returns {Point3d}
+   */
+  cross(other, outPoint = new Point3d()) {
+    outPoint.x = this.y * other.z - this.z * other.y;
+    outPoint.y = this.z * other.x - this.x * other.z;
+    outPoint.z = this.x * other.y - this.y * other.x;
+
+    return outPoint;
+  }
+
+  /**
+   * Normalize the point.
+   * @param {Point3d} [outPoint]    A point-like object in which to store the value.
+   *   (Will create new point if none provided.)
+   * @returns {Point3d}
+   */
+  normalize(outPoint = new Point3d()) {
+    return super.normalize(outPoint);
+  }
 }

@@ -1,14 +1,15 @@
 /* globals
 PIXI,
-Ray,
-canvas
+canvas,
+ClipperLib
 */
 "use strict";
 
-import { perpendicularPoint, distanceBetweenPoints, zValue, log } from "./util.js";
+import { distanceSquaredBetweenPoints, zValue, log } from "./util.js";
 import { COLORS, drawShape } from "./drawing.js";
 import { Point3d } from "./Point3d.js";
 import { ClipperPaths } from "./ClipperPaths.js";
+import { Plane } from "./Plane.js";
 
 /* Testing
 api = game.modules.get("tokenvisibility").api
@@ -102,152 +103,225 @@ export class Shadow extends PIXI.Polygon {
 
   static zValue = zValue;
 
+
   /**
-   * Build the parallelogram representing a shadow cast from a wall.
-   * Looking top-down with a light or other source object at a given elevation
-   * above a wall.
-   * With the shadow cast onto a flat surface of a given elevation
-   * @param {Wall} wall                         Wall to test
-   * @param {LightSource|VisionSource} source   Source of the light or vision
-   * @param {number} surfaceElevation=0         Elevation of the shadowed surface
+   * Build shadow given a segment and a plane
+   * Assume A and B represent a wall or shape that moves straight down to plane.
+   * So shadow is from A outward and B outward.
+   * @param {Point3d} A
+   * @param {Point3d} B
+   * @param {Point3d} origin
+   * @param {Plane} surfacePlane
+   * @returns {Point3d[]}
+   */
+  static segmentWithPlane(A, B, origin, surfacePlane) {
+    const upV = new Point3d(0, 0, 1);
+
+    // Direction of the surfacePlane in relation to the origin.
+    const ixOrigin = surfacePlane.lineIntersection(origin, upV);
+
+    const dir = ixOrigin.subtract(origin).z;
+    if ( !dir ) return null; // Origin is on the plane
+
+    // Truncate wall to be below the origin
+    const res = truncateWallAtElevation(A, B, origin.z, dir);
+    if ( !res ) return null;
+    A = res.A;
+    B = res.B;
+
+    // Where does the (infinite) wall cross the surface?
+    const ixAB = surfacePlane.lineIntersection(A, B);
+    if ( ixAB ) {
+      // Truncate wall to be above the surface
+      // Can use the intersection point: will create a triangle shadow.
+      // (Think flagpole shadow.)
+      const res = truncateWallAtElevation(A, B, ixAB.z, -dir, 0);
+      if ( !res ) return null; // Wall completely behind the surface
+      A = res.A;
+      B = res.B;
+    } else {
+      // Does not cross the surface. Reject if endpoint is on the wrong side.
+      if ( dir > 0 && A.z < surfacePlane.point.z || dir < 0 && A.z > surfacePlane.point.z ) return null;
+    }
+
+    // Intersection points of origin --> wall endpoint --> surface
+    // If the intersection point is above the origin, then the surface is twisted
+    // such that the surface is between the origin and the wall at that point.
+    const ixShadowA = surfacePlane.lineSegmentIntersection(origin, A);
+    if ( dir > 0 && ixShadowA.z < origin.z || dir < 0 && ixShadowA.z > origin.z ) return null;
+
+    const ixShadowB = surfacePlane.lineSegmentIntersection(origin, B);
+    if ( dir > 0 && ixShadowB.z < origin.z || dir < 0 && ixShadowB.z > origin.z ) return null;
+
+    // Find the intersection points of the wall with the surfacePlane
+    const ixWallA = surfacePlane.lineIntersection(A, upV);
+    const ixWallB = surfacePlane.lineIntersection(B, upV);
+
+    // Surface intersection must be behind the wall
+//     const ixWallABehindWall = dir < 0 ? A.z - ixWallA.z : ixWallA.z - A.z;
+//     const ixWallBBehindWall = dir < 0 ? B.z - ixWallB.z : ixWallB.z - B.z;
+//
+//     // TO-DO: Is it possible to get the proportion that hits the plane?
+//     if ( ixWallABehindWall <= 0 || ixWallBBehindWall <= 0 ) return null;
+
+    // Surface intersection must be further from origin than the wall point
+    const distWallA = distanceSquaredBetweenPoints(origin, A);
+    const distIxWallA = distanceSquaredBetweenPoints(origin, ixWallA);
+    if ( distWallA >= distIxWallA ) {
+      log("segmentWithPlane distWallA >= distIxWallA")
+      return null;
+    }
+
+    const distWallB = distanceSquaredBetweenPoints(origin, B);
+    const distIxWallB = distanceSquaredBetweenPoints(origin, ixWallB);
+    if ( distWallB >= distIxWallB ) {
+      log("segmentWithPlane distWallB >= distIxWallB")
+      return null;
+    }
+
+    // const ixWallAbehindOrigin = dir < 0 ? origin.z - ixWallA.z : ixWallA.z - origin.z;
+//     const ixWallBbehindOrigin = dir < 0 ? origin.z - ixWallB.z : ixWallB.z - origin.z;
+//
+//     // TO-DO: Is it possible to get the proportion that hits the plane in front of origin?
+//     // Is it worth it?
+//     if ( ixWallAbehind < 0 || ixWallBbehind < 0 ) return null;
+
+    // Surface intersection must be further from origin than the wall point
+    if ( distWallA >= ixShadowA ) {
+      log("segmentWithPlane distWallA >= ixShadowA")
+      return null;
+    }
+
+    if ( distWallB >= ixShadowB ) {
+      log("segmentWithPlane distWallB >= ixShadowB")
+      return null;
+    }
+
+
+
+   //  const ixShadowAbehind = dir < 0 ? origin.z - ixShadowA.z : ixShadowA.z - origin.z;
+//     const ixShadowBbehind = dir < 0 ? origin.z - ixShadowB.z : ixShadowB.z - origin.z;
+//
+//     // TO-DO: Is it possible to get the proportion that hits the plane in front of origin?
+//     // Is it worth it?
+//     if ( ixShadowAbehind < 0 || ixShadowBbehind < 0 ) return null;
+
+
+    return [
+      ixWallA,
+      ixShadowA,
+      ixShadowB,
+      ixWallB
+    ];
+  }
+
+  /**
+   * Construct shadow assuming an XY top-down view with a surface plane.
+   * Wall presumed to be a plane perpendicular to the XY canvas view.
+   * @param {Wall} wall
+   * @param {Point3d} origin
+   * @param {Plane} surfacePlane
+   * @returns {Point3d[]} Four points representing the shadow trapezoid
+   */
+  static XYWallWithPlane(wall, origin, surfacePlane) {
+    const bottomZ = isFinite(wall.bottomZ) ? wall.bottomZ : -canvas.dimensions.maxR;
+    const topZ = isFinite(wall.topZ) ? wall.topZ : canvas.dimensions.maxR;
+    const { A, B } = wall;
+
+    const wBottom = {
+      A: new Point3d(A.x, A.y, bottomZ),
+      B: new Point3d(B.x, B.y, bottomZ)
+    };
+
+    const wTop = {
+      A: new Point3d(A.x, A.y, topZ),
+      B: new Point3d(B.x, B.y, topZ)
+    };
+
+
+    // Find the intersection points of the wall with the surfacePlane
+    const ixWallA = surfacePlane.lineSegmentIntersection(wTop.A, wBottom.A);
+    const ixWallB = surfacePlane.lineSegmentIntersection(wTop.B, wBottom.B);
+
+    let ixShadowBottomA = surfacePlane.lineSegmentIntersection(origin, wBottom.A);
+    let ixShadowBottomB = surfacePlane.lineSegmentIntersection(origin, wBottom.B);
+
+    let ixShadowTopA = surfacePlane.lineSegmentIntersection(origin, wTop.A);
+    let ixShadowTopB = surfacePlane.lineSegmentIntersection(origin, wTop.B);
+
+    const distWallA = distanceSquaredBetweenPoints(origin, ixWallA);
+    const distWallB = distanceSquaredBetweenPoints(origin, ixWallB);
+
+    const distShadowBottomA = distanceSquaredBetweenPoints(origin, ixShadowBottomA);
+    const distShadowBottomB = distanceSquaredBetweenPoints(origin, ixShadowBottomB);
+
+    const distShadowTopA = distanceSquaredBetweenPoints(origin, ixShadowTopA);
+    const distShadowTopB = distanceSquaredBetweenPoints(origin, ixShadowTopB);
+
+    // Check if "shadow" is completely between the wall and the origin
+    if ( distShadowBottomA < distWallA
+      && distShadowBottomB < distWallB
+      && distShadowTopA < distWallA
+      && distShadowTopB < distWallB ) return null;
+
+    if ( origin.z > topZ ) {
+      // Source looking down at wall
+      // If bottom intersection is closer, use wall
+      ixShadowBottomA = distWallA > distShadowBottomA ? ixWallA : ixShadowBottomA;
+      ixShadowBottomB = distWallB > distShadowBottomB ? ixWallB : ixShadowBottomB;
+
+
+    } else if ( origin.z < bottomZ ) {
+      // Source looking up at wall
+      // If top intersection is closer, use wall
+      ixShadowTopA = distWallA > distShadowTopA ? ixWallA : ixShadowTopA;
+      ixShadowTopB = distWallB > distShadowTopB ? ixWallB : ixShadowTopB;
+
+    } else {
+      // Source looking directly at wall
+
+
+    }
+
+    return [
+      ixShadowBottomA,
+      ixShadowTopA,
+      ixShadowTopB,
+      ixShadowBottomB
+    ];
+  }
+
+  /**
+   * Construct shadow using surface plane parallel to XY canvas, at provided elevation.
+   * @param {Wall} wall
+   * @param {VisionSource|LightSource} source
+   * @param {number} surfaceElevation   Surface elevation, using zValues
    * @returns {Shadow}
    */
   static construct(wall, source, surfaceElevation = 0) {
-    let wBottom = {
-      A: new Point3d(wall.A.x, wall.A.y, wall.bottomZ),
-      B: new Point3d(wall.B.x, wall.B.y, wall.bottomZ)
-    };
+    const { bottomZ, topZ } = wall;
+    const { x, y, elevationZ } = source;
 
-    let wTop = {
-      A: new Point3d(wall.A.x, wall.A.y, wall.topZ),
-      B: new Point3d(wall.B.x, wall.B.y, wall.topZ)
-    };
-
-    const V = new Point3d(source.x, source.y, source.elevationZ);
-    const O = new Point3d(0, 0, surfaceElevation); // X and y TBD
-
-    // If the source elevation equals the surface elevation, no shadows to be seen
-    if ( V.z === O.z ) return null;
+    // If the source elevation equals the surface elevation, no shadows to be seen.
+    if ( elevationZ === surfaceElevation ) return null;
 
     // Viewer and the surface elevation both above the wall, so no shadow
-    else if ( V.z > wTop.A.z && O.z > wTop.A.z ) return null;
+    else if ( elevationZ > topZ && surfaceElevation > topZ ) return null;
 
     // Viewer and the surface elevation both below the wall, so no shadow
-    else if ( V.z < wBottom.A.z && O.z < wBottom.A.z ) return null;
+    else if ( elevationZ < bottomZ && surfaceElevation < bottomZ ) return null;
 
     // Projecting downward from source; if below bottom of wall, no shadow.
-    else if ( V.z > O.z && V.z < wBottom.A.z ) return null;
+    else if ( elevationZ > surfaceElevation && elevationZ < bottomZ ) return null;
 
     // Projecting upward from source; if above bottom of wall, no shadow.
-    else if ( V.z < O.z && V.z > wTop.A.z ) return null;
+    else if ( elevationZ < surfaceElevation && elevationZ > topZ ) return null;
 
-    else if ( V.z < O.z ) {
-      // Flip, construct upwards to (underneath of) surface
-      wBottom.A.z *= -1;
-      wBottom.B.z *= -1;
-      wTop.A.z *= -1;
-      wTop.B.z *= -1;
+    const surfacePlane = new Plane(new Point3d(0, 0, surfaceElevation));
+    const sourcePoint = new Point3d(x, y, elevationZ);
 
-      [wBottom, wTop] = [wTop, wBottom];
-
-      V.z *= -1;
-      O.z *= -1;
-
-      log("constructShadow: flipped.");
-    }
-
-    // Need the point of the wall that forms a perpendicular line to the vision object
-    const Wix = perpendicularPoint(wTop.A, wTop.B, V);
-    if ( !Wix ) return null; // Line collinear with vision object
-
-    // Distance from the viewer to the wall in x,y dimension
-    const VWdist = distanceBetweenPoints(V.to2d(), Wix);
-
-    // Get the 2d distances between Wix and the wall endpoints.
-    const distA = distanceBetweenPoints(wTop.A.to2d(), Wix);
-    const distB = distanceBetweenPoints(wTop.B.to2d(), Wix);
-
-    // Calculate the hypotenuse of the big triangle on each side.
-    // That hypotenuse is used to extend a line from V past each endpoint.
-    // First get the angle
-    const alphaA = Math.atan(distA / VWdist);
-    const alphaB = Math.atan(distB / VWdist);
-
-    const topShadowPoints = Shadow._topWallShadowPoints(wTop, V, O, VWdist, alphaA, alphaB);
-    const points = Shadow._bottomWallShadowPoints(wBottom, V, O, VWdist, alphaA, alphaB, topShadowPoints);
-
-    const out = new this(points);
-
-    // Store some values for debugging
-    out.topPoints = topShadowPoints;
-    out.wall = wall;
-    out.source = source;
-    out.surfaceElevation = surfaceElevation;
-
-    return out;
-  }
-
-  /**
-   * Shadow cast by the top of the wall from the source to the surface.
-   * Will be from wall corners to a defined distance, trapezoidal.
-   * @param {Wall} wall                         Wall to test
-   * @param {LightSource|VisionSource} source   Source of the light or vision
-   * @param {number} surfaceElevation=0         Elevation of the shadowed surface
-   * @param {Ray} VW                            Ray from source to wall, perpendicular to wall
-   * @returns {Point[]} Array of 8 points representing the trapezoid
-   */
-  static _topWallShadowPoints(wTop, V, O, VWdist, alphaA, alphaB) {
-    let VOdist = 0;
-    if ( V.z <= wTop.A.z ) {
-      // Source is below wall top; shadow is infinitely long
-      // Use maxRadius for the scene
-      VOdist = canvas.scene.dimensions.maxR;
-    } else {
-      // Theta is the angle between the 3-D sight line and the sight line in 2-D
-      const theta = Math.atan((V.z - wTop.A.z) / VWdist); // Theta is in radians
-      const WOdist = (wTop.A.z - O.z) / Math.tan(theta); // Tan wants radians
-      VOdist = VWdist + WOdist;
-    }
-
-    // Now calculate the hypotenuse
-    const hypA = VOdist / Math.cos(alphaA);
-    const hypB = VOdist / Math.cos(alphaB);
-
-    // Extend a line from V past wall T at each endpoint.
-    // Each distance is the hypotenuse on the side.
-    // given angle alpha.
-    // Should form the parallelogram with wall T on one parallel side
-    const VOa = Ray.towardsPoint(V, wTop.A, hypA);
-    const VOb = Ray.towardsPoint(V, wTop.B, hypB);
-
-    return [wTop.A, VOa.B, VOb.B, wTop.B];
-  }
-
-  /**
-   * Shadow cast by the bottom of the wall from the source to the surface
-   * Will be infinitely long, starts away from wall corners
-   */
-  static _bottomWallShadowPoints(wBottom, V, O, VWdist, alphaA, alphaB, topPoints) {
-    // If the wall is "floating" above the surface, the shadow starts "after" the wall.
-    // Need to determine the starting point.
-    const gap = wBottom.A.z - O.z;
-    if ( gap <= 0 ) return topPoints;
-
-    const iota = Math.atan((V.z - wBottom.A.z) / VWdist); // Iota is in radians
-    // lambda is equal to iota b/c they form a rectangle.
-    const VOgapdist = ((V.z - O.z) / Math.tan(iota)) - VWdist;
-
-    // Now calculate the hypotenuse for the extension on each endpoint
-    const hypGapA = VOgapdist / Math.cos(alphaA);
-    const hypGapB = VOgapdist / Math.cos(alphaB);
-
-    const endA = topPoints[1];
-    const endB = topPoints[2];
-
-    const startA = Ray.towardsPoint(wBottom.A, endA, hypGapA);
-    const startB = Ray.towardsPoint(wBottom.B, endB, hypGapB);
-
-    return [startA.B, endA, endB, startB.B];
+    const points = Shadow.XYWallWithPlane(wall, sourcePoint, surfacePlane).map(pt => pt.to2d());
+    return new Shadow(points);
   }
 
   /**
@@ -279,6 +353,12 @@ export class Shadow extends PIXI.Polygon {
     if ( !shadows.length ) return boundary;
 
     const shadowPaths = ClipperPaths.fromPolygons(shadows, { scalingFactor });
+
+    // Make all the shadow paths orient the same direction
+    shadowPaths.paths.forEach(path => {
+      if ( !ClipperLib.Clipper.Orientation(path) ) path.reverse();
+    });
+
     const combinedShadowPaths = shadowPaths.combine();
     combinedShadowPaths.clean(cleanDelta);
 
@@ -286,4 +366,67 @@ export class Shadow extends PIXI.Polygon {
     out.clean(cleanDelta);
     return out;
   }
+}
+
+/**
+ * Project a 2d or 3d line
+ * @param {Point3d|PIXI.Point} A
+ * @param {Point3d|PIXI.Point} B
+ * @returns {Point3d|PIXI.Point}
+ */
+function project(A, B, t) {
+  const delta = B.subtract(A);
+  return A.add(delta.multiplyScalar(t));
+}
+
+/**
+ * Find the 3d point on a 3d line that equals a z coordinate.
+ * @param {Point3d} A
+ * @param {Point3d} B
+ * @param {number} z
+ * @returns {object{point:{Point3d}, proportion: {number}}}
+ */
+function towardZ(A, B, z) {
+  const delta = B.subtract(A);
+  const t = (z - A.z) / delta.z;
+  return {
+    point: A.add(delta.multiplyScalar(t)),
+    t
+  };
+}
+
+/**
+ * Truncate a wall so that only the portion below an elevation ("z") point is seen
+ * @param {Point3d} A
+ * @param {Point3d} B
+ * @param {number} z
+ * @param {number} dir    Direction to truncate.
+ *   If negative, force wall to be below z. If positive, force wall to be above z.
+ * @return {object{ A: {Point3d}, B: {Point3d}}|null}
+ */
+function truncateWallAtElevation(A, B, z, dir = -1, dist = 0.001) {
+  const distAz = dir < 0 ? z - A.z : A.z - z;
+  const distBz = dir < 0 ? z - B.z : B.z - z;
+
+  if ( distAz > 0 && distBz > 0 ) {
+    // do nothing
+  } else if ( distAz <= 0 && distBz <= 0 ) {
+    return null;
+  } else if ( distAz <= 0 || distBz <= 0 ) {
+    // Find the point on AB that is even in elevation with z
+    // Shorten the wall to somewhere just in front of z
+    const {t} = towardZ(A, B, z);
+
+    if ( distAz <= 0 ) {
+      const newT = t + dist;
+      if ( newT > 1 ) return null;
+      A = project(A, B, newT);
+
+    } else { // Bbehind <= 0
+      const newT = t - dist;
+      if ( newT < 0 ) return null;
+      B = project(A, B, newT);
+    }
+  }
+  return { A, B, distAz, distBz };
 }
