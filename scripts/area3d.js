@@ -385,7 +385,12 @@ export class Area3d {
    */
   _findBlockingWalls() {
     const collisionTest = (o, rect) => this._testWallInclusion(o.t, rect);
-    return canvas.walls.quadtree.getObjects(this.boundsXY, { collisionTest });
+    let walls = canvas.walls.quadtree.getObjects(this.boundsXY, { collisionTest });
+
+    // If any walls, refine further by testing against the vision triangle
+    if ( walls.size ) walls = Area3d.filterWallsForVisionCone(walls, getConstrainedTokenShape(this.target), this.tokenCenter)
+
+    return walls;
   }
 
   /**
@@ -676,6 +681,100 @@ export class Area3d {
       drawing.drawSegment({A: w[2], B: w[3]}, { color: drawing.COLORS.blue });
       drawing.drawSegment({A: w[3], B: w[0]}, { color: drawing.COLORS.blue });
     });
+  }
+
+  /**
+   * Test whether walls block the source with regard to LOS.
+   * @param {PIXI.Polygon|PIXI.Rectangle} constrained   Token shape
+   * @param {Point} origin                              Viewpoint to test for whether constrained can be seen
+   * @param {hasLOS: {Boolean}, hasFOV: {Boolean}}
+   * @return {Boolean} Returns false if the source definitely cannot provide LOS; true otherwise.
+   */
+  static filterWallsForVisionCone(walls, constrained, origin) {
+    const keyPoints = (constrained instanceof PIXI.Polygon)
+      ? Area3d.polygonKeyPointsForOrigin(constrained, origin)
+      : Area3d.bboxKeyCornersForOrigin(constrained, origin);
+    if ( !keyPoints || !keyPoints.length ) return walls;
+
+    const visionPoly = new PIXI.Polygon([origin, ...keyPoints]);
+
+    return walls.filter(wall =>
+      visionPoly.contains(wall.A.x, wall.A.y)
+      || visionPoly.contains(wall.B.x, wall.B.y)
+      || visionPoly.linesCross([wall]));
+  }
+
+  /**
+   * Returns the two points of the polygon that are on the edge of the viewable perimeter
+   * as seen from an origin.
+   * @param {PIXI.Polygon} poly
+   * @param {Point} origin
+   * @return {Point[]|null} Returns null if origin is inside the polygon
+   */
+  static polygonKeyPointsForOrigin(poly, origin) {
+    // Key point is a line from origin to the point that does not intersect the polygon
+    // the outermost key points are the most ccw and cw of the key points.
+
+    // Possible paths:
+    // 1. n   n   n   key key key
+    // 2. key key key n   n   n
+    // 3. key key n   n   key  <-- last key(s) should be shifted to beginning of array
+    // 4. n   n   key key key n
+
+    const keyPoints = [];
+    let foundNonKeyFirst = false;
+    let foundNonKeyAfter = false;
+    let foundKey = false;
+    for ( const pt of poly.iteratePoints({ close: false }) ) {
+      let isKey = true;
+
+      for ( const edge of poly.iterateEdges() ) {
+        if ( (edge.A.x === pt.x && edge.A.y === pt.y)
+          || (edge.B.x === pt.x && edge.B.y === pt.y) ) continue;
+
+        if ( foundry.utils.lineSegmentIntersects(origin, pt, edge.A, edge.B) ) {
+          isKey = false;
+          break;
+        }
+      }
+
+      if ( isKey ) {
+        foundKey = true;
+        !foundNonKeyAfter && keyPoints.push(pt); // eslint-disable-line no-unused-expressions
+        foundNonKeyAfter && keyPoints.shift(pt); // eslint-disable-line no-unused-expressions
+      } else { // !isKey
+        foundNonKeyFirst ||= !foundKey;
+        foundNonKeyAfter ||= foundKey;
+        if ( foundNonKeyFirst && foundKey ) break; // Finished the key sequence
+      }
+    }
+
+    return [keyPoints[0], keyPoints[keyPoints.length - 1]];
+  }
+
+  /**
+   * Returns the two corners of the bounding box that are on the edge of the viewable
+   * perimeter of the bounding box, as seen from an origin.
+   * @param {PIXI.Rectangle} bbox
+   * @param {Point} origin
+   * @return {Point[]|null} Returns null if origin is inside the bounding box.
+   */
+  static bboxKeyCornersForOrigin(bbox, origin) {
+    const zones = PIXI.Rectangle.CS_ZONES;
+    switch ( bbox._getZone(origin) ) {
+      case zones.INSIDE: return null;
+      case zones.TOPLEFT: return [{ x: bbox.left, y: bbox.bottom }, { x: bbox.right, y: bbox.top }];
+      case zones.TOPRIGHT: return [{ x: bbox.left, y: bbox.top }, { x: bbox.right, y: bbox.bottom }];
+      case zones.BOTTOMLEFT: return [{ x: bbox.right, y: bbox.bottom }, { x: bbox.left, y: bbox.top }];
+      case zones.BOTTOMRIGHT: return [{ x: bbox.right, y: bbox.top }, { x: bbox.left, y: bbox.bottom }];
+
+      case zones.RIGHT: return [{ x: bbox.right, y: bbox.top }, { x: bbox.right, y: bbox.bottom }];
+      case zones.LEFT: return [{ x: bbox.left, y: bbox.bottom }, { x: bbox.left, y: bbox.top }];
+      case zones.TOP: return [{ x: bbox.left, y: bbox.top }, { x: bbox.right, y: bbox.top }];
+      case zones.BOTTOM: return [{ x: bbox.right, y: bbox.bottom }, { x: bbox.left, y: bbox.bottom }];
+    }
+
+    return undefined; // Should not happen
   }
 
 }
