@@ -81,7 +81,8 @@ export class CoverCalculator {
    * @type {Point3d}
    */
   get viewerCenter() {
-    return new Point3d(this.viewer.center.x, this.viewer.center.y, this.viewer.topZ);
+    const center = this.viewer;
+    return new Point3d(center.x, center.y, this.viewer.topZ);
   }
 
   /**
