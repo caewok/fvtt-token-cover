@@ -131,7 +131,7 @@ export function coverCenterToTargetCorners(token, target) {
   debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
 
   const tokenPoint = new Point3d(token.center.x, token.center.y, token.topZ);
-  const targetPoints = getCorners(getConstrainedTokenShape(target), target);
+  const targetPoints = getCorners(getConstrainedTokenShape(target), averageTokenElevation(target));
 
   return testTokenTargetPoints([tokenPoint], [targetPoints]);
 }
@@ -148,8 +148,8 @@ export function coverCornerToTargetCorners(token, target) {
   const debug = game.modules.get(MODULE_ID).api.debug;
   debug && console.log("Cover algorithm: Corner-to-Corners"); // eslint-disable-line no-unused-expressions
 
-  const tokenCorners = getCorners(getConstrainedTokenShape(token), token, token.topZ);
-  const targetPoints = getCorners(getConstrainedTokenShape(target), target);
+  const tokenCorners = getCorners(getConstrainedTokenShape(token), token.topZ);
+  const targetPoints = getCorners(getConstrainedTokenShape(target), averageTokenElevation(target));
 
   return testTokenTargetPoints(tokenCorners, [targetPoints]);
 }
@@ -170,7 +170,8 @@ export function coverCenterToTargetGridCorners(token, target) {
   const tokenPoint = new Point3d(token.center.x, token.center.y, token.topZ);
 
   const targetShapes = gridShapesUnderToken(target);
-  const targetPointsArray = targetShapes.map(targetShape => getCorners(targetShape, target));
+  const targetElevation = averageTokenElevation(target);
+  const targetPointsArray = targetShapes.map(targetShape => getCorners(targetShape, targetElevation));
 
   return testTokenTargetPoints([tokenPoint], targetPointsArray);
 }
@@ -188,9 +189,10 @@ export function coverCornerToTargetGridCorners(token, target) {
   debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
 
 
-  const tokenCorners = getCorners(getConstrainedTokenShape(token), token, token.topZ);
+  const tokenCorners = getCorners(getConstrainedTokenShape(token), token.topZ);
   const targetShapes = gridShapesUnderToken(target);
-  const targetPointsArray = targetShapes.map(targetShape => getCorners(targetShape, target));
+  const targetElevation = averageTokenElevation(target);
+  const targetPointsArray = targetShapes.map(targetShape => getCorners(targetShape, targetElevation));
 
   return testTokenTargetPoints(tokenCorners, targetPointsArray);
 }
@@ -214,10 +216,11 @@ export function coverCenterToCube(token, target) {
 
   let targetPoints;
   const targetShape = getConstrainedTokenShape(target);
+
   if ( target.topZ - target.bottomZ ) {
-    targetPoints = [...getCorners(targetShape, target, target.topZ), ...getCorners(targetShape, target.bottomZ)];
+    targetPoints = [...getCorners(targetShape, target.topZ), ...getCorners(targetShape, target.bottomZ)];
   } else {
-    targetPoints = getCorners(targetShape, target);
+    targetPoints = getCorners(targetShape, averageTokenElevation(target));
   }
 
   return testTokenTargetPoints([tokenPoint], [targetPoints]);
@@ -238,13 +241,13 @@ export function coverCubeToCube(token, target) {
   const targetHeight = target.topZ - target.bottomZ;
   if ( !targetHeight ) return coverCenterToTargetCorners(token, target);
 
-  const tokenCorners = getCorners(getConstrainedTokenShape(token), token, token.topZ);
+  const tokenCorners = getCorners(getConstrainedTokenShape(token), token.topZ);
   let targetPoints;
   const targetShape = getConstrainedTokenShape(target);
   if ( target.topZ - target.bottomZ ) {
-    targetPoints = [...getCorners(targetShape, target, target.topZ), ...getCorners(targetShape, target, target.bottomZ)];
+    targetPoints = [...getCorners(targetShape, target.topZ), ...getCorners(targetShape, target.bottomZ)];
   } else {
-    targetPoints = getCorners(targetShape, target);
+    targetPoints = getCorners(targetShape, averageTokenElevation(target));
   }
 
   return testTokenTargetPoints(tokenCorners, [targetPoints]);
@@ -334,14 +337,22 @@ function gridShapesUnderToken(token) {
 }
 
 /**
+ * Get the average elevation of a token.
+ * Measured as the difference between top and bottom heights.
+ * @param {Token} token
+ * @returns {number}
+ */
+export function averageTokenElevation(token) {
+  return token.bottomZ + ((token.topZ - token.bottomZ) * 0.5);
+}
+
+/**
  * Helper that constructs 3d points for the points of a token shape (rectangle or polygon).
  * Assumes the average elevation for the target if it has a height.
  * @param {Token} token
  * @returns {Point3d[]} Array of corner points.
  */
-export function getCorners(tokenShape, token, elevation) {
-  if ( typeof elevation === "undefined" ) elevation = token.bottomZ + ((token.topZ - token.bottomZ) * 0.5);
-
+export function getCorners(tokenShape, elevation) {
   if ( tokenShape instanceof PIXI.Rectangle ) {
     // Token unconstrained by walls.
     // Use corners 1 pixel in to ensure collisions if there is an adjacent wall.
