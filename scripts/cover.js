@@ -267,10 +267,7 @@ export function coverArea(token, target) {
   const percentCover = calculatePercentCover(token.vision, target);
   debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
 
-  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
-  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
-  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
-  return COVER_TYPES.NONE;
+  return coverTypeForPercentage(percentCover);
 }
 
 /**
@@ -289,6 +286,15 @@ export function coverArea3d(token, target) {
   const percentCover = 1 - area3d._percentAreaVisible();
   debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
 
+  return coverTypeForPercentage(percentCover);
+}
+
+/**
+ * Get a cover type based on percentage cover.
+ * @param {number} percentCover
+ * @returns {COVER_TYPE}
+ */
+export function coverTypeForPercentage(percentCover) {
   if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
   if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
   if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
