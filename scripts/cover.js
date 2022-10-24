@@ -253,8 +253,7 @@ export function coverCenterToCube(token, target) {
     targetPoints = getCorners(target);
   }
 
-  debug && drawPointToPoints(tokenPoint, targetPoints); // eslint-disable-line no-unused-expressions
-  return testPointToPoints(tokenPoint, targetPoints);
+  return testTokenTargetPoints([tokenPoint], [targetPoints]);
 }
 
 /**
@@ -280,17 +279,7 @@ export function coverCubeToCube(token, target) {
     targetPoints = getCorners(target);
   }
 
-  // Just try them all!
-  const coverByCorner = tokenCorners.map(pt => testPointToPoints(pt, targetPoints));
-
-  if ( debug ) {
-    const maxI = coverByCorner.indexOf(Math.min(...coverByCorner));
-    for ( let i = 0; i < coverByCorner.length; i += 1 ) {
-      drawPointToPoints(tokenCorners[i], targetPoints, { alpha: i === maxI ? 1 : 0.05, width: i === maxI ? 3 : 1 });
-    }
-  }
-
-  return Math.min(...coverByCorner);
+  return testTokenTargetPoints(tokenCorners, [targetPoints]);
 }
 
 /**
