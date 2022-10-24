@@ -2,7 +2,8 @@
 ClockwiseSweepPolygon,
 game,
 PIXI,
-canvas
+canvas,
+CONST
 */
 "use strict";
 
@@ -50,6 +51,7 @@ dnd5e: half, 3/4, full
 import { MODULE_ID, COVER_TYPES } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
 import { Point3d } from "./Point3d.js";
+import { ClipperPaths } from "./ClipperPaths.js";
 import { getConstrainedTokenShape, getShadowLOS, calculatePercentSeen } from "./token_visibility.js";
 import * as drawing from "./drawing.js";
 
@@ -69,10 +71,10 @@ export function targetCover(token, target) {
       return coverCenterToTargetCorners(token, target);
     case SETTINGS.COVER.TYPES.CORNER_CORNERS_TARGET:
       return coverCornerToTargetCorners(token, target);
-    case SETTINGS.COVER.TYPES.CENTER_CORNERS_SINGLE:
-      return coverCenterToSingleCorners(token, target);
-    case SETTINGS.COVER.TYPES.CORNER_CORNERS_SINGLE:
-      return coverCornerToSingleCorners(token, target);
+    case SETTINGS.COVER.TYPES.CENTER_CORNERS_GRID:
+      return coverCenterToTargetGridCorners(token, target);
+    case SETTINGS.COVER.TYPES.CORNER_CORNERS_GRID:
+      return coverCornerToTargetGridCorners(token, target);
     case SETTINGS.COVER.TYPES.CENTER_CUBE:
       return coverCenterToCube(token, target);
     case SETTINGS.COVER.TYPES.CUBE_CUBE:
@@ -129,10 +131,9 @@ export function coverCenterToTargetCorners(token, target) {
   debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
 
   const tokenPoint = new Point3d(token.center.x, token.center.y, token.topZ);
-  const targetPoints = getCorners(target);
-  debug && drawPointToPoints(tokenPoint, targetPoints); // eslint-disable-line no-unused-expressions
+  const targetPoints = getCorners(getConstrainedTokenShape(target), target);
 
-  return testPointToPoints(tokenPoint, targetPoints);
+  return testTokenTargetPoints([tokenPoint], [targetPoints]);
 }
 
 /**
@@ -147,19 +148,10 @@ export function coverCornerToTargetCorners(token, target) {
   const debug = game.modules.get(MODULE_ID).api.debug;
   debug && console.log("Cover algorithm: Corner-to-Corners"); // eslint-disable-line no-unused-expressions
 
-  // TO-DO: Hex corners!
-  const tokenCorners = getCorners(token, token.topZ);
-  const targetPoints = getCorners(target);
-  const coverByCorner = tokenCorners.map(pt => testPointToPoints(pt, targetPoints));
+  const tokenCorners = getCorners(getConstrainedTokenShape(token), token, token.topZ);
+  const targetPoints = getCorners(getConstrainedTokenShape(target), target);
 
-  if ( debug ) {
-    const maxI = coverByCorner.indexOf(Math.min(...coverByCorner));
-    for ( let i = 0; i < coverByCorner.length; i += 1 ) {
-      drawPointToPoints(tokenCorners[i], targetPoints, { alpha: i === maxI ? 1 : 0.2 });
-    }
-  }
-
-  return Math.min(...coverByCorner);
+  return testTokenTargetPoints(tokenCorners, [targetPoints]);
 }
 
 /**
@@ -171,15 +163,16 @@ export function coverCornerToTargetCorners(token, target) {
  * @param {Token} target
  * @returns {COVER_TYPE}
  */
-export function coverCenterToSingleCorners(token, target) {
+export function coverCenterToTargetGridCorners(token, target) {
   const debug = game.modules.get(MODULE_ID).api.debug;
   debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
 
   const tokenPoint = new Point3d(token.center.x, token.center.y, token.topZ);
-  const targetPoints = getCorners(target);
-  debug && drawPointToPoints(tokenPoint, targetPoints); // eslint-disable-line no-unused-expressions
 
-  return testPointToPoints(tokenPoint, targetPoints);
+  const targetShapes = gridShapesUnderToken(target);
+  const targetPointsArray = targetShapes.map(targetShape => getCorners(targetShape, target));
+
+  return testTokenTargetPoints([tokenPoint], targetPointsArray);
 }
 
 /**
@@ -190,23 +183,46 @@ export function coverCenterToSingleCorners(token, target) {
  * @param {Token} target
  * @returns {COVER_TYPE}
  */
-export function coverCornerToSingleCorners(token, target) {
+export function coverCornerToTargetGridCorners(token, target) {
   const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log("Cover algorithm: Corner-to-Corners"); // eslint-disable-line no-unused-expressions
+  debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
 
-  // TO-DO: Hex corners!
-  const tokenCorners = getCorners(token, token.topZ);
-  const targetPoints = getCorners(target);
-  const coverByCorner = tokenCorners.map(pt => testPointToPoints(pt, targetPoints));
 
-  if ( debug ) {
-    const maxI = coverByCorner.indexOf(Math.min(...coverByCorner));
-    for ( let i = 0; i < coverByCorner.length; i += 1 ) {
-      drawPointToPoints(tokenCorners[i], targetPoints, { alpha: i === maxI ? 1 : 0.2 });
+  const tokenCorners = getCorners(getConstrainedTokenShape(token), token, token.topZ);
+  const targetShapes = gridShapesUnderToken(target);
+  const targetPointsArray = targetShapes.map(targetShape => getCorners(targetShape, target));
+
+  return testTokenTargetPoints(tokenCorners, targetPointsArray);
+}
+
+/**
+ * Test an array of token points against an array of target points
+ */
+export function testTokenTargetPoints(tokenPoints, targetPointsArray) {
+  const debug = game.modules.get(MODULE_ID).api.debug;
+  let minCover = COVER_TYPES.TOTAL;
+  const minPointData = { tokenPoint: undefined, targetPoints: undefined };
+
+  for ( const tokenPoint of tokenPoints ) {
+    for ( const targetPoints of targetPointsArray ) {
+      // We can escape early if we have discovered a no-cover option!
+      const cover = testPointToPoints(tokenPoint, targetPoints);
+      if ( cover === COVER_TYPES.NONE ) {
+        debug && drawPointToPoints(tokenPoint, targetPoints, { width: 2 });  // eslint-disable-line no-unused-expressions
+        return COVER_TYPES.NONE;
+      }
+      minCover = Math.min(minCover, cover);
+
+      if ( debug && cover < minCover ) {
+        minPointData.tokenPoint = tokenPoint;
+        minPointData.targetPoints = targetPoints;
+      }
+
+      debug && drawPointToPoints(tokenPoint, targetPoints, { alpha: 0.1 }); // eslint-disable-line no-unused-expressions
     }
   }
 
-  return Math.min(...coverByCorner);
+  return minCover;
 }
 
 
@@ -293,36 +309,62 @@ export function coverArea(token, target) {
 }
 
 /**
- * Helper that constructs 3d points for the corners of a target.
+ * Get polygons representing all grids under the token.
+ * If token is constrained, overlap the constrained polygon on the grid shapes.
+ * @param {Token} targettoken
+ * @return {PIXI.Polygon[]|PIXI.Rectangle[]|null}
+ */
+function gridShapesUnderToken(token) {
+  const constrained = getConstrainedTokenShape(token);
+
+  if ( canvas.grid.type === CONST.GRID_TYPES.GRIDLESS ) {
+    console.error("gridShapesUnderTarget called on gridless scene!");
+    return constrained;
+  }
+
+  const gridShapes = canvas.grid.type === CONST.GRID_TYPES.SQUARE ? squaresUnderToken(token) : hexesUnderToken(token);
+
+  // Token unconstrained by walls.
+  if ( constrained instanceof PIXI.Rectangle ) return gridShapes;
+
+  // For each gridShape, intersect against the constrained shape
+  const constrainedGridShapes = [];
+  const constrainedPath = ClipperPaths.fromPolygons([constrained]);
+
+  for ( const gridShape of gridShapes ) {
+    const constrainedGridShape = constrainedPath.intersectPolygon(gridShape).simplify();
+    if ( !constrainedGridShape || constrainedGridShape.points.length < 6 ) continue;
+    constrainedGridShapes.push(constrainedGridShape);
+  }
+
+  return constrainedGridShapes;
+}
+
+/**
+ * Helper that constructs 3d points for the points of a token shape (rectangle or polygon).
  * Assumes the average elevation for the target if it has a height.
- * @param {Token} target
+ * @param {Token} token
  * @returns {Point3d[]} Array of corner points.
  */
-function getCorners(target, elevation) {
-  // TO-DO: HEX corners!
-  // TO-DO: Corners for larger tokens, where we should be testing each grid square separately
+export function getCorners(tokenShape, token, elevation) {
+  if ( typeof elevation === "undefined" ) elevation = token.bottomZ + ((token.topZ - token.bottomZ) * 0.5);
 
-  if ( typeof elevation === "undefined" ) elevation = target.bottomZ + ((target.topZ - target.bottomZ) * 0.5);
-
-  // Use a token shape constrained by walls to avoid testing corners that are behind walls.
-  const constrained = getConstrainedTokenShape(target);
-
-  if ( constrained instanceof PIXI.Rectangle ) {
+  if ( tokenShape instanceof PIXI.Rectangle ) {
     // Token unconstrained by walls.
     // Use corners 1 pixel in to ensure collisions if there is an adjacent wall.
-    constrained.pad(-1);
+    tokenShape.pad(-1);
     return [
-      new Point3d(constrained.left, constrained.top, elevation),
-      new Point3d(constrained.right, constrained.top, elevation),
-      new Point3d(constrained.right, constrained.bottom, elevation),
-      new Point3d(constrained.left, constrained.bottom, elevation)
+      new Point3d(tokenShape.left, tokenShape.top, elevation),
+      new Point3d(tokenShape.right, tokenShape.top, elevation),
+      new Point3d(tokenShape.right, tokenShape.bottom, elevation),
+      new Point3d(tokenShape.left, tokenShape.bottom, elevation)
     ];
   }
 
   // Constrained is polygon. Only use corners of polygon
   // Scale down polygon to avoid adjacent walls.
-  const padConstrained = constrained.pad(-2, { scalingFactor: 100 });
-  return [...padConstrained.iteratePoints({close: false})].map(pt => new Point3d(pt.x, pt.y, elevation));
+  const padShape = tokenShape.pad(-2, { scalingFactor: 100 });
+  return [...padShape.iteratePoints({close: false})].map(pt => new Point3d(pt.x, pt.y, elevation));
 }
 
 /**
@@ -331,7 +373,7 @@ function getCorners(target, elevation) {
  * @param {Point3d[]} targetPoints    Array of points on the target to test
  * @returns {COVER_TYPE}
  */
-function testPointToPoints(tokenPoint, targetPoints) {
+export function testPointToPoints(tokenPoint, targetPoints) {
   let numCornersBlocked = 0;
   const ln = targetPoints.length;
   for ( let i = 0; i < ln; i += 1 ) {
@@ -355,7 +397,7 @@ function testPointToPoints(tokenPoint, targetPoints) {
  * @param {Point3d} tokenPoint        Point on the token to use.
  * @param {Point3d[]} targetPoints    Array of points on the target to test
  */
-function drawPointToPoints(tokenPoint, targetPoints, { alpha = 1, width = 1 } = {}) {
+export function drawPointToPoints(tokenPoint, targetPoints, { alpha = 1, width = 1 } = {}) {
   const debug = game.modules.get(MODULE_ID).api.debug;
 
   const ln = targetPoints.length;
@@ -380,18 +422,77 @@ export function calculatePercentCover(visionSource, target) {
   return 1 - percentSeen;
 }
 
+
+/**
+ * Get an array of all the squares under a token
+ * @param {Token} token
+ * @returns {PIXI.Rectangle[]}
+ */
+export function squaresUnderToken(token) {
+  const tX = token.x;
+  const tY = token.y;
+
+  const w = token.document.width;
+  const h = token.document.height;
+
+  const r1 = canvas.grid.grid.getRect(1, 1);
+  const r = canvas.grid.grid.getRect(w, h);
+
+  const wRem = r.width % r1.width;
+  const hRem = r.height % r1.height;
+
+  const wMult = Math.floor(w);
+  const hMult = Math.floor(h);
+
+  const squares = [];
+  const baseRect = new PIXI.Rectangle(tX, tY, r1.width, r1.height);
+  for ( let i = 0; i < wMult; i += 1 ) {
+    for ( let j = 0; j < hMult; j += 1 ) {
+      squares.push(baseRect.translate(i * r1.width, j * r1.height));
+    }
+  }
+
+  if ( wRem ) {
+    // Add partial width rectangles on the right
+    const x = (wMult * r1.width )+ tX;
+    for ( let j = 0; j < hMult; j += 1 ) {
+      const y = (j * r1.height) + tY;
+      squares.push(new PIXI.Rectangle(x, y, wRem, r1.height));
+    }
+  }
+
+  if ( hRem ) {
+    // Add partial height rectangles on the bottom
+    const y = (hMult * r1.height) + tX;
+    for ( let i = 0; i < wMult; i += 1 ) {
+      const x = (i * r1.width) + tY;
+      squares.push(new PIXI.Rectangle(x, y, r1.width, hRem));
+    }
+  }
+
+  if ( wRem && hRem ) {
+    const x = (wMult * r1.width) + tX;
+    const y = (hMult * r1.height) + tY;
+    squares.push(new PIXI.Rectangle(x, y, wRem, hRem));
+  }
+
+  return squares;
+}
+
 /**
  * Get an array of all the hexes under a token.
+ * Like base Foundry, defaults to squares under token if token width/height is not 1, 2, 3 or 4.
  * See HexagonalGrid.prototype.getBorderPolygon for just the border
  * @param {Token} token
  * @returns {PIXI.Polygon[]}
  */
 export function hexesUnderToken(token) {
-
+  const tX = token.x;
+  const tY = token.y;
 
   const w = token.document.width;
   const h = token.document.height;
-  if ( w !== h || w > 4 ) return null;
+  if ( w !== h || w > 4 ) return squaresUnderToken(token);
 
   const hexes = [];
   const isColumnar = canvas.grid.grid.columnar;
@@ -400,15 +501,15 @@ export function hexesUnderToken(token) {
       hexes.push(hexes1());
       break;
     case 2:
-      hexes.push(...(isColumnar ? colHexes2() : rowHexes2()));
+      hexes.push(...(isColumnar ? colHexes2(tX, tY) : rowHexes2(tX, tY)));
       break;
 
     case 3:
-      hexes.push(...(isColumnar ? colHexes3() : rowHexes3()));
+      hexes.push(...(isColumnar ? colHexes3(tX, tY) : rowHexes3(tX, tY)));
       break;
 
     case 4:
-      hexes.push(...(isColumnar ? colHexes4() : rowHexes4()));
+      hexes.push(...(isColumnar ? colHexes4(tX, tY) : rowHexes4(tX, tY)));
       break;
   }
 
@@ -419,24 +520,26 @@ export function hexesUnderToken(token) {
     hexes.forEach(hex => drawing.drawShape(hex, { color: drawing.COLORS.red }))
   */
 
+  if ( hexes.length === 0 ) return squaresUnderToken(token);
+
   return hexes;
 }
 
-function hexes1() {
+function hexes1(x = 0, y = 0) {
   const r1 = canvas.grid.grid.getRect(1, 1);
-  return new PIXI.Point(canvas.grid.grid.getPolygon(0, 0, r1.width, r1.height));
+  return new PIXI.Point(canvas.grid.grid.getPolygon(x, y, r1.width, r1.height));
 }
 
 // 2: Forms triangle.  •
 //                    • •
-function rowHexes2() {
+function rowHexes2(x = 0, y = 0) {
   const r1 = canvas.grid.grid.getRect(1, 1);
   const col = r1.width;
   const row = r1.height * .75;
   const halfCol = col * .50;
   const hexW = r1.width;
   const hexH = r1.height;
-  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(0, 0, hexW, hexH));
+  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(x, y, hexW, hexH));
 
   return [
     baseHex.translate(halfCol, 0),
@@ -446,17 +549,17 @@ function rowHexes2() {
 }
 
 /** 3: Forms • •
- *          • • •
+ *          • • •
  *           • •
  */
-function rowHexes3() {
+function rowHexes3(x = 0, y = 0) {
   const r1 = canvas.grid.grid.getRect(1, 1);
   const col = r1.width;
   const row = r1.height * .75;
   const halfCol = col * .50;
   const hexW = r1.width;
   const hexH = r1.height;
-  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(0, 0, hexW, hexH));
+  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(x, y, hexW, hexH));
 
   return [
     baseHex.translate(halfCol, 0),
@@ -471,18 +574,18 @@ function rowHexes3() {
   ];
 }
 
-// 4: Forms • • •
+// 4: Forms • • •
 //         • • • •
 //          • • •
 //           • •
-function rowHexes4() {
+function rowHexes4(x = 0, y = 0) {
   const r1 = canvas.grid.grid.getRect(1, 1);
   const col = r1.width;
   const row = r1.height * .75;
   const halfCol = col * .50;
   const hexW = r1.width;
   const hexH = r1.height;
-  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(0, 0, hexW, hexH));
+  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(x, y, hexW, hexH));
 
   return [
     baseHex.translate(halfCol, 0),
@@ -507,14 +610,14 @@ function rowHexes4() {
  *                    •
  *                      •
  */
-function colHexes2() {
+function colHexes2(x = 0, y = 0) {
   const r1 = canvas.grid.grid.getRect(1, 1);
   const col = r1.width * .75;
   const row = r1.height;
   const halfRow = row * .50;
   const hexW = r1.width;
   const hexH = r1.height;
-  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(0, 0, hexW, hexH));
+  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(x, y, hexW, hexH));
 
   return [
     baseHex.translate(col, 0),
@@ -529,14 +632,14 @@ function colHexes2() {
  *         •   •
  *           •
  */
-function colHexes3() {
+function colHexes3(x = 0, y = 0) {
   const r1 = canvas.grid.grid.getRect(1, 1);
   const col = r1.width * .75;
   const row = r1.height;
   const halfRow = row * .50;
   const hexW = r1.width;
   const hexH = r1.height;
-  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(0, 0, hexW, hexH));
+  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(x, y, hexW, hexH));
 
   return [
     baseHex.translate(col, 0),
@@ -558,17 +661,17 @@ function colHexes3() {
  *            •   •
  *          •   •
  *            •   •
- *          •   • 
+ *          •   •
  *            •
  */
-function colHexes4() {
+function colHexes4(x = 0, y = 0) {
   const r1 = canvas.grid.grid.getRect(1, 1);
   const col = r1.width * .75;
   const row = r1.height;
   const halfRow = row * .50;
   const hexW = r1.width;
   const hexH = r1.height;
-  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(0, 0, hexW, hexH));
+  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(x, y, hexW, hexH));
 
   return [
     baseHex.translate(col, 0),

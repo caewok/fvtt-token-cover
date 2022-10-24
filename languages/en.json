@@ -21,8 +21,8 @@
 
     "tokenvisibility.settings.cover-center-to-target-corners": "Center to target corners",
     "tokenvisibility.settings.cover-corner-to-target-corners": "Corner to target corners",
-    "tokenvisibility.settings.cover-center-to-single-corners": "Center to corners of select target square",
-    "tokenvisibility.settings.cover-corner-to-single-corners": "Corner to corners of select target square (dnd5e DMG)",
+    "tokenvisibility.settings.cover-center-to-target-grid-corners": "Center to corners of select target square",
+    "tokenvisibility.settings.cover-corner-to-target-grid-corners": "Corner to corners of select target square (dnd5e DMG)",
     "tokenvisibility.settings.cover-center-to-center": "Center to center (PF2e)",
     "tokenvisibility.settings.cover-area": "Area",
     "tokenvisibility.settings.cover-center-to-cube": "Center to corners 3d",
