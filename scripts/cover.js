@@ -196,40 +196,6 @@ export function coverCornerToTargetGridCorners(token, target) {
 }
 
 /**
- * Test an array of token points against an array of target points
- */
-export function testTokenTargetPoints(tokenPoints, targetPointsArray) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
-  let minCover = COVER_TYPES.TOTAL;
-  const minPointData = { tokenPoint: undefined, targetPoints: undefined }; // Debugging
-
-  for ( const tokenPoint of tokenPoints ) {
-    for ( const targetPoints of targetPointsArray ) {
-      // We can escape early if we have discovered a no-cover option!
-      const cover = testPointToPoints(tokenPoint, targetPoints);
-      if ( cover === COVER_TYPES.NONE ) {
-        debug && drawPointToPoints(tokenPoint, targetPoints, { width: 2 });  // eslint-disable-line no-unused-expressions
-        return COVER_TYPES.NONE;
-      }
-
-      if ( debug && cover < minCover ) {
-        minPointData.tokenPoint = tokenPoint;
-        minPointData.targetPoints = targetPoints;
-      }
-
-      minCover = Math.min(minCover, cover);
-
-      debug && drawPointToPoints(tokenPoint, targetPoints, { alpha: 0.1 }); // eslint-disable-line no-unused-expressions
-    }
-  }
-
-  debug && drawPointToPoints(minPointData.tokenPoint, minPointData.targetPoints, { width: 2 }); // eslint-disable-line no-unused-expressions
-
-  return minCover;
-}
-
-
-/**
  * Test cover based on center to cube test.
  * If target has a defined height, test the corners of the cube target.
  * Otherwise, call coverCenterToCorners.
@@ -300,6 +266,39 @@ export function coverArea(token, target) {
   if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
   if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
   return COVER_TYPES.NONE;
+}
+
+/**
+ * Test an array of token points against an array of target points
+ */
+export function testTokenTargetPoints(tokenPoints, targetPointsArray) {
+  const debug = game.modules.get(MODULE_ID).api.debug;
+  let minCover = COVER_TYPES.TOTAL;
+  const minPointData = { tokenPoint: undefined, targetPoints: undefined }; // Debugging
+
+  for ( const tokenPoint of tokenPoints ) {
+    for ( const targetPoints of targetPointsArray ) {
+      // We can escape early if we have discovered a no-cover option!
+      const cover = testPointToPoints(tokenPoint, targetPoints);
+      if ( cover === COVER_TYPES.NONE ) {
+        debug && drawPointToPoints(tokenPoint, targetPoints, { width: 2 });  // eslint-disable-line no-unused-expressions
+        return COVER_TYPES.NONE;
+      }
+
+      if ( debug && cover < minCover ) {
+        minPointData.tokenPoint = tokenPoint;
+        minPointData.targetPoints = targetPoints;
+      }
+
+      minCover = Math.min(minCover, cover);
+
+      debug && drawPointToPoints(tokenPoint, targetPoints, { alpha: 0.1 }); // eslint-disable-line no-unused-expressions
+    }
+  }
+
+  debug && drawPointToPoints(minPointData.tokenPoint, minPointData.targetPoints, { width: 2 }); // eslint-disable-line no-unused-expressions
+
+  return minCover;
 }
 
 /**
