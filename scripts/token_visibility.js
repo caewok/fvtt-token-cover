@@ -384,8 +384,8 @@ export function getConstrainedTokenShape(target) {
   const boundsScale = 1;
   // Construct the constrained token shape if not yet present.
   // Store in token so it can be re-used (wrapped updateVisionSource will remove it when necessary)
-  target._constrainedTokenShape ||= constrainedTokenShape(target, { boundsScale });
-  return target._constrainedTokenShape;
+  this._constrainedTokenShape ||= calculateConstrainedTokenShape(this, { boundsScale });
+  return this._constrainedTokenShape;
 }
 
 // export function getShadowLOS(visionSource, target) {
@@ -530,7 +530,7 @@ export function getConstrainedTokenShape(target) {
  * @param {Token} token
  * @return {PIXI.Polygon}
  */
-export function constrainedTokenShape(token, { boundsScale } = {}) {
+export function calculateConstrainedTokenShape(token, { boundsScale } = {}) {
   boundsScale ??= 1;
 
   let bbox = token.bounds;
