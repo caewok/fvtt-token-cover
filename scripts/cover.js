@@ -201,7 +201,7 @@ export function coverCornerToTargetGridCorners(token, target) {
 export function testTokenTargetPoints(tokenPoints, targetPointsArray) {
   const debug = game.modules.get(MODULE_ID).api.debug;
   let minCover = COVER_TYPES.TOTAL;
-  const minPointData = { tokenPoint: undefined, targetPoints: undefined };
+  const minPointData = { tokenPoint: undefined, targetPoints: undefined }; // Debugging
 
   for ( const tokenPoint of tokenPoints ) {
     for ( const targetPoints of targetPointsArray ) {
@@ -211,16 +211,19 @@ export function testTokenTargetPoints(tokenPoints, targetPointsArray) {
         debug && drawPointToPoints(tokenPoint, targetPoints, { width: 2 });  // eslint-disable-line no-unused-expressions
         return COVER_TYPES.NONE;
       }
-      minCover = Math.min(minCover, cover);
 
       if ( debug && cover < minCover ) {
         minPointData.tokenPoint = tokenPoint;
         minPointData.targetPoints = targetPoints;
       }
 
+      minCover = Math.min(minCover, cover);
+
       debug && drawPointToPoints(tokenPoint, targetPoints, { alpha: 0.1 }); // eslint-disable-line no-unused-expressions
     }
   }
+
+  debug && drawPointToPoints(minPointData.tokenPoint, minPointData.targetPoints, { width: 2 }); // eslint-disable-line no-unused-expressions
 
   return minCover;
 }
