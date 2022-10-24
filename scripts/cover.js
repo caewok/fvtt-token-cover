@@ -247,10 +247,11 @@ export function coverCenterToCube(token, target) {
   const tokenPoint = new Point3d(token.center.x, token.center.y, token.topZ);
 
   let targetPoints;
+  const targetShape = getConstrainedTokenShape(target);
   if ( target.topZ - target.bottomZ ) {
-    targetPoints = [...getCorners(target, target.topZ), ...getCorners(target, target.bottomZ)];
+    targetPoints = [...getCorners(targetShape, target, target.topZ), ...getCorners(targetShape, target.bottomZ)];
   } else {
-    targetPoints = getCorners(target);
+    targetPoints = getCorners(targetShape, target);
   }
 
   return testTokenTargetPoints([tokenPoint], [targetPoints]);
@@ -271,12 +272,13 @@ export function coverCubeToCube(token, target) {
   const targetHeight = target.topZ - target.bottomZ;
   if ( !targetHeight ) return coverCenterToTargetCorners(token, target);
 
-  const tokenCorners = getCorners(token, token.topZ);
+  const tokenCorners = getCorners(getConstrainedTokenShape(token), token, token.topZ);
   let targetPoints;
+  const targetShape = getConstrainedTokenShape(target);
   if ( target.topZ - target.bottomZ ) {
-    targetPoints = [...getCorners(target, target.topZ), ...getCorners(target, target.bottomZ)];
+    targetPoints = [...getCorners(targetShape, target, target.topZ), ...getCorners(targetShape, target, target.bottomZ)];
   } else {
-    targetPoints = getCorners(target);
+    targetPoints = getCorners(targetShape, target);
   }
 
   return testTokenTargetPoints(tokenCorners, [targetPoints]);
