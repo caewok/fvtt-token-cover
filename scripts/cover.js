@@ -56,413 +56,435 @@ import { Area3d} from "./Area3d.js";
 import { getConstrainedTokenShape, getShadowLOS, calculatePercentSeen } from "./token_visibility.js";
 import * as drawing from "./drawing.js";
 
-/**
- * Test whether a target has cover vis-a-vis a token.
- * @param {Token} token
- * @param {Token} target
- * @returns {COVER_TYPE}
- */
-export function targetCover(token, target) {
-  const algorithm = getSetting(SETTINGS.COVER.ALGORITHM);
 
-  switch ( algorithm ) {
-    case SETTINGS.COVER.TYPES.CENTER_CENTER:
-      return coverCenterToCenter(token, target);
-    case SETTINGS.COVER.TYPES.CENTER_CORNERS_TARGET:
-      return coverCenterToTargetCorners(token, target);
-    case SETTINGS.COVER.TYPES.CORNER_CORNERS_TARGET:
-      return coverCornerToTargetCorners(token, target);
-    case SETTINGS.COVER.TYPES.CENTER_CORNERS_GRID:
-      return coverCenterToTargetGridCorners(token, target);
-    case SETTINGS.COVER.TYPES.CORNER_CORNERS_GRID:
-      return coverCornerToTargetGridCorners(token, target);
-    case SETTINGS.COVER.TYPES.CENTER_CUBE:
-      return coverCenterToCube(token, target);
-    case SETTINGS.COVER.TYPES.CUBE_CUBE:
-      return coverCubeToCube(token, target);
-    case SETTINGS.COVER.TYPES.AREA:
-      return coverArea(token, target);
-    case SETTINGS.COVER.TYPES.AREA3D:
-      return coverArea3d(token, target);
+/* Cover Calculation Class
+ * Calculate cover between a token and target, based on different algorithms.
+ */
+export class CoverCalculator {
+  static COVER_TYPES = COVER_TYPES;
+
+  static ALGORITHMS = SETTINGS.COVER.TYPES;
+
+  /**
+   * @param {Token} viewer
+   * @param {Token} target
+   */
+  constructor(viewer, target) {
+    this.viewer = viewer;
+    this.target = target;
+    this.debug = game.modules.get(MODULE_ID).api.debug;
   }
 
-  return COVER_TYPES.NONE;
-}
-
-/**
- * Test cover based on PF2e approach of measuring token center to target center.
- * @param {Token} token
- * @param {Token} target
- * @returns {COVER_TYPE}    Will be either NONE or MEDIUM
- */
-export function coverCenterToCenter(token, target) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log("Cover algorithm: Center-to-Center"); // eslint-disable-line no-unused-expressions
-
-  // TO-DO: Test visibility? This is hard b/c testVisibility assumes a token is selected.
-  // Test visibility is thus a per-user test.
-
-  // Test all non-infinite walls for collisions
-  const tokenPoint = new Point3d(token.center.x, token.center.y, token.topZ);
-
-  const targetHeight = target.topZ - target.bottomZ;
-  const targetAvgElevation = target.bottomZ + (targetHeight * 0.5);
-  const targetPoint = new Point3d(target.center.x, target.center.y, targetAvgElevation);
-  const collision = ClockwiseSweepPolygon.testCollision3d(tokenPoint, targetPoint, { type: "sight", mode: "any" });
-
-
-  debug && drawing.drawSegment(  // eslint-disable-line no-unused-expressions
-    {A: tokenPoint, B: targetPoint},
-    { color: collision ? drawing.COLORS.red : drawing.COLORS.green });
-
-  if ( collision ) return COVER_TYPES[getSetting(SETTINGS.COVER.TRIGGER_CENTER)];
-  else return COVER_TYPES.NONE;
-}
-
-/**
- * Test cover based on center-to-corners test. This is a simpler version of the DMG dnd5e test.
- * It is assumed that "center" is at the losHeight elevation, and corners are
- * at the mean height of the token.
- * @param {Token} token
- * @param {Token} target
- * @returns {COVER_TYPE}
- */
-export function coverCenterToTargetCorners(token, target) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
-
-  const tokenPoint = new Point3d(token.center.x, token.center.y, token.topZ);
-  const targetPoints = getCorners(getConstrainedTokenShape(target), averageTokenElevation(target));
-
-  return testTokenTargetPoints([tokenPoint], [targetPoints]);
-}
-
-/**
- * Test cover based on corner-to-corners test. This is a simpler version of the DMG dnd5e test.
- * Runs a collision test on all corners of the token, and takes the best one
- * from the perspective of the token (the corner that provides least cover).
- * @param {Token} token
- * @param {Token} target
- * @returns {COVER_TYPE}
- */
-export function coverCornerToTargetCorners(token, target) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log("Cover algorithm: Corner-to-Corners"); // eslint-disable-line no-unused-expressions
-
-  const tokenCorners = getCorners(getConstrainedTokenShape(token), token.topZ);
-  const targetPoints = getCorners(getConstrainedTokenShape(target), averageTokenElevation(target));
-
-  return testTokenTargetPoints(tokenCorners, [targetPoints]);
-}
-
-/**
- * Test cover based on center-to-corners test. This is a simpler version of the DMG dnd5e test.
- * If the token covers multiple squares, this version selects the token square with the least cover.
- * It is assumed that "center" is at the losHeight elevation, and corners are
- * at the mean height of the token.
- * @param {Token} token
- * @param {Token} target
- * @returns {COVER_TYPE}
- */
-export function coverCenterToTargetGridCorners(token, target) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
-
-  const tokenPoint = new Point3d(token.center.x, token.center.y, token.topZ);
-
-  const targetShapes = gridShapesUnderToken(target);
-  const targetElevation = averageTokenElevation(target);
-  const targetPointsArray = targetShapes.map(targetShape => getCorners(targetShape, targetElevation));
-
-  return testTokenTargetPoints([tokenPoint], targetPointsArray);
-}
-
-/**
- * Test cover based on corner-to-corners test. This is a simpler version of the DMG dnd5e test.
- * Runs a collision test on all corners of the token, and takes the best one
- * from the perspective of the token (the corner that provides least cover).
- * @param {Token} token
- * @param {Token} target
- * @returns {COVER_TYPE}
- */
-export function coverCornerToTargetGridCorners(token, target) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
-
-
-  const tokenCorners = getCorners(getConstrainedTokenShape(token), token.topZ);
-  const targetShapes = gridShapesUnderToken(target);
-  const targetElevation = averageTokenElevation(target);
-  const targetPointsArray = targetShapes.map(targetShape => getCorners(targetShape, targetElevation));
-
-  return testTokenTargetPoints(tokenCorners, targetPointsArray);
-}
-
-/**
- * Test cover based on center to cube test.
- * If target has a defined height, test the corners of the cube target.
- * Otherwise, call coverCenterToCorners.
- * @param {Token} token
- * @param {Token} target
- * @returns {COVER_TYPE}
- */
-export function coverCenterToCube(token, target) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log("Cover algorithm: Center-to-Cube"); // eslint-disable-line no-unused-expressions
-
-  const targetHeight = target.topZ - target.bottomZ;
-  if ( !targetHeight ) return coverCenterToTargetCorners(token, target);
-
-  const tokenPoint = new Point3d(token.center.x, token.center.y, token.topZ);
-
-  let targetPoints;
-  const targetShape = getConstrainedTokenShape(target);
-
-  if ( target.topZ - target.bottomZ ) {
-    targetPoints = [...getCorners(targetShape, target.topZ), ...getCorners(targetShape, target.bottomZ)];
-  } else {
-    targetPoints = getCorners(targetShape, averageTokenElevation(target));
+  /**
+   * 3d position of the viewer.
+   * Defaults to viewer losHeight or elevation otherwise, in center of the viewer token.
+   * @type {Point3d}
+   */
+  get viewerCenter() {
+    return new Point3d(this.viewer.center.x, this.viewer.center.y, this.viewer.topZ);
   }
 
-  return testTokenTargetPoints([tokenPoint], [targetPoints]);
-}
-
-/**
- * Test cover based on cube to cube test.
- * If target has a defined height, test the corners of the cube target.
- * Otherwise, call coverCornerToCorners.
- * @param {Token} token
- * @param {Token} target
- * @returns {COVER_TYPE}
- */
-export function coverCubeToCube(token, target) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log("Cover algorithm: Cube-to-Cube"); // eslint-disable-line no-unused-expressions
-
-  const targetHeight = target.topZ - target.bottomZ;
-  if ( !targetHeight ) return coverCenterToTargetCorners(token, target);
-
-  const tokenCorners = getCorners(getConstrainedTokenShape(token), token.topZ);
-  let targetPoints;
-  const targetShape = getConstrainedTokenShape(target);
-  if ( target.topZ - target.bottomZ ) {
-    targetPoints = [...getCorners(targetShape, target.topZ), ...getCorners(targetShape, target.bottomZ)];
-  } else {
-    targetPoints = getCorners(targetShape, averageTokenElevation(target));
+  /**
+   * Height of the target, if any.
+   * @type {number}
+   */
+  get targetHeight() {
+    return this.target.topZ - this.target.bottomZ;
   }
 
-  return testTokenTargetPoints(tokenCorners, [targetPoints]);
-}
+  /**
+   * Point halfway between target bottom and target top.
+   * @type {number}
+   */
+  get targetAvgElevation() {
+    return CoverCalculator.averageTokenElevation(this.target);
+  }
 
-/**
- * Test cover based on area
- * @param {Token} token
- * @param {Token} target
- * @returns {COVER_TYPE}
- */
-export function coverArea(token, target) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log("Cover algorithm: Area"); // eslint-disable-line no-unused-expressions
+  // ----- MAIN USER METHODS ----- //
 
-  const percentCover = calculatePercentCover(token.vision, target);
-  debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
+  /**
+   * Basic switch to calculate cover based on selected algorithm.
+   * Defaults to the cover algorithm setting selected by the GM.
+   * @param {string} algorithm
+   * @returns {COVER_TYPE}
+   */
+  targetCover(algorithm = getSetting(SETTINGS.COVER.ALGORITHM)) {
+    switch ( algorithm ) {
+      case SETTINGS.COVER.TYPES.CENTER_CENTER:
+        return this.centerToCenter();
+      case SETTINGS.COVER.TYPES.CENTER_CORNERS_TARGET:
+        return this.centerToTargetCorners();
+      case SETTINGS.COVER.TYPES.CORNER_CORNERS_TARGET:
+        return this.cornerToTargetCorners();
+      case SETTINGS.COVER.TYPES.CENTER_CORNERS_GRID:
+        return this.centerToTargetGridCorners();
+      case SETTINGS.COVER.TYPES.CORNER_CORNERS_GRID:
+        return this.cornerToTargetGridCorners();
+      case SETTINGS.COVER.TYPES.CENTER_CUBE:
+        return this.centerToCube();
+      case SETTINGS.COVER.TYPES.CUBE_CUBE:
+        return this.cubeToCube();
+      case SETTINGS.COVER.TYPES.AREA:
+        return this.area();
+      case SETTINGS.COVER.TYPES.AREA3D:
+        return this.area3d();
+    }
+    return COVER_TYPES.NONE;
+  }
 
-  return coverTypeForPercentage(percentCover);
-}
+  // ----- COVER ALGORITHM METHODS ----- //
 
-/**
- * Test cover based on "3d" area.
- * Construct the view from the token looking at the target.
- * Calculate the viewable area of the target from that perspective.
- * @param {Token} token
- * @param {Token} target
- * @returns {COVER_TYPE}
- */
-export function coverArea3d(token, target) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && console.log("Cover algorithm: Area 3d"); // eslint-disable-line no-unused-expressions
+  /**
+   * Test cover based on PF2e approach of measuring token center to target center.
+   * @returns {COVER_TYPE}    Will be either NONE or MEDIUM
+   */
+  centerToCenter() {
+    this.debug && console.log("Cover algorithm: Center-to-Center"); // eslint-disable-line no-unused-expressions
 
-  const area3d = new Area3d(token, target);
-  const percentCover = 1 - area3d._percentAreaVisible();
-  debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
+    // TO-DO: Test visibility? This is hard b/c testVisibility assumes a token is selected.
+    // Test visibility is thus a per-user test.
 
-  return coverTypeForPercentage(percentCover);
-}
+    // Test all non-infinite walls for collisions
+    const tokenPoint = this.viewerCenter;
+    const targetPoint = new Point3d(this.target.center.x, this.target.center.y, this.targetAvgElevation);
+    const collision = ClockwiseSweepPolygon.testCollision3d(tokenPoint, targetPoint, { type: "sight", mode: "any" });
 
-/**
- * Get a cover type based on percentage cover.
- * @param {number} percentCover
- * @returns {COVER_TYPE}
- */
-export function coverTypeForPercentage(percentCover) {
-  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
-  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
-  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
-  return COVER_TYPES.NONE;
-}
+    this.debug && drawing.drawSegment(  // eslint-disable-line no-unused-expressions
+      {A: tokenPoint, B: targetPoint},
+      { color: collision ? drawing.COLORS.red : drawing.COLORS.green });
 
-/**
- * Test an array of token points against an array of target points
- */
-export function testTokenTargetPoints(tokenPoints, targetPointsArray) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
-  let minCover = COVER_TYPES.TOTAL;
-  const minPointData = { tokenPoint: undefined, targetPoints: undefined }; // Debugging
+    if ( collision ) return COVER_TYPES[getSetting(SETTINGS.COVER.TRIGGER_CENTER)];
+    else return COVER_TYPES.NONE;
+  }
 
-  for ( const tokenPoint of tokenPoints ) {
-    for ( const targetPoints of targetPointsArray ) {
-      // We can escape early if we have discovered a no-cover option!
-      const cover = testPointToPoints(tokenPoint, targetPoints);
-      if ( cover === COVER_TYPES.NONE ) {
-        debug && drawPointToPoints(tokenPoint, targetPoints, { width: 2 });  // eslint-disable-line no-unused-expressions
-        return COVER_TYPES.NONE;
+  /**
+   * Test cover based on center-to-corners test. This is a simpler version of the DMG dnd5e test.
+   * It is assumed that "center" is at the losHeight elevation, and corners are
+   * at the mean height of the token.
+   * @returns {COVER_TYPE}
+   */
+  centerToTargetCorners() {
+    this.debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
+
+    const targetPoints = this._getCorners(getConstrainedTokenShape(this.target), this.targetAvgElevation);
+
+    return this._testTokenTargetPoints([this.viewerCenter], [targetPoints]);
+  }
+
+  /**
+   * Test cover based on corner-to-corners test. This is a simpler version of the DMG dnd5e test.
+   * Runs a collision test on all corners of the token, and takes the best one
+   * from the perspective of the token (the corner that provides least cover).
+   * @returns {COVER_TYPE}
+   */
+  cornerToTargetCorners() {
+    this.debug && console.log("Cover algorithm: Corner-to-Corners"); // eslint-disable-line no-unused-expressions
+
+    const tokenCorners = this._getCorners(getConstrainedTokenShape(this.viewer), this.viewer.topZ);
+    const targetPoints = this._getCorners(getConstrainedTokenShape(this.target), this.targetAvgElevation);
+
+    return this._testTokenTargetPoints(tokenCorners, [targetPoints]);
+  }
+
+  /**
+   * Test cover based on center-to-corners test. This is a simpler version of the DMG dnd5e test.
+   * If the token covers multiple squares, this version selects the token square with the least cover.
+   * It is assumed that "center" is at the losHeight elevation, and corners are
+   * at the mean height of the token.
+   * @returns {COVER_TYPE}
+   */
+  centerToTargetGridCorners() {
+    this.debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
+
+    const targetShapes = CoverCalculator.constrainedGridShapesUnderToken(this.target);
+    const targetElevation = this.targetAvgElevation;
+    const targetPointsArray = targetShapes.map(targetShape => this._getCorners(targetShape, targetElevation));
+
+    return this._testTokenTargetPoints([this.viewerCenter], targetPointsArray);
+  }
+
+  /**
+   * Test cover based on corner-to-corners test. This is a simpler version of the DMG dnd5e test.
+   * Runs a collision test on all corners of the token, and takes the best one
+   * from the perspective of the token (the corner that provides least cover).
+   * @returns {COVER_TYPE}
+   */
+  cornerToTargetGridCorners() {
+    this.debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
+
+    const tokenCorners = this._getCorners(getConstrainedTokenShape(this.viewer), this.viewer.topZ);
+    const targetShapes = CoverCalculator.constrainedGridShapesUnderToken(this.target);
+    const targetElevation = this.targetAvgElevation;
+    const targetPointsArray = targetShapes.map(targetShape => this._getCorners(targetShape, targetElevation));
+
+    return this._testTokenTargetPoints(tokenCorners, targetPointsArray);
+  }
+
+  /**
+   * Test cover based on center to cube test.
+   * If target has a defined height, test the corners of the cube target.
+   * Otherwise, call coverCenterToCorners.
+   * @returns {COVER_TYPE}
+   */
+  centerToCube() {
+    this.debug && console.log("Cover algorithm: Center-to-Cube"); // eslint-disable-line no-unused-expressions
+
+    if ( !this.targetHeight ) return this.centerToTargetCorners();
+
+    const targetShape = getConstrainedTokenShape(this.target);
+    const targetPoints = [
+      ...this._getCorners(targetShape, this.target.topZ),
+      ...this._getCorners(targetShape, this.target.bottomZ)];
+
+    return this._testTokenTargetPoints([this.viewerCenter], [targetPoints]);
+  }
+
+  /**
+   * Test cover based on cube to cube test.
+   * If target has a defined height, test the corners of the cube target.
+   * Otherwise, call coverCornerToCorners.
+   * @returns {COVER_TYPE}
+   */
+  cubeToCube() {
+    this.debug && console.log("Cover algorithm: Cube-to-Cube"); // eslint-disable-line no-unused-expressions
+
+    if ( !this.targetHeight ) return this.centerToTargetCorners();
+
+    const tokenCorners = this._getCorners(getConstrainedTokenShape(this.viewer), this.viewer.topZ);
+    const targetShape = getConstrainedTokenShape(this.target);
+    const targetPoints = [
+      ...this._getCorners(targetShape, this.target.topZ),
+      ...this._getCorners(targetShape, this.target.bottomZ)];
+
+    return this._testTokenTargetPoints(tokenCorners, [targetPoints]);
+  }
+
+  /**
+   * Test cover based on area
+   * @returns {COVER_TYPE}
+   */
+  area() {
+    this.debug && console.log("Cover algorithm: Area"); // eslint-disable-line no-unused-expressions
+
+    const percentCover = 1 - this._percentVisible2d();
+    this.debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
+
+    return this.typeForPercentage(percentCover);
+  }
+
+  /**
+   * Test cover based on "3d" area.
+   * Construct the view from the token looking at the target.
+   * Calculate the viewable area of the target from that perspective.
+   * @returns {COVER_TYPE}
+   */
+  area3d() {
+    this.debug && console.log("Cover algorithm: Area 3d"); // eslint-disable-line no-unused-expressions
+
+    const percentCover = 1 - this._percentVisible3d();
+    this.debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
+
+    return this.typeForPercentage(percentCover);
+  }
+
+  // ----- HELPER METHODS ----- //
+
+  /**
+   * Get a cover type based on percentage cover.
+   * @param {number} percentCover
+   * @returns {COVER_TYPE}
+   */
+  typeForPercentage(percentCover) {
+    if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
+    if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
+    if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
+    return COVER_TYPES.NONE;
+  }
+
+  /**
+   * Test an array of token points against an array of target points.
+   * Each tokenPoint will be tested against every array of targetPoints. Lowest cover wins.
+   * @param {Point3d[]} tokenPoints           Array of viewer points.
+   * @param {Point3d[][]} targetPointsArray   Array of array of target points to test.
+   * @returns {COVER_TYPE}
+   */
+  _testTokenTargetPoints(tokenPoints, targetPointsArray) {
+    let minCover = COVER_TYPES.TOTAL;
+    const minPointData = { tokenPoint: undefined, targetPoints: undefined }; // Debugging
+
+    for ( const tokenPoint of tokenPoints ) {
+      for ( const targetPoints of targetPointsArray ) {
+        // We can escape early if we have discovered a no-cover option!
+        const cover = this._testPointToPoints(tokenPoint, targetPoints);
+        if ( cover === COVER_TYPES.NONE ) {
+          this.debug && this._drawPointToPoints(tokenPoint, targetPoints, { width: 2 });  // eslint-disable-line no-unused-expressions
+          return COVER_TYPES.NONE;
+        }
+
+        if ( this.debug && cover < minCover ) {
+          minPointData.tokenPoint = tokenPoint;
+          minPointData.targetPoints = targetPoints;
+        }
+
+        minCover = Math.min(minCover, cover);
+
+        this.debug && this._drawPointToPoints(tokenPoint, targetPoints, { alpha: 0.1 }); // eslint-disable-line no-unused-expressions
       }
+    }
 
-      if ( debug && cover < minCover ) {
-        minPointData.tokenPoint = tokenPoint;
-        minPointData.targetPoints = targetPoints;
-      }
+    this.debug && this._drawPointToPoints(minPointData.tokenPoint, minPointData.targetPoints, { width: 2 }); // eslint-disable-line no-unused-expressions
 
-      minCover = Math.min(minCover, cover);
+    return minCover;
+  }
 
-      debug && drawPointToPoints(tokenPoint, targetPoints, { alpha: 0.1 }); // eslint-disable-line no-unused-expressions
+  /**
+   * Get polygons representing all grids under a token.
+   * @param {Token} token
+   * @return {PIXI.Polygon[]|PIXI.Rectangle[]|null}
+   */
+  static gridShapesUnderToken(token) {
+    if ( canvas.grid.type === CONST.GRID_TYPES.GRIDLESS ) {
+      console.error("gridShapesUnderTarget called on gridless scene!");
+      return token.bounds;
+    }
+
+    return canvas.grid.type === CONST.GRID_TYPES.SQUARE ? squaresUnderToken(token) : hexesUnderToken(token);
+  }
+
+  /**
+   * Get polygons representing all grids under a token.
+   * If token is constrained, overlap the constrained polygon on the grid shapes.
+   * @param {Token} token
+   * @return {PIXI.Polygon[]|PIXI.Rectangle[]|null}
+   */
+  static constrainedGridShapesUnderToken(token) {
+    const gridShapes = CoverCalculator.gridShapesUnderToken(token);
+
+    const constrained = getConstrainedTokenShape(token);
+
+    // Token unconstrained by walls.
+    if ( constrained instanceof PIXI.Rectangle ) return gridShapes;
+
+    // For each gridShape, intersect against the constrained shape
+    const constrainedGridShapes = [];
+    const constrainedPath = ClipperPaths.fromPolygons([constrained]);
+
+    for ( const gridShape of gridShapes ) {
+      const constrainedGridShape = constrainedPath.intersectPolygon(gridShape).simplify();
+      if ( !constrainedGridShape || constrainedGridShape.points.length < 6 ) continue;
+      constrainedGridShapes.push(constrainedGridShape);
+    }
+
+    return constrainedGridShapes;
+  }
+
+  /**
+   * Get the average elevation of a token.
+   * Measured as the difference between top and bottom heights.
+   * @param {Token} token
+   * @returns {number}
+   */
+  static averageTokenElevation(token) {
+    return token.bottomZ + ((token.topZ - token.bottomZ) * 0.5);
+  }
+
+  /**
+   * Helper that constructs 3d points for the points of a token shape (rectangle or polygon).
+   * Uses the elevation provided as the z-value.
+   * @param {PIXI.Polygon|PIXI.Rectangle} tokenShape
+   * @parma {number} elevation
+   * @returns {Point3d[]} Array of corner points.
+   */
+  _getCorners(tokenShape, elevation) {
+    if ( tokenShape instanceof PIXI.Rectangle ) {
+      // Token unconstrained by walls.
+      // Use corners 1 pixel in to ensure collisions if there is an adjacent wall.
+      tokenShape.pad(-1);
+      return [
+        new Point3d(tokenShape.left, tokenShape.top, elevation),
+        new Point3d(tokenShape.right, tokenShape.top, elevation),
+        new Point3d(tokenShape.right, tokenShape.bottom, elevation),
+        new Point3d(tokenShape.left, tokenShape.bottom, elevation)
+      ];
+    }
+
+    // Constrained is polygon. Only use corners of polygon
+    // Scale down polygon to avoid adjacent walls.
+    const padShape = tokenShape.pad(-2, { scalingFactor: 100 });
+    return [...padShape.iteratePoints({close: false})].map(pt => new Point3d(pt.x, pt.y, elevation));
+  }
+
+  /**
+   * Helper that tests collisions between a given point and a target points.
+   * @param {Point3d} tokenPoint        Point on the token to use.
+   * @param {Point3d[]} targetPoints    Array of points on the target to test
+   * @returns {COVER_TYPE}
+   */
+  _testPointToPoints(tokenPoint, targetPoints) {
+    let numCornersBlocked = 0;
+    const ln = targetPoints.length;
+    for ( let i = 0; i < ln; i += 1 ) {
+      const targetPoint = targetPoints[i];
+      const collision = ClockwiseSweepPolygon.testCollision3d(tokenPoint, targetPoint, { type: "sight", mode: "any" });
+      if ( collision ) numCornersBlocked += 1;
+    }
+
+    const percentCornersBlocked = numCornersBlocked / ln;
+    return this.typeForPercentage(percentCornersBlocked);
+  }
+
+  /**
+   * Determine the percent of the target top or bottom that is visible to the viewer.
+   * @returns {number} Percentage seen, of the total target top or bottom area.
+   */
+  _percentVisible2d() {
+    const visionSource = this.viewer.vision;
+
+    const constrained = getConstrainedTokenShape(this.target);
+    const shadowLOS = getShadowLOS(visionSource, this.target);
+
+    const targetPercentAreaBottom = shadowLOS.bottom ? calculatePercentSeen(shadowLOS.bottom, constrained) : 0;
+    const targetPercentAreaTop = shadowLOS.top ? calculatePercentSeen(shadowLOS.top, constrained) : 0;
+    const percentSeen = Math.max(targetPercentAreaBottom, targetPercentAreaTop);
+
+    return percentSeen;
+  }
+
+  /**
+   * Determine the percent of the target visible based on the perspective of the viewer when
+   * looking directly at the target. Projected from 3d.
+   * @returns {number} Percentage seen, of the total viewable target area.
+   */
+  _percentVisible3d() {
+    const area3d = new Area3d(this.viewer, this.target);
+    return area3d._percentAreaVisible();
+  }
+
+  /**
+   * For debugging.
+   * Color lines from point to points as red or green depending on collisions.
+   * @param {Point3d} tokenPoint        Point on the token to use.
+   * @param {Point3d[]} targetPoints    Array of points on the target to test
+   */
+  _drawPointToPoints(tokenPoint, targetPoints, { alpha = 1, width = 1 } = {}) {
+    const ln = targetPoints.length;
+    for ( let i = 0; i < ln; i += 1 ) {
+      const targetPoint = targetPoints[i];
+      const collision = ClockwiseSweepPolygon.testCollision3d(tokenPoint, targetPoint, { type: "sight", mode: "any" });
+
+      drawing.drawSegment(  // eslint-disable-line no-unused-expressions
+        {A: tokenPoint, B: targetPoint},
+        { alpha, width, color: collision ? drawing.COLORS.red : drawing.COLORS.green });
     }
   }
-
-  debug && drawPointToPoints(minPointData.tokenPoint, minPointData.targetPoints, { width: 2 }); // eslint-disable-line no-unused-expressions
-
-  return minCover;
 }
-
-/**
- * Get polygons representing all grids under the token.
- * If token is constrained, overlap the constrained polygon on the grid shapes.
- * @param {Token} targettoken
- * @return {PIXI.Polygon[]|PIXI.Rectangle[]|null}
- */
-function gridShapesUnderToken(token) {
-  const constrained = getConstrainedTokenShape(token);
-
-  if ( canvas.grid.type === CONST.GRID_TYPES.GRIDLESS ) {
-    console.error("gridShapesUnderTarget called on gridless scene!");
-    return constrained;
-  }
-
-  const gridShapes = canvas.grid.type === CONST.GRID_TYPES.SQUARE ? squaresUnderToken(token) : hexesUnderToken(token);
-
-  // Token unconstrained by walls.
-  if ( constrained instanceof PIXI.Rectangle ) return gridShapes;
-
-  // For each gridShape, intersect against the constrained shape
-  const constrainedGridShapes = [];
-  const constrainedPath = ClipperPaths.fromPolygons([constrained]);
-
-  for ( const gridShape of gridShapes ) {
-    const constrainedGridShape = constrainedPath.intersectPolygon(gridShape).simplify();
-    if ( !constrainedGridShape || constrainedGridShape.points.length < 6 ) continue;
-    constrainedGridShapes.push(constrainedGridShape);
-  }
-
-  return constrainedGridShapes;
-}
-
-/**
- * Get the average elevation of a token.
- * Measured as the difference between top and bottom heights.
- * @param {Token} token
- * @returns {number}
- */
-export function averageTokenElevation(token) {
-  return token.bottomZ + ((token.topZ - token.bottomZ) * 0.5);
-}
-
-/**
- * Helper that constructs 3d points for the points of a token shape (rectangle or polygon).
- * Assumes the average elevation for the target if it has a height.
- * @param {Token} token
- * @returns {Point3d[]} Array of corner points.
- */
-export function getCorners(tokenShape, elevation) {
-  if ( tokenShape instanceof PIXI.Rectangle ) {
-    // Token unconstrained by walls.
-    // Use corners 1 pixel in to ensure collisions if there is an adjacent wall.
-    tokenShape.pad(-1);
-    return [
-      new Point3d(tokenShape.left, tokenShape.top, elevation),
-      new Point3d(tokenShape.right, tokenShape.top, elevation),
-      new Point3d(tokenShape.right, tokenShape.bottom, elevation),
-      new Point3d(tokenShape.left, tokenShape.bottom, elevation)
-    ];
-  }
-
-  // Constrained is polygon. Only use corners of polygon
-  // Scale down polygon to avoid adjacent walls.
-  const padShape = tokenShape.pad(-2, { scalingFactor: 100 });
-  return [...padShape.iteratePoints({close: false})].map(pt => new Point3d(pt.x, pt.y, elevation));
-}
-
-/**
- * Helper that tests collisions between a given point and a target points.
- * @param {Point3d} tokenPoint        Point on the token to use.
- * @param {Point3d[]} targetPoints    Array of points on the target to test
- * @returns {COVER_TYPE}
- */
-export function testPointToPoints(tokenPoint, targetPoints) {
-  let numCornersBlocked = 0;
-  const ln = targetPoints.length;
-  for ( let i = 0; i < ln; i += 1 ) {
-    const targetPoint = targetPoints[i];
-    const collision = ClockwiseSweepPolygon.testCollision3d(tokenPoint, targetPoint, { type: "sight", mode: "any" });
-    if ( collision ) numCornersBlocked += 1;
-  }
-
-  const percentCornersBlocked = numCornersBlocked / ln;
-
-  if ( percentCornersBlocked >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
-  if ( percentCornersBlocked >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
-  if ( percentCornersBlocked >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
-
-  return COVER_TYPES.NONE;
-}
-
-/**
- * For debugging.
- * Color lines from point to points as red or green depending on collisions.
- * @param {Point3d} tokenPoint        Point on the token to use.
- * @param {Point3d[]} targetPoints    Array of points on the target to test
- */
-export function drawPointToPoints(tokenPoint, targetPoints, { alpha = 1, width = 1 } = {}) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
-
-  const ln = targetPoints.length;
-  for ( let i = 0; i < ln; i += 1 ) {
-    const targetPoint = targetPoints[i];
-    const collision = ClockwiseSweepPolygon.testCollision3d(tokenPoint, targetPoint, { type: "sight", mode: "any" });
-
-    debug && drawing.drawSegment(  // eslint-disable-line no-unused-expressions
-      {A: tokenPoint, B: targetPoint},
-      { alpha, width, color: collision ? drawing.COLORS.red : drawing.COLORS.green });
-  }
-}
-
-export function calculatePercentCover(visionSource, target) {
-  const constrained = getConstrainedTokenShape(target);
-  const shadowLOS = getShadowLOS(visionSource, target);
-
-  const targetPercentAreaBottom = shadowLOS.bottom ? calculatePercentSeen(shadowLOS.bottom, constrained) : 0;
-  const targetPercentAreaTop = shadowLOS.top ? calculatePercentSeen(shadowLOS.top, constrained) : 0;
-  const percentSeen = Math.max(targetPercentAreaBottom, targetPercentAreaTop);
-
-  return 1 - percentSeen;
-}
-
 
 /**
  * Get an array of all the squares under a token
  * @param {Token} token
  * @returns {PIXI.Rectangle[]}
  */
-export function squaresUnderToken(token) {
+function squaresUnderToken(token) {
   const tX = token.x;
   const tY = token.y;
 
@@ -520,7 +542,7 @@ export function squaresUnderToken(token) {
  * @param {Token} token
  * @returns {PIXI.Polygon[]}
  */
-export function hexesUnderToken(token) {
+function hexesUnderToken(token) {
   const tX = token.x;
   const tY = token.y;
 
