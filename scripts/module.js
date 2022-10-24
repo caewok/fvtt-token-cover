@@ -16,7 +16,6 @@ import { Point3d, registerPIXIPointMethods } from "./Point3d.js";
 // For API
 import * as bench from "./benchmark.js";
 import * as visibility from "./token_visibility.js";
-import * as cover from "./cover.js";
 import * as drawing from "./drawing.js";
 import * as util from "./util.js";
 import { Shadow } from "./Shadow.js";
@@ -24,6 +23,7 @@ import { Matrix } from "./Matrix.js";
 import { Area3d } from "./Area3d.js";
 import { Plane } from "./Plane.js";
 import { ClipperPaths } from "./ClipperPaths.js";
+import { CoverCalculator } from "./cover.js";
 
 Hooks.once("init", async function() {
   registerElevationAdditions();
@@ -44,7 +44,7 @@ Hooks.once("init", async function() {
     ClipperPaths,
     visibility,
     util,
-    cover,
+    CoverCalculator,
     COVER_TYPES,
     debug: false
   };
