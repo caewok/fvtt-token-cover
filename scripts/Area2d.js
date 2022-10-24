@@ -138,8 +138,8 @@ export class Area2d {
   percentAreaVisible(shadowLOS = this._buildShadowLOS) {
     const constrained = this.target.constrainedTokenShape;
 
-    const targetPercentAreaBottom = shadowLOS.bottom ? this.calculatePercentSeen(shadowLOS.bottom, constrained) : 0;
-    const targetPercentAreaTop = shadowLOS.top ? this.calculatePercentSeen(shadowLOS.top, constrained) : 0;
+    const targetPercentAreaBottom = shadowLOS.bottom ? this._calculatePercentSeen(shadowLOS.bottom, constrained) : 0;
+    const targetPercentAreaTop = shadowLOS.top ? this._calculatePercentSeen(shadowLOS.top, constrained) : 0;
     return Math.max(targetPercentAreaBottom, targetPercentAreaTop);
   }
 
