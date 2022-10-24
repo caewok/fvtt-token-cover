@@ -39,7 +39,8 @@ export const SETTINGS = {
     ALGORITHM: "los-algorithm",
     TYPES: {
       POINTS: "los-points",
-      AREA: "los-area"
+      AREA: "los-area",
+      AREA3D: "los-area-3d"
     },
 
     PERCENT_AREA: "los-percent-area"
@@ -48,12 +49,15 @@ export const SETTINGS = {
   COVER: {
     ALGORITHM: "cover-algorithm",
     TYPES: {
-      CENTER_CORNERS: "cover-center-to-corners",
-      CORNER_CORNERS: "cover-corner-to-corners",
+      CENTER_CORNERS_TARGET: "cover-center-to-target-corners",
+      CORNER_CORNERS_TARGET: "cover-corner-to-target-corners",
+      CENTER_CORNERS_GRID: "cover-center-to-target-grid-corners",
+      CORNER_CORNERS_GRID: "cover-corner-to-target-grid-corners",
       CENTER_CENTER: "cover-center-to-center",
       CENTER_CUBE: "cover-center-to-cube",
       CUBE_CUBE: "cover-cube-to-cube",
-      AREA: "cover-area"
+      AREA: "cover-area",
+      AREA3D: "cover-area-3d"
     },
     NAMES: {
       LOW: "cover-name-low",
@@ -162,7 +166,8 @@ export function registerSettings() {
     type: String,
     choices: {
       [VTYPES.POINTS]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.POINTS}`),
-      [VTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.AREA}`)
+      [VTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.AREA}`),
+      [VTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.AREA3D}`)
     },
     default: VTYPES.POINTS,
     onChange: updateLosSetting
@@ -177,7 +182,7 @@ export function registerSettings() {
       step: 0.1
     },
     scope: "world",
-    config: () => getSetting(SETTINGS.LOS.ALGORITHM) === VTYPES.AREA,
+    config: () => getSetting(SETTINGS.LOS.ALGORITHM) !== VTYPES.POINTS,
     default: 0,
     type: Number
   });
@@ -190,11 +195,14 @@ export function registerSettings() {
     type: String,
     choices: {
       [CTYPES.CENTER_CENTER]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CENTER}`),
-      [CTYPES.CENTER_CORNERS]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CORNERS}`),
-      [CTYPES.CORNER_CORNERS]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CORNER_CORNERS}`),
+      [CTYPES.CENTER_CORNERS_TARGET]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CORNERS_TARGET}`),
+      [CTYPES.CORNER_CORNERS_TARGET]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CORNER_CORNERS_TARGET}`),
+      [CTYPES.CENTER_CORNERS_GRID]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CORNERS_GRID}`),
+      [CTYPES.CORNER_CORNERS_GRID]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CORNER_CORNERS_GRID}`),
       [CTYPES.CENTER_CUBE]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CUBE}`),
       [CTYPES.CUBE_CUBE]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CUBE_CUBE}`),
-      [CTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA}`)
+      [CTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA}`),
+      [CTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA3D}`)
     },
     default: CTYPES.CENTER_CORNERS,
     onChange: updateCoverSetting

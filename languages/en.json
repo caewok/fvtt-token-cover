@@ -14,16 +14,19 @@
 
     "tokenvisibility.settings.los-points": "Points on token",
     "tokenvisibility.settings.los-area": "Token area",
+    "tokenvisibility.settings.los-area-3d": "Token area 3d",
 
     "tokenvisibility.settings.cover-algorithm.Name": "Cover Algorithm",
     "tokenvisibility.settings.cover-algorithm.Hint": "How to test whether a token has cover in relation to another.\nAlgorithms loosely sorted from least to most performance-intensive.\nSee https://github.com/caewok/fvtt-token-visibility#settings for a full explanation.",
 
-    "tokenvisibility.settings.cover-center-to-corners": "Center to Corners",
-    "tokenvisibility.settings.cover-corner-to-corners": "Corner to Corners (dnd5e DMG)",
-    "tokenvisibility.settings.cover-center-to-center": "Center to Center (PF2e)",
+    "tokenvisibility.settings.cover-center-to-target-corners": "Center to target corners",
+    "tokenvisibility.settings.cover-corner-to-target-corners": "Corner to target corners",
+    "tokenvisibility.settings.cover-center-to-target-grid-corners": "Center to corners of select target square",
+    "tokenvisibility.settings.cover-corner-to-target-grid-corners": "Corner to corners of select target square (dnd5e DMG)",
+    "tokenvisibility.settings.cover-center-to-center": "Center to center (PF2e)",
     "tokenvisibility.settings.cover-area": "Area",
-    "tokenvisibility.settings.cover-center-to-cube": "Center to Corners 3d",
-    "tokenvisibility.settings.cover-cube-to-cube": "Corner to Corners 3d",
+    "tokenvisibility.settings.cover-center-to-cube": "Center to corners 3d",
+    "tokenvisibility.settings.cover-cube-to-cube": "Corner to corners 3d",
     "tokenvisibility.settings.cover-area-3d": "Area 3d",
 
     "tokenvisibility.settings.cover-name-low.Name": "Low cover name",
