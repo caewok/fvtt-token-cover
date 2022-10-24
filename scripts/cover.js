@@ -52,6 +52,7 @@ import { MODULE_ID, COVER_TYPES } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
 import { Point3d } from "./Point3d.js";
 import { ClipperPaths } from "./ClipperPaths.js";
+import { Area3d} from "./Area3d.js";
 import { getConstrainedTokenShape, getShadowLOS, calculatePercentSeen } from "./token_visibility.js";
 import * as drawing from "./drawing.js";
 
@@ -82,7 +83,7 @@ export function targetCover(token, target) {
     case SETTINGS.COVER.TYPES.AREA:
       return coverArea(token, target);
     case SETTINGS.COVER.TYPES.AREA3D:
-      return coverArea(token, target);
+      return coverArea3d(token, target);
   }
 
   return COVER_TYPES.NONE;
@@ -264,6 +265,29 @@ export function coverArea(token, target) {
   debug && console.log("Cover algorithm: Area"); // eslint-disable-line no-unused-expressions
 
   const percentCover = calculatePercentCover(token.vision, target);
+  debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
+
+  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
+  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
+  if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
+  return COVER_TYPES.NONE;
+}
+
+/**
+ * Test cover based on "3d" area.
+ * Construct the view from the token looking at the target.
+ * Calculate the viewable area of the target from that perspective.
+ * @param {Token} token
+ * @param {Token} target
+ * @returns {COVER_TYPE}
+ */
+export function coverArea3d(token, target) {
+  const debug = game.modules.get(MODULE_ID).api.debug;
+  debug && console.log("Cover algorithm: Area 3d"); // eslint-disable-line no-unused-expressions
+
+  const area3d = new Area3d(token, target);
+  const percentCover = 1 - area3d._percentAreaVisible();
+  debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
 
   if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
   if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;

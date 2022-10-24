@@ -1,6 +1,8 @@
 /* globals
 PIXI,
-canvas
+canvas,
+game,
+foundry
 */
 "use strict";
 
@@ -24,6 +26,7 @@ Area:
 - Wall shapes block and shadows block. Construct the blocked target shape and calc area.
 */
 
+import { MODULE_ID } from "./const.js";
 import { Shadow } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
 import { Point3d } from "./Point3d.js";
@@ -243,7 +246,7 @@ export class Area3d {
 
   _drawSideTransforms() {
     const tTarget = this.transformedTarget;
-    const nSides = tTarget.sides.length
+    const nSides = tTarget.sides.length;
     for ( let i = 0; i < nSides; i += 1 ) {
       this._drawSideTransform(i);
     }
@@ -259,10 +262,13 @@ export class Area3d {
    * (As opposed to projecting the shadow onto the precise 3d target shape)
    */
   _percentAreaVisible() {
+    const debug = game.modules.get(MODULE_ID).api.debug;
+
+
     // 1. Treat each square of the target as a separate plane.
     // 2. Project shadow from the wall onto the plane.
     // 3. Calculate area of the planes w/ shadows and walls block vs. area w/o.
-    const origin = new Point3d(0, 0, 0)
+    const origin = new Point3d(0, 0, 0);
 
     const tTarget = this.transformedTarget;
     const tWalls = this.transformedWalls;
@@ -279,6 +285,12 @@ export class Area3d {
     const sides = tTarget.sides;
     if ( tTarget.top ) sides.push(tTarget.top);
     if ( tTarget.bottom ) sides.push(tTarget.bottom);
+
+    if ( debug ) {
+      this._drawLineOfSight();
+      this._drawTransformedTarget();
+      this._drawTransformedWalls();
+    }
 
     if ( !sides.length ) return;
 
@@ -360,6 +372,8 @@ export class Area3d {
     this._sideAreas = sideAreasArray;
     this._originalSideAreas = originalSideAreas;
 
+    debug && this._drawSideTransforms(); // eslint-disable-line no-unused-expressions
+
     return sidesArea ? obscuredSidesArea / sidesArea : 0;
   }
 
@@ -388,7 +402,8 @@ export class Area3d {
     let walls = canvas.walls.quadtree.getObjects(this.boundsXY, { collisionTest });
 
     // If any walls, refine further by testing against the vision triangle
-    if ( walls.size ) walls = Area3d.filterWallsForVisionCone(walls, getConstrainedTokenShape(this.target), this.tokenCenter)
+    if ( walls.size )
+      walls = Area3d.filterWallsForVisionCone(walls, getConstrainedTokenShape(this.target), this.tokenCenter);
 
     return walls;
   }
