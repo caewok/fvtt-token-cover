@@ -52,8 +52,8 @@ import { MODULE_ID, COVER_TYPES } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
 import { Point3d } from "./Point3d.js";
 import { ClipperPaths } from "./ClipperPaths.js";
-import { Area3d} from "./Area3d.js";
-import { getConstrainedTokenShape, getShadowLOS, calculatePercentSeen } from "./token_visibility.js";
+import { Area2d } from "./Area2d.js";
+import { Area3d } from "./Area3d.js";
 import * as drawing from "./drawing.js";
 
 
@@ -66,7 +66,7 @@ export class CoverCalculator {
   static ALGORITHMS = SETTINGS.COVER.TYPES;
 
   /**
-   * @param {Token} viewer
+   * @param {VisionSource} viewer
    * @param {Token} target
    */
   constructor(viewer, target) {
@@ -126,7 +126,7 @@ export class CoverCalculator {
       case SETTINGS.COVER.TYPES.CUBE_CUBE:
         return this.cubeToCube();
       case SETTINGS.COVER.TYPES.AREA:
-        return this.area();
+        return this.area2d();
       case SETTINGS.COVER.TYPES.AREA3D:
         return this.area3d();
     }
@@ -264,7 +264,7 @@ export class CoverCalculator {
    * Test cover based on area
    * @returns {COVER_TYPE}
    */
-  area() {
+  area2d() {
     this.debug && console.log("Cover algorithm: Area"); // eslint-disable-line no-unused-expressions
 
     const percentCover = 1 - this._percentVisible2d();
@@ -439,16 +439,8 @@ export class CoverCalculator {
    * @returns {number} Percentage seen, of the total target top or bottom area.
    */
   _percentVisible2d() {
-    const visionSource = this.viewer.vision;
-
-    const constrained = getConstrainedTokenShape(this.target);
-    const shadowLOS = getShadowLOS(visionSource, this.target);
-
-    const targetPercentAreaBottom = shadowLOS.bottom ? calculatePercentSeen(shadowLOS.bottom, constrained) : 0;
-    const targetPercentAreaTop = shadowLOS.top ? calculatePercentSeen(shadowLOS.top, constrained) : 0;
-    const percentSeen = Math.max(targetPercentAreaBottom, targetPercentAreaTop);
-
-    return percentSeen;
+    const area2d = new Area2d(this.viewer, this.target);
+    return area2d.percentAreaVisible();
   }
 
   /**
@@ -458,7 +450,7 @@ export class CoverCalculator {
    */
   _percentVisible3d() {
     const area3d = new Area3d(this.viewer, this.target);
-    return area3d._percentAreaVisible();
+    return area3d.percentAreaVisible();
   }
 
   /**
