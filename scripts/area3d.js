@@ -27,11 +27,11 @@ Area:
 */
 
 import { MODULE_ID } from "./const.js";
+import { getSetting, SETTINGS } from "./settings.js";
 import { Shadow } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
 import { Point3d } from "./Point3d.js";
 import { Plane } from "./Plane.js";
-import { getConstrainedTokenShape } from "./token_visibility.js";
 import { elementsByIndex, segmentBlocks } from "./util.js";
 import * as drawing from "./drawing.js"; // For debugging
 
@@ -42,7 +42,7 @@ export class Area3d {
 
   target = undefined;
 
-  tokenCenter = new Point3d();
+  viewerCenter = new Point3d();
 
   targetCenter = new Point3d();
 
@@ -62,6 +62,35 @@ export class Area3d {
    * @type {Point3d}
    */
   _upVector = new Point3d(0, 0, 1);
+
+
+  /**
+   * @param {VisionSource} visionSource     Token, viewing from token.topZ.
+   * @param {Target} target   Target; token is looking at the target center.
+   */
+  constructor(viewer, target) {
+    this.viewer = viewer;
+    this.target = target;
+
+    this.viewerCenter = new Point3d(viewer.x, viewer.y, viewer.elevationZ);
+    this.targetCenter = Area3d.tokenCenter(target);
+    this.percentAreaForLOS = getSetting(SETTINGS.LOS.PERCENT_AREA);
+  }
+
+  /**
+   * Determine whether a visionSource has line-of-sight to a target based on the percent
+   * area of the target visible to the source.
+   */
+  hasLOS() {
+    const percentArea = this.percentAreaForLOS;
+
+    // If center point is visible, then target is likely visible but not always.
+    // e.g., walls slightly block the center point. Or walls block all but center.
+
+    const percentVisible = this.percentAreaVisible();
+    if ( percentVisible.almostEqual(0) ) return false;
+    return (percentVisible > percentArea) || percentVisible.almostEqual(percentArea);
+  }
 
   /**
    * Find the bounds rectangle encompassing the token center and the target shape.
@@ -96,12 +125,12 @@ export class Area3d {
     return this._transformedWalls || (this._transformedWalls = this._transformWalls());
   }
 
-  get tokenViewM() {
-    return this._tokenViewM || (this._tokenViewM = this.tokenCameraM.invert());
+  get viewerViewM() {
+    return this._tokenViewM || (this._tokenViewM = this.viewerCameraM.invert());
   }
 
-  get tokenCameraM() {
-    return this._tokenCameraM || (this._tokenCameraM = this._calculateTokenCameraMatrix());
+  get viewerCameraM() {
+    return this._viewerCameraM || (this._viewerCameraM = this._calculateViewerCameraMatrix());
   }
 
   /**
@@ -110,28 +139,16 @@ export class Area3d {
    * @returns {PIXI.Rectangle}
    */
   _calculateBoundsXY() {
-    if ( !this.target || !this.token ) return undefined;
+    if ( !this.target || !this.viewer ) return undefined;
 
     const targetBounds = this.target.bounds;
 
-    const maxX = Math.max(this.tokenCenter.x, targetBounds.right);
-    const maxY = Math.max(this.tokenCenter.y, targetBounds.bottom);
-    const minX = Math.min(this.tokenCenter.x, targetBounds.left);
-    const minY = Math.min(this.tokenCenter.y, targetBounds.top);
+    const maxX = Math.max(this.viewerCenter.x, targetBounds.right);
+    const maxY = Math.max(this.viewerCenter.y, targetBounds.bottom);
+    const minX = Math.min(this.viewerCenter.x, targetBounds.left);
+    const minY = Math.min(this.viewerCenter.y, targetBounds.top);
 
     return new PIXI.Rectangle(minX, minY, maxX - minX, maxY - minY);
-  }
-
-  /**
-   * @param {Token} token     Token, viewing from token.topZ.
-   * @param {Target} target   Target; token is looking at the target center.
-   */
-  constructor(token, target) {
-    this.token = token;
-    this.target = target;
-
-    this.tokenCenter = new Point3d(token.center.x, token.center.y, token.topZ);
-    this.targetCenter = Area3d.tokenCenter(target);
   }
 
   /**
@@ -170,8 +187,8 @@ export class Area3d {
   /**
    * Construct the transformation matrix to rotate the view around the center of the token.
    */
-  _calculateTokenCameraMatrix() {
-    const cameraPosition = this.tokenCenter;
+  _calculateViewerCameraMatrix() {
+    const cameraPosition = this.viewerCenter;
     const targetPosition = this.targetCenter;
     return Matrix.lookAt(cameraPosition, targetPosition, this._upVector);
   }
@@ -180,8 +197,8 @@ export class Area3d {
    * Transform the token center
    * Only used for debugging
    */
-  _transformTokenCenter() {
-    return Matrix.fromPoint3d(this.tokenCenter).multiply(this.tokenViewM).toPoint3d();
+  _transformViewerCenter() {
+    return Matrix.fromPoint3d(this.viewerCenter).multiply(this.viewerViewM).toPoint3d();
   }
 
   /**
@@ -189,7 +206,7 @@ export class Area3d {
    */
   _transformTarget() {
     const t = this._target3dPoints();
-    t.points = t.points.map(pt => Matrix.fromPoint3d(pt).multiply(this.tokenViewM).toPoint3d());
+    t.points = t.points.map(pt => Matrix.fromPoint3d(pt).multiply(this.viewerViewM).toPoint3d());
     return t;
   }
 
@@ -200,7 +217,7 @@ export class Area3d {
     const walls = this.blockingWalls.map(w => Area3d.wall3dPoints(w));
 
     return walls.map(w =>
-      w.map(pt => Matrix.fromPoint3d(pt).multiply(this.tokenViewM).toPoint3d()));
+      w.map(pt => Matrix.fromPoint3d(pt).multiply(this.viewerViewM).toPoint3d()));
   }
 
   /**
@@ -238,7 +255,7 @@ export class Area3d {
       if ( poly instanceof Shadow ) {
         poly.draw();
       } else {
-        drawing.drawShape(poly, { color: drawing.COLORS.blue, width: 2 });
+        drawing.drawShape(poly, { color: drawing.COLORS.blue, width: 2, fill: drawing.COLORS.blue, fillAlpha: 0.2  });
       }
 
     });
@@ -261,7 +278,7 @@ export class Area3d {
    * - Assume the surface elevation for the shadow to be the center of the target.
    * (As opposed to projecting the shadow onto the precise 3d target shape)
    */
-  _percentAreaVisible() {
+  percentAreaVisible() {
     const debug = game.modules.get(MODULE_ID).api.debug;
 
 
@@ -390,7 +407,7 @@ export class Area3d {
     if ( !wall.document.sight || wall.isOpen ) return false;
 
     // Ignore one-directional walls facing away from the origin
-    const side = wall.orientPoint(this.tokenCenter);
+    const side = wall.orientPoint(this.viewerCenter);
     return !wall.document.dir || (side !== wall.document.dir);
   }
 
@@ -402,8 +419,10 @@ export class Area3d {
     let walls = canvas.walls.quadtree.getObjects(this.boundsXY, { collisionTest });
 
     // If any walls, refine further by testing against the vision triangle
-    if ( walls.size )
-      walls = Area3d.filterWallsForVisionCone(walls, getConstrainedTokenShape(this.target), this.tokenCenter);
+    if ( walls.size ) walls = Area3d.filterWallsForVisionCone(
+      walls,
+      this.target.constrainedTokenShape,
+      this.viewerCenter);
 
     return walls;
   }
@@ -420,12 +439,12 @@ export class Area3d {
    */
   _target3dPoints() {
     // In 2d XY coordinates, check what points are visible.
-    const center = this.tokenCenter;
-    const centerZ = this.tokenCenter.z;
+    const center = this.viewerCenter;
+    const centerZ = this.viewerCenter.z;
     const target = this.target;
-    const { bottomZ, topZ } = target;
-    const targetShape = getConstrainedTokenShape(target);
-    const targetPoly = targetShape instanceof PIXI.Rectangle ? targetShape.toPolygon() : targetShape;
+    const { bottomZ, topZ, constrainedTokenShape } = target;
+    const targetPoly = constrainedTokenShape instanceof PIXI.Rectangle
+      ? constrainedTokenShape.toPolygon() : constrainedTokenShape;
 
     const out = {
       points: [],
@@ -578,52 +597,52 @@ export class Area3d {
    * @param {boolean} useConstrained    If true, use the token polygon constrained by walls.
    * @returns {Point3d[]}
    */
-  static token3dPoints(token, useConstrained = true) {
-    let tokenShape = token.bounds;
-    if ( useConstrained ) tokenShape = getConstrainedTokenShape(token);
-
-    const { bottomZ, topZ } = token;
-
-    if ( tokenShape instanceof PIXI.Rectangle ) {
-      const { x, y, height, width } = tokenShape;
-
-      // Face points are:
-      // top: 1, 3, 5, 7
-      // bottom: 0, 2, 4, 6
-      // s1: 1, 3, 2, 0
-      // s2: 3, 5, 4, 2
-      // s3: 5, 7, 6, 4
-      // s4: 7, 1, 0, 6
-      return [
-        new Point3d(x, y, bottomZ),
-        new Point3d(x, y, topZ),
-
-        new Point3d(x + width, y, bottomZ),
-        new Point3d(x + width, y, topZ),
-
-        new Point3d(x + width, y + height, bottomZ),
-        new Point3d(x + width, y + height, topZ),
-
-        new Point3d(x, y + height, bottomZ),
-        new Point3d(x, y + height, topZ)
-      ];
-    }
-
-    // Face points are:
-    // top: 1, 3, 5, ...
-    // bottom: 0, 2, 4, ...
-    // s1: 1, 3, 2, 0
-    // s2: 3, 5, 4, 2 ...
-    // sn: n, 1, 0, n - 1
-    const pts = [];
-    for ( const pt of tokenShape.iteratePoints({close: false}) ) {
-      pts.push(
-        new Point3d(pt.x, pt.y, bottomZ),
-        new Point3d(pt.x, pt.y, topZ)
-      );
-    }
-    return pts;
-  }
+//   static token3dPoints(token, useConstrained = true) {
+//     let tokenShape = token.bounds;
+//     if ( useConstrained ) tokenShape = getConstrainedTokenShape(token);
+//
+//     const { bottomZ, topZ } = token;
+//
+//     if ( tokenShape instanceof PIXI.Rectangle ) {
+//       const { x, y, height, width } = tokenShape;
+//
+//       // Face points are:
+//       // top: 1, 3, 5, 7
+//       // bottom: 0, 2, 4, 6
+//       // s1: 1, 3, 2, 0
+//       // s2: 3, 5, 4, 2
+//       // s3: 5, 7, 6, 4
+//       // s4: 7, 1, 0, 6
+//       return [
+//         new Point3d(x, y, bottomZ),
+//         new Point3d(x, y, topZ),
+//
+//         new Point3d(x + width, y, bottomZ),
+//         new Point3d(x + width, y, topZ),
+//
+//         new Point3d(x + width, y + height, bottomZ),
+//         new Point3d(x + width, y + height, topZ),
+//
+//         new Point3d(x, y + height, bottomZ),
+//         new Point3d(x, y + height, topZ)
+//       ];
+//     }
+//
+//     // Face points are:
+//     // top: 1, 3, 5, ...
+//     // bottom: 0, 2, 4, ...
+//     // s1: 1, 3, 2, 0
+//     // s2: 3, 5, 4, 2 ...
+//     // sn: n, 1, 0, n - 1
+//     const pts = [];
+//     for ( const pt of tokenShape.iteratePoints({close: false}) ) {
+//       pts.push(
+//         new Point3d(pt.x, pt.y, bottomZ),
+//         new Point3d(pt.x, pt.y, topZ)
+//       );
+//     }
+//     return pts;
+//   }
 
   /**
    * Get 3d points representing a given wall.
@@ -653,7 +672,7 @@ export class Area3d {
    * Draw the line of sight from token to target.
    */
   _drawLineOfSight() {
-    drawing.drawSegment({A: this.tokenCenter, B: this.targetCenter});
+    drawing.drawSegment({A: this.viewerCenter, B: this.targetCenter});
   }
 
   /**

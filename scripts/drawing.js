@@ -67,16 +67,20 @@ export function drawSegment(s, { color = COLORS.blue, alpha = 1, width = 1 } = {
 /**
  * Draw the edges of a polygon on the canvas.
  * @param {PIXI.Polygon} poly
+ * @param {object} [options]
  * Optional:
- * @param {Hex}     color   Hex code for the color to use.
- * @param {Number}  width   Width of the line in pixels.
+ * @param {hex}     [color=COLORS.black]    Hex code for the color to use.
+ * @param {number}  [width=1]               Width of the line in pixels.
+ * @param {hex|null}[fill=null]             Color of the fill, if any.
+ * @param {number}  [fillAlpha=1]           Alpha of the fill, if any.
  */
-export function drawShape(shape, { color = COLORS.black, width = 1 } = {}) {
+export function drawShape(shape, { color = COLORS.black, width = 1, fill = null, fillAlpha = 1 } = {}) {
+  if ( fill ) canvas.controls.debug.beginFill(fill, fillAlpha);
   canvas.controls.debug.lineStyle(width, color).drawShape(shape);
+  if ( fill ) canvas.controls.debug.endFill();
 }
 
 export const drawPolygon = drawShape;
-
 
 /**
  * Create a text label at a specified position on the canvas.
