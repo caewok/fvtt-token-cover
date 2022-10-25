@@ -227,6 +227,7 @@ export class Shadow extends PIXI.Polygon {
    * @returns {Point3d[]} Four points representing the shadow trapezoid
    */
   static XYWallWithPlane(wall, origin, surfacePlane) {
+
     const bottomZ = isFinite(wall.bottomZ) ? wall.bottomZ : -canvas.dimensions.maxR;
     const topZ = isFinite(wall.topZ) ? wall.topZ : canvas.dimensions.maxR;
     const { A, B } = wall;
@@ -272,7 +273,6 @@ export class Shadow extends PIXI.Polygon {
       // If bottom intersection is closer, use wall
       ixShadowBottomA = distWallA > distShadowBottomA ? ixWallA : ixShadowBottomA;
       ixShadowBottomB = distWallB > distShadowBottomB ? ixWallB : ixShadowBottomB;
-
 
     } else if ( origin.z < bottomZ ) {
       // Source looking up at wall
@@ -323,7 +323,10 @@ export class Shadow extends PIXI.Polygon {
     const surfacePlane = new Plane(new Point3d(0, 0, surfaceElevation));
     const sourcePoint = new Point3d(x, y, elevationZ);
 
-    const points = Shadow.XYWallWithPlane(wall, sourcePoint, surfacePlane).map(pt => pt.to2d());
+    const shadowPoints = Shadow.XYWallWithPlane(wall, sourcePoint, surfacePlane);
+    if ( !shadowPoints ) return null;
+
+    const points = shadowPoints.map(pt => pt.to2d());
     return new Shadow(points);
   }
 

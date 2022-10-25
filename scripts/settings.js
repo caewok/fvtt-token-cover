@@ -18,7 +18,7 @@ export async function setSetting(settingName, value) {
 function setSettingVisibility(settingName, visible = true) {
   log(`Setting ${settingName} to ${visible ? "visible" : "not visible"}`);
   game.settings.settings.get(`${MODULE_ID}.${settingName}`).config = visible;
-  game.settings._sheet.render();
+  if ( game.settings._sheet ) game.settings._sheet.render();
 }
 
 
@@ -204,8 +204,8 @@ export function registerSettings() {
       [CTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA}`),
       [CTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA3D}`)
     },
-    default: CTYPES.CENTER_CORNERS,
-    onChange: updateCoverSetting
+    default: CTYPES.CENTER_CORNERS//,
+    //onChange: updateCoverSetting
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_CENTER, {
@@ -339,7 +339,7 @@ function getCoverNames() {
 
 function updateLosSetting(value) {
   log(`Changing to ${value}`);
-  ui.notifications.notify(`Changing to ${value}`);
+//   ui.notifications.notify(`Changing to ${value}`);
   const VTYPES = SETTINGS.LOS.TYPES;
   const visible = value === VTYPES.AREA;
   setSettingVisibility(SETTINGS.LOS.PERCENT_AREA, visible);
@@ -347,7 +347,7 @@ function updateLosSetting(value) {
 
 function updateCoverSetting(value) {
   log(`Changing to ${value}`);
-  ui.notifications.notify(`Changing to ${value}`);
+//   ui.notifications.notify(`Changing to ${value}`);
   const CTYPES = SETTINGS.COVER.TYPES;
   const area_visible = value === CTYPES.AREA;
   const center_visible = value === CTYPES.CENTER_CENTER;
@@ -422,8 +422,8 @@ export async function _onSubmitSettingsConfig(wrapper, options = {}) {
 }
 
 export async function _onChangeInput(wrapper, event) {
-  log("_onChangeInput!");
-  ui.notifications.notify("_onChangeInput settingsConfig");
+  log("_onChangeInput!")  ;
+//   ui.notifications.notify("_onChangeInput settingsConfig");
 
   return wrapper(event);
 }
