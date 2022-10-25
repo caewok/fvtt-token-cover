@@ -369,7 +369,9 @@ export class CoverCalculator {
     const constrainedGridShapes = [];
     const constrainedPath = ClipperPaths.fromPolygons([constrained]);
 
-    for ( const gridShape of gridShapes ) {
+    for ( let gridShape of gridShapes ) {
+      if ( gridShape instanceof PIXI.Rectangle ) gridShape = gridShape.toPolygon();
+
       const constrainedGridShape = constrainedPath.intersectPolygon(gridShape).simplify();
       if ( !constrainedGridShape || constrainedGridShape.points.length < 6 ) continue;
       constrainedGridShapes.push(constrainedGridShape);
