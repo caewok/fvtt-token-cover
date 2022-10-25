@@ -363,7 +363,7 @@ export class Area3d {
         for ( let i = 0; i < ln; i += 1 ) {
           const A = wall[i];
           const B = wall[(i + 1) % ln];
-          const shadow = Shadow.segmentWithPlane(A, B, origin, sidePlane);
+          const shadow = Shadow.complexSurfaceOriginAbove(A, B, origin, sidePlane);
           if ( shadow ) {
             const shadowPoly = new Shadow(shadow);
             sideTransform.blockingPolygons.push(shadowPoly);

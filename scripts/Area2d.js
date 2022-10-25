@@ -258,9 +258,10 @@ export class Area2d {
       return los;
     }
 
+    const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
     const shadows = [];
     for ( const wall of walls ) {
-      const shadow = Shadow.construct(wall, visionSource, targetElevation);
+      const shadow = Shadow.constructFromWall(wall, origin, targetElevation);
       if ( shadow ) shadows.push(shadow);
     }
 
