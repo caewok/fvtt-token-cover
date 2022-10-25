@@ -1,11 +1,12 @@
 /* globals
 PIXI,
 canvas,
-ClipperLib
+ClipperLib,
+Ray
 */
 "use strict";
 
-import { distanceSquaredBetweenPoints, zValue, log } from "./util.js";
+import { distanceSquaredBetweenPoints, zValue } from "./util.js";
 import { COLORS, drawShape } from "./drawing.js";
 import { Point3d } from "./Point3d.js";
 import { ClipperPaths } from "./ClipperPaths.js";
@@ -127,10 +128,10 @@ export class Shadow extends PIXI.Polygon {
     // Direction of the surfacePlane in relation to the origin.
     const ixOrigin = surfacePlane.lineIntersection(origin, upV);
     if ( ixOrigin.z.almostEqual(origin.z) ) {
-      console.warn("complexSurfaceOriginAbove origin is on the plane")
+      console.warn("complexSurfaceOriginAbove origin is on the plane");
       return null;
     } else if ( origin.z < ixOrigin.z ) {
-      console.warn("complexSurfaceOriginAbove origin is below the plane")
+      console.warn("complexSurfaceOriginAbove origin is below the plane");
       return null;
     }
 
@@ -145,10 +146,7 @@ export class Shadow extends PIXI.Polygon {
       if ( !res ) return null; // Wall portion completely behind the surface
       A = res.A;
       B = res.B;
-    } else {
-      // Does not cross the surface. Reject if endpoint is on the wrong side.
-      if ( A.z < surfacePlane.point.z ) return null;
-    }
+    } else if ( A.z < surfacePlane.point.z ) return null; // Does not cross the surface. Reject if endpoint is on the wrong side.
 
     // Intersection points of origin --> wall endpoint --> surface
     let ixOriginA;
@@ -173,7 +171,7 @@ export class Shadow extends PIXI.Polygon {
 
     // If the intersection point is above the origin, then the surface is twisted
     // such that the surface is between the origin and the wall at that point.
-    if ( !ixOriginA || !ixOriginB || ixOriginA.z > origin.z || xOriginB.z > origin.z ) return null;
+    if ( !ixOriginA || !ixOriginB || ixOriginA.z > origin.z || ixOriginB.z > origin.z ) return null;
 
     // Find the intersection points of the wall with the surfacePlane
     const ixWallA = surfacePlane.lineIntersection(A, upV);
@@ -186,33 +184,33 @@ export class Shadow extends PIXI.Polygon {
     const distWallA = distanceSquaredBetweenPoints(origin, A);
     const distIxWallA = distanceSquaredBetweenPoints(origin, ixWallA);
     if ( distWallA >= distIxWallA ) {
-      console.warn("complexSurfaceOriginAbove distWallA >= distIxWallA")
+      console.warn("complexSurfaceOriginAbove distWallA >= distIxWallA");
       return null;
     }
 
     const distWallB = distanceSquaredBetweenPoints(origin, B);
     const distIxWallB = distanceSquaredBetweenPoints(origin, ixWallB);
     if ( distWallB >= distIxWallB ) {
-      console.warn("complexSurfaceOriginAbove distWallB >= distIxWallB")
+      console.warn("complexSurfaceOriginAbove distWallB >= distIxWallB");
       return null;
     }
 
     // Surface intersection must be further from origin than the wall point
-    if ( distWallA >= ixShadowA ) {
-      console.warn("complexSurfaceOriginAbove distWallA >= ixShadowA")
+    if ( distWallA >= ixOriginA ) {
+      console.warn("complexSurfaceOriginAbove distWallA >= ixOriginA");
       return null;
     }
 
-    if ( distWallB >= ixShadowB ) {
-      console.warn("complexSurfaceOriginAbove distWallB >= ixShadowB")
+    if ( distWallB >= ixOriginB ) {
+      console.warn("complexSurfaceOriginAbove distWallB >= ixOriginB");
       return null;
     }
 
     return new Shadow([
       ixWallA,
       ixOriginA,
-      ixShadowB,
-      ixOriginB
+      ixOriginA,
+      ixWallB
     ]);
   }
 
@@ -283,7 +281,7 @@ export class Shadow extends PIXI.Polygon {
       ixOriginC,
       ixOriginA,
       ixOriginB,
-      ixOriginC
+      ixOriginD
     ]);
   }
 
@@ -313,7 +311,7 @@ export class Shadow extends PIXI.Polygon {
     origin.z *= -1;
     surfacePlane.point.z *= -1;
 
-    const shadow = simpleShadowOriginAbove(A, B, C, D, origin, surfacePlane);
+    const shadow = Shadow.simpleShadowOriginAbove(A, B, C, D, origin, surfacePlane);
 
     // Turn everything right-side up, just in case they are used elsewhere.
     A.z *= -1;
@@ -342,16 +340,16 @@ export class Shadow extends PIXI.Polygon {
 
     // Run simple tests to avoid further computation
     // Viewer and the surface elevation both above the wall, so no shadow
-    else if ( elevationZ >= topZ && surfaceElevation >= topZ ) return null;
+    if ( origin.z >= topZ && surfaceElevation >= topZ ) return null;
 
     // Viewer and the surface elevation both below the wall, so no shadow
-    else if ( elevationZ <= bottomZ && surfaceElevation <= bottomZ ) return null;
+    else if ( origin.z <= bottomZ && surfaceElevation <= bottomZ ) return null;
 
     // Projecting downward from source; if below bottom of wall, no shadow.
-    else if ( elevationZ >= surfaceElevation && elevationZ <= bottomZ ) return null;
+    else if ( origin.z >= surfaceElevation && origin.z <= bottomZ ) return null;
 
     // Projecting upward from source; if above bottom of wall, no shadow.
-    else if ( elevationZ <= surfaceElevation && elevationZ >= topZ ) return null;
+    else if ( origin.z <= surfaceElevation && origin.z >= topZ ) return null;
 
     const bottomInfinite = !isFinite(bottomZ);
     const topInfinite = !isFinite(topZ);
@@ -368,8 +366,8 @@ export class Shadow extends PIXI.Polygon {
     const surfacePlane = new Plane(new Point3d(0, 0, surfaceElevation), Shadow.upV);
 
     return origin.z > surfaceElevation
-      ? Shadow.simpleShadowXYOrientationOriginAbove(A, B, C, D, origin, surfacePlane)
-      : Shadow.simpleShadowXYOrientationOriginBelow(A, B, C, D, origin, surfacePlane);
+      ? Shadow.simpleShadowXYOrientationOriginAbove(pointA, pointB, pointC, pointD, origin, surfacePlane)
+      : Shadow.simpleShadowXYOrientationOriginBelow(pointA, pointB, pointC, pointD, origin, surfacePlane);
   }
 
   /**
@@ -457,7 +455,7 @@ function truncateWallAtElevation(A, B, z, dir = -1, dist = 0.001) {
   const distBz = dir < 0 ? z - B.z : B.z - z;
 
   if ( distAz > 0 && distBz > 0 ) {
-    // do nothing
+    // Do nothing
   } else if ( distAz <= 0 && distBz <= 0 ) {
     return null;
   } else if ( distAz <= 0 || distBz <= 0 ) {
