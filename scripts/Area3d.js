@@ -407,6 +407,10 @@ export class Area3d {
     // Ignore walls that do not block sight
     if ( !wall.document.sight || wall.isOpen ) return false;
 
+    // Ignore walls that are in line with the viewer and target
+    if ( !foundry.utils.orient2d(this.viewerCenter, wall.A, wall.B)
+      && !foundry.utils.orient2d(this.targetCenter, wall.A, wall.B) ) return false;
+
     // Ignore one-directional walls facing away from the origin
     const side = wall.orientPoint(this.viewerCenter);
     return !wall.document.dir || (side !== wall.document.dir);
