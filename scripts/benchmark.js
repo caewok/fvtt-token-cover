@@ -332,7 +332,7 @@ function precision(n, digits = 2) {
   * @param {Object} ...args       Additional arguments to pass to function
   * @return {Number[]}            Array with the time elapsed for each iteration.
   */
-async function QBenchmarkLoop(iterations, thisArg, fn_name, ...args) {
+export async function QBenchmarkLoop(iterations, thisArg, fn_name, ...args) {
   const name = `${thisArg.name || thisArg.constructor.name}.${fn_name}`;
   const fn = (...args) => thisArg[fn_name](...args);
   return await QBenchmarkLoopFn(iterations, fn, name, ...args);
@@ -348,7 +348,7 @@ async function QBenchmarkLoop(iterations, thisArg, fn_name, ...args) {
   * @param {Object} ...args       Additional arguments to pass to function
   * @return {Number[]}            Array with the time elapsed for each iteration.
   */
-async function QBenchmarkLoopFn(iterations, fn, name, ...args) {
+export async function QBenchmarkLoopFn(iterations, fn, name, ...args) {
   const timings = [];
   const num_warmups = Math.ceil(iterations * .05);
 
