@@ -138,7 +138,7 @@ export async function benchTokenLOS(n = 100) {
   }
 
   const tokens = canvas.tokens.placeables.filter(t => !t.controlled);
-  console.log(`Benching token visibility range for ${tokens.length} tokens.`);
+  console.log(`Benching token visibility LOS for ${tokens.length} tokens.`);
 
   // Set to default Range for test
   await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.FOUNDRY);
@@ -218,7 +218,7 @@ export async function benchCover(n = 100) {
   }
 
   const tokens = canvas.tokens.placeables.filter(t => !t.controlled);
-  console.log(`Benching token visibility range for ${tokens.length} tokens.`);
+  console.log(`Benching token cover for ${tokens.length} tokens.`);
 
   await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.CENTER_CENTER);
   await QBenchmarkLoopFn(n, coverTestFn, "Center-->Center", controlled, tokens);
