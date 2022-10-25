@@ -11,6 +11,7 @@ import { SETTINGS, getSetting } from "./settings.js";
 import { log } from "./util.js";
 import { Shadow } from "./Shadow.js";
 import { ClipperPaths } from "./ClipperPaths.js";
+import { Point3d } from "./Point3d.js";
 import * as drawing from "./drawing.js";
 
 
