@@ -149,24 +149,13 @@ export class Shadow extends PIXI.Polygon {
     } else if ( A.z < surfacePlane.point.z ) return null; // Does not cross the surface. Reject if endpoint is on the wrong side.
 
     // Intersection points of origin --> wall endpoint --> surface
-    let ixOriginA;
-    let ixOriginB;
-    if ( origin.z > A.z ) {
-      // Viewer is above top of the wall, so find origin --> A --> surface
-      ixOriginA = surfacePlane.lineSegmentIntersection(origin, A);
-    } else {
-      // Viewer is below top of the wall, so find far point to use
-      const maxR2 = Math.pow(canvas.dimensions.maxR, 2);
-      const rA = Ray.towardsPointSquared(origin, A, maxR2);
-      ixOriginA = surfacePlane.lineIntersection(rA.B, upV);
-    }
+    const ixOriginA = wallPointSurfaceIntersection(A, origin, surfacePlane);
+    const ixOriginB = wallPointSurfaceIntersection(B, origin, surfacePlane);
 
-    if ( origin.z > B.z ) {
-      ixOriginB = surfacePlane.lineSegmentIntersection(origin, B);
-    } else {
-      const maxR2 = Math.pow(canvas.dimensions.maxR, 2);
-      const rB = Ray.towardsPointSquared(origin, B, maxR2);
-      ixOriginB = surfacePlane.lineIntersection(rB.B, upV);
+    // Debugging
+    if ( !ixOriginA || !ixOriginB ) {
+      console.warn("complexSurfaceOriginAbove ixOriginA or ixOriginB is null");
+      return null;
     }
 
     // If the intersection point is above the origin, then the surface is twisted
@@ -175,10 +164,16 @@ export class Shadow extends PIXI.Polygon {
 
     // Find the intersection points of the wall with the surfacePlane
     const ixWallA = surfacePlane.lineIntersection(A, upV);
-    if ( !ixWallA ) return null; // Unlikely, but possible?
+//     if ( !ixWallA ) return null; // Unlikely, but possible?
 
     const ixWallB = surfacePlane.lineIntersection(B, upV);
-    if ( !ixWallB ) return null; // Unlikely, but possible?
+//     if ( !ixWallB ) return null; // Unlikely, but possible?
+
+    // Debugging
+    if ( !ixWallA || !ixWallB ) {
+      console.warn("complexSurfaceOriginAbove ixWallA or ixWallB is null");
+      return null;
+    }
 
     // Tests for debugging
     const distWallA = distanceSquaredBetweenPoints(origin, A);
@@ -242,27 +237,20 @@ export class Shadow extends PIXI.Polygon {
    * @returns {Shadow|null} Null if shadow not formed or if shadow would be equivalent to LOS
    *  because it is infinite and starts at the wall-surface intersection.
    */
-  static simpleShadowOriginAbove(A, B, C, D, origin, surfacePlane) {
+  static simpleSurfaceOriginAbove(A, B, C, D, origin, surfacePlane) {
     if ( origin.z <= C.z ) return null; // Viewer is below the wall bottom.
 
     const upV = Shadow.upV;
     const ixAC = surfacePlane.lineIntersection(A, upV);
     if ( origin.z <= A.z && C.z <= ixAC.z ) return null; // Wall intersects surface above C and viewer is below the wall.
 
-    let ixOriginA;
-    let ixOriginB;
-    if ( origin.z > A.z ) {
-      // Viewer is above top of the wall, so find origin --> A --> surface
-      ixOriginA = surfacePlane.lineSegmentIntersection(origin, A);
+    const ixOriginA = wallPointSurfaceIntersection(A, origin, surfacePlane);
+    const ixOriginB = wallPointSurfaceIntersection(B, origin, surfacePlane);
 
-    } else {
-      // Viewer is below top of the wall, so find far point to use
-      const maxR2 = Math.pow(canvas.dimensions.maxR, 2);
-      const rA = Ray.towardsPointSquared(origin, A, maxR2);
-      ixOriginA = surfacePlane.lineIntersection(rA.B, upV);
-
-      const rB = Ray.towardsPointSquared(origin, B, maxR2);
-      ixOriginB = surfacePlane.lineIntersection(rB.B, upV);
+    // Debugging
+    if ( !ixOriginA || !ixOriginB ) {
+      console.warn("simpleSurfaceOriginAbove ixOriginA or ixOriginB is null");
+      return null;
     }
 
     let ixOriginC;
@@ -275,6 +263,12 @@ export class Shadow extends PIXI.Polygon {
       // Use the wall --> surface intersection
       ixOriginC = ixAC;
       ixOriginD = surfacePlane.lineIntersection(B, upV);
+    }
+
+    // Debugging
+    if ( !ixOriginA || !ixOriginB ) {
+      console.warn("simpleSurfaceOriginAbove ixOriginC or ixOriginBDis null");
+      return null;
     }
 
     return new Shadow([
@@ -302,7 +296,7 @@ export class Shadow extends PIXI.Polygon {
    * @returns {Shadow|null} Null if shadow not formed or if shadow would be equivalent to LOS
    *  because it is infinite and starts at the wall-surface intersection.
    */
-  static simpleShadowOriginBelow(A, B, C, D, origin, surfacePlane) {
+  static simpleSurfaceOriginBelow(A, B, C, D, origin, surfacePlane) {
     // Turn everything upside down.
     A.z *= -1;
     B.z *= -1;
@@ -311,7 +305,7 @@ export class Shadow extends PIXI.Polygon {
     origin.z *= -1;
     surfacePlane.point.z *= -1;
 
-    const shadow = Shadow.simpleShadowOriginAbove(A, B, C, D, origin, surfacePlane);
+    const shadow = Shadow.simpleSurfaceOriginAbove(A, B, C, D, origin, surfacePlane);
 
     // Turn everything right-side up, just in case they are used elsewhere.
     A.z *= -1;
@@ -366,8 +360,8 @@ export class Shadow extends PIXI.Polygon {
     const surfacePlane = new Plane(new Point3d(0, 0, surfaceElevation), Shadow.upV);
 
     return origin.z > surfaceElevation
-      ? Shadow.simpleShadowXYOrientationOriginAbove(pointA, pointB, pointC, pointD, origin, surfacePlane)
-      : Shadow.simpleShadowXYOrientationOriginBelow(pointA, pointB, pointC, pointD, origin, surfacePlane);
+      ? Shadow.simpleSurfaceOriginAbove(pointA, pointB, pointC, pointD, origin, surfacePlane)
+      : Shadow.simpleSurfaceOriginBelow(pointA, pointB, pointC, pointD, origin, surfacePlane);
   }
 
   /**
@@ -475,4 +469,18 @@ function truncateWallAtElevation(A, B, z, dir = -1, dist = 0.001) {
     }
   }
   return { A, B, distAz, distBz };
+}
+
+/**
+ *
+ */
+function wallPointSurfaceIntersection(A, origin, surfacePlane) {
+  // Viewer is above top of the wall, so find origin --> A --> surface
+  if ( origin.z > A.z ) return surfacePlane.lineSegmentIntersection(origin, A);
+
+  // Viewer is below top of the wall, so find far point to use
+  const maxR2 = Math.pow(canvas.dimensions.maxR, 2);
+  const rA = Ray.towardsPointSquared(origin, A, maxR2);
+  const pA = new Point3d(rA.B.x, rA.B.y, origin.z);
+  return surfacePlane.lineIntersection(pA, Shadow.upV);
 }
