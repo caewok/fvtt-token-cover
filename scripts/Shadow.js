@@ -445,7 +445,7 @@ function towardZ(A, B, z) {
  *   If negative, force wall to be below z. If positive, force wall to be above z.
  * @return {object{ A: {Point3d}, B: {Point3d}}|null}
  */
-function truncateWallAtElevation(A, B, z, dir = -1, dist = 0.001) {
+export function truncateWallAtElevation(A, B, z, dir = -1, dist = 0.001) {
   const distAz = dir < 0 ? z - A.z : A.z - z;
   const distBz = dir < 0 ? z - B.z : B.z - z;
 
@@ -471,6 +471,7 @@ function truncateWallAtElevation(A, B, z, dir = -1, dist = 0.001) {
   }
   return { A, B, distAz, distBz };
 }
+
 
 /**
  *
