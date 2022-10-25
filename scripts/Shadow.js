@@ -148,14 +148,17 @@ export class Shadow extends PIXI.Polygon {
     // If the intersection point is above the origin, then the surface is twisted
     // such that the surface is between the origin and the wall at that point.
     const ixShadowA = surfacePlane.lineSegmentIntersection(origin, A);
-    if ( dir > 0 && ixShadowA.z < origin.z || dir < 0 && ixShadowA.z > origin.z ) return null;
+    if ( !ixShadowA || (dir > 0 && ixShadowA.z < origin.z) || (dir < 0 && ixShadowA.z > origin.z) ) return null;
 
     const ixShadowB = surfacePlane.lineSegmentIntersection(origin, B);
-    if ( dir > 0 && ixShadowB.z < origin.z || dir < 0 && ixShadowB.z > origin.z ) return null;
+    if ( !ixShadowB || (dir > 0 && ixShadowB.z < origin.z) || (dir < 0 && ixShadowB.z > origin.z) ) return null;
 
     // Find the intersection points of the wall with the surfacePlane
     const ixWallA = surfacePlane.lineIntersection(A, upV);
+    if ( !ixWallA ) return null; // Unlikely, but possible?
+
     const ixWallB = surfacePlane.lineIntersection(B, upV);
+    if ( !ixWallB ) return null; // Unlikely, but possible?
 
     // Surface intersection must be behind the wall
 //     const ixWallABehindWall = dir < 0 ? A.z - ixWallA.z : ixWallA.z - A.z;
