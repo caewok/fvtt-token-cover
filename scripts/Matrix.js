@@ -135,8 +135,25 @@ export class Matrix {
    */
   static lookAt(cameraPosition, targetPosition, up) {
     const zAxis = cameraPosition.subtract(targetPosition);
-    zAxis.normalize(zAxis);
+    if ( !zAxis.x && !zAxis.y ) {
+      // Camera either directly overhead or directly below
+      // Overhead if zAxis.z is positive
+      return zAxis.z >= 0
+        ? new Matrix([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [cameraPosition.x, cameraPosition.y, cameraPosition.z, 1]
+      ])
+      : new Matrix([
+       [1, 0, 0, 0],
+       [0, 1, 0, 0],
+       [0, 0, -1, 0],
+       [cameraPosition.x, cameraPosition.y, cameraPosition.z, 1]
+      ]);
+    }
 
+    zAxis.normalize(zAxis);
     const xAxis = up.cross(zAxis);
     xAxis.normalize(xAxis);
 
