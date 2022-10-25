@@ -11,6 +11,8 @@ import { SETTINGS, getSetting } from "./settings.js";
 import { log } from "./util.js";
 import { Shadow } from "./Shadow.js";
 import { ClipperPaths } from "./ClipperPaths.js";
+import { Point3d } from "./Point3d.js";
+import { Area3d} from "./Area3d.js";
 import * as drawing from "./drawing.js";
 
 
@@ -250,7 +252,14 @@ export class Area2d {
     const los = visionSource.los;
     const bounds = los.bounds;
     const collisionTest = (o, rect) => isFinite(o.t.topZ) || isFinite(o.t.bottomZ);  // eslint-disable-line no-unused-vars
-    const walls = canvas.walls.quadtree.getObjects(bounds, { collisionTest });
+    let walls = canvas.walls.quadtree.getObjects(bounds, { collisionTest });
+
+    // Further limit walls based on the vision cone to the target
+    if ( walls.size ) walls = Area3d.filterWallsForVisionCone(
+      walls,
+      this.target.constrainedTokenShape,
+      this.visionSource);
+
 
     if ( !walls.size) {
       log("No limited walls; no shadows.");
@@ -258,9 +267,10 @@ export class Area2d {
       return los;
     }
 
+    const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
     const shadows = [];
     for ( const wall of walls ) {
-      const shadow = Shadow.construct(wall, visionSource, targetElevation);
+      const shadow = Shadow.constructFromWall(wall, origin, targetElevation);
       if ( shadow ) shadows.push(shadow);
     }
 

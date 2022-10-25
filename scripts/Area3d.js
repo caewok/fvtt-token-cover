@@ -42,10 +42,6 @@ export class Area3d {
 
   target = undefined;
 
-  viewerCenter = new Point3d();
-
-  targetCenter = new Point3d();
-
   _boundsXY = null;
 
   _blockingWalls = null;
@@ -71,9 +67,6 @@ export class Area3d {
   constructor(viewer, target) {
     this.viewer = viewer;
     this.target = target;
-
-    this.viewerCenter = new Point3d(viewer.x, viewer.y, viewer.elevationZ);
-    this.targetCenter = Area3d.tokenCenter(target);
     this.percentAreaForLOS = getSetting(SETTINGS.LOS.PERCENT_AREA);
   }
 
@@ -131,6 +124,14 @@ export class Area3d {
 
   get viewerCameraM() {
     return this._viewerCameraM || (this._viewerCameraM = this._calculateViewerCameraMatrix());
+  }
+
+  get viewerCenter() {
+    return new Point3d(this.viewer.x, this.viewer.y, this.viewer.elevationZ);
+  }
+
+  get targetCenter() {
+    return Area3d.tokenCenter(this.target);
   }
 
   /**
@@ -363,7 +364,7 @@ export class Area3d {
         for ( let i = 0; i < ln; i += 1 ) {
           const A = wall[i];
           const B = wall[(i + 1) % ln];
-          const shadow = Shadow.segmentWithPlane(A, B, origin, sidePlane);
+          const shadow = Shadow.complexSurfaceOriginAbove(A, B, origin, sidePlane);
           if ( shadow ) {
             const shadowPoly = new Shadow(shadow);
             sideTransform.blockingPolygons.push(shadowPoly);
@@ -756,6 +757,7 @@ export class Area3d {
     // 4. n   n   key key key n
 
     const keyPoints = [];
+
     let foundNonKeyFirst = false;
     let foundNonKeyAfter = false;
     let foundKey = false;
@@ -775,7 +777,7 @@ export class Area3d {
       if ( isKey ) {
         foundKey = true;
         !foundNonKeyAfter && keyPoints.push(pt); // eslint-disable-line no-unused-expressions
-        foundNonKeyAfter && keyPoints.shift(pt); // eslint-disable-line no-unused-expressions
+        foundNonKeyAfter && keyPoints.unshift(pt); // eslint-disable-line no-unused-expressions
       } else { // !isKey
         foundNonKeyFirst ||= !foundKey;
         foundNonKeyAfter ||= foundKey;
