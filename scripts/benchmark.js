@@ -1,13 +1,15 @@
 /* globals
 foundry,
-canvas
+canvas,
+game,
+_token
 */
 
 "use strict";
 
 import { randomUniform } from "./random.js";
 import { SETTINGS, getSetting, setSetting } from "./settings.js";
-
+import { CoverCalculator } from "./cover.js";
 
 /*
 Rectangle intersection vs just testing all four edges
@@ -57,65 +59,198 @@ await QBenchmarkLoopWithSetupFn(iterations, setupFn, intersectRectangle, "inters
  * - test visibility of all other tokens
  */
 
-export async function benchTokenVisibility(n = 100) {
-  const { PERCENT_AREA } = SETTINGS.VISION;
 
-  const default_use_module = true;
-  const default_percent_area = getSetting(PERCENT_AREA);
+export async function benchTokenRange(n = 100) {
+  game.modules.get("tokenvisibility").api.debug = false;
 
-  console.log(`Benching token visibility for ${canvas.tokens.placeables.length - 1} tokens.`);
-
-  const tokens = canvas.tokens.placeables.filter(t => !t.controlled);
-  const testFn = function(tokens) {
-    const out = [];
-    for ( const token of tokens ) {
-      const tolerance = token.document.iconSize / 4;
-
-      // Randomize a bit to try to limit caching
-      const center = {
-        x: token.center.x + Math.roundFast(randomUniform(-10, 10)),
-        y: token.center.y + Math.roundFast(randomUniform(-10, 10))
-      };
-
-      out.push(canvas.effects.visibility.testVisibility(center, { tolerance, object: token }));
-    }
-    return out;
+  const default_settings = {
+    range_algorithm: getSetting(SETTINGS.RANGE.ALGORITHM),
+    los_algorithm: getSetting(SETTINGS.LOS.ALGORITHM)
   };
 
-//   await setSetting(USE_MODULE, false);
-  await QBenchmarkLoopFn(n, testFn, "Original", tokens);
-//   await setSetting(USE_MODULE, true);
+  const controlled = _token;
+  if ( !controlled ) {
+    console.error("Must select a single token to benchmark range.");
+    return;
+  }
+
+  const tokens = canvas.tokens.placeables.filter(t => !t.controlled);
+  console.log(`Benching token visibility range for ${tokens.length} tokens.`);
+
+  // Set to default LOS for test
+  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.POINTS);
+
+  // Foundry
+  await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.FOUNDRY);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Range Foundry", tokens);
+
+  // Center only
+  await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.FOUNDRY);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Range Center", tokens);
+
+  // Foundry 3d
+  await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.FOUNDRY);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Range Foundry 3d", tokens);
+
+  // Reset
+  await setSetting(SETTINGS.RANGE.ALGORITHM, default_settings.range_algorithm);
+  await setSetting(SETTINGS.LOS.ALGORITHM, default_settings.los_algorithm);
+}
+
+export async function benchTokenLOS(n = 100) {
+  game.modules.get("tokenvisibility").api.debug = false;
+
+  const default_settings = {
+    range_algorithm: getSetting(SETTINGS.RANGE.ALGORITHM),
+    los_algorithm: getSetting(SETTINGS.LOS.ALGORITHM),
+    los_percent_area: getSetting(SETTINGS.LOS.PERCENT_AREA)
+  };
+
+  const controlled = _token;
+  if ( !controlled ) {
+    console.error("Must select a single token to benchmark LOS.");
+    return;
+  }
+
+  const tokens = canvas.tokens.placeables.filter(t => !t.controlled);
+  console.log(`Benching token visibility range for ${tokens.length} tokens.`);
+
+  // Set to default Range for test
+  await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.FOUNDRY);
+
+  // Foundry (Points)
+  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.POINTS);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "LOS Points", tokens);
 
   // ***** Area Percentage = 0 ***********
   console.log("Area percentage 0");
-  await setSetting(PERCENT_AREA, 0);
-  await QBenchmarkLoopFn(n, testFn, "TokenVisibility", tokens);
+  await setSetting(SETTINGS.LOS.PERCENT_AREA, 0);
+
+  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Area", tokens);
+
+  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA3D);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Area3d", tokens);
 
   // ***** Area Percentage = .25 ***********
   console.log("\nArea percentage .25");
-  await setSetting(PERCENT_AREA, 0.25);
-  await QBenchmarkLoopFn(n, testFn, "TokenVisibility", tokens);
+  await setSetting(SETTINGS.LOS.PERCENT_AREA, .25);
+
+  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Area", tokens);
+
+  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA3D);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Area3d", tokens);
 
   // ***** Area Percentage = .5 ***********
   console.log("\nArea percentage .5");
-  await setSetting(PERCENT_AREA, 0.5);
-  await QBenchmarkLoopFn(n, testFn, "TokenVisibility", tokens);
+  await setSetting(SETTINGS.LOS.PERCENT_AREA, .5);
+
+  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Area", tokens);
+
+  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA3D);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Area3d", tokens);
 
   // ***** Area Percentage = .75 ***********
   console.log("\nArea percentage .75");
-  await setSetting(PERCENT_AREA, 0.75);
-  await QBenchmarkLoopFn(n, testFn, "TokenVisibility", tokens);
+  await setSetting(SETTINGS.LOS.PERCENT_AREA, 0.75);
+
+  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Area", tokens);
+
+  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA3D);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Area3d", tokens);
 
   // ***** Area Percentage = 1 ***********
   console.log("\nArea percentage 1");
-  await setSetting(PERCENT_AREA, 1);
-  await QBenchmarkLoopFn(n, testFn, "TokenVisibility", tokens);
+  await setSetting(SETTINGS.LOS.PERCENT_AREA, 1);
 
-  // Reset settings
-//   await setSetting(USE_MODULE, default_use_module);
-  await setSetting(PERCENT_AREA, default_percent_area);
+  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Area", tokens);
+
+  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA3D);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Area3d", tokens);
+
+  // Reset
+  await setSetting(SETTINGS.RANGE.ALGORITHM, default_settings.range_algorithm);
+  await setSetting(SETTINGS.LOS.ALGORITHM, default_settings.los_algorithm);
+  await setSetting(SETTINGS.LOS.PERCENT_AREA, default_settings.los_percent_area);
 }
 
+
+export async function benchCover(n = 100) {
+  game.modules.get("tokenvisibility").api.debug = false;
+
+  const default_settings = {
+    cover_algorithm: getSetting(SETTINGS.COVER.ALGORITHM)
+  };
+
+  const controlled = _token;
+  if ( !controlled ) {
+    console.error("Must select a single token to benchmark cover.");
+    return;
+  }
+
+  const tokens = canvas.tokens.placeables.filter(t => !t.controlled);
+  console.log(`Benching token visibility range for ${tokens.length} tokens.`);
+
+  await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.CENTER_CENTER);
+  await QBenchmarkLoopFn(n, coverTestFn, "Center-->Center", controlled, tokens);
+
+  await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.CENTER_CORNERS_TARGET);
+  await QBenchmarkLoopFn(n, coverTestFn, "Center-->Corners Target", controlled, tokens);
+
+  await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.CORNER_CORNERS_TARGET);
+  await QBenchmarkLoopFn(n, coverTestFn, "Corner-->Corners Target", controlled, tokens);
+
+  await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.CENTER_CORNERS_GRID);
+  await QBenchmarkLoopFn(n, coverTestFn, "Center-->Select Grid Corners Target", controlled, tokens);
+
+  await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.CORNER_CORNERS_GRID);
+  await QBenchmarkLoopFn(n, coverTestFn, "Corners-->Select Grid Corners Target (dnd5e)", controlled, tokens);
+
+  await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.CENTER_CUBE);
+  await QBenchmarkLoopFn(n, coverTestFn, "Center-->Cube", controlled, tokens);
+
+  await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.CUBE_CUBE);
+  await QBenchmarkLoopFn(n, coverTestFn, "Cube-->Cube", controlled, tokens);
+
+  await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.AREA);
+  await QBenchmarkLoopFn(n, coverTestFn, "Center-->Area", controlled, tokens);
+
+  await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.AREA3D);
+  await QBenchmarkLoopFn(n, coverTestFn, "Center-->Area 3d", controlled, tokens);
+
+  // Reset
+  await setSetting(SETTINGS.COVER.ALGORITHM, default_settings.cover_algorithm);
+}
+
+
+function visibilityTestFn(tokens) {
+  const out = [];
+  for ( const token of tokens ) {
+    const tolerance = token.document.iconSize / 4;
+
+    // Randomize a bit to try to limit caching
+    const center = {
+      x: token.center.x + Math.roundFast(randomUniform(-10, 10)),
+      y: token.center.y + Math.roundFast(randomUniform(-10, 10))
+    };
+
+    out.push(canvas.effects.visibility.testVisibility(center, { tolerance, object: token }));
+  }
+  return out;
+}
+
+function coverTestFn(controlled, targets) {
+  const out = [];
+  for ( const target of targets ) {
+    const coverCalc = new CoverCalculator(controlled, target);
+    out.push(coverCalc.targetCover());
+  }
+  return out;
+}
 
 /**
  * For a given numeric array, calculate one or more quantiles.

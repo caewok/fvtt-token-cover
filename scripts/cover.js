@@ -66,11 +66,11 @@ export class CoverCalculator {
   static ALGORITHMS = SETTINGS.COVER.TYPES;
 
   /**
-   * @param {VisionSource} viewer
+   * @param {VisionSource|Token} viewer
    * @param {Token} target
    */
   constructor(viewer, target) {
-    this.viewer = viewer;
+    this.viewer = viewer instanceof Token ? viewer.vision : viewer;
     this.target = target;
     this.debug = game.modules.get(MODULE_ID).api.debug;
   }
@@ -81,8 +81,7 @@ export class CoverCalculator {
    * @type {Point3d}
    */
   get viewerCenter() {
-    const center = this.viewer;
-    return new Point3d(center.x, center.y, this.viewer.topZ);
+    return new Point3d(this.viewer.x, this.viewer.y, this.viewer.topZ);
   }
 
   /**
@@ -167,7 +166,7 @@ export class CoverCalculator {
   centerToTargetCorners() {
     this.debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
 
-    const targetPoints = this._getCorners(getConstrainedTokenShape(this.target), this.targetAvgElevation);
+    const targetPoints = this._getCorners(this.target.constrainedTokenShape, this.targetAvgElevation);
 
     return this._testTokenTargetPoints([this.viewerCenter], [targetPoints]);
   }
@@ -181,8 +180,8 @@ export class CoverCalculator {
   cornerToTargetCorners() {
     this.debug && console.log("Cover algorithm: Corner-to-Corners"); // eslint-disable-line no-unused-expressions
 
-    const tokenCorners = this._getCorners(getConstrainedTokenShape(this.viewer), this.viewer.topZ);
-    const targetPoints = this._getCorners(getConstrainedTokenShape(this.target), this.targetAvgElevation);
+    const tokenCorners = this._getCorners(this.viewer.object.constrainedTokenShape, this.viewer.elevationZ);
+    const targetPoints = this._getCorners(this.target.constrainedTokenShape, this.targetAvgElevation);
 
     return this._testTokenTargetPoints(tokenCorners, [targetPoints]);
   }
@@ -213,7 +212,7 @@ export class CoverCalculator {
   cornerToTargetGridCorners() {
     this.debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
 
-    const tokenCorners = this._getCorners(getConstrainedTokenShape(this.viewer), this.viewer.topZ);
+    const tokenCorners = this._getCorners(this.viewer.object.constrainedTokenShape, this.viewer.elevationZ);
     const targetShapes = CoverCalculator.constrainedGridShapesUnderToken(this.target);
     const targetElevation = this.targetAvgElevation;
     const targetPointsArray = targetShapes.map(targetShape => this._getCorners(targetShape, targetElevation));
@@ -232,7 +231,7 @@ export class CoverCalculator {
 
     if ( !this.targetHeight ) return this.centerToTargetCorners();
 
-    const targetShape = getConstrainedTokenShape(this.target);
+    const targetShape = this.target.constrainedTokenShape;
     const targetPoints = [
       ...this._getCorners(targetShape, this.target.topZ),
       ...this._getCorners(targetShape, this.target.bottomZ)];
@@ -251,8 +250,8 @@ export class CoverCalculator {
 
     if ( !this.targetHeight ) return this.centerToTargetCorners();
 
-    const tokenCorners = this._getCorners(getConstrainedTokenShape(this.viewer), this.viewer.topZ);
-    const targetShape = getConstrainedTokenShape(this.target);
+    const tokenCorners = this._getCorners(this.viewer.object.constrainedTokenShape, this.viewer.elevationZ);
+    const targetShape = this.target.constrainedTokenShape;
     const targetPoints = [
       ...this._getCorners(targetShape, this.target.topZ),
       ...this._getCorners(targetShape, this.target.bottomZ)];
@@ -361,7 +360,7 @@ export class CoverCalculator {
   static constrainedGridShapesUnderToken(token) {
     const gridShapes = CoverCalculator.gridShapesUnderToken(token);
 
-    const constrained = getConstrainedTokenShape(token);
+    const constrained = token.constrainedTokenShape;
 
     // Token unconstrained by walls.
     if ( constrained instanceof PIXI.Rectangle ) return gridShapes;

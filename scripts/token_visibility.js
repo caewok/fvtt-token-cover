@@ -284,7 +284,7 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   const avgElevation = CoverCalculator.averageTokenElevation(target);
   const centerPoint = new Point3d(center.x, center.y, avgElevation);
 
-  if ( !test.point.almostEqual(centerPoint) ) return test.centerPoint.hasLOSArea;
+  if ( !test.point.almostEqual(centerPoint) && test.centerPoint ) return test.centerPoint.hasLOSArea;
 
   if ( algorithm === types.AREA ) {
     const centerPointIsVisible = wrapped(visionSource, mode, target, test);
