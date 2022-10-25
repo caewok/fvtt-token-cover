@@ -176,28 +176,29 @@ export class Shadow extends PIXI.Polygon {
     }
 
     // Tests for debugging
-    const distWallA = distanceSquaredBetweenPoints(origin, A);
-    const distIxWallA = distanceSquaredBetweenPoints(origin, ixWallA);
-    if ( distWallA >= distIxWallA ) {
-      console.warn("complexSurfaceOriginAbove distWallA >= distIxWallA");
-      return null;
-    }
-
-    const distWallB = distanceSquaredBetweenPoints(origin, B);
-    const distIxWallB = distanceSquaredBetweenPoints(origin, ixWallB);
-    if ( distWallB >= distIxWallB ) {
-      console.warn("complexSurfaceOriginAbove distWallB >= distIxWallB");
-      return null;
-    }
-
     // Surface intersection must be further from origin than the wall point
-    if ( distWallA >= ixOriginA ) {
-      console.warn("complexSurfaceOriginAbove distWallA >= ixOriginA");
+//     const distWallA = distanceSquaredBetweenPoints(origin, A);
+//     const distIxWallA = distanceSquaredBetweenPoints(origin, ixWallA);
+//     if ( !distWallA.almostEqual(distIxWallA, 1e-04) && distWallA > distIxWallA ) {
+//       console.warn("complexSurfaceOriginAbove distWallA >= distIxWallA");
+//       return null;
+//     }
+//
+//     const distWallB = distanceSquaredBetweenPoints(origin, B);
+//     const distIxWallB = distanceSquaredBetweenPoints(origin, ixWallB);
+//     if ( !distWallB.almostEqual(distIxWallB, 1e-04) && distWallB > distIxWallB ) {
+//       console.warn("complexSurfaceOriginAbove distWallB >= distIxWallB");
+//       return null;
+//     }
+
+    // Surface intersection must be below the origin
+    if ( origin.z < ixOriginA.z ) {
+      console.warn("complexSurfaceOriginAbove origin.z < ixOriginA.z");
       return null;
     }
 
-    if ( distWallB >= ixOriginB ) {
-      console.warn("complexSurfaceOriginAbove distWallB >= ixOriginB");
+    if ( origin.z < ixOriginA.z ) {
+      console.warn("complexSurfaceOriginAbove origin.z < ixOriginA.z");
       return null;
     }
 
