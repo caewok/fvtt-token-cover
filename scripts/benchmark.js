@@ -59,6 +59,31 @@ await QBenchmarkLoopWithSetupFn(iterations, setupFn, intersectRectangle, "inters
  * - test visibility of all other tokens
  */
 
+export async function benchAll(n = 100) {
+  await benchTokenRange(n);
+  await benchTokenLOS(n);
+  await benchCover(n);
+}
+
+export async function benchCurrent(n = 100) {
+  this.viewer.object.constrainedTokenShape, this.viewer.elevationZ
+
+  const controlled = _token;
+  if ( !controlled ) {
+    console.error("Must select a single token to benchmark range.");
+    return;
+  }
+
+  const tokens = canvas.tokens.placeables.filter(t => !t.controlled);
+  console.log(`Benching current settings for ${tokens.length} tokens.`);
+  console.log(`Range: ${getSetting(SETTINGS.RANGE.ALGORITHM)}
+LOS: ${getSetting(SETTINGS.LOS.ALGORITHM)} | Percent: ${getSetting(SETTINGS.LOS.PERCENT_AREA)*100}%
+Cover: ${getSetting(SETTINGS.COVER.ALGORITHM)}`);
+
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Visibility", tokens);
+  await QBenchmarkLoopFn(n, coverTestFn, "Cover", controlled, tokens);
+}
+
 
 export async function benchTokenRange(n = 100) {
   game.modules.get("tokenvisibility").api.debug = false;
