@@ -341,7 +341,7 @@ function updateLosSetting(value) {
   log(`Changing to ${value}`);
 //   ui.notifications.notify(`Changing to ${value}`);
   const VTYPES = SETTINGS.LOS.TYPES;
-  const visible = value === VTYPES.AREA;
+  const visible = value === VTYPES.AREA || value === VTYPES.AREA3D;
   setSettingVisibility(SETTINGS.LOS.PERCENT_AREA, visible);
 }
 
