@@ -255,7 +255,7 @@ export class Area3d {
       if ( poly instanceof Shadow ) {
         poly.draw();
       } else {
-        drawing.drawShape(poly, { color: drawing.COLORS.blue, width: 2 });
+        drawing.drawShape(poly, { color: drawing.COLORS.blue, width: 2, fill: drawing.COLORS.blue, fillAlpha: 0.2  });
       }
 
     });
