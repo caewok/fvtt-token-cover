@@ -66,7 +66,7 @@ export async function benchAll(n = 100) {
 }
 
 export async function benchCurrent(n = 100) {
-  this.viewer.object.constrainedTokenShape, this.viewer.elevationZ
+  game.modules.get("tokenvisibility").api.debug = false;
 
   const controlled = _token;
   if ( !controlled ) {
