@@ -252,7 +252,7 @@ export class Area2d {
     const los = visionSource.los;
     const bounds = los.bounds;
     const collisionTest = (o, rect) => isFinite(o.t.topZ) || isFinite(o.t.bottomZ);  // eslint-disable-line no-unused-vars
-    const walls = canvas.walls.quadtree.getObjects(bounds, { collisionTest });
+    let walls = canvas.walls.quadtree.getObjects(bounds, { collisionTest });
 
     // Further limit walls based on the vision cone to the target
     if ( walls.size ) walls = Area3d.filterWallsForVisionCone(
