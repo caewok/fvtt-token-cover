@@ -157,7 +157,8 @@ export function testVisibilityDetectionMode(wrapped, visionSource, mode, {object
   debug && console.log("Clearing drawings!"); // eslint-disable-line no-unused-expressions
   tests = elevatePoints(tests, visionSource, object);
 
-  if ( getSetting(SETTINGS.LOS.ALGORITHM) === SETTINGS.LOS.TYPES.AREA ) {
+  const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
+  if ( algorithm === SETTINGS.LOS.TYPES.AREA || algorithm === SETTINGS.LOS.TYPES.AREA3D ) {
     // Link tests to the center test for los area
     const ln = tests.length;
     for ( let i = 1; i < ln; i += 1 ) {
