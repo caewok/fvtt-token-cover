@@ -124,7 +124,7 @@ export class Area3d {
   }
 
   static perspectiveTransform(pt) {
-    return new PIXI.Point(pt.x / pt.z * 1000, pt.y / pt.z * 1000);
+    return new PIXI.Point(pt.x / -pt.z * 1000, pt.y / -pt.z * 1000);
   }
 
   /**
@@ -151,7 +151,7 @@ export class Area3d {
   get perspectiveTarget() {
     const tTarget = this.transformedTarget;
     return {
-      points: tTarget.points.map(pt => new PIXI.Point(pt.x / -pt.z * 1000, pt.y / -pt.z * 1000)),
+      points: tTarget.points.map(pt => Area3d.perspectiveTransform(pt)),
       sides: tTarget.sides,
       top: tTarget.top,
       bottom: tTarget.bottom
@@ -174,7 +174,7 @@ export class Area3d {
    */
   get perspectiveWalls() {
     const tWalls = this.transformedWalls;
-    return tWalls.map(wall => wall.map(pt => new PIXI.Point(pt.x / -pt.z * 1000, pt.y / -pt.z * 1000)));
+    return tWalls.map(wall => wall.map(pt => Area3d.perspectiveTransform(pt)));
   }
 
   get viewerViewM() {
@@ -349,7 +349,7 @@ export class Area3d {
   _obscureSides() {
     const tTarget = this.perspectiveTarget;
     const sides = tTarget.sides;
-    const shadowsArr = this.perspectiveShadows;
+//     const shadowsArr = this.perspectiveShadows;
     const walls = this.perspectiveWalls;
     const wallPolys = walls.map(w => new PIXI.Polygon(w));
 
