@@ -380,11 +380,7 @@ export class Area3d {
    * @returns {number}
    */
   percentAreaVisible() {
-//     if ( !this.blockingWalls.size ) return 1; // Turn on after debugging
-
     const debug = game.modules.get(MODULE_ID).api.debug;
-    const obscuredSides = this.obscuredSides;
-
     if ( debug ) {
       this._drawLineOfSight();
       this._drawTransformedTarget();
@@ -399,8 +395,9 @@ export class Area3d {
         sides: [],
         obscuredSides: []
       };
-    }
+    } else if ( !this.blockingWalls.size ) return 1; // Only skip calcs and drawings if not debugging.
 
+    const obscuredSides = this.obscuredSides;
     let sidesArea = 0;
     let obscuredSidesArea = 0;
     const nSides = obscuredSides.length;
