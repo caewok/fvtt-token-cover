@@ -69,6 +69,7 @@ export class Area3d {
     this.viewer = viewer instanceof Token ? viewer.vision : viewer;
     this.target = target;
     this.percentAreaForLOS = getSetting(SETTINGS.LOS.PERCENT_AREA);
+    this._useShadows = getSetting(SETTINGS.AREA3D_USE_SHADOWS);
   }
 
   /**
@@ -349,7 +350,7 @@ export class Area3d {
   _obscureSides() {
     const tTarget = this.perspectiveTarget;
     const sides = tTarget.sides;
-//     const shadowsArr = this.perspectiveShadows;
+    const shadowsArr = this._useShadows ? this.perspectiveShadows : undefined;
     const walls = this.perspectiveWalls;
     const wallPolys = walls.map(w => new PIXI.Polygon(w));
 
@@ -363,8 +364,9 @@ export class Area3d {
       const sidePoly = new PIXI.Polygon(sidePoints);
       this.sidePolys.push(sidePoly);
 
-//       const blockingPolygons = [...wallPolys, ...shadowsArr[i]];
       const blockingPolygons = [...wallPolys];
+      if ( this._useShadows ) blockingPolygons.push(...shadowsArr[i]);
+
       const obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, blockingPolygons);
       obscuredSides.push(obscuredSide);
     }
@@ -387,7 +389,7 @@ export class Area3d {
       this._drawLineOfSight();
       this._drawTransformedTarget();
       this._drawTransformedWalls();
-//       this._drawTransformedShadows();
+      if (this._useShadows ) this._drawTransformedShadows();
 
       const target = this.target;
       this.debugSideAreas = {
