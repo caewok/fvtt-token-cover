@@ -6,7 +6,7 @@ Ray
 */
 "use strict";
 
-import { distanceSquaredBetweenPoints, zValue } from "./util.js";
+import { zValue } from "./util.js";
 import { COLORS, drawShape } from "./drawing.js";
 import { Point3d } from "./Point3d.js";
 import { ClipperPaths } from "./ClipperPaths.js";
@@ -449,28 +449,33 @@ function towardZ(A, B, z) {
  *   If negative, force wall to be below z. If positive, force wall to be above z.
  * @return {object{ A: {Point3d}, B: {Point3d}}|null}
  */
-export function truncateWallAtElevation(A, B, z, dir = -1, dist = 0.001) {
-  const distAz = dir < 0 ? z - A.z : A.z - z;
-  const distBz = dir < 0 ? z - B.z : B.z - z;
+export function truncateWallAtElevation(A, B, z, dir = -1) {
+  let distAz = dir < 0 ? z - A.z : A.z - z;
+  let distBz = dir < 0 ? z - B.z : B.z - z;
+
+  if ( distAz.almostEqual(0) ) distAz = 0;
+  if ( distBz.almostEqual(0) ) distBz = 0;
 
   if ( distAz > 0 && distBz > 0 ) {
     // Do nothing
   } else if ( distAz <= 0 && distBz <= 0 ) {
     return null;
-  } else if ( distAz <= 0 || distBz <= 0 ) {
+  } else if ( distAz < 0 || distBz < 0 ) {
     // Find the point on AB that is even in elevation with z
     // Shorten the wall to somewhere just in front of z
     const {t} = towardZ(A, B, z);
 
-    if ( distAz <= 0 ) {
-      const newT = t + dist;
-      if ( newT > 1 ) return null;
-      A = project(A, B, newT);
+    if ( distAz < 0 ) {
+      if ( t.almostEqual(1) || t > 1 ) return null;
+      A = project(A, B, t);
+
+      if ( A.z.almostEqual(z) ) A.z = z;
 
     } else { // Bbehind <= 0
-      const newT = t - dist;
-      if ( newT < 0 ) return null;
-      B = project(A, B, newT);
+      if ( t.almostEqual(0) || t < 0 ) return null;
+      B = project(A, B, t);
+
+      if ( B.z.almostEqual(z) ) B.z = z;
     }
   }
   return { A, B, distAz, distBz };
