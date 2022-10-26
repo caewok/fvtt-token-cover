@@ -23,7 +23,7 @@ function setSettingVisibility(settingName, visible = true) {
 
 
 export const SETTINGS = {
-  USE_MODULE: "use-module",
+  AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
 
   RANGE: {
     ALGORITHM: "range-algorithm",
@@ -264,7 +264,6 @@ export function registerSettings() {
     type: Number
   });
 
-
   game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.LOW, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.LOW}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.LOW}.Hint`),
@@ -317,6 +316,13 @@ export function registerSettings() {
     config: true,
     type: String,
     default: ""
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.AREA3D_USE_SHADOWS, {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false
   });
 
   log("Done registering settings.");

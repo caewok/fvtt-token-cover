@@ -69,6 +69,7 @@ export class Area3d {
     this.viewer = viewer instanceof Token ? viewer.vision : viewer;
     this.target = target;
     this.percentAreaForLOS = getSetting(SETTINGS.LOS.PERCENT_AREA);
+    this._useShadows = getSetting(SETTINGS.AREA3D_USE_SHADOWS);
   }
 
   /**
@@ -124,7 +125,7 @@ export class Area3d {
   }
 
   static perspectiveTransform(pt) {
-    return new PIXI.Point(pt.x / pt.z * 1000, pt.y / pt.z * 1000);
+    return new PIXI.Point(pt.x / -pt.z * 1000, pt.y / -pt.z * 1000);
   }
 
   /**
@@ -151,7 +152,7 @@ export class Area3d {
   get perspectiveTarget() {
     const tTarget = this.transformedTarget;
     return {
-      points: tTarget.points.map(pt => new PIXI.Point(pt.x / -pt.z * 1000, pt.y / -pt.z * 1000)),
+      points: tTarget.points.map(pt => Area3d.perspectiveTransform(pt)),
       sides: tTarget.sides,
       top: tTarget.top,
       bottom: tTarget.bottom
@@ -174,7 +175,7 @@ export class Area3d {
    */
   get perspectiveWalls() {
     const tWalls = this.transformedWalls;
-    return tWalls.map(wall => wall.map(pt => new PIXI.Point(pt.x / -pt.z * 1000, pt.y / -pt.z * 1000)));
+    return tWalls.map(wall => wall.map(pt => Area3d.perspectiveTransform(pt)));
   }
 
   get viewerViewM() {
@@ -349,7 +350,7 @@ export class Area3d {
   _obscureSides() {
     const tTarget = this.perspectiveTarget;
     const sides = tTarget.sides;
-    const shadowsArr = this.perspectiveShadows;
+    const shadowsArr = this._useShadows ? this.perspectiveShadows : undefined;
     const walls = this.perspectiveWalls;
     const wallPolys = walls.map(w => new PIXI.Polygon(w));
 
@@ -363,8 +364,9 @@ export class Area3d {
       const sidePoly = new PIXI.Polygon(sidePoints);
       this.sidePolys.push(sidePoly);
 
-//       const blockingPolygons = [...wallPolys, ...shadowsArr[i]];
       const blockingPolygons = [...wallPolys];
+      if ( this._useShadows ) blockingPolygons.push(...shadowsArr[i]);
+
       const obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, blockingPolygons);
       obscuredSides.push(obscuredSide);
     }
@@ -387,7 +389,7 @@ export class Area3d {
       this._drawLineOfSight();
       this._drawTransformedTarget();
       this._drawTransformedWalls();
-//       this._drawTransformedShadows();
+      if (this._useShadows ) this._drawTransformedShadows();
 
       const target = this.target;
       this.debugSideAreas = {

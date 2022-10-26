@@ -5,6 +5,8 @@ foundry
 */
 "use strict";
 
+import { lineSegmentCrosses } from "./util.js";
+
 /**
  * Iterate over the polygon's {x, y} points in order.
  * If the polygon is closed and close is false,
@@ -55,55 +57,17 @@ function area() {
 }
 
 /**
- * Test if a line or lines crosses the closed polygon shape.
- * Determine by moving clockwise around the polygon.
- * At each edge, determine if the turn to the next edge would be more clockwise than the line.
+ * Test if a line or lines crosses a polygon edge
  * @param {object[]} lines    Array of lines, with A and B PIXI.Points.
  * @returns {boolean}
  */
 function linesCross(lines) {
   const fu = foundry.utils;
-  if ( !this.isClockwise ) this.reverseOrientation();
 
-  const edges = [...this.iterateEdges()];
-  const ln = edges.length;
-  let currEdge = edges[ln - 1]; // Start with end so we can cycle through without %
-  for ( let i = 0; i < ln; i += 1 ) {
-    const nextEdge = edges[i];
-    const { A: currA, B: currB } = currEdge;
-    const { A: nextA, B: nextB } = nextEdge;
-
+  for ( const edge of this.iterateEdges() ) {
     for ( const line of lines ) {
-      const { A: lnA, B: lnB } = line;
-
-      if ( !fu.lineSegmentIntersects(currA, currB, lnA, lnB) ) continue;
-      const ix = fu.lineLineIntersection(currA, currB, lnA, lnB);
-      if ( currA.almostEqual(ix) ) continue;
-
-      if ( currB.almostEqual(line.A) ) {
-        if ( fu.orient2dFast(currA, currB, lnB) < 0
-          && fu.orient2dFast(nextA, nextB, lnB) < 0 ) return true;
-        continue;
-      }
-
-      if ( currEdge.B.almostEqual(line.B) ) {
-        if ( fu.orient2dFast(currA, currB, lnA) < 0
-          && fu.orient2dFast(nextA, nextB, lnA) < 0 ) return true;
-        continue;
-      }
-
-      if ( fu.orient2dFast(currA, currB, lnA) < 0 ) {
-        if ( fu.orient2dFast(nextA, nextB, lnA) < 0 ) return true;
-        continue;
-      }
-
-      if ( fu.orient2dFast(currA, currB, lnB) < 0 ) {
-        if ( fu.orient2dFast(nextA, nextB, lnB) < 0 ) return true;
-        continue;
-      }
+      if ( lineSegmentCrosses(edge.A, edge.B, line.A, line.B) ) return true;
     }
-
-    currEdge = nextEdge;
   }
 
   return false;
