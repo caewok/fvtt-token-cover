@@ -2,7 +2,8 @@
 PIXI,
 canvas,
 game,
-foundry
+foundry,
+Tpken
 */
 "use strict";
 
@@ -103,6 +104,33 @@ export class Area3d {
   }
 
   /**
+   * Get the shadows for each wall and side.
+   * @type {Shadow[nSides][nShadows]}
+   */
+  get transformedShadows() {
+    return this._transformedShadows || (this._transformedShadows = this._projectShadowsForWalls());
+  }
+
+  get perspectiveShadows() {
+    const tShadowArr = this.transformedShadows; // Shadow[nSides][nShadows]
+    const out = [];
+    for ( const shadows of tShadowArr ) {
+      if ( !shadows.length ) out.push([]);
+      else out.push(shadows.map(shadow =>
+        new Shadow(shadow._points3d.map(pt => new PIXI.Point(pt.x / -pt.z * 1000, pt.y / -pt.y * 1000)))));
+    }
+
+    return out;
+  }
+
+  /**
+   * Get the array of sides, obscured by walls and shadows, if any.
+   */
+  get obscuredSides() {
+    return this._obscuredSides || (this._obscuredSides = this._obscureSides());
+  }
+
+  /**
    * Get the transformed target points
    * @type {Point3d[]}
    */
@@ -110,12 +138,12 @@ export class Area3d {
     return this._transformedTarget || (this._transformedTarget = this._transformTarget());
   }
 
- /**
-  * Perspective divide the target points.
-  * See https://www.scratchapixel.com/lessons/3d-basic-rendering/computing-pixel-coordinates-of-3d-point/mathematics-computing-2d-coordinates-of-3d-points
-  * Then scale by 1000, primarily for debug drawing.
-  * @type {Point3d[]}
-  */
+  /**
+   * Perspective divide the target points.
+   * See https://www.scratchapixel.com/lessons/3d-basic-rendering/computing-pixel-coordinates-of-3d-point/mathematics-computing-2d-coordinates-of-3d-points
+   * Then scale by 1000, primarily for debug drawing.
+   * @type {Point3d[]}
+   */
   get perspectiveTarget() {
     const tTarget = this.transformedTarget;
     return {
@@ -123,7 +151,7 @@ export class Area3d {
       sides: tTarget.sides,
       top: tTarget.top,
       bottom: tTarget.bottom
-    }
+    };
   }
 
   /**
@@ -134,15 +162,15 @@ export class Area3d {
     return this._transformedWalls || (this._transformedWalls = this._transformWalls());
   }
 
- /**
-  * Perspective divide the target points.
-  * See https://www.scratchapixel.com/lessons/3d-basic-rendering/computing-pixel-coordinates-of-3d-point/mathematics-computing-2d-coordinates-of-3d-points
-  * Then scale by 1000, primarily for debug drawing.
-  * @type {Object{Point3d[]}[]}
-  */
+  /**
+   * Perspective divide the target points.
+   * See https://www.scratchapixel.com/lessons/3d-basic-rendering/computing-pixel-coordinates-of-3d-point/mathematics-computing-2d-coordinates-of-3d-points
+   * Then scale by 1000, primarily for debug drawing.
+   * @type {Object{Point3d[]}[]}
+   */
   get perspectiveWalls() {
     const tWalls = this.transformedWalls;
-    return tWalls.map(wall => wall.map(pt => new PIXI.Point(pt.x / -pt.z * 1000, pt.y / -pt.z * 1000)))
+    return tWalls.map(wall => wall.map(pt => new PIXI.Point(pt.x / -pt.z * 1000, pt.y / -pt.z * 1000)));
   }
 
   get viewerViewM() {
@@ -154,7 +182,8 @@ export class Area3d {
   }
 
   get viewerCenter() {
-    return this._viewerCenter || (this._viewerCenter = new Point3d(this.viewer.x, this.viewer.y, this.viewer.elevationZ));
+    return this._viewerCenter
+      || (this._viewerCenter = new Point3d(this.viewer.x, this.viewer.y, this.viewer.elevationZ));
   }
 
   get targetCenter() {
@@ -253,7 +282,7 @@ export class Area3d {
    * Truncate transformed walls so only the visible portions (below z = 0) are kept.
    * Warning: destructive operation on wall points!
    */
-  _trucateTransformedWall(wall)  {
+  _trucateTransformedWall(wall) {
     const targetE = -1;
     const ln = wall.length;
     let A = wall[ln - 1];
@@ -274,79 +303,62 @@ export class Area3d {
   }
 
   /**
-   * Identify walls that block
-
-  /**
    * Construct wall shadows in the transformed coordinates.
    * Shadows for where walls block vision of the token due to angle of token view --> wall edge.
    * Each edge is considered a separate "wall".
    * - Treat the wall as 2d, with each edge a line that can block vision.
    */
   _projectShadowsForWalls() {
+    const origin = new Point3d(0, 0, 0);
     const tTarget = this.transformedTarget;
     const tWalls = this.transformedWalls;
     const sides = tTarget.sides;
-    this._shadows = [];
-
+    const shadowsArr = [];
     for ( const side of sides ) {
+      const shadows = [];
+      shadowsArr.push(shadows);
       const sidePoints = elementsByIndex(tTarget.points, side);
       const sidePlane = Plane.fromPoints(sidePoints[0], sidePoints[1], sidePoints[2]);
 
-      // Measure area from point of view of the token
-      // TO-DO: Canvas perspective?  https://www.scratchapixel.com/lessons/3d-basic-rendering/computing-pixel-coordinates-of-3d-point/mathematics-computing-2d-coordinates-of-3d-points
-      const sidePoly = new PIXI.Polygon(sidePoints);
-      const sideArea = sidePoly.area();
-      sidesArea += sideArea;
-      sideAreasArray.push(sideArea); // Debugging
-
-      // Debugging
-      const sideTransform = { sidePoly, shadows: [], blockingPolygons: [] };
-      this._sideTransforms.push(sideTransform);
-
       for ( const wall of tWalls ) {
-        // If the wall is represented by 4 distinct XY points, use to block the side
         const ln = wall.length;
-        if ( ln === 4 ) {
-          const w0 = wall[0].to2d();
-          const w1 = wall[1].to2d();
-          const w2 = wall[2].to2d();
-          if ( !(w0.almostEqual(wall[1])
-            || w0.almostEqual(wall[2])
-            || w0.almostEqual(wall[3])
-            || w1.almostEqual(wall[2])
-            || w1.almostEqual(wall[3])
-            || w2.almostEqual(wall[3])) ) {
-
-            sideTransform.blockingPolygons.push(new PIXI.Polygon(wall));
-          }
-        }
-
         // For each wall edge, construct shadow
+        let A = wall[ln - 1];
         for ( let i = 0; i < ln; i += 1 ) {
-          const A = wall[i];
-          const B = wall[(i + 1) % ln];
+          const B = wall[i];
           const shadow = Shadow.complexSurfaceOriginAbove(A, B, origin, sidePlane);
-          if ( shadow ) {
-            const shadowPoly = new Shadow(shadow);
-            sideTransform.blockingPolygons.push(shadowPoly);
-            sideTransform.shadows.push({A, B, origin, surfacePlane: sidePlane}); // Debugging
-          }
+          if ( shadow ) shadows.push(shadow);
+          A = B;
         }
       }
+    }
+    return shadowsArr;
+  }
 
-      if ( !sideTransform.blockingPolygons.length ) {
-        obscuredSideAreasArray.push(sideArea); // Debugging
-        obscuredSidesArea += sideArea;
-        continue;
-      }
+  _obscureSides() {
+    const tTarget = this.perspectiveTarget;
+    const sides = tTarget.sides;
+    const shadowsArr = this.perspectiveShadows;
+    const walls = this.perspectiveWalls;
+    const wallPolys = walls.map(w => new PIXI.Polygon(w));
 
-      const obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, sideTransform.blockingPolygons);
+    // For each side, union the blocking wall with any shadows and then take diff against the side
+    const nSides = sides.length;
+    const obscuredSides = [];
+    this.sidePolys = [];
+    for ( let i = 0; i < nSides; i += 1 ) {
+      const side = sides[i];
+      const sidePoints = elementsByIndex(tTarget.points, side);
+      const sidePoly = new PIXI.Polygon(sidePoints);
+      this.sidePolys.push(sidePoly);
 
-      const obscuredArea = obscuredSide.area();
-      obscuredSideAreasArray.push(obscuredArea); // Debugging
-      obscuredSidesArea += obscuredArea;
+//       const blockingPolygons = [...wallPolys, ...shadowsArr[i]];
+      const blockingPolygons = [...wallPolys];
+      const obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, blockingPolygons);
+      obscuredSides.push(obscuredSide);
     }
 
+    return obscuredSides;
   }
 
   /**
@@ -357,115 +369,39 @@ export class Area3d {
   percentAreaVisible() {
     if ( !this.blockingWalls.size ) return 1;
 
-    // 1. Treat each square of the target as a separate plane.
-    // 2. Project shadow from the wall onto the plane.
-    // 3. Calculate area of the planes w/ shadows and walls block vs. area w/o.
     const debug = game.modules.get(MODULE_ID).api.debug;
-    const origin = new Point3d(0, 0, 0);
-
-    const tTarget = this.transformedTarget;
-    const tWalls = this.transformedWalls;
-
-    // For each side of the target:
-    // 1. Project the wall edge onto the plane of the target.
-    // - skip wall projection if points are collinear
-    // - diff the target side vs the wall projection in clipper
-    // 2. Project shadow from each wall edge.
-    // - diff the target side from each wall edge
-    // 3. calculate area of remaining side
-    // 4. sum areas with diff divided by areas of target sides alone
-
-    const sides = tTarget.sides;
-    if ( tTarget.top ) sides.push(tTarget.top);
-    if ( tTarget.bottom ) sides.push(tTarget.bottom);
+    const obscuredSides = this.obscuredSides;
 
     if ( debug ) {
       this._drawLineOfSight();
       this._drawTransformedTarget();
       this._drawTransformedWalls();
+//       this._drawTransformedShadows();
+
+      const target = this.target;
+      this.debugSideAreas = {
+        top: target.w * target.h,
+        ogSide1: target.w * (target.topZ - target.bottomZ),
+        ogSide2: target.h * (target.topZ - target.bottomZ),
+        sides: [],
+        obscuredSides: []
+      };
     }
 
-    if ( !sides.length ) return;
-
-    let obscuredSidesArea = 0;
     let sidesArea = 0;
+    let obscuredSidesArea = 0;
+    const nSides = obscuredSides.length;
+    for ( let i = 0; i < nSides; i += 1 ) {
+      const sideArea = this.sidePolys[i].area();
+      const obscuredSideArea = obscuredSides[i].area();
 
-    // For debugging
-    const target = this.target;
-    const obscuredSideAreasArray = [];
-    const sideAreasArray = [];
-    const originalSideAreas = {
-      top: target.w * target.h,
-      side1: target.w * (target.topZ - target.bottomZ),
-      side2: target.h * (target.topZ - target.bottomZ)
-    };
-    this._sideTransforms = [];
-
-
-    for ( const side of sides ) {
-      const sidePoints = elementsByIndex(tTarget.points, side);
-      const sidePlane = Plane.fromPoints(sidePoints[0], sidePoints[1], sidePoints[2]);
-
-      // Measure area from point of view of the token
-      // TO-DO: Canvas perspective?  https://www.scratchapixel.com/lessons/3d-basic-rendering/computing-pixel-coordinates-of-3d-point/mathematics-computing-2d-coordinates-of-3d-points
-      const sidePoly = new PIXI.Polygon(sidePoints);
-      const sideArea = sidePoly.area();
       sidesArea += sideArea;
-      sideAreasArray.push(sideArea); // Debugging
-
-      // Debugging
-      const sideTransform = { sidePoly, shadows: [], blockingPolygons: [] };
-      this._sideTransforms.push(sideTransform);
-
-      for ( const wall of tWalls ) {
-        // If the wall is represented by 4 distinct XY points, use to block the side
-        const ln = wall.length;
-        if ( ln === 4 ) {
-          const w0 = wall[0].to2d();
-          const w1 = wall[1].to2d();
-          const w2 = wall[2].to2d();
-          if ( !(w0.almostEqual(wall[1])
-            || w0.almostEqual(wall[2])
-            || w0.almostEqual(wall[3])
-            || w1.almostEqual(wall[2])
-            || w1.almostEqual(wall[3])
-            || w2.almostEqual(wall[3])) ) {
-
-            sideTransform.blockingPolygons.push(new PIXI.Polygon(wall));
-          }
-        }
-
-        // For each wall edge, construct shadow
-        for ( let i = 0; i < ln; i += 1 ) {
-          const A = wall[i];
-          const B = wall[(i + 1) % ln];
-          const shadow = Shadow.complexSurfaceOriginAbove(A, B, origin, sidePlane);
-          if ( shadow ) {
-            const shadowPoly = new Shadow(shadow);
-            sideTransform.blockingPolygons.push(shadowPoly);
-            sideTransform.shadows.push({A, B, origin, surfacePlane: sidePlane}); // Debugging
-          }
-        }
+      obscuredSidesArea += obscuredSideArea;
+      if ( debug ) {
+        this.debugSideAreas.sides.push(sideArea);
+        this.debugSideAreas.obscuredSides.push(obscuredSideArea);
       }
-
-      if ( !sideTransform.blockingPolygons.length ) {
-        obscuredSideAreasArray.push(sideArea); // Debugging
-        obscuredSidesArea += sideArea;
-        continue;
-      }
-
-      const obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, sideTransform.blockingPolygons);
-
-      const obscuredArea = obscuredSide.area();
-      obscuredSideAreasArray.push(obscuredArea); // Debugging
-      obscuredSidesArea += obscuredArea;
     }
-
-    this._obscuredSideAreasArray = obscuredSideAreasArray;
-    this._sideAreas = sideAreasArray;
-    this._originalSideAreas = originalSideAreas;
-
-    debug && this._drawSideTransforms(); // eslint-disable-line no-unused-expressions
 
     return sidesArea ? obscuredSidesArea / sidesArea : 0;
   }
@@ -483,8 +419,8 @@ export class Area3d {
     if ( !wall.document.sight || wall.isOpen ) return false;
 
     // Ignore walls that are in line with the viewer and target
-    if ( !foundry.utils.orient2d(this.viewerCenter, wall.A, wall.B)
-      && !foundry.utils.orient2d(this.targetCenter, wall.A, wall.B) ) return false;
+    if ( !foundry.utils.orient2dFast(this.viewerCenter, wall.A, wall.B)
+      && !foundry.utils.orient2dFast(this.targetCenter, wall.A, wall.B) ) return false;
 
     // Ignore one-directional walls facing away from the origin
     const side = wall.orientPoint(this.viewerCenter);
@@ -515,7 +451,7 @@ export class Area3d {
    * Indices for object.points:
    *   [object.top]     Top points, or undefined
    *   [object.bottom]  Bottom points, or undefined
-   *   [object.sides]   Array of sides
+   *   [object.sides]   Array of sides, including top or bottom
    */
   _target3dPoints() {
     // In 2d XY coordinates, check what points are visible.
@@ -667,62 +603,12 @@ export class Area3d {
       }
     }
 
+    if ( out.top ) out.sides.push(out.top);
+    if ( out.bottom ) out.side.push(out.bottom);
+
     return out;
 
   }
-
-  /**
-   * Get 3d points representing a given token.
-   * @param {Token} token
-   * @param {boolean} useConstrained    If true, use the token polygon constrained by walls.
-   * @returns {Point3d[]}
-   */
-//   static token3dPoints(token, useConstrained = true) {
-//     let tokenShape = token.bounds;
-//     if ( useConstrained ) tokenShape = getConstrainedTokenShape(token);
-//
-//     const { bottomZ, topZ } = token;
-//
-//     if ( tokenShape instanceof PIXI.Rectangle ) {
-//       const { x, y, height, width } = tokenShape;
-//
-//       // Face points are:
-//       // top: 1, 3, 5, 7
-//       // bottom: 0, 2, 4, 6
-//       // s1: 1, 3, 2, 0
-//       // s2: 3, 5, 4, 2
-//       // s3: 5, 7, 6, 4
-//       // s4: 7, 1, 0, 6
-//       return [
-//         new Point3d(x, y, bottomZ),
-//         new Point3d(x, y, topZ),
-//
-//         new Point3d(x + width, y, bottomZ),
-//         new Point3d(x + width, y, topZ),
-//
-//         new Point3d(x + width, y + height, bottomZ),
-//         new Point3d(x + width, y + height, topZ),
-//
-//         new Point3d(x, y + height, bottomZ),
-//         new Point3d(x, y + height, topZ)
-//       ];
-//     }
-//
-//     // Face points are:
-//     // top: 1, 3, 5, ...
-//     // bottom: 0, 2, 4, ...
-//     // s1: 1, 3, 2, 0
-//     // s2: 3, 5, 4, 2 ...
-//     // sn: n, 1, 0, n - 1
-//     const pts = [];
-//     for ( const pt of tokenShape.iteratePoints({close: false}) ) {
-//       pts.push(
-//         new Point3d(pt.x, pt.y, bottomZ),
-//         new Point3d(pt.x, pt.y, topZ)
-//       );
-//     }
-//     return pts;
-//   }
 
   /**
    * Get 3d points representing a given wall.
@@ -760,12 +646,8 @@ export class Area3d {
    * Draw the transformed target.
    */
   _drawTransformedTarget(perspective = true) {
-//     const t = this.transformedTarget;
     const t = perspective ? this.perspectiveTarget : this.transformedTarget;
     t.points.forEach(pt => drawing.drawPoint(pt, { color: drawing.COLORS.red }));
-
-    if ( t.top ) this._drawSide(t.points, t.top, { color: drawing.COLORS.red });
-    if ( t.bottom ) this._drawSide(t.points, t.bottom, { color: drawing.COLORS.red });
 
     for ( const side of t.sides ) {
       this._drawSide(t.points, side, { color: drawing.COLORS.red });
@@ -785,70 +667,30 @@ export class Area3d {
 
   /**
    * For debugging.
-   * Draw the transformed target.
    */
   _drawTransformedWalls(perspective = true) {
-//     const walls = this.transformedWalls;
     const walls = perspective ? this.perspectiveWalls : this.transformedWalls;
     walls.forEach(w => {
-      w.forEach(pt => drawing.drawPoint(pt, { color: drawing.COLORS.blue }));
-      drawing.drawSegment({A: w[0], B: w[1]}, { color: drawing.COLORS.blue });
-      drawing.drawSegment({A: w[1], B: w[2]}, { color: drawing.COLORS.blue });
-      drawing.drawSegment({A: w[2], B: w[3]}, { color: drawing.COLORS.blue });
-      drawing.drawSegment({A: w[3], B: w[0]}, { color: drawing.COLORS.blue });
+      const poly = new PIXI.Polygon(w);
+      drawing.drawShape(poly, { color: drawing.COLORS.blue, fill: drawing.COLORS.blue, fillAlpha: 0.2 });
     });
   }
 
   /**
-   * For debugging, draw a given side after transforming to 2d along with walls and shadows
+   * For debugging.
    */
-  _drawSideTransform(side, perspective = true) {
-
-//     const tTarget = this.transformedTarget;
-    const tTarget = perspective ? this.perspectiveTarget : this.transformedTarget;
-
-    if ( side === "top" ) {
-      if ( !tTarget.top ) {
-        console.warn("No top side.");
-        return;
-      }
-      side = tTarget.sides.length - 1;
-    } else if ( side === "bottom" ) {
-      if ( !tTarget.bottom ) {
-        console.warn("No bottom side.");
-        return;
-      }
-      side = tTarget.sides.length - 1;
-    }
-    const sideTransform = this._sideTransforms[side];
-    if ( !sideTransform ) {
-      console.warn("Side not found");
-      return;
-    }
-
-    drawing.drawShape(sideTransform.sidePoly, { color: drawing.COLORS.red });
-
-    if ( !sideTransform.blockingPolygons ) return;
-
-    // The first (usually) is the wall, followed by shadows
-    sideTransform.blockingPolygons.forEach(poly => {
-      if ( poly instanceof Shadow ) {
-        poly.draw();
-      } else {
-        drawing.drawShape(poly, { color: drawing.COLORS.blue, width: 2, fill: drawing.COLORS.blue, fillAlpha: 0.2  });
-      }
-
-    });
-  }
-
-  _drawSideTransforms(perspective = true) {
-    const tTarget = this.transformedTarget;
-    const nSides = tTarget.sides.length;
+  _drawTransformedShadows(perspective = true) {
+    const shadowsArr = perspective ? this.perspectiveShadows : this.transformedShadows;
+    const nSides = shadowsArr.length;
     for ( let i = 0; i < nSides; i += 1 ) {
-      this._drawSideTransform(i, perspective);
+      this._drawTransformedShadowsForSide(i, perspective);
     }
   }
 
+  _drawTransformedShadowsForSide(side = 0, perspective = true) {
+    const shadowsArr = perspective ? this.perspectiveShadows : this.transformedShadows;
+    shadowsArr[side].forEach(s => s.draw());
+  }
 
   /**
    * Test whether walls block the source with regard to LOS.

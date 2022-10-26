@@ -202,12 +202,16 @@ export class Shadow extends PIXI.Polygon {
       return null;
     }
 
-    return new Shadow([
+    const pts = [
       ixWallA,
       ixOriginA,
       ixOriginA,
       ixWallB
-    ]);
+    ];
+
+    const out = new Shadow(pts);
+    out._points3d = pts;
+    return out;
   }
 
 
