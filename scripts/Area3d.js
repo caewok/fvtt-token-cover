@@ -3,7 +3,7 @@ PIXI,
 canvas,
 game,
 foundry,
-Tpken
+Token
 */
 "use strict";
 
@@ -117,10 +117,14 @@ export class Area3d {
     for ( const shadows of tShadowArr ) {
       if ( !shadows.length ) out.push([]);
       else out.push(shadows.map(shadow =>
-        new Shadow(shadow._points3d.map(pt => new PIXI.Point(pt.x / -pt.z * 1000, pt.y / -pt.y * 1000)))));
+        new Shadow(shadow._points3d.map(pt => Area3d.perspectiveTransform(pt)))));
     }
 
     return out;
+  }
+
+  static perspectiveTransform(pt) {
+    return new PIXI.Point(pt.x / -pt.z * 1000, pt.y / -pt.z * 1000);
   }
 
   /**
@@ -247,7 +251,7 @@ export class Area3d {
   _calculateViewerCameraMatrix() {
     const cameraPosition = this.viewerCenter;
     const targetPosition = this.targetCenter;
-    return Matrix.lookAt(cameraPosition, targetPosition, this._upVector);
+    return Matrix.lookAt(cameraPosition, targetPosition);
   }
 
   /**
@@ -604,7 +608,7 @@ export class Area3d {
     }
 
     if ( out.top ) out.sides.push(out.top);
-    if ( out.bottom ) out.side.push(out.bottom);
+    if ( out.bottom ) out.sides.push(out.bottom);
 
     return out;
 

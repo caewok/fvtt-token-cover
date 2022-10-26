@@ -126,6 +126,7 @@ export class Matrix {
 
   /**
    * See https://webglfundamentals.org/webgl/lessons/webgl-3d-camera.html
+   * https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/lookat-function
    * Construct a camera matrix given the position of the camera, position of the
    * target the camera is observing, the a vector pointing directly up.
    * @param {Point3d} cameraPosition
@@ -133,8 +134,8 @@ export class Matrix {
    * @param {Point3d} up
    * @returns {Matrix} 4x4 matrix
    */
-  static lookAt(cameraPosition, targetPosition, up) {
-    const zAxis = cameraPosition.subtract(targetPosition);
+  static lookAt(cameraPosition, targetPosition, up = new Point3d(0, 1, 0)) {
+    const zAxis = cameraPosition.subtract(targetPosition); // forward
     if ( !zAxis.x && !zAxis.y ) {
       // Camera either directly overhead or directly below
       // Overhead if zAxis.z is positive
@@ -154,11 +155,11 @@ export class Matrix {
     }
 
     zAxis.normalize(zAxis);
-    const xAxis = up.cross(zAxis);
-    xAxis.normalize(xAxis);
+    const xAxis = up.cross(zAxis); // right
+//     xAxis.normalize(xAxis);
 
-    const yAxis = zAxis.cross(xAxis);
-    yAxis.normalize(yAxis);
+    const yAxis = zAxis.cross(xAxis); // up
+//     yAxis.normalize(yAxis);
 
     return new Matrix([
       [xAxis.x, xAxis.y, xAxis.z, 0],
@@ -167,7 +168,6 @@ export class Matrix {
       [cameraPosition.x, cameraPosition.y, cameraPosition.z, 1]
     ]);
   }
-
 
   /**
    * Rotation matrix for a given angle, rotating around Y axis.
