@@ -127,6 +127,7 @@ export class Matrix {
   /**
    * See https://webglfundamentals.org/webgl/lessons/webgl-3d-camera.html
    * https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/lookat-function
+   * https://www.geertarien.com/blog/2017/07/30/breakdown-of-the-lookAt-function-in-OpenGL/
    * Construct a camera matrix given the position of the camera, position of the
    * target the camera is observing, the a vector pointing directly up.
    * @param {Point3d} cameraPosition
@@ -134,39 +135,43 @@ export class Matrix {
    * @param {Point3d} up
    * @returns {Matrix} 4x4 matrix
    */
-  static lookAt(cameraPosition, targetPosition, up = new Point3d(0, 1, 0)) {
-    const zAxis = cameraPosition.subtract(targetPosition); // forward
-    if ( !zAxis.x && !zAxis.y ) {
+  static lookAt(cameraPosition, targetPosition, up = new Point3d(0, -1, 1)) {
+    // NOTE: Foundry uses a left-hand coordinate system, with y reversed.
+
+    const zAxis = cameraPosition.subtract(targetPosition); // zAxis = forward
+    if ( zAxis.magnitudeSquared ) zAxis.normalize(zAxis); // Don't normalize if 0, 0, 0
+
+    const xAxis = new Point3d(1, 0, 0);
+    const yAxis = new Point3d(0, 1, 0);
+    if ( zAxis.x || zAxis.y ) {
+      up.cross(zAxis, xAxis); // xAxis = right
+      if ( xAxis.magnitudeSquared() ) xAxis.normalize(xAxis); // Don't normalize if 0, 0, 0
+      zAxis.cross(xAxis, yAxis); // yAxis = up
+
+    } else {
+      console.warn("lookAt zAxis.x and y are zero.")
       // Camera either directly overhead or directly below
       // Overhead if zAxis.z is positive
-      return zAxis.z >= 0
-        ? new Matrix([
-        [1, 0, 0, 0],
-        [0, 1, 0, 0],
-        [0, 0, 1, 0],
-        [cameraPosition.x, cameraPosition.y, cameraPosition.z, 1]
-      ])
-      : new Matrix([
-       [1, 0, 0, 0],
-       [0, 1, 0, 0],
-       [0, 0, -1, 0],
-       [cameraPosition.x, cameraPosition.y, cameraPosition.z, 1]
-      ]);
+     //  xAxis = new Point3d(1, 0, 0);
+//       yAxis = new Point3d(0, 1, 0);
+
     }
 
-    zAxis.normalize(zAxis);
-    const xAxis = up.cross(zAxis); // right
-//     xAxis.normalize(xAxis);
-
-    const yAxis = zAxis.cross(xAxis); // up
-//     yAxis.normalize(yAxis);
-
-    return new Matrix([
+    const M = new Matrix([
       [xAxis.x, xAxis.y, xAxis.z, 0],
       [yAxis.x, yAxis.y, yAxis.z, 0],
       [zAxis.x, zAxis.y, zAxis.z, 0],
       [cameraPosition.x, cameraPosition.y, cameraPosition.z, 1]
     ]);
+
+    const Minv = new Matrix([
+      [xAxis.x, yAxis.x, zAxis.x, 0],
+      [xAxis.y, yAxis.y, zAxis.y, 0],
+      [xAxis.z, yAxis.z, zAxis.z, 0],
+      [-(xAxis.dot(cameraPosition)), -(yAxis.dot(cameraPosition)), -(zAxis.dot(cameraPosition)), 1]
+    ]);
+
+    return { M, Minv };
   }
 
   /**
@@ -389,6 +394,33 @@ export class Matrix {
     return new Point3d(x, y, z);
   }
 
+  /**
+   * Copy the data from this matrix to another
+   * @param {Matrix} outMatrix    Other matrix to use (newly created by default)
+   * @returns Matrix
+   */
+  copyTo(outMatrix = Matrix.empty(other.dim1, other.dim2)) {
+    const dim1 = this.dim1;
+    const dim2 = this.dim2;
+    for ( let i = 0; i < dim1; i += 1 ) {
+      for ( let j = 0; j < dim2; j += 1 ) {
+        outMatrix.arr[i][j] = this.arr[i][j];
+      }
+    }
+    return outMatrix;
+  }
+
+  /**
+   * See https://stackoverflow.com/questions/4492678/swap-rows-with-columns-transposition-of-a-matrix-in-javascript
+   * @param {Matrix} outMatrix  Optional matrix to use for the returned data.
+   * @returns {Matrix}
+   */
+  transpose(outMatrix = Matrix.empty(this.dim1, this.dim2)) {
+    outMatrix.arr = Object.keys(this.arr[0]).map(function(c) {
+        return this.arr.map(function(r) { return r[c]; });
+    });
+    return outMatrix;
+  }
 
   add(other, outMatrix = Matrix.empty(other.dim1, other.dim2)) {
     const d1 = this.dim1;

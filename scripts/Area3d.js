@@ -58,7 +58,7 @@ export class Area3d {
    * Used to construct the token camera and view matrices.
    * @type {Point3d}
    */
-  _upVector = new Point3d(0, 0, 1);
+  static _upVector = new Point3d(0, 0, -1);
 
 
   /**
@@ -124,7 +124,7 @@ export class Area3d {
   }
 
   static perspectiveTransform(pt) {
-    return new PIXI.Point(pt.x / -pt.z * 1000, pt.y / -pt.z * 1000);
+    return new PIXI.Point(pt.x / pt.z * 1000, pt.y / pt.z * 1000);
   }
 
   /**
@@ -178,11 +178,18 @@ export class Area3d {
   }
 
   get viewerViewM() {
-    return this._tokenViewM || (this._tokenViewM = this.viewerCameraM.invert());
+    if ( !this._viewerViewM ) this.viewerCameraM;
+    return this._viewerViewM;
   }
 
   get viewerCameraM() {
-    return this._viewerCameraM || (this._viewerCameraM = this._calculateViewerCameraMatrix());
+    if ( !this._viewerCameraM ) {
+      const { M, Minv } = this._calculateViewerCameraMatrix();
+      this._viewerCameraM = M;
+      this._viewerViewM = Minv;
+    }
+
+    return this._viewerCameraM;
   }
 
   get viewerCenter() {
@@ -251,7 +258,7 @@ export class Area3d {
   _calculateViewerCameraMatrix() {
     const cameraPosition = this.viewerCenter;
     const targetPosition = this.targetCenter;
-    return Matrix.lookAt(cameraPosition, targetPosition);
+    return Matrix.lookAt(cameraPosition, targetPosition, Area3d._upVector);
   }
 
   /**
@@ -371,7 +378,7 @@ export class Area3d {
    * @returns {number}
    */
   percentAreaVisible() {
-    if ( !this.blockingWalls.size ) return 1;
+//     if ( !this.blockingWalls.size ) return 1; // Turn on after debugging
 
     const debug = game.modules.get(MODULE_ID).api.debug;
     const obscuredSides = this.obscuredSides;
