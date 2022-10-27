@@ -57,6 +57,33 @@ import { Area3d } from "./Area3d.js";
 import * as drawing from "./drawing.js";
 
 
+export function addCoverStatuses() {
+  CONFIG.statusEffects.push({
+    id: `${MODULE_ID}.coverHalf`,
+    label: "Half Cover",
+    icon: `modules/${MODULE_ID}/assets/shield-halved.svg`,
+    changes: [{
+      key: "system.attributes.ac.bonus",
+      mode: 2,
+      value: "+2" }
+    ]
+  });
+
+  CONFIG.statusEffects.push({
+    id: `${MODULE_ID}.coverThreeQuarters`,
+    label: "Three Quarters Cover",
+    icon: `modules/${MODULE_ID}/assets/shield-virus.svg`
+  });
+
+  CONFIG.statusEffects.push({
+    id: `${MODULE_ID}.CoverFull`,
+    label: "Full Cover",
+    icon: `modules/${MODULE_ID}/assets/shield.svg`
+  });
+
+}
+
+
 /* Cover Calculation Class
  * Calculate cover between a token and target, based on different algorithms.
  */

@@ -23,7 +23,7 @@ import { Matrix } from "./Matrix.js";
 import { Area3d } from "./Area3d.js";
 import { Plane } from "./Plane.js";
 import { ClipperPaths } from "./ClipperPaths.js";
-import { CoverCalculator } from "./cover.js";
+import { CoverCalculator, addCoverStatuses } from "./cover.js";
 
 Hooks.once("init", async function() {
   registerElevationAdditions();
@@ -32,6 +32,9 @@ Hooks.once("init", async function() {
   registerLibWrapperMethods();
   patchHelperMethods();
   registerPIXIPolygonMethods();
+
+  addCoverStatuses();
+
 
   game.modules.get(MODULE_ID).api = {
     bench,
