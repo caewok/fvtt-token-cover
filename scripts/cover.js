@@ -145,9 +145,9 @@ Provide setting for manual only
  */
 export function updateToken(document, change, options, userId) {
   // Only care about x, y, and elevation changes
-  if ( !Object.hasOwnProperty("x")
-    && !Object.hasOwnProperty("y")
-    && !!Object.hasOwnProperty("z") ) return;
+  if ( !Object.hasOwn(change, "x")
+    && !Object.hasOwn(change, "y")
+    && !Object.hasOwn(change, "z") ) return;
 
   // Only track cover when in combat.
   if ( !game.combat?.started ) return;
@@ -174,16 +174,16 @@ export async function toggleActiveEffectTokenDocument(wrapper, effectData, { ove
 
   switch ( effectData.id ) {
     case `${MODULE_ID}.cover.LOW`:
-      disableCoverStatus(tokenD, COVER_TYPES.MEDIUM);
-      disableCoverStatus(tokenD, COVER_TYPES.HIGH);
+      CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.MEDIUM);
+      CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.HIGH);
       break;
     case `${MODULE_ID}.cover.MEDIUM`:
-      disableCoverStatus(tokenD, COVER_TYPES.LOW);
-      disableCoverStatus(tokenD, COVER_TYPES.HIGH);
+      CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.LOW);
+      CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.HIGH);
       break;
     case `${MODULE_ID}.cover.HIGH`:
-      disableCoverStatus(tokenD, COVER_TYPES.LOW);
-      disableCoverStatus(tokenD, COVER_TYPES.MEDIUM);
+      CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.LOW);
+      CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.MEDIUM);
       break;
   }
 
@@ -233,15 +233,16 @@ export function targetTokenHook(user, target, targeted) {
   // Ignore targeting by other users
   if ( !isUserCombatTurn(user) ) return;
 
+  const targetD = target.document;
   if ( !targeted ) {
-    CoverCalculator.disableAllCoverStatus(tokenD);
+    CoverCalculator.disableAllCoverStatus(targetD);
     return;
   }
 
   // Target from the current combatant to the target token
   const c = game.combats.active;
   const combatToken = c.combatant.token.object;
-  const coverCalc = new CoverCalculator(combatToken, target)
+  const coverCalc = new CoverCalculator(combatToken, target);
   coverCalc.setTargetCoverEffect();
 }
 
@@ -257,11 +258,8 @@ function isUserCombatTurn(user) {
   // If no players, than it must be a GM token
   if ( !c.combatant.players.length ) return user.isGM;
 
-  let isCurrentPlayer = false;
   return c.combatant.players.some(player => user.name === player.name);
 }
-
-
 
 
 /* Cover Calculation Class
@@ -281,17 +279,17 @@ export class CoverCalculator {
     // TO-DO: Add the "None" name to settings
     if ( type === CoverCalculator.COVER_TYPES.NONE ) return "None";
 
-    const key = Object.keys(CoverCalculator.COVER_TYPES)[type]
+    const key = Object.keys(CoverCalculator.COVER_TYPES)[type];
     return getSetting(SETTINGS.COVER.NAMES[key]);
   }
 
-  static function disableAllCoverStatus(tokenD) {
+  static disableAllCoverStatus(tokenD) {
     CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.LOW);
     CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.MEDIUM);
     CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.HIGH);
   }
 
-  static function disableCoverStatus(tokenD, type = COVER_TYPES.LOW ) {
+  static disableCoverStatus(tokenD, type = COVER_TYPES.LOW ) {
     if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
 
     const keys = Object.keys(COVER_TYPES);
@@ -302,8 +300,8 @@ export class CoverCalculator {
     tokenD.toggleActiveEffect({ id }, { active: false });
   }
 
-  static function enableCoverStatus(tokenD, type = COVER_TYPES.LOW ) {
-     if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
+  static enableCoverStatus(tokenD, type = COVER_TYPES.LOW ) {
+    if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
 
     const keys = Object.keys(COVER_TYPES);
     const key = keys[type];
@@ -396,8 +394,8 @@ export class CoverCalculator {
       case COVER_TYPES.LOW:
       case COVER_TYPES.MEDIUM:
       case COVER_TYPES.HIGH:
-        CoverCalculator.enableCoverStatus(targetD, type)
-     }
+        CoverCalculator.enableCoverStatus(targetD, type);
+    }
   }
 
   /**
