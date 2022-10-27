@@ -63,7 +63,7 @@ export function addCoverStatuses() {
   CONFIG.statusEffects.push({
     id: `${MODULE_ID}.cover.LOW`,
     label: getSetting(SETTINGS.COVER.NAMES.LOW),
-    icon: `modules/${MODULE_ID}/assets/shield-halved.svg`,
+    icon: `modules/${MODULE_ID}/assets/shield-low-gray.svg`,
     changes: [
       {
         key: "system.attributes.ac.bonus",
@@ -82,7 +82,7 @@ export function addCoverStatuses() {
   CONFIG.statusEffects.push({
     id: `${MODULE_ID}.cover.MEDIUM`,
     label: getSetting(SETTINGS.COVER.NAMES.MEDIUM),
-    icon: `modules/${MODULE_ID}/assets/shield-virus.svg`,
+    icon: `modules/${MODULE_ID}/assets/shield-med-gray.svg`,
     changes: [
       {
         key: "system.attributes.ac.bonus",
@@ -101,7 +101,7 @@ export function addCoverStatuses() {
   CONFIG.statusEffects.push({
     id: `${MODULE_ID}.cover.HIGH`,
     label: getSetting(SETTINGS.COVER.NAMES.HIGH),
-    icon: `modules/${MODULE_ID}/assets/shield.svg`
+    icon: `modules/${MODULE_ID}/assets/shield-high-gray.svg`
   });
 
 }
