@@ -14,6 +14,10 @@ import {
   getConstrainedTokenShape
 } from "./token_visibility.js";
 
+import {
+  toggleActiveEffectTokenDocument
+} from "./cover.js";
+
 import { MODULE_ID } from "./const.js";
 import { log } from "./util.js";
 import {
@@ -37,6 +41,9 @@ export function registerLibWrapperMethods() {
   libWrapper.register(MODULE_ID, "TokenHUD.prototype._onToggleStatusEffects", _onToggleStatusEffectsTokenHUD, libWrapper.WRAPPER);
   libWrapper.register(MODULE_ID, "TokenHUD.prototype._toggleStatusEffects", _toggleStatusEffectsTokenHUD, libWrapper.WRAPPER);
   libWrapper.register(MODULE_ID, "TokenHUD.prototype._onToggleEffect", _onToggleEffectTokenHUD, libWrapper.WRAPPER);
+
+  // Manipulating Token status effects
+  libWrapper.register(MODULE_ID, "TokenDocument.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument, libWrapper.WRAPPER);
 
   // Constrained token shape getter.
   // Reset by tokenUpdateVisionSource
@@ -65,6 +72,7 @@ function _onToggleEffectTokenHUD(wrapper, event, {overlay=false}={}) {
 
 // See also Token.prototype.toggleEffect and
 // TokenDocument.prototype.toggleActiveEffect
+
 
 
 export function patchHelperMethods() {

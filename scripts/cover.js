@@ -3,7 +3,9 @@ ClockwiseSweepPolygon,
 game,
 PIXI,
 canvas,
-CONST
+CONST,
+CONFIG,
+Token
 */
 "use strict";
 
@@ -59,29 +61,152 @@ import * as drawing from "./drawing.js";
 
 export function addCoverStatuses() {
   CONFIG.statusEffects.push({
-    id: `${MODULE_ID}.coverHalf`,
-    label: "Half Cover",
+    id: `${MODULE_ID}.cover.LOW`,
+    label: getSetting(SETTINGS.COVER.NAMES.LOW),
     icon: `modules/${MODULE_ID}/assets/shield-halved.svg`,
-    changes: [{
-      key: "system.attributes.ac.bonus",
-      mode: 2,
-      value: "+2" }
+    changes: [
+      {
+        key: "system.attributes.ac.bonus",
+        mode: 2,
+        value: "+2"
+      },
+
+      {
+        key: "system.attributes.dex.saveBonus",
+        mode: 2,
+        value: "+2"
+      }
     ]
   });
 
   CONFIG.statusEffects.push({
-    id: `${MODULE_ID}.coverThreeQuarters`,
-    label: "Three Quarters Cover",
-    icon: `modules/${MODULE_ID}/assets/shield-virus.svg`
+    id: `${MODULE_ID}.cover.MEDIUM`,
+    label: getSetting(SETTINGS.COVER.NAMES.MEDIUM),
+    icon: `modules/${MODULE_ID}/assets/shield-virus.svg`,
+    changes: [
+      {
+        key: "system.attributes.ac.bonus",
+        mode: 2,
+        value: "+5"
+      },
+
+      {
+        key: "system.attributes.dex.saveBonus",
+        mode: 2,
+        value: "+5"
+      }
+    ]
   });
 
   CONFIG.statusEffects.push({
-    id: `${MODULE_ID}.CoverFull`,
-    label: "Full Cover",
+    id: `${MODULE_ID}.cover.HIGH`,
+    label: getSetting(SETTINGS.COVER.NAMES.HIGH),
     icon: `modules/${MODULE_ID}/assets/shield.svg`
   });
 
 }
+
+/* Options for determining cover.
+1. Any player can run the Cover macro to determine cover for each token--> target combo.
+
+If no combat:
+- selecting a single token and then targeting 1+ will impose status effects.
+- selecting multiple tokens will remove status effects?
+
+If combat:
+- Cover switches to only the current user.
+- cover calculated like the no combat scenario otherwise.
+- cover calculated for the
+
+On attack:
+- Settings permit user decides, GM decides, or automatic
+- User decides: Pop up dialog confirm to user prior to attack proceeding
+- GM decides: Pop dialog confirm to GM prior to attack proceeding
+
+
+Can manually set cover status but it will only last until targets change...
+Provide setting for manual only
+
+*/
+
+function disableCoverStatus(tokenD, type = COVER_TYPES.LOW ) {
+  if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
+
+  const keys = Object.keys(COVER_TYPES);
+  const key = keys[type];
+  if ( !key ) return;
+
+  const id = `${MODULE_ID}.cover.${key}`;
+  tokenD.toggleActiveEffect({ id }, { active: false });
+}
+
+/**
+ * Wrap TokenDocument.prototype.toggleActiveEffect
+ * If adding a cover effect, remove other cover effects
+ */
+export async function toggleActiveEffectTokenDocument(wrapper, effectData, { overlay=false, active}={}) {
+  const state = await wrapper(effectData, {overlay, active});
+  if ( !state ) return; // No new effect added.
+  const tokenD = this;
+
+  switch ( effectData.id ) {
+    case `${MODULE_ID}.cover.LOW`:
+      disableCoverStatus(tokenD, COVER_TYPES.MEDIUM);
+      disableCoverStatus(tokenD, COVER_TYPES.HIGH);
+      break;
+    case `${MODULE_ID}.cover.MEDIUM`:
+      disableCoverStatus(tokenD, COVER_TYPES.LOW);
+      disableCoverStatus(tokenD, COVER_TYPES.HIGH);
+      break;
+    case `${MODULE_ID}.cover.HIGH`:
+      disableCoverStatus(tokenD, COVER_TYPES.LOW);
+      disableCoverStatus(tokenD, COVER_TYPES.MEDIUM);
+      break;
+  }
+
+  return state;
+}
+export function combatTurnHook(combat, updateData, updateOptions) {
+//   updateData.round
+//   updateData.turn
+
+  const c = combat.combatant;
+  const playerOwners = c.players;
+
+
+  // Clear cover status of all tokens in the scene
+  const tokens = canvas.tokens.placeables;
+//   for ( const token of tokens ) {
+//     if ( token.targeted.has() ) {
+//
+//     disableCoverStatus(token, COVER_TYPES.LOW);
+//     disableCoverStatus(token, COVER_TYPES.MEDIUM);
+//     disableCoverStatus(token, COVER_TYPES.HIGH);
+//     }
+//   }
+
+  // Calculate cover from token to any currently targeted tokens
+}
+
+/**
+ * If a token is targeted, determine its cover status.
+ *
+ * A hook event that fires when a token is targeted or un-targeted.
+ * @function targetToken
+ * @memberof hookEvents
+ * @param {User} user        The User doing the targeting
+ * @param {Token} token      The targeted Token
+ * @param {boolean} targeted Whether the Token has been targeted or untargeted
+ */
+export function targetTokenHook(user, token, isTrue) {
+  console.log(user)
+  console.log(`${token.name}`, token);
+  console.log(`Combat started? ${game.combat?.started}`);
+}
+
+
+
+
 
 
 /* Cover Calculation Class
@@ -91,6 +216,19 @@ export class CoverCalculator {
   static COVER_TYPES = COVER_TYPES;
 
   static ALGORITHMS = SETTINGS.COVER.TYPES;
+
+  /**
+   * Get the corresponding name for a cover type.
+   * @param {COVER_TYPES} type    Cover number
+   * @returns {string}
+   */
+  static coverNameForType(type) {
+    // TO-DO: Add the "None" name to settings
+    if ( type === CoverCalculator.COVER_TYPES.NONE ) return "None";
+
+    const key = Object.keys(CoverCalculator.COVER_TYPES)[type]
+    return getSetting(SETTINGS.COVER.NAMES[key]);
+  }
 
   /**
    * @param {VisionSource|Token} viewer
