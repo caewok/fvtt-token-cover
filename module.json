@@ -30,6 +30,15 @@
   "esmodules": [
     "scripts/module.js"
   ],
+  "packs": [
+    {
+      "name": "tokenvisionmacros",
+      "label": "Alternative Token Vision Macros",
+      "path": "packs/macros.db",
+      "type": "Macro",
+      "private": false
+    }
+  ],
   "languages": [
     {
       "lang": "en",
