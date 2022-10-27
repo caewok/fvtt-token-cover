@@ -129,16 +129,39 @@ Provide setting for manual only
 
 */
 
-function disableCoverStatus(tokenD, type = COVER_TYPES.LOW ) {
-  if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
+/**
+ * Hook token updates to adjust cover status if moving.
+ *
+ * A hook event that fires for every Document type after conclusion of an update workflow.
+ * Substitute the Document name in the hook event to target a specific Document type, for example "updateActor".
+ * This hook fires for all connected clients after the update has been processed.
+ *
+ * @event updateDocument
+ * @category Document
+ * @param {Document} document                       The existing Document which was updated
+ * @param {object} change                           Differential data that was used to update the document
+ * @param {DocumentModificationContext} options     Additional options which modified the update request
+ * @param {string} userId                           The ID of the User who triggered the update workflow
+ */
+export function updateToken(document, change, options, userId) {
+  // Only care about x, y, and elevation changes
+  if ( !Object.hasOwnProperty("x")
+    && !Object.hasOwnProperty("y")
+    && !!Object.hasOwnProperty("z") ) return;
 
-  const keys = Object.keys(COVER_TYPES);
-  const key = keys[type];
-  if ( !key ) return;
+  // Only track cover when in combat.
+  if ( !game.combat?.started ) return;
 
-  const id = `${MODULE_ID}.cover.${key}`;
-  tokenD.toggleActiveEffect({ id }, { active: false });
+  // If this token is targeted by an owner of the current combatant, update cover
+
+
+
+  // If in combat and this token is the current combatant, update all targets
+
+
 }
+
+
 
 /**
  * Wrap TokenDocument.prototype.toggleActiveEffect
@@ -173,19 +196,24 @@ export function combatTurnHook(combat, updateData, updateOptions) {
   const c = combat.combatant;
   const playerOwners = c.players;
 
-
   // Clear cover status of all tokens in the scene
+  // Unless the token is targeted by the current user
   const tokens = canvas.tokens.placeables;
-//   for ( const token of tokens ) {
-//     if ( token.targeted.has() ) {
-//
-//     disableCoverStatus(token, COVER_TYPES.LOW);
-//     disableCoverStatus(token, COVER_TYPES.MEDIUM);
-//     disableCoverStatus(token, COVER_TYPES.HIGH);
-//     }
-//   }
 
-  // Calculate cover from token to any currently targeted tokens
+  const userTargetedTokens = [];
+  tokens.forEach(t => {
+    if ( playerOwners.some(owner => t.targeted.has(owner)) ) {
+      userTargetedTokens.push(t);
+    }
+    CoverCalculator.disableAllCoverStatus(t.document);
+  });
+
+  // Calculate cover from combatant to any currently targeted tokens
+  const combatToken = c.combatant.token.object;
+  for ( const target of userTargetedTokens ) {
+    const coverCalc = new CoverCalculator(combatToken, target);
+    coverCalc.setTargetCoverEffect();
+  }
 }
 
 /**
@@ -198,13 +226,40 @@ export function combatTurnHook(combat, updateData, updateOptions) {
  * @param {Token} token      The targeted Token
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
-export function targetTokenHook(user, token, isTrue) {
-  console.log(user)
-  console.log(`${token.name}`, token);
-  console.log(`Combat started? ${game.combat?.started}`);
+export function targetTokenHook(user, target, targeted) {
+  // If not in combat, do nothing because it is unclear who is targeting what...
+  if ( !game.combat?.started ) return;
+
+  // Ignore targeting by other users
+  if ( !isUserCombatTurn(user) ) return;
+
+  if ( !targeted ) {
+    CoverCalculator.disableAllCoverStatus(tokenD);
+    return;
+  }
+
+  // Target from the current combatant to the target token
+  const c = game.combats.active;
+  const combatToken = c.combatant.token.object;
+  const coverCalc = new CoverCalculator(combatToken, target)
+  coverCalc.setTargetCoverEffect();
 }
 
+/**
+ * Determine if the user's token is the current combatant in the active tracker.
+ * @param {User} user
+ * @returns {boolean}
+ */
+function isUserCombatTurn(user) {
+  if ( !game.combat?.started ) return;
 
+  const c = game.combats.active;
+  // If no players, than it must be a GM token
+  if ( !c.combatant.players.length ) return user.isGM;
+
+  let isCurrentPlayer = false;
+  return c.combatant.players.some(player => user.name === player.name);
+}
 
 
 
@@ -228,6 +283,34 @@ export class CoverCalculator {
 
     const key = Object.keys(CoverCalculator.COVER_TYPES)[type]
     return getSetting(SETTINGS.COVER.NAMES[key]);
+  }
+
+  static function disableAllCoverStatus(tokenD) {
+    CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.LOW);
+    CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.MEDIUM);
+    CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.HIGH);
+  }
+
+  static function disableCoverStatus(tokenD, type = COVER_TYPES.LOW ) {
+    if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
+
+    const keys = Object.keys(COVER_TYPES);
+    const key = keys[type];
+    if ( !key ) return;
+
+    const id = `${MODULE_ID}.cover.${key}`;
+    tokenD.toggleActiveEffect({ id }, { active: false });
+  }
+
+  static function enableCoverStatus(tokenD, type = COVER_TYPES.LOW ) {
+     if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
+
+    const keys = Object.keys(COVER_TYPES);
+    const key = keys[type];
+    if ( !key ) return;
+
+    const id = `${MODULE_ID}.cover.${key}`;
+    tokenD.toggleActiveEffect({ id }, { active: true });
   }
 
   /**
@@ -295,6 +378,36 @@ export class CoverCalculator {
         return this.area3d();
     }
     return COVER_TYPES.NONE;
+  }
+
+  /**
+   * Set the target cover effect.
+   * If cover is none, disables any cover effects.
+   * @param {COVER.TYPE} type   Cover type. Default to calculating.
+   */
+  setTargetCoverEffect(type = this.targetCover()) {
+    const targetD = this.target.document;
+
+    switch ( type ) {
+      case COVER_TYPES.NONE:
+      case COVER_TYPES.FULL:
+        this.removeTargetCoverEffect();
+        break;
+      case COVER_TYPES.LOW:
+      case COVER_TYPES.MEDIUM:
+      case COVER_TYPES.HIGH:
+        CoverCalculator.enableCoverStatus(targetD, type)
+     }
+  }
+
+  /**
+   * Remove target cover effect, if any.
+   */
+  removeTargetCoverEffect() {
+    const targetD = this.target.document;
+    CoverCalculator.disableCoverStatus(targetD, COVER_TYPES.LOW);
+    CoverCalculator.disableCoverStatus(targetD, COVER_TYPES.MEDIUM);
+    CoverCalculator.disableCoverStatus(targetD, COVER_TYPES.HIGH);
   }
 
   // ----- COVER ALGORITHM METHODS ----- //
