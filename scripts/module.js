@@ -6,6 +6,8 @@ game
 
 import { MODULE_ID, COVER_TYPES } from "./const.js";
 
+// Hooks and method registration
+import { addCoverStatuses, targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
 import { registerPIXIRectangleMethods } from "./PIXIRectangle.js";
@@ -23,7 +25,7 @@ import { Matrix } from "./Matrix.js";
 import { Area3d } from "./Area3d.js";
 import { Plane } from "./Plane.js";
 import { ClipperPaths } from "./ClipperPaths.js";
-import { CoverCalculator, addCoverStatuses, targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook } from "./cover.js";
+import { CoverCalculator } from "./CoverCalculator.js";
 
 Hooks.once("init", async function() {
   registerElevationAdditions();
@@ -77,3 +79,8 @@ Hooks.on("combatTurn", combatTurnHook);
  * For dnd5e, hook the attack roll to set cover.
  */
 Hooks.on("dnd5e.preRollAttack", dnd5ePreRollAttackHook);
+
+/**
+ * For midi, let GM or user decide on cover options. Or automatic.
+ */
+Hooks.call("midi-qol.preambleComplete",workflow)

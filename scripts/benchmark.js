@@ -9,7 +9,7 @@ _token
 
 import { randomUniform } from "./random.js";
 import { SETTINGS, getSetting, setSetting } from "./settings.js";
-import { CoverCalculator } from "./cover.js";
+import { CoverCalculator } from "./CoverCalculator.js";
 
 /*
 Rectangle intersection vs just testing all four edges
