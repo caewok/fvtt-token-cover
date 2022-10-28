@@ -10,7 +10,7 @@ foundry
 import { MODULE_ID } from "./const.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Point3d } from "./Point3d.js";
-import { CoverCalculator } from "./cover.js";
+import { CoverCalculator } from "./CoverCalculator.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
 import * as drawing from "./drawing.js";

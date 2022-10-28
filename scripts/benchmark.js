@@ -9,7 +9,7 @@ _token
 
 import { randomUniform } from "./random.js";
 import { SETTINGS, getSetting, setSetting } from "./settings.js";
-import { CoverCalculator } from "./cover.js";
+import { CoverCalculator } from "./CoverCalculator.js";
 
 /*
 Rectangle intersection vs just testing all four edges
@@ -100,7 +100,7 @@ export async function benchTokenRange(n = 100) {
   }
 
   const tokens = canvas.tokens.placeables.filter(t => !t.controlled);
-  console.log(`Benching token visibility range for ${tokens.length} tokens.`);
+  console.log(`\nBenching token visibility range for ${tokens.length} tokens.`);
 
   // Set to default LOS for test
   await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.POINTS);
@@ -138,7 +138,7 @@ export async function benchTokenLOS(n = 100) {
   }
 
   const tokens = canvas.tokens.placeables.filter(t => !t.controlled);
-  console.log(`Benching token visibility LOS for ${tokens.length} tokens.`);
+  console.log(`\nBenching token visibility LOS for ${tokens.length} tokens.`);
 
   // Set to default Range for test
   await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.FOUNDRY);
@@ -218,7 +218,7 @@ export async function benchCover(n = 100) {
   }
 
   const tokens = canvas.tokens.placeables.filter(t => !t.controlled);
-  console.log(`Benching token cover for ${tokens.length} tokens.`);
+  console.log(`\nBenching token cover for ${tokens.length} tokens.`);
 
   await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.CENTER_CENTER);
   await QBenchmarkLoopFn(n, coverTestFn, "Center-->Center", controlled, tokens);
