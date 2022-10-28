@@ -2,7 +2,8 @@
 game,
 foundry,
 canvas,
-PIXI
+PIXI,
+Dialog
 */
 "use strict";
 
@@ -353,4 +354,43 @@ export function orient3dFast(a, b, c, d) {
   return ( deltaAD.x * ((deltaBD.y * deltaCD.z) - (deltaBD.z * deltaCD.y)))
     + (deltaBD.x * ((deltaCD.y * deltaAD.z) - (deltaCD.z * deltaAD.y)))
     + (deltaCD.x * ((deltaAD.y * deltaBD.z) - (deltaAD.z * deltaBD.y)));
+}
+
+/**
+ * Convert dialog to a promise to allow use with await/async.
+ * @content HTML content for the dialog.
+ * @return Promise for the html content of the dialog
+ * Will return "Cancel" or "Close" if those are selected.
+ */
+export function dialogPromise(content, options = {}) {
+  return new Promise((resolve, reject) => {
+    dialogCallback(content, (html) => resolve(html), options);
+  });
+}
+
+/**
+ * Create new dialog with a callback function that can be used for dialogPromise.
+ * @content HTML content for the dialog.
+ * @callbackFn Allows conversion of the callback to a promise using dialogPromise.
+ * @return rendered dialog.
+ */
+function dialogCallback(content, callbackFn, options = {}) {
+  options.content = content;
+  options.buttons = {
+			one: {
+				icon: '<i class="fas fa-check"></i>',
+				label: "Confirm",
+				callback: (html) => callbackFn(html)
+			},
+			two: {
+				icon: '<i class="fas fa-times"></i>',
+				label: "Cancel",
+				callback: () => callbackFn("Cancel")
+			}
+	};
+	options.default = "two";
+	options.close = () => callbackFn("Close");
+
+	let d = new Dialog(options);
+	d.render(true);
 }

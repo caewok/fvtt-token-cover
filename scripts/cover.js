@@ -49,13 +49,14 @@ dnd5e: half, 3/4, full
 
 import { MODULE_ID, COVER_TYPES, STATUS_EFFECTS } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
-import { log } from "./util.js";
+import { log, dialogPromise, distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
 import { CoverCalculator } from "./CoverCalculator.js";
+import { Point3d } from "./Point3d.js";
 
 /**
  * Hook event that fires after targeting (AoE) is complete.
  */
-export function midiqolPreambleCompleteHook(workflow) {
+export async function midiqolPreambleCompleteHook(workflow) {
   log("midiqolPreambleCompleteHook", workflow);
 
   const token = workflow.token;
@@ -74,9 +75,75 @@ export function midiqolPreambleCompleteHook(workflow) {
     calc.setTargetCoverEffect(cover);
   }
 
+  let html = `<b>${token.name}</b>`;
+
+  const include3dDistance = true;
+  const imageWidth = 50;
+  const token_center = new Point3d(token.center.x, token.center.y, token.topZ); // Measure from token vision point.
+  const distHeader = include3dDistance ? '<th style="text-align: right"><b>Dist. (3d)</b></th>' : "";
+  html +=
+  `
+  <table id="${token.id}_table" class="table table-striped">
+  <thead>
+    <tr class="character-row">
+      <th colspan="2" ><b>Target</b></th>
+      <th style="text-align: left"><b>Cover</b></th>
+      ${distHeader}
+    </tr>
+  </thead>
+  <tbody>
+  `;
+
+  for ( let i = 0; i < nTargets; i += 1 ) {
+    const target = targets[i];
+    const cover = covers[i];
+
+    const target_center = new Point3d(
+      target.center.x,
+      target.center.y,
+      CoverCalculator.averageTokenElevation(target));
+
+    const targetImage = target.document.texture.src; // Token canvas image.
+    const dist = distanceBetweenPoints(token_center, target_center);
+    const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
+    const coverOptions =
+    `
+    <option value="NONE" ${cover === COVER_TYPES.NONE ? "selected" : ""}>None</option>
+    <option value="LOW" ${cover === COVER_TYPES.LOW ? "selected" : ""}>${getSetting(SETTINGS.COVER.NAMES.LOW)}</option>
+    <option value="MEDIUM" ${cover === COVER_TYPES.MEDIUM ? "selected" : ""}>${getSetting(SETTINGS.COVER.NAMES.MEDIUM)}</option>
+    <option value="HIGH" ${cover === COVER_TYPES.HIGH ? "selected" : ""}>${getSetting(SETTINGS.COVER.NAMES.HIGH)}</option>
+    <option value="OMIT">Omit from attack</option>
+    `;
+    const coverSelector =
+    `
+    <label for="COVER.${target.id}">Cover</label>
+    <select id="CoverSelect.${target.id}" class="CoverSelect">
+    ${coverOptions}
+    </select>
+    `;
+
+    html +=
+    `
+    <tr>
+    <td><img src="${targetImage}" alt="${target.name} image" width="${imageWidth}" style="border:0px"></td>
+    <td>${target.name}</td>
+    <td>${coverSelector}</td>
+    ${distContent}
+    </tr>
+    `;
+  }
+
+  html +=
+  `
+  </tbody>
+  </table>
+  <br>
+  `;
+
+
   // If GM checks, send dialog to GM
-
-
+  const res = await dialogPromise(html, {title: "Confirm cover"});
+  if ( "Cancel" === res || "Closed" === res ) return false;
 
   // If user checks, send dialog to user
 }
