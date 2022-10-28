@@ -5,7 +5,8 @@ PIXI,
 canvas,
 CONST,
 CONFIG,
-Token
+Token,
+ChatMessage
 */
 "use strict";
 
@@ -57,13 +58,86 @@ import { ClipperPaths } from "./ClipperPaths.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
 import * as drawing from "./drawing.js";
+import { distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
 
+
+/**
+ * A hook event that fires before an attack is rolled for an Item.
+ * @function dnd5e.preRollAttack
+ * @memberof hookEvents
+ * @param {Item5e} item                  Item for which the roll is being performed.
+ * @param {D20RollConfiguration} config  Configuration data for the pending roll.
+ * @returns {boolean}                    Explicitly return false to prevent the roll from being performed.
+ */
+export function dnd5ePreRollAttackHook(item, rollConfig) {
+  console.log(item, rollConfig);
+
+  // Locate the token
+  const token = canvas.tokens.get(rollConfig.messageData.speaker.token);
+  if ( !token.isOwner ) return;
+
+  // Determine the targets for the user
+  const user = game.users.get(game.userId)
+  const targets = canvas.tokens.placeables.filter(t => t.isTargeted && t.targeted.has(user));
+
+  // Determine cover and distance for each target
+  // Skip targets with no cover
+  // Construct chat message describing cover to each.
+  const token_center = new Point3d(token.center.x, token.center.y, token.topZ);
+
+  let nCover = 0;
+  let html_content =
+  `
+  <table id="${token.id}_table" class="table table-striped">
+  <thead>
+    <tr class="character-row">
+      <th colspan="2" ><b>Target</b></th>
+      <th><b>Cover</b></th>
+      <th style="text-align: right"><b>Distance (3d)</b></th>
+    </tr>
+  </thead>
+  <tbody>
+  `;
+  for (const target of targets) {
+    const coverCalc = new CoverCalculator(token, target);
+    const cover = coverCalc.targetCover();
+    if ( cover === COVER_TYPES.NONE ) continue;
+    nCover += 1;
+
+    const targetImage = target.document.texture.src; // Token canvas image.
+    const target_center = new Point3d(target.center.x, target.center.y, CoverCalculator.averageTokenElevation(target));
+    const dist = distanceBetweenPoints(token_center, target_center);
+
+    html_content +=
+    `
+    <tr>
+    <td><img src="${targetImage}" alt="${target.name} image" width="30" style="border:0px"></td>
+    <td>${target.name}</td>
+    <td>${CoverCalculator.coverNameForType(cover)}</td>
+    <td style="text-align: right">${Math.round(pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>
+    </tr>
+    `;
+  }
+
+  if ( !nCover ) return;
+
+  html_content =
+  `
+  <b> ${nCover} target${nCover > 1 ? "s have" : " has"} cover from ${token.name}! </b>
+  ${html_content}
+  </tbody>
+  </table>
+  `;
+
+
+  ChatMessage.create({content: html_content});
+}
 
 export function addCoverStatuses() {
   CONFIG.statusEffects.push({
     id: `${MODULE_ID}.cover.LOW`,
     label: getSetting(SETTINGS.COVER.NAMES.LOW),
-    icon: `modules/${MODULE_ID}/assets/shield-low-gray.svg`,
+    icon: `modules/${MODULE_ID}/assets/shield-halved.svg`,
     changes: [
       {
         key: "system.attributes.ac.bonus",
@@ -82,7 +156,7 @@ export function addCoverStatuses() {
   CONFIG.statusEffects.push({
     id: `${MODULE_ID}.cover.MEDIUM`,
     label: getSetting(SETTINGS.COVER.NAMES.MEDIUM),
-    icon: `modules/${MODULE_ID}/assets/shield-med-gray.svg`,
+    icon: `modules/${MODULE_ID}/assets/shield-virus.svg`,
     changes: [
       {
         key: "system.attributes.ac.bonus",
@@ -101,7 +175,7 @@ export function addCoverStatuses() {
   CONFIG.statusEffects.push({
     id: `${MODULE_ID}.cover.HIGH`,
     label: getSetting(SETTINGS.COVER.NAMES.HIGH),
-    icon: `modules/${MODULE_ID}/assets/shield-high-gray.svg`
+    icon: `modules/${MODULE_ID}/assets/shield.svg`
   });
 
 }
@@ -118,14 +192,16 @@ If combat:
 - cover calculated like the no combat scenario otherwise.
 - cover calculated for the
 
-On attack:
-- Settings permit user decides, GM decides, or automatic
-- User decides: Pop up dialog confirm to user prior to attack proceeding
-- GM decides: Pop dialog confirm to GM prior to attack proceeding
-
-
 Can manually set cover status but it will only last until targets change...
 Provide setting for manual only
+*/
+
+/* System-specific cover
+
+DND5e. Base system
+
+On attack:
+- Chat message displaying cover of targeted tokens
 
 */
 
@@ -545,7 +621,7 @@ export class CoverCalculator {
     const percentCover = 1 - this._percentVisible2d();
     this.debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
 
-    return this.typeForPercentage(percentCover);
+    return CoverCalculator.typeForPercentage(percentCover);
   }
 
   /**
@@ -560,7 +636,7 @@ export class CoverCalculator {
     const percentCover = 1 - this._percentVisible3d();
     this.debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
 
-    return this.typeForPercentage(percentCover);
+    return CoverCalculator.typeForPercentage(percentCover);
   }
 
   // ----- HELPER METHODS ----- //
@@ -570,7 +646,7 @@ export class CoverCalculator {
    * @param {number} percentCover
    * @returns {COVER_TYPE}
    */
-  typeForPercentage(percentCover) {
+  static typeForPercentage(percentCover) {
     if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
     if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
     if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
@@ -708,7 +784,7 @@ export class CoverCalculator {
     }
 
     const percentCornersBlocked = numCornersBlocked / ln;
-    return this.typeForPercentage(percentCornersBlocked);
+    return CoverCalculator.typeForPercentage(percentCornersBlocked);
   }
 
   /**
