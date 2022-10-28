@@ -90,13 +90,16 @@ export class CoverCalculator {
    * @returns {object {html: {string}, nCover: {number}, coverResults: {COVER_TYPES[][]}}}
    *   String of html content that can be used in a Dialog or ChatMessage.
    */
-  static htmlCoverTable(tokens, targets, { include3dDistance = true, includeZeroCover = true, imageWidth = 50 } = {}) {
+  static htmlCoverTable(tokens, targets, { include3dDistance = true, includeZeroCover = true, imageWidth = 50, coverCalculations } = {}) {
     if ( game.modules.get(MODULE_ID).api.debug ) drawing.clearDrawings();
     let html = "";
     const coverResults = [];
     let nCoverTotal = 0;
 
-    for ( const token of tokens ) {
+    const nTokens = tokens.length;
+    const nTargets = targets.length;
+
+    for ( const [i, token] of tokens.entries() ) {
       let nCover = 0;
       const targetCoverResults = [];
       coverResults.push(targetCoverResults);
@@ -116,7 +119,7 @@ export class CoverCalculator {
       <tbody>
       `;
 
-      for ( const target of targets ) {
+      for ( const [j, target] of targets.entries() ) {
         if ( token.id === target.id ) {
           // Skip targeting oneself.
           targetCoverResults.push(COVER_TYPES.NONE);
@@ -127,8 +130,15 @@ export class CoverCalculator {
           target.center.x,
           target.center.y,
           CoverCalculator.averageTokenElevation(target));
-        const coverCalc = new CoverCalculator(token, target);
-        const cover = coverCalc.targetCover();
+
+        let cover;
+        if ( coverCalculations ) {
+          cover = coverCalculations[i][j];
+        } else {
+          const coverCalc = new CoverCalculator(token, target);
+          cover = coverCalc.targetCover();
+        }
+
         targetCoverResults.push(cover);
 
         if ( !includeZeroCover && cover === COVER_TYPES.NONE ) continue;

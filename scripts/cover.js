@@ -49,7 +49,7 @@ dnd5e: half, 3/4, full
 
 import { MODULE_ID, COVER_TYPES, STATUS_EFFECTS } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
-import { log, dialogPromise, distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
+import { log, distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { Point3d } from "./Point3d.js";
 
@@ -142,11 +142,71 @@ export async function midiqolPreambleCompleteHook(workflow) {
 
 
   // If GM checks, send dialog to GM
-  const res = await dialogPromise(html, {title: "Confirm cover"});
-  if ( "Cancel" === res || "Closed" === res ) return false;
+  const height = 150 + 60 * targets.length;
+  const dialogData = {
+    content: html,
+    title: "Confirm cover"
+  }
+
+  const res = await dialogPromise(dialogData, { resizable: true, height });
+  if ( "Closed" === res ) return false;
+
+  const coverSelections = res.find('[class=CoverSelect]');
+  const coverCalculations = [];
+  const coverValues = [];
+  coverCalculations.push(coverValues); // One per token but only a single token here.
+  for ( let i = 0; i < nTargets; i += 1 ) {
+    const selectedCover = coverSelections[i].selectedIndex;
+    coverValues.push(selectedCover);
+
+    if ( selectedCover === COVER_TYPES.TOTAL ) {
+      workflow.targets.delete(targets[i]);
+      continue;
+    }
+    calcs[i].setTargetCoverEffect(selectedCover);
+  }
 
   // If user checks, send dialog to user
+
+  // Send cover to chat
+  const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30, coverCalculations });
+  if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
 }
+
+/**
+ * Convert dialog to a promise to allow use with await/async.
+ * @content HTML content for the dialog.
+ * @return Promise for the html content of the dialog
+ * Will return "Cancel" or "Close" if those are selected.
+ */
+function dialogPromise(data, options = {}) {
+  return new Promise((resolve, reject) => {
+    dialogCallback(data, (html) => resolve(html), options);
+  });
+}
+
+/**
+ * Create new dialog with a callback function that can be used for dialogPromise.
+ * @content HTML content for the dialog.
+ * @callbackFn Allows conversion of the callback to a promise using dialogPromise.
+ * @return rendered dialog.
+ */
+function dialogCallback(data, callbackFn, options = {}) {
+  data.buttons = {
+    one: {
+      icon: '<i class="fas fa-check"></i>',
+      label: "Confirm",
+      callback: (html) => callbackFn(html)
+    }
+  };
+
+  data.default = "one";
+  data.close = () => callbackFn("Close");
+
+	let d = new Dialog(data, options);
+	d.render(true);
+}
+
 
 /**
  * A hook event that fires before an attack is rolled for an Item.
@@ -158,6 +218,8 @@ export async function midiqolPreambleCompleteHook(workflow) {
  */
 export function dnd5ePreRollAttackHook(item, rollConfig) {
   log("dnd5ePreRollAttackHook", item, rollConfig);
+
+  if ( game.modules.has("midi-qol") ) return;
 
   // Locate the token
   const token = canvas.tokens.get(rollConfig.messageData.speaker.token);
