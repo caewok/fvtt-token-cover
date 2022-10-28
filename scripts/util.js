@@ -46,6 +46,13 @@ export function zValue(value) {
   return (value * size) / distance;
 }
 
+/**
+ * Convert pixel units to grid units
+ */
+export function pixelsToGridUnits(pixels) {
+  const { distance, size } = canvas.scene.dimensions;
+  return (pixels * distance) / size;
+}
 
 /**
  * Is point c counterclockwise, clockwise, or colinear w/r/t ray with endpoints A|B?
