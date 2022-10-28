@@ -58,9 +58,15 @@ import { ClipperPaths } from "./ClipperPaths.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
 import * as drawing from "./drawing.js";
-import { distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
+import { distanceBetweenPoints, pixelsToGridUnits, log } from "./util.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 
+/**
+ * Hook event that fires after targeting (AoE) is complete.
+ */
+export function midiqolPreambleCompleteHook(workflow) {
+  log("midiqolPreambleCompleteHook", workflow);
+}
 
 /**
  * A hook event that fires before an attack is rolled for an Item.
@@ -71,7 +77,7 @@ import { CoverCalculator } from "./CoverCalculator.js";
  * @returns {boolean}                    Explicitly return false to prevent the roll from being performed.
  */
 export function dnd5ePreRollAttackHook(item, rollConfig) {
-  console.log(item, rollConfig);
+  log("dnd5ePreRollAttackHook", item, rollConfig);
 
   // Locate the token
   const token = canvas.tokens.get(rollConfig.messageData.speaker.token);
@@ -189,8 +195,6 @@ export function updateToken(document, change, options, userId) {
 
 
 }
-
-
 
 /**
  * Wrap TokenDocument.prototype.toggleActiveEffect

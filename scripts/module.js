@@ -7,7 +7,7 @@ game
 import { MODULE_ID, COVER_TYPES } from "./const.js";
 
 // Hooks and method registration
-import { addCoverStatuses, targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook } from "./cover.js";
+import { addCoverStatuses, targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
 import { registerPIXIRectangleMethods } from "./PIXIRectangle.js";
@@ -83,4 +83,4 @@ Hooks.on("dnd5e.preRollAttack", dnd5ePreRollAttackHook);
 /**
  * For midi, let GM or user decide on cover options. Or automatic.
  */
-Hooks.call("midi-qol.preambleComplete",workflow)
+Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHook);

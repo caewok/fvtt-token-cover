@@ -38,9 +38,9 @@ export function registerLibWrapperMethods() {
   libWrapper.register(MODULE_ID, "DetectionMode.prototype._testRange", _testRangeDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
   // Token HUD status effects for cover
-  libWrapper.register(MODULE_ID, "TokenHUD.prototype._onToggleStatusEffects", _onToggleStatusEffectsTokenHUD, libWrapper.WRAPPER);
-  libWrapper.register(MODULE_ID, "TokenHUD.prototype._toggleStatusEffects", _toggleStatusEffectsTokenHUD, libWrapper.WRAPPER);
-  libWrapper.register(MODULE_ID, "TokenHUD.prototype._onToggleEffect", _onToggleEffectTokenHUD, libWrapper.WRAPPER);
+//   libWrapper.register(MODULE_ID, "TokenHUD.prototype._onToggleStatusEffects", _onToggleStatusEffectsTokenHUD, libWrapper.WRAPPER);
+//   libWrapper.register(MODULE_ID, "TokenHUD.prototype._toggleStatusEffects", _toggleStatusEffectsTokenHUD, libWrapper.WRAPPER);
+//   libWrapper.register(MODULE_ID, "TokenHUD.prototype._onToggleEffect", _onToggleEffectTokenHUD, libWrapper.WRAPPER);
 
   // Manipulating Token status effects
   libWrapper.register(MODULE_ID, "TokenDocument.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument, libWrapper.WRAPPER);
