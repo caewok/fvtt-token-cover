@@ -23,7 +23,7 @@ import { Matrix } from "./Matrix.js";
 import { Area3d } from "./Area3d.js";
 import { Plane } from "./Plane.js";
 import { ClipperPaths } from "./ClipperPaths.js";
-import { CoverCalculator, addCoverStatuses, targetTokenHook, combatTurnHook } from "./cover.js";
+import { CoverCalculator, addCoverStatuses, targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook } from "./cover.js";
 
 Hooks.once("init", async function() {
   registerElevationAdditions();
@@ -73,3 +73,7 @@ Hooks.on("targetToken", targetTokenHook);
  */
 Hooks.on("combatTurn", combatTurnHook);
 
+/**
+ * For dnd5e, hook the attack roll to set cover.
+ */
+Hooks.on("dnd5e.preRollAttack", dnd5ePreRollAttackHook);
