@@ -77,60 +77,12 @@ export function dnd5ePreRollAttackHook(item, rollConfig) {
   if ( !token.isOwner ) return;
 
   // Determine the targets for the user
-  const user = game.users.get(game.userId)
+  const user = game.users.get(game.userId);
   const targets = canvas.tokens.placeables.filter(t => t.isTargeted && t.targeted.has(user));
 
   // Determine cover and distance for each target
-  // Skip targets with no cover
-  // Construct chat message describing cover to each.
-  const token_center = new Point3d(token.center.x, token.center.y, token.topZ);
-
-  let nCover = 0;
-  let html_content =
-  `
-  <table id="${token.id}_table" class="table table-striped">
-  <thead>
-    <tr class="character-row">
-      <th colspan="2" ><b>Target</b></th>
-      <th><b>Cover</b></th>
-      <th style="text-align: right"><b>Distance (3d)</b></th>
-    </tr>
-  </thead>
-  <tbody>
-  `;
-  for (const target of targets) {
-    const coverCalc = new CoverCalculator(token, target);
-    const cover = coverCalc.targetCover();
-    if ( cover === COVER_TYPES.NONE ) continue;
-    nCover += 1;
-
-    const targetImage = target.document.texture.src; // Token canvas image.
-    const target_center = new Point3d(target.center.x, target.center.y, CoverCalculator.averageTokenElevation(target));
-    const dist = distanceBetweenPoints(token_center, target_center);
-
-    html_content +=
-    `
-    <tr>
-    <td><img src="${targetImage}" alt="${target.name} image" width="30" style="border:0px"></td>
-    <td>${target.name}</td>
-    <td>${CoverCalculator.coverNameForType(cover)}</td>
-    <td style="text-align: right">${Math.round(pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>
-    </tr>
-    `;
-  }
-
-  if ( !nCover ) return;
-
-  html_content =
-  `
-  <b> ${nCover} target${nCover > 1 ? "s have" : " has"} cover from ${token.name}! </b>
-  ${html_content}
-  </tbody>
-  </table>
-  `;
-
-
-  ChatMessage.create({content: html_content});
+  const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30 });
+  if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
 }
 
 export function addCoverStatuses() {
@@ -347,6 +299,16 @@ export class CoverCalculator {
   static ALGORITHMS = SETTINGS.COVER.TYPES;
 
   /**
+   * @param {VisionSource|Token} viewer
+   * @param {Token} target
+   */
+  constructor(viewer, target) {
+    this.viewer = viewer instanceof Token ? viewer.vision : viewer;
+    this.target = target;
+    this.debug = game.modules.get(MODULE_ID).api.debug;
+  }
+
+  /**
    * Get the corresponding name for a cover type.
    * @param {COVER_TYPES} type    Cover number
    * @returns {string}
@@ -388,13 +350,93 @@ export class CoverCalculator {
   }
 
   /**
-   * @param {VisionSource|Token} viewer
-   * @param {Token} target
+   * Construct an html table describing cover for various target(s) versus token(s).
+   * @param {Token[]} tokens    Array of tokens to measure cover from.
+   * @param {Token[]} targets   Target tokens that may have cover from one or more tokens.
+   * @param {object} [options]  Options that affect the html creation
+   * @param {boolean} [options.include3dDistance]   Include 3d distance calculation.
+   * @param {boolean} [options.includeZeroCover]  Include targets that have no cover in the resulting html.
+   * @returns {object {html: {string}, nCover: {number}, coverResults: {COVER_TYPES[][]}}}
+   *   String of html content that can be used in a Dialog or ChatMessage.
    */
-  constructor(viewer, target) {
-    this.viewer = viewer instanceof Token ? viewer.vision : viewer;
-    this.target = target;
-    this.debug = game.modules.get(MODULE_ID).api.debug;
+  static htmlCoverTable(tokens, targets, { include3dDistance = true, includeZeroCover = true, imageWidth = 50 } = {}) {
+
+    let html = "";
+    const coverResults = [];
+    let nCoverTotal = 0;
+
+    for ( const token of tokens ) {
+      let nCover = 0;
+      const targetCoverResults = [];
+      coverResults.push(targetCoverResults);
+      const token_center = new Point3d(token.center.x, token.center.y, token.topZ); // Measure from token vision point.
+
+      const distHeader = include3dDistance ? '<th style="text-align: right"><b>Dist. (3d)</b></th>' : "";
+      let htmlTable =
+      `
+      <table id="${token.id}_table" class="table table-striped">
+      <thead>
+        <tr class="character-row">
+          <th colspan="2" ><b>Target</b></th>
+          <th style="text-align: left"><b>Cover</b></th>
+          ${distHeader}
+        </tr>
+      </thead>
+      <tbody>
+      `;
+
+      for ( const target of targets ) {
+        if ( token.id === target.id ) {
+          // Skip targeting oneself.
+          targetCoverResults.push(COVER_TYPES.NONE);
+          continue;
+        }
+
+        const target_center = new Point3d(target.center.x, target.center.y, CoverCalculator.averageTokenElevation(target));
+        const coverCalc = new CoverCalculator(token, target);
+        const cover = coverCalc.targetCover();
+        targetCoverResults.push(cover);
+
+        if ( !includeZeroCover && cover === COVER_TYPES.NONE ) continue;
+        if ( cover !== COVER_TYPES.NONE ) nCover += 1;
+
+        const targetImage = target.document.texture.src; // Token canvas image.
+        const dist = distanceBetweenPoints(token_center, target_center);
+        const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
+
+        htmlTable +=
+        `
+        <tr>
+        <td><img src="${targetImage}" alt="${target.name} image" width="${imageWidth}" style="border:0px"></td>
+        <td>${target.name}</td>
+        <td>${CoverCalculator.coverNameForType(cover)}</td>
+        ${distContent}
+        </tr>
+        `;
+      }
+
+      htmlTable +=
+      `
+      </tbody>
+      </table>
+      <br>
+      `;
+
+      htmlTable =
+      `
+      ${nCover} target${nCover === 1 ? " has" : "s have"} cover from <b>${token.name}</b>
+      ${htmlTable}
+      `
+
+      nCoverTotal += nCover;
+      if ( includeZeroCover || nCover ) html += htmlTable;
+    }
+
+    return {
+      nCoverTotal,
+      html,
+      coverResults
+    };
   }
 
   /**
