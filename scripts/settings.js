@@ -204,8 +204,8 @@ export function registerSettings() {
       [CTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA}`),
       [CTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA3D}`)
     },
-    default: CTYPES.CENTER_CORNERS//,
-    //onChange: updateCoverSetting
+    default: CTYPES.CENTER_CORNERS,
+    onChange: updateCoverSetting
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_CENTER, {
@@ -355,17 +355,11 @@ function updateCoverSetting(value) {
   log(`Changing to ${value}`);
 //   ui.notifications.notify(`Changing to ${value}`);
   const CTYPES = SETTINGS.COVER.TYPES;
-  const area_visible = value === CTYPES.AREA;
   const center_visible = value === CTYPES.CENTER_CENTER;
-  const corners_visible = !(area_visible || center_visible);
 
-  setSettingVisibility(SETTINGS.COVER.TRIGGER_CORNERS.LOW, corners_visible);
-  setSettingVisibility(SETTINGS.COVER.TRIGGER_CORNERS.MEDIUM, corners_visible);
-  setSettingVisibility(SETTINGS.COVER.TRIGGER_CORNERS.HIGH, corners_visible);
-
-  setSettingVisibility(SETTINGS.COVER.TRIGGER_AREA.LOW, area_visible);
-  setSettingVisibility(SETTINGS.COVER.TRIGGER_AREA.MEDIUM, area_visible);
-  setSettingVisibility(SETTINGS.COVER.TRIGGER_AREA.HIGH, area_visible);
+  setSettingVisibility(SETTINGS.COVER.TRIGGER_PERCENT.LOW, !center_visible);
+  setSettingVisibility(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM, !center_visible);
+  setSettingVisibility(SETTINGS.COVER.TRIGGER_PERCENT.HIGH, !center_visible);
 
   setSettingVisibility(SETTINGS.COVER.TRIGGER_CENTER, center_visible);
 }
