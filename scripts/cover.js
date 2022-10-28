@@ -57,6 +57,28 @@ import { CoverCalculator } from "./CoverCalculator.js";
  */
 export function midiqolPreambleCompleteHook(workflow) {
   log("midiqolPreambleCompleteHook", workflow);
+
+  const token = workflow.token;
+  const targets = [...workflow.targets];
+  const nTargets = targets.length;
+
+  if ( !nTargets || !token ) return;
+
+  const calcs = targets.map(t => new CoverCalculator(token, t));
+  const covers = calcs.map(calc => calc.targetCover());
+
+  // If automatic
+  for ( let i = 0; i < nTargets; i += 1 ) {
+    const cover = covers[i];
+    const calc = calcs[i];
+    calc.setTargetCoverEffect(cover);
+  }
+
+  // If GM checks, send dialog to GM
+
+
+
+  // If user checks, send dialog to user
 }
 
 /**
