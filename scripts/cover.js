@@ -1,11 +1,7 @@
 /* globals
-ClockwiseSweepPolygon,
 game,
-PIXI,
 canvas,
-CONST,
 CONFIG,
-Token,
 ChatMessage
 */
 "use strict";
@@ -51,14 +47,9 @@ dnd5e: half, 3/4, full
 
 */
 
-import { MODULE_ID, COVER_TYPES } from "./const.js";
+import { MODULE_ID, COVER_TYPES, STATUS_EFFECTS } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
-import { Point3d } from "./Point3d.js";
-import { ClipperPaths } from "./ClipperPaths.js";
-import { Area2d } from "./Area2d.js";
-import { Area3d } from "./Area3d.js";
-import * as drawing from "./drawing.js";
-import { distanceBetweenPoints, pixelsToGridUnits, log } from "./util.js";
+import { log } from "./util.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 
 /**
@@ -93,50 +84,23 @@ export function dnd5ePreRollAttackHook(item, rollConfig) {
 }
 
 export function addCoverStatuses() {
-  CONFIG.statusEffects.push({
-    id: `${MODULE_ID}.cover.LOW`,
-    label: getSetting(SETTINGS.COVER.NAMES.LOW),
-    icon: `modules/${MODULE_ID}/assets/shield-halved.svg`,
-    changes: [
-      {
-        key: "system.attributes.ac.bonus",
-        mode: 2,
-        value: "+2"
-      },
+  const statusEffects = currentStatusEffects();
 
-      {
-        key: "system.attributes.dex.saveBonus",
-        mode: 2,
-        value: "+2"
-      }
-    ]
-  });
+  CONFIG.statusEffects.push(
+    statusEffects.LOW,
+    statusEffects.MEDIUM,
+    statusEffects.HIGH);
+}
 
-  CONFIG.statusEffects.push({
-    id: `${MODULE_ID}.cover.MEDIUM`,
-    label: getSetting(SETTINGS.COVER.NAMES.MEDIUM),
-    icon: `modules/${MODULE_ID}/assets/shield-virus.svg`,
-    changes: [
-      {
-        key: "system.attributes.ac.bonus",
-        mode: 2,
-        value: "+5"
-      },
+// Function to get the current status effects, with labels added from settings.
+export function currentStatusEffects() {
+  const statusEffects = STATUS_EFFECTS[game.system.id] || STATUS_EFFECTS.generic;
 
-      {
-        key: "system.attributes.dex.saveBonus",
-        mode: 2,
-        value: "+5"
-      }
-    ]
-  });
+  statusEffects.LOW.label = getSetting(SETTINGS.COVER.NAMES.LOW);
+  statusEffects.MEDIUM.label = getSetting(SETTINGS.COVER.NAMES.MEDIUM);
+  statusEffects.HIGH.label = getSetting(SETTINGS.COVER.NAMES.HIGH);
 
-  CONFIG.statusEffects.push({
-    id: `${MODULE_ID}.cover.HIGH`,
-    label: getSetting(SETTINGS.COVER.NAMES.HIGH),
-    icon: `modules/${MODULE_ID}/assets/shield.svg`
-  });
-
+  return statusEffects;
 }
 
 /* Options for determining cover.
@@ -178,7 +142,7 @@ On attack:
  * @param {DocumentModificationContext} options     Additional options which modified the update request
  * @param {string} userId                           The ID of the User who triggered the update workflow
  */
-export function updateToken(document, change, options, userId) {
+export function updateToken(document, change, options, userId) { // eslint-disable-line no-unused-vars
   // Only care about x, y, and elevation changes
   if ( !Object.hasOwn(change, "x")
     && !Object.hasOwn(change, "y")
@@ -189,11 +153,7 @@ export function updateToken(document, change, options, userId) {
 
   // If this token is targeted by an owner of the current combatant, update cover
 
-
-
   // If in combat and this token is the current combatant, update all targets
-
-
 }
 
 /**
@@ -293,6 +253,3 @@ function isUserCombatTurn(user) {
 
   return c.combatant.players.some(player => user.name === player.name);
 }
-
-
-

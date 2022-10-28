@@ -6,7 +6,7 @@ ui
 "use strict";
 
 import { log } from "./util.js";
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, STATUS_EFFECTS } from "./const.js";
 
 export function getSetting(settingName) { return game.settings.get(MODULE_ID, settingName); }
 
@@ -213,12 +213,12 @@ export function registerSettings() {
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CENTER}.Hint`),
     scope: "world",
     config: () => getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.CENTER_CENTER,
-    default: coverNames.medium,
+    default: coverNames.MEDIUM,
     type: String,
     choices: {
-      LOW: coverNames.low,
-      MEDIUM: coverNames.medium,
-      HIGH: coverNames.high
+      LOW: coverNames.LOW,
+      MEDIUM: coverNames.MEDIUM,
+      HIGH: coverNames.HIGH
     }
   });
 
@@ -270,7 +270,7 @@ export function registerSettings() {
     scope: "world",
     config: true,
     type: String,
-    default: coverNames.low
+    default: coverNames.LOW
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.MEDIUM, {
@@ -279,7 +279,7 @@ export function registerSettings() {
     scope: "world",
     config: true,
     type: String,
-    default: coverNames.medium
+    default: coverNames.MEDIUM
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.HIGH, {
@@ -288,7 +288,7 @@ export function registerSettings() {
     scope: "world",
     config: true,
     type: String,
-    default: coverNames.high
+    default: coverNames.HIGH
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.EFFECTS.LOW, {
@@ -329,18 +329,13 @@ export function registerSettings() {
 }
 
 function getCoverNames() {
-  let coverNames;
-  switch ( game.system.id ) {
-    case "dnd5e":
-      coverNames = { low: "half", medium: "three-quarters", high: "total"};
-      break;
-    case "pf2e":
-      coverNames = { low: "Lesser", medium: "Standard", high: "Greater"};
-      break;
-    default:
-      coverNames = { low: "low", medium: "medium", high: "high"};
-  }
-  return coverNames;
+  const statusEffects = STATUS_EFFECTS[game.system.id] || STATUS_EFFECTS.generic;
+
+  return {
+    LOW: statusEffects.LOW.label,
+    MEDIUM: statusEffects.MEDIUM.label,
+    HIGH: statusEffects.HIGH.label
+  };
 }
 
 function updateLosSetting(value) {
