@@ -74,6 +74,9 @@ export class CoverCalculator {
     if ( !key ) return;
 
     const effect = currentStatusEffects()[key];
+    const existing = tokenD.actor.effects.find(e => e.getFlag("core", "statusId") === effect.id);
+    if ( existing ) return;
+
     tokenD.toggleActiveEffect(effect, { active: true });
   }
 
