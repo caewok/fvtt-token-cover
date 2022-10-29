@@ -78,7 +78,20 @@ export const SETTINGS = {
       HIGH: "cover-trigger-percent-high"
     },
 
-  }
+    MIDIQOL: {
+      COVERCHECK: "midiqol-covercheck",
+      COVERCHECK_CHOICES: {
+        NONE: "midiqol-covercheck-none",
+        USER: "midiqol-covercheck-user",
+        GM: "midiqol-covercheck-gm",
+        AUTO: "midiqol-covercheck-auto"
+      }
+    },
+
+    COMBAT_AUTO: "cover-combat-auto"
+  },
+
+
 };
 
 
@@ -324,6 +337,34 @@ export function registerSettings() {
     type: Boolean,
     default: false
   });
+
+  const MIDICHOICES = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
+  game.settings.register(MODULE_ID, SETTINGS.COVER.MIDIQOL.COVERCHECK, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK}.Hint`),
+    scope: "world",
+    config: game.modules.has("midi-qol") && game.modules.get("midi-qol").active,
+    type: String,
+    choices: {
+      [MIDICHOICES.NONE]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.NONE}`),
+      [MIDICHOICES.USER]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.USER}`),
+      [MIDICHOICES.GM]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.GM}`),
+      [MIDICHOICES.AUTO]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.AUTO}`)
+    },
+    default: MIDICHOICES.NONE,
+    onChange: updateCoverSetting
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.COMBAT_AUTO, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.COMBAT_AUTO}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.COMBAT_AUTO}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+
+
 
   log("Done registering settings.");
 }

@@ -63,7 +63,16 @@ export async function midiqolPreambleCompleteHook(workflow) {
   const targets = [...workflow.targets];
   const nTargets = targets.length;
 
-  if ( !nTargets || !token ) return;
+  if ( !nTargets || !token ) return true;
+
+  const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
+  if ( coverCheckOption === SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES.NONE ) {
+    // Determine cover and distance for each target
+    const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30 });
+    if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
+    return true;
+  }
+
 
   const calcs = targets.map(t => new CoverCalculator(token, t));
   const covers = calcs.map(calc => calc.targetCover());
@@ -169,6 +178,8 @@ export async function midiqolPreambleCompleteHook(workflow) {
   // Send cover to chat
   const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30, coverCalculations });
   if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
+
+  return true;
 }
 
 /**
@@ -177,7 +188,7 @@ export async function midiqolPreambleCompleteHook(workflow) {
  * @return Promise for the html content of the dialog
  * Will return "Cancel" or "Close" if those are selected.
  */
-function dialogPromise(data, options = {}) {
+export function dialogPromise(data, options = {}) {
   return new Promise((resolve, reject) => {
     dialogCallback(data, (html) => resolve(html), options);
   });
@@ -217,7 +228,7 @@ function dialogCallback(data, callbackFn, options = {}) {
 export function dnd5ePreRollAttackHook(item, rollConfig) {
   log("dnd5ePreRollAttackHook", item, rollConfig);
 
-  if ( game.modules.has("midi-qol") ) return;
+  if ( game.modules.has("midi-qol") && game.modules.get("midi-qol").active ) return;
 
   // Locate the token
   const token = canvas.tokens.get(rollConfig.messageData.speaker.token);
@@ -369,6 +380,8 @@ export function combatTurnHook(combat, updateData, updateOptions) {
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
 export function targetTokenHook(user, target, targeted) {
+  if ( !getSetting(SETTINGS.COVER.COMBAT_AUTO) ) return;
+
   // If not in combat, do nothing because it is unclear who is targeting what...
   if ( !game.combat?.started ) return;
 
