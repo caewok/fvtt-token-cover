@@ -204,7 +204,7 @@ export function registerSettings() {
       [CTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA}`),
       [CTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA3D}`)
     },
-    default: CTYPES.CENTER_CORNERS,
+    default: game.system.id === "pf2e" ? CTYPES.CENTER_CENTER : CTYPES.CORNER_CORNERS_TARGET,
     onChange: updateCoverSetting
   });
 
