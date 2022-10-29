@@ -67,6 +67,8 @@ export async function midiqolPreambleCompleteHook(workflow) {
 
   const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
   if ( coverCheckOption === SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES.NONE ) {
+    if ( !getSetting(SETTINGS.COVER.CHAT) ) return true;
+
     // Determine cover and distance for each target
     const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30 });
     if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
@@ -176,8 +178,10 @@ export async function midiqolPreambleCompleteHook(workflow) {
   // If user checks, send dialog to user
 
   // Send cover to chat
-  const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30, coverCalculations });
-  if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
+  if ( getSetting(SETTINGS.COVER.CHAT) ) {
+    const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30, coverCalculations });
+    if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
+  }
 
   return true;
 }
@@ -228,7 +232,8 @@ function dialogCallback(data, callbackFn, options = {}) {
 export function dnd5ePreRollAttackHook(item, rollConfig) {
   log("dnd5ePreRollAttackHook", item, rollConfig);
 
-  if ( game.modules.has("midi-qol") && game.modules.get("midi-qol").active ) return;
+  if ( game.modules.has("midi-qol") && game.modules.get("midi-qol").active ) return true;
+  if ( !getSetting(SETTINGS.COVER.CHAT) ) return true;
 
   // Locate the token
   const token = canvas.tokens.get(rollConfig.messageData.speaker.token);

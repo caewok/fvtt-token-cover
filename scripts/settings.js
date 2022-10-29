@@ -88,7 +88,8 @@ export const SETTINGS = {
       }
     },
 
-    COMBAT_AUTO: "cover-combat-auto"
+    COMBAT_AUTO: "cover-combat-auto",
+    CHAT: "cover-chat-message"
   },
 
 
@@ -364,7 +365,14 @@ export function registerSettings() {
     default: true
   });
 
-
+  game.settings.register(MODULE_ID, SETTINGS.COVER.CHAT, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.CHAT}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.CHAT}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
 
   log("Done registering settings.");
 }
