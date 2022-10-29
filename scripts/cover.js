@@ -328,22 +328,31 @@ export function updateToken(document, change, options, userId) { // eslint-disab
 export async function toggleActiveEffectTokenDocument(wrapper, effectData, { overlay=false, active}={}) {
   const state = await wrapper(effectData, {overlay, active});
   if ( !state ) return; // No new effect added.
-  const tokenD = this;
 
+  let id1;
+  let id2;
   switch ( effectData.id ) {
     case `${MODULE_ID}.cover.LOW`:
-      CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.MEDIUM);
-      CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.HIGH);
+      id1 = `${MODULE_ID}.cover.MEDIUM`;
+      id2 = `${MODULE_ID}.cover.HIGH`;
       break;
     case `${MODULE_ID}.cover.MEDIUM`:
-      CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.LOW);
-      CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.HIGH);
+      id1 = `${MODULE_ID}.cover.LOW`;
+      id2 = `${MODULE_ID}.cover.HIGH`;
       break;
     case `${MODULE_ID}.cover.HIGH`:
-      CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.LOW);
-      CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.MEDIUM);
+      id1 = `${MODULE_ID}.cover.LOW`;
+      id2 = `${MODULE_ID}.cover.MEDIUM`;
       break;
+    default:
+      return state;
   }
+
+  const existing1 = this.actor.effects.find(e => e.getFlag("core", "statusId") === existing1);
+  const existing2 = this.actor.effects.find(e => e.getFlag("core", "statusId") === existing2);
+
+  if ( existing1 ) await existing1.delete();
+  if ( existing2 ) await existing2.delete();
 
   return state;
 }
