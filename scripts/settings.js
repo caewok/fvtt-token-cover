@@ -236,6 +236,15 @@ export function registerSettings() {
     }
   });
 
+  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.LOW, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.LOW}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.LOW}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    default: coverNames.LOW
+  });
+
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_PERCENT.LOW, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}.Hint`),
@@ -248,6 +257,15 @@ export function registerSettings() {
     config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
     default: .5,
     type: Number
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.MEDIUM, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.MEDIUM}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.MEDIUM}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    default: coverNames.MEDIUM
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM, {
@@ -264,6 +282,15 @@ export function registerSettings() {
     type: Number
   });
 
+  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.HIGH, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.HIGH}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.HIGH}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    default: coverNames.HIGH
+  });
+
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_PERCENT.HIGH, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}.Hint`),
@@ -276,33 +303,6 @@ export function registerSettings() {
     config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
     default: 1,
     type: Number
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.LOW, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.LOW}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.LOW}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    default: coverNames.LOW
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.MEDIUM, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.MEDIUM}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.MEDIUM}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    default: coverNames.MEDIUM
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.HIGH, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.HIGH}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.HIGH}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    default: coverNames.HIGH
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.EFFECTS.LOW, {
