@@ -2,7 +2,8 @@
 game,
 foundry,
 canvas,
-PIXI
+PIXI,
+Dialog
 */
 "use strict";
 

@@ -62,7 +62,7 @@ export class Area3d {
 
 
   /**
-   * @param {VisionSource} visionSource     Token, viewing from token.topZ.
+   * @param {VisionSource|TOKEN} visionSource     Token, viewing from token.topZ.
    * @param {Target} target   Target; token is looking at the target center.
    */
   constructor(viewer, target) {

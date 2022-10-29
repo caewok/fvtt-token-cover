@@ -1,11 +1,7 @@
 /* globals
-ClockwiseSweepPolygon,
 game,
-PIXI,
 canvas,
-CONST,
 CONFIG,
-Token,
 ChatMessage
 */
 "use strict";
@@ -51,22 +47,164 @@ dnd5e: half, 3/4, full
 
 */
 
-import { MODULE_ID, COVER_TYPES } from "./const.js";
+import { MODULE_ID, COVER_TYPES, STATUS_EFFECTS } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
-import { Point3d } from "./Point3d.js";
-import { ClipperPaths } from "./ClipperPaths.js";
-import { Area2d } from "./Area2d.js";
-import { Area3d } from "./Area3d.js";
-import * as drawing from "./drawing.js";
-import { distanceBetweenPoints, pixelsToGridUnits, log } from "./util.js";
+import { log, distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
 import { CoverCalculator } from "./CoverCalculator.js";
+import { Point3d } from "./Point3d.js";
 
 /**
  * Hook event that fires after targeting (AoE) is complete.
  */
-export function midiqolPreambleCompleteHook(workflow) {
+export async function midiqolPreambleCompleteHook(workflow) {
   log("midiqolPreambleCompleteHook", workflow);
+
+  const token = workflow.token;
+  const targets = [...workflow.targets];
+  const nTargets = targets.length;
+
+  if ( !nTargets || !token ) return;
+
+  const calcs = targets.map(t => new CoverCalculator(token, t));
+  const covers = calcs.map(calc => calc.targetCover());
+
+  // If automatic
+  for ( let i = 0; i < nTargets; i += 1 ) {
+    const cover = covers[i];
+    const calc = calcs[i];
+    calc.setTargetCoverEffect(cover);
+  }
+
+  let html = `<b>${token.name}</b>`;
+
+  const include3dDistance = true;
+  const imageWidth = 50;
+  const token_center = new Point3d(token.center.x, token.center.y, token.topZ); // Measure from token vision point.
+  const distHeader = include3dDistance ? '<th style="text-align: right"><b>Dist. (3d)</b></th>' : "";
+  html +=
+  `
+  <table id="${token.id}_table" class="table table-striped">
+  <thead>
+    <tr class="character-row">
+      <th colspan="2" ><b>Target</b></th>
+      <th style="text-align: left"><b>Cover</b></th>
+      ${distHeader}
+    </tr>
+  </thead>
+  <tbody>
+  `;
+
+  for ( let i = 0; i < nTargets; i += 1 ) {
+    const target = targets[i];
+    const cover = covers[i];
+
+    const target_center = new Point3d(
+      target.center.x,
+      target.center.y,
+      CoverCalculator.averageTokenElevation(target));
+
+    const targetImage = target.document.texture.src; // Token canvas image.
+    const dist = distanceBetweenPoints(token_center, target_center);
+    const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
+    const coverOptions =
+    `
+    <option value="NONE" ${cover === COVER_TYPES.NONE ? "selected" : ""}>None</option>
+    <option value="LOW" ${cover === COVER_TYPES.LOW ? "selected" : ""}>${getSetting(SETTINGS.COVER.NAMES.LOW)}</option>
+    <option value="MEDIUM" ${cover === COVER_TYPES.MEDIUM ? "selected" : ""}>${getSetting(SETTINGS.COVER.NAMES.MEDIUM)}</option>
+    <option value="HIGH" ${cover === COVER_TYPES.HIGH ? "selected" : ""}>${getSetting(SETTINGS.COVER.NAMES.HIGH)}</option>
+    <option value="OMIT">Omit from attack</option>
+    `;
+    const coverSelector =
+    `
+    <label for="COVER.${target.id}">Cover</label>
+    <select id="CoverSelect.${target.id}" class="CoverSelect">
+    ${coverOptions}
+    </select>
+    `;
+
+    html +=
+    `
+    <tr>
+    <td><img src="${targetImage}" alt="${target.name} image" width="${imageWidth}" style="border:0px"></td>
+    <td>${target.name}</td>
+    <td>${coverSelector}</td>
+    ${distContent}
+    </tr>
+    `;
+  }
+
+  html +=
+  `
+  </tbody>
+  </table>
+  <br>
+  `;
+
+  // If GM checks, send dialog to GM
+  const dialogData = {
+    content: html,
+    title: "Confirm cover"
+  }
+
+  const res = await dialogPromise(dialogData);
+  if ( "Closed" === res ) return false;
+
+  const coverSelections = res.find('[class=CoverSelect]');
+  const coverCalculations = [];
+  const coverValues = [];
+  coverCalculations.push(coverValues); // One per token but only a single token here.
+  for ( let i = 0; i < nTargets; i += 1 ) {
+    const selectedCover = coverSelections[i].selectedIndex;
+    coverValues.push(selectedCover);
+
+    if ( selectedCover === COVER_TYPES.TOTAL ) {
+      workflow.targets.delete(targets[i]);
+      continue;
+    }
+    calcs[i].setTargetCoverEffect(selectedCover);
+  }
+
+  // If user checks, send dialog to user
+
+  // Send cover to chat
+  const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30, coverCalculations });
+  if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
 }
+
+/**
+ * Convert dialog to a promise to allow use with await/async.
+ * @content HTML content for the dialog.
+ * @return Promise for the html content of the dialog
+ * Will return "Cancel" or "Close" if those are selected.
+ */
+function dialogPromise(data, options = {}) {
+  return new Promise((resolve, reject) => {
+    dialogCallback(data, (html) => resolve(html), options);
+  });
+}
+
+/**
+ * Create new dialog with a callback function that can be used for dialogPromise.
+ * @content HTML content for the dialog.
+ * @callbackFn Allows conversion of the callback to a promise using dialogPromise.
+ * @return rendered dialog.
+ */
+function dialogCallback(data, callbackFn, options = {}) {
+  data.buttons = {
+    one: {
+      icon: '<i class="fas fa-check"></i>',
+      label: "Confirm",
+      callback: (html) => callbackFn(html)
+    }
+  };
+
+  data.default = "one";
+  data.close = () => callbackFn("Close");
+
+	let d = new Dialog(data, options);
+	d.render(true, { height: "100%" });
+}
+
 
 /**
  * A hook event that fires before an attack is rolled for an Item.
@@ -78,6 +216,8 @@ export function midiqolPreambleCompleteHook(workflow) {
  */
 export function dnd5ePreRollAttackHook(item, rollConfig) {
   log("dnd5ePreRollAttackHook", item, rollConfig);
+
+  if ( game.modules.has("midi-qol") ) return;
 
   // Locate the token
   const token = canvas.tokens.get(rollConfig.messageData.speaker.token);
@@ -93,50 +233,23 @@ export function dnd5ePreRollAttackHook(item, rollConfig) {
 }
 
 export function addCoverStatuses() {
-  CONFIG.statusEffects.push({
-    id: `${MODULE_ID}.cover.LOW`,
-    label: getSetting(SETTINGS.COVER.NAMES.LOW),
-    icon: `modules/${MODULE_ID}/assets/shield-halved.svg`,
-    changes: [
-      {
-        key: "system.attributes.ac.bonus",
-        mode: 2,
-        value: "+2"
-      },
+  const statusEffects = currentStatusEffects();
 
-      {
-        key: "system.attributes.dex.saveBonus",
-        mode: 2,
-        value: "+2"
-      }
-    ]
-  });
+  CONFIG.statusEffects.push(
+    statusEffects.LOW,
+    statusEffects.MEDIUM,
+    statusEffects.HIGH);
+}
 
-  CONFIG.statusEffects.push({
-    id: `${MODULE_ID}.cover.MEDIUM`,
-    label: getSetting(SETTINGS.COVER.NAMES.MEDIUM),
-    icon: `modules/${MODULE_ID}/assets/shield-virus.svg`,
-    changes: [
-      {
-        key: "system.attributes.ac.bonus",
-        mode: 2,
-        value: "+5"
-      },
+// Function to get the current status effects, with labels added from settings.
+export function currentStatusEffects() {
+  const statusEffects = STATUS_EFFECTS[game.system.id] || STATUS_EFFECTS.generic;
 
-      {
-        key: "system.attributes.dex.saveBonus",
-        mode: 2,
-        value: "+5"
-      }
-    ]
-  });
+  statusEffects.LOW.label = getSetting(SETTINGS.COVER.NAMES.LOW);
+  statusEffects.MEDIUM.label = getSetting(SETTINGS.COVER.NAMES.MEDIUM);
+  statusEffects.HIGH.label = getSetting(SETTINGS.COVER.NAMES.HIGH);
 
-  CONFIG.statusEffects.push({
-    id: `${MODULE_ID}.cover.HIGH`,
-    label: getSetting(SETTINGS.COVER.NAMES.HIGH),
-    icon: `modules/${MODULE_ID}/assets/shield.svg`
-  });
-
+  return statusEffects;
 }
 
 /* Options for determining cover.
@@ -178,7 +291,7 @@ On attack:
  * @param {DocumentModificationContext} options     Additional options which modified the update request
  * @param {string} userId                           The ID of the User who triggered the update workflow
  */
-export function updateToken(document, change, options, userId) {
+export function updateToken(document, change, options, userId) { // eslint-disable-line no-unused-vars
   // Only care about x, y, and elevation changes
   if ( !Object.hasOwn(change, "x")
     && !Object.hasOwn(change, "y")
@@ -189,11 +302,7 @@ export function updateToken(document, change, options, userId) {
 
   // If this token is targeted by an owner of the current combatant, update cover
 
-
-
   // If in combat and this token is the current combatant, update all targets
-
-
 }
 
 /**
@@ -293,6 +402,3 @@ function isUserCombatTurn(user) {
 
   return c.combatant.players.some(player => user.name === player.name);
 }
-
-
-
