@@ -140,15 +140,13 @@ export async function midiqolPreambleCompleteHook(workflow) {
   <br>
   `;
 
-
   // If GM checks, send dialog to GM
-  const height = 150 + 60 * targets.length;
   const dialogData = {
     content: html,
     title: "Confirm cover"
   }
 
-  const res = await dialogPromise(dialogData, { resizable: true, height });
+  const res = await dialogPromise(dialogData);
   if ( "Closed" === res ) return false;
 
   const coverSelections = res.find('[class=CoverSelect]');
@@ -204,7 +202,7 @@ function dialogCallback(data, callbackFn, options = {}) {
   data.close = () => callbackFn("Close");
 
 	let d = new Dialog(data, options);
-	d.render(true);
+	d.render(true, { height: "100%" });
 }
 
 
