@@ -50,6 +50,8 @@ Hooks.once("init", async function() {
     COVER_TYPES,
     debug: false
   };
+
+  registerSystemHooks();
 });
 
 Hooks.once("setup", async function() {
@@ -65,22 +67,31 @@ Hooks.once("devModeReady", ({ registerPackageDebugFlag }) => {
   registerPackageDebugFlag(MODULE_ID);
 });
 
-/**
- * Hook whenever a token is targeted or un-targeted.
- */
-Hooks.on("targetToken", targetTokenHook);
 
-/**
- * Hook any change in combat turn.
- */
-Hooks.on("combatTurn", combatTurnHook);
+function registerSystemHooks() {
 
-/**
- * For dnd5e, hook the attack roll to set cover.
- */
-Hooks.on("dnd5e.preRollAttack", dnd5ePreRollAttackHook);
+  if ( game.system.id !== "pf2e" ) {
+    /**
+     * Hook whenever a token is targeted or un-targeted.
+     */
+    Hooks.on("targetToken", targetTokenHook);
 
-/**
- * For midi, let GM or user decide on cover options. Or automatic.
- */
-Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHook);
+    /**
+     * Hook any change in combat turn.
+     */
+    Hooks.on("combatTurn", combatTurnHook);
+  }
+
+
+  if ( game.system.id === "dnd5e" ) {
+    /**
+     * For dnd5e, hook the attack roll to set cover.
+     */
+    Hooks.on("dnd5e.preRollAttack", dnd5ePreRollAttackHook);
+
+    /**
+     * For midi, let GM or user decide on cover options. Or automatic.
+     */
+    Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHook);
+  }
+}
