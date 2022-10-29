@@ -68,8 +68,12 @@ Hooks.once("devModeReady", ({ registerPackageDebugFlag }) => {
 });
 
 
-function registerSystemHooks() {
 
+
+
+
+function registerSystemHooks() {
+  console.log(`Game system is ${game.system.id}`);
   if ( game.system.id !== "pf2e" ) {
     /**
      * Hook whenever a token is targeted or un-targeted.
@@ -94,4 +98,17 @@ function registerSystemHooks() {
      */
     Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHook);
   }
+}
+
+Hooks.on("midi-qol.preAttackRoll", midiqolPreAttackRoll);
+
+// Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHookTest);
+
+
+function midiqolPreambleCompleteHookTest(workflow) {
+  console.log(`midiqolPreambleCompleteHookTest user ${game.userId}`, workflow);
+}
+
+function midiqolPreAttackRoll(workflow) {
+  console.log(`midiqolPreAttackRoll user ${game.userId}`, workflow);
 }

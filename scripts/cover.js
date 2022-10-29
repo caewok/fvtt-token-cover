@@ -50,14 +50,15 @@ dnd5e: half, 3/4, full
 import { MODULE_ID, COVER_TYPES, STATUS_EFFECTS } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
 import { log, distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
-import { CoverCalculator } from "./CoverCalculator.js";
+import { CoverCalculator, SOCKETS, dialogPromise } from "./CoverCalculator.js";
 import { Point3d } from "./Point3d.js";
 
 /**
  * Hook event that fires after targeting (AoE) is complete.
+ * Note: hook will be run by the user that executed the attack triggering this.
  */
 export async function midiqolPreambleCompleteHook(workflow) {
-  log("midiqolPreambleCompleteHook", workflow);
+  console.log(`midiqolPreambleCompleteHook user ${game.userId}`, workflow);
 
   const token = workflow.token;
   const targets = [...workflow.targets];
@@ -66,26 +67,58 @@ export async function midiqolPreambleCompleteHook(workflow) {
   if ( !nTargets || !token ) return true;
 
   const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
-  if ( coverCheckOption === SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES.NONE ) {
-    if ( !getSetting(SETTINGS.COVER.CHAT) ) return true;
+  const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
 
-    // Determine cover and distance for each target
-    const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30 });
+  let coverCalculations;
+  if ( getSetting(SETTINGS.COVER.CHAT)
+    || coverCheckOption !== choices.NONE ) coverCalculations = CoverCalculator.coverCalculations([token], targets);
+
+
+  if ( coverCheckOption === choices.GM || coverCheckOption === choices.USER ) {
+    const dialogData = constructCoverCheckDialogContent(token, targets, coverCalculations);
+
+    const res = coverCheckOption === choices.GM
+      ? await SOCKETS.socket.executeAsGM("dialogPromise", dialogData)
+      : await dialogPromise(dialogData);
+
+    if ( "Closed" === res ) return false;
+
+    // Update the cover calculations with User or GM selections
+    const coverSelections = res.find('[class=CoverSelect]');
+    const targetCoverCalculations = coverCalculations[token.id];
+    for ( let i = 0; i < nTargets; i += 1 ) {
+      const selectedCover = coverSelections[i].selectedIndex;
+      targetCoverCalculations[targets[i].id] = selectedCover
+
+      // Allow the GM or user to omit targets
+      if ( selectedCover === COVER_TYPES.TOTAL ) {
+        workflow.targets.delete(targets[i]);
+        continue;
+      }
+    }
+  }
+
+  if ( coverCheckOption !== choices.NONE ) {
+    // Update targets' cover
+    const targetCoverCalculations = coverCalculations[token.id];
+    for ( const target of targets ) {
+      CoverCalculator.setCoverStatus(target.id, targetCoverCalculations[target.id]);
+    }
+  }
+
+  // Send cover to chat
+  if ( getSetting(SETTINGS.COVER.CHAT) ) {
+    const coverTable = CoverCalculator.htmlCoverTable([token], targets, {
+      includeZeroCover: false,
+      imageWidth: 30,
+      coverCalculations });
     if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
-    return true;
   }
 
+  return true;
+}
 
-  const calcs = targets.map(t => new CoverCalculator(token, t));
-  const covers = calcs.map(calc => calc.targetCover());
-
-  // If automatic
-  for ( let i = 0; i < nTargets; i += 1 ) {
-    const cover = covers[i];
-    const calc = calcs[i];
-    calc.setTargetCoverEffect(cover);
-  }
-
+function constructCoverCheckDialogContent(token, targets, coverCalculations) {
   let html = `<b>${token.name}</b>`;
 
   const include3dDistance = true;
@@ -105,9 +138,8 @@ export async function midiqolPreambleCompleteHook(workflow) {
   <tbody>
   `;
 
-  for ( let i = 0; i < nTargets; i += 1 ) {
-    const target = targets[i];
-    const cover = covers[i];
+  for ( const target of targets ) {
+    const cover = coverCalculations[token.id][target.id];
 
     const target_center = new Point3d(
       target.center.x,
@@ -151,75 +183,13 @@ export async function midiqolPreambleCompleteHook(workflow) {
   <br>
   `;
 
-  // If GM checks, send dialog to GM
   const dialogData = {
     content: html,
     title: "Confirm cover"
   }
 
-  const res = await dialogPromise(dialogData);
-  if ( "Closed" === res ) return false;
-
-  const coverSelections = res.find('[class=CoverSelect]');
-  const coverCalculations = [];
-  const coverValues = [];
-  coverCalculations.push(coverValues); // One per token but only a single token here.
-  for ( let i = 0; i < nTargets; i += 1 ) {
-    const selectedCover = coverSelections[i].selectedIndex;
-    coverValues.push(selectedCover);
-
-    if ( selectedCover === COVER_TYPES.TOTAL ) {
-      workflow.targets.delete(targets[i]);
-      continue;
-    }
-    calcs[i].setTargetCoverEffect(selectedCover);
-  }
-
-  // If user checks, send dialog to user
-
-  // Send cover to chat
-  if ( getSetting(SETTINGS.COVER.CHAT) ) {
-    const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30, coverCalculations });
-    if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
-  }
-
-  return true;
+  return dialogData;
 }
-
-/**
- * Convert dialog to a promise to allow use with await/async.
- * @content HTML content for the dialog.
- * @return Promise for the html content of the dialog
- * Will return "Cancel" or "Close" if those are selected.
- */
-export function dialogPromise(data, options = {}) {
-  return new Promise((resolve, reject) => {
-    dialogCallback(data, (html) => resolve(html), options);
-  });
-}
-
-/**
- * Create new dialog with a callback function that can be used for dialogPromise.
- * @content HTML content for the dialog.
- * @callbackFn Allows conversion of the callback to a promise using dialogPromise.
- * @return rendered dialog.
- */
-function dialogCallback(data, callbackFn, options = {}) {
-  data.buttons = {
-    one: {
-      icon: '<i class="fas fa-check"></i>',
-      label: "Confirm",
-      callback: (html) => callbackFn(html)
-    }
-  };
-
-  data.default = "one";
-  data.close = () => callbackFn("Close");
-
-	let d = new Dialog(data, options);
-	d.render(true, { height: "100%" });
-}
-
 
 /**
  * A hook event that fires before an attack is rolled for an Item.
@@ -230,7 +200,7 @@ function dialogCallback(data, callbackFn, options = {}) {
  * @returns {boolean}                    Explicitly return false to prevent the roll from being performed.
  */
 export function dnd5ePreRollAttackHook(item, rollConfig) {
-  log("dnd5ePreRollAttackHook", item, rollConfig);
+  console.log(`dnd5ePreRollAttackHook User ${game.userId}`, item, rollConfig);
 
   if ( game.modules.has("midi-qol") && game.modules.get("midi-qol").active ) return true;
   if ( !getSetting(SETTINGS.COVER.CHAT) ) return true;
@@ -348,17 +318,19 @@ export async function toggleActiveEffectTokenDocument(wrapper, effectData, { ove
       return state;
   }
 
-  const existing1 = this.actor.effects.find(e => e.getFlag("core", "statusId") === existing1);
-  const existing2 = this.actor.effects.find(e => e.getFlag("core", "statusId") === existing2);
+  const existing1 = this.actor.effects.find(e => e.getFlag("core", "statusId") === id1);
+  const existing2 = this.actor.effects.find(e => e.getFlag("core", "statusId") === id2);
 
   if ( existing1 ) await existing1.delete();
   if ( existing2 ) await existing2.delete();
 
   return state;
 }
-export function combatTurnHook(combat, updateData, updateOptions) {
+export async function combatTurnHook(combat, updateData, updateOptions) {
 //   updateData.round
 //   updateData.turn
+
+  console.log(`combatTurnHook User ${game.userId} round ${updateData.round} turn ${updateData.turn}`);
 
   const c = combat.combatant;
   const playerOwners = c.players;
@@ -368,15 +340,23 @@ export function combatTurnHook(combat, updateData, updateOptions) {
   const tokens = canvas.tokens.placeables;
 
   const userTargetedTokens = [];
-  tokens.forEach(t => {
-    if ( playerOwners.some(owner => t.targeted.has(owner)) ) {
-      userTargetedTokens.push(t);
-    }
-    CoverCalculator.disableAllCoverStatus(t.document);
-  });
+  for ( const token of tokens ) {
+    if ( playerOwners.some(owner => token.targeted.has(owner)) ) {
+        userTargetedTokens.push(token);
+      }
+      CoverCalculator.disableAllCoverStatus(token.id);
+  }
+
+//   tokens.forEach(t => {
+//     if ( playerOwners.some(owner => t.targeted.has(owner)) ) {
+//       userTargetedTokens.push(t);
+//     }
+//     await SOCKETS.socket.executeAsGM("disableAllCoverStatus", t.document);
+// //     CoverCalculator.disableAllCoverStatus(t.document);
+//   });
 
   // Calculate cover from combatant to any currently targeted tokens
-  const combatToken = c.combatant.token.object;
+  const combatToken = c.token.object;
   for ( const target of userTargetedTokens ) {
     const coverCalc = new CoverCalculator(combatToken, target);
     coverCalc.setTargetCoverEffect();
@@ -393,7 +373,9 @@ export function combatTurnHook(combat, updateData, updateOptions) {
  * @param {Token} token      The targeted Token
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
-export function targetTokenHook(user, target, targeted) {
+export async function targetTokenHook(user, target, targeted) {
+  console.log(`targetTokenHook Hook User ${game.userId} User ${user.id} target ${target.name} targeted: ${targeted}`);
+
   if ( !getSetting(SETTINGS.COVER.COMBAT_AUTO) ) return;
 
   // If not in combat, do nothing because it is unclear who is targeting what...
@@ -402,9 +384,8 @@ export function targetTokenHook(user, target, targeted) {
   // Ignore targeting by other users
   if ( !isUserCombatTurn(user) ) return;
 
-  const targetD = target.document;
   if ( !targeted ) {
-    CoverCalculator.disableAllCoverStatus(targetD);
+    CoverCalculator.disableAllCoverStatus(target.id);
     return;
   }
 

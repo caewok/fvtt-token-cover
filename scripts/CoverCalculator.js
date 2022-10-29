@@ -1,10 +1,12 @@
 /* globals
-Token,
 game,
 canvas,
 ClockwiseSweepPolygon,
 CONST,
-PIXI
+PIXI,
+Hooks,
+socketlib,
+VisionSource
 */
 
 import { MODULE_ID, COVER_TYPES } from "./const.js";
@@ -17,6 +19,96 @@ import * as drawing from "./drawing.js";
 import { distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
 import { currentStatusEffects } from "./cover.js";
 
+
+// ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
+// Don't pass complex classes through the socket. Use token ids instead.
+
+export const SOCKETS = {
+  socket: null
+};
+
+Hooks.once("socketlib.ready", () => {
+  SOCKETS.socket = socketlib.registerModule(MODULE_ID);
+  SOCKETS.socket.register("dialogPromise", dialogPromise);
+  SOCKETS.socket.register("disableCoverStatus", disableCoverStatus);
+  SOCKETS.socket.register("enableCoverStatus", enableCoverStatus);
+});
+
+/**
+ * Remove a cover status (ActiveEffect) from a token.
+ * @param {COVER_TYPE} type
+ * @param {string} tokenId
+ */
+async function disableCoverStatus(tokenId, type = COVER_TYPES.LOW) {
+  if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
+
+  const token = canvas.tokens.get(tokenId);
+  if ( !token ) return;
+
+  const keys = Object.keys(COVER_TYPES);
+  const key = keys[type];
+  if ( !key ) return;
+
+  const id = `${MODULE_ID}.cover.${key}`;
+  await token.document.toggleActiveEffect({ id }, { active: false });
+}
+
+/**
+ * Enable a cover status (ActiveEffect) for a token
+ * @param {string} tokenId
+ * @param {COVER_TYPE} type
+ */
+async function enableCoverStatus(tokenId, type = COVER_TYPES.LOW) {
+  if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
+
+  const token = canvas.tokens.get(tokenId);
+  if ( !token ) return;
+
+  const keys = Object.keys(COVER_TYPES);
+  const key = keys[type];
+  if ( !key ) return;
+
+  // If already exists, do not add again to avoid duplicate effects.
+  const effect = currentStatusEffects()[key];
+  const existing = token.document.actor.effects.find(e => e.getFlag("core", "statusId") === effect.id);
+  if ( existing ) return;
+
+  await token.document.toggleActiveEffect(effect, { active: true });
+}
+
+/**
+ * Convert dialog to a promise to allow use with await/async.
+ * @content HTML content for the dialog.
+ * @return Promise for the html content of the dialog
+ * Will return "Cancel" or "Close" if those are selected.
+ */
+export function dialogPromise(data, options = {}) {
+  return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
+    dialogCallback(data, (html) => resolve(html), options);
+  });
+}
+
+/**
+ * Create new dialog with a callback function that can be used for dialogPromise.
+ * @content HTML content for the dialog.
+ * @callbackFn Allows conversion of the callback to a promise using dialogPromise.
+ * @return rendered dialog.
+ */
+function dialogCallback(data, callbackFn, options = {}) {
+  data.buttons = {
+    one: {
+      icon: '<i class="fas fa-check"></i>',
+      label: "Confirm",
+      callback: (html) => callbackFn(html)
+    }
+  };
+
+  data.default = "one";
+  data.close = () => callbackFn("Close");
+
+	let d = new Dialog(data, options);
+	d.render(true, { height: "100%" });
+}
 
 /* Cover Calculation Class
  * Calculate cover between a token and target, based on different algorithms.
@@ -49,35 +141,56 @@ export class CoverCalculator {
     return getSetting(SETTINGS.COVER.NAMES[key]);
   }
 
-  static disableAllCoverStatus(tokenD) {
-    CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.LOW);
-    CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.MEDIUM);
-    CoverCalculator.disableCoverStatus(tokenD, COVER_TYPES.HIGH);
+  static disableAllCoverStatus(tokenId) {
+    // Don't really need to await in order to disable all... right?
+    CoverCalculator.disableCoverStatus(tokenId, COVER_TYPES.LOW);
+    CoverCalculator.disableCoverStatus(tokenId, COVER_TYPES.MEDIUM);
+    CoverCalculator.disableCoverStatus(tokenId, COVER_TYPES.HIGH);
   }
 
-  static disableCoverStatus(tokenD, type = COVER_TYPES.LOW ) {
-    if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
-
-    const keys = Object.keys(COVER_TYPES);
-    const key = keys[type];
-    if ( !key ) return;
-
-    const id = `${MODULE_ID}.cover.${key}`;
-    tokenD.toggleActiveEffect({ id }, { active: false });
+  static async disableCoverStatus(tokenId, type = COVER_TYPES.LOW ) {
+    // Test id is string for debugging
+    if ( !(typeof tokenId === 'string' || tokenId instanceof String) ) console.error("tokenId is not a string!")
+    await SOCKETS.socket.executeAsGM("disableCoverStatus", tokenId, type);
   }
 
-  static enableCoverStatus(tokenD, type = COVER_TYPES.LOW ) {
-    if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
+  static async enableCoverStatus(tokenId, type = COVER_TYPES.LOW ) {
+    // Test id is string for debugging
+    if ( !(typeof tokenId === 'string' || tokenId instanceof String) ) console.error("tokenId is not a string!")
+    await SOCKETS.socket.executeAsGM("enableCoverStatus", tokenId, type);
+  }
 
-    const keys = Object.keys(COVER_TYPES);
-    const key = keys[type];
-    if ( !key ) return;
+  static async setCoverStatus(tokenId, type = COVER_TYPES.NONE ) {
+    if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL )
+      return CoverCalculator.disableAllCoverStatus(tokenId);
 
-    const effect = currentStatusEffects()[key];
-    const existing = tokenD.actor.effects.find(e => e.getFlag("core", "statusId") === effect.id);
-    if ( existing ) return;
+    return CoverCalculator.enableCoverStatus(type);
+  }
 
-    tokenD.toggleActiveEffect(effect, { active: true });
+  /**
+   * Run cover calculations for all targets against all tokens.
+   * Ignore when token equals target.
+   * @param {Token[]} tokens
+   * @param {Token[]} targets
+   * @returns {object{object{COVER_TYPE}}} Object with token ids, each with target id that has cover.
+   */
+  static coverCalculations(tokens, targets) {
+    const calculations = {};
+
+    for ( const token of tokens ) {
+      const tokenCalcs = {};
+      calculations[`${token.id}`] = tokenCalcs;
+      for ( const target of targets ) {
+        if ( target.id === token.id ) {
+          tokenCalcs[`${target.id}`] = null;
+        } else {
+          const coverCalc = new CoverCalculator(token, target);
+          tokenCalcs[`${target.id}`] = coverCalc.targetCover();
+        }
+      }
+    }
+
+    return calculations;
   }
 
   /**
@@ -90,16 +203,19 @@ export class CoverCalculator {
    * @returns {object {html: {string}, nCover: {number}, coverResults: {COVER_TYPES[][]}}}
    *   String of html content that can be used in a Dialog or ChatMessage.
    */
-  static htmlCoverTable(tokens, targets, { include3dDistance = true, includeZeroCover = true, imageWidth = 50, coverCalculations } = {}) {
+  static htmlCoverTable(tokens, targets, {
+    include3dDistance = true,
+    includeZeroCover = true,
+    imageWidth = 50,
+    coverCalculations } = {}) {
+
     if ( game.modules.get(MODULE_ID).api.debug ) drawing.clearDrawings();
+    if ( !coverCalculations ) coverCalculations = CoverCalculator.coverCalculations(tokens, targets);
+
     let html = "";
     const coverResults = [];
     let nCoverTotal = 0;
-
-    const nTokens = tokens.length;
-    const nTargets = targets.length;
-
-    for ( const [i, token] of tokens.entries() ) {
+    for ( const token of tokens ) {
       let nCover = 0;
       const targetCoverResults = [];
       coverResults.push(targetCoverResults);
@@ -119,7 +235,7 @@ export class CoverCalculator {
       <tbody>
       `;
 
-      for ( const [j, target] of targets.entries() ) {
+      for ( const target of targets ) {
         if ( token.id === target.id ) {
           // Skip targeting oneself.
           targetCoverResults.push(COVER_TYPES.NONE);
@@ -131,13 +247,7 @@ export class CoverCalculator {
           target.center.y,
           CoverCalculator.averageTokenElevation(target));
 
-        let cover;
-        if ( coverCalculations ) {
-          cover = coverCalculations[i][j];
-        } else {
-          const coverCalc = new CoverCalculator(token, target);
-          cover = coverCalc.targetCover();
-        }
+        const cover = coverCalculations[token.id][target.id];
 
         targetCoverResults.push(cover);
 
@@ -246,28 +356,16 @@ export class CoverCalculator {
    * @param {COVER.TYPE} type   Cover type. Default to calculating.
    */
   setTargetCoverEffect(type = this.targetCover()) {
-    const targetD = this.target.document;
-
     switch ( type ) {
       case COVER_TYPES.NONE:
       case COVER_TYPES.FULL:
-        this.removeTargetCoverEffect();
+        CoverCalculator.disableAllCoverStatus(this.target.id);
         break;
       case COVER_TYPES.LOW:
       case COVER_TYPES.MEDIUM:
       case COVER_TYPES.HIGH:
-        CoverCalculator.enableCoverStatus(targetD, type);
+        CoverCalculator.enableCoverStatus(this.target.id, type);
     }
-  }
-
-  /**
-   * Remove target cover effect, if any.
-   */
-  removeTargetCoverEffect() {
-    const targetD = this.target.document;
-    CoverCalculator.disableCoverStatus(targetD, COVER_TYPES.LOW);
-    CoverCalculator.disableCoverStatus(targetD, COVER_TYPES.MEDIUM);
-    CoverCalculator.disableCoverStatus(targetD, COVER_TYPES.HIGH);
   }
 
   // ----- COVER ALGORITHM METHODS ----- //
