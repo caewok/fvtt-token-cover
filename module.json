@@ -3,6 +3,7 @@
   "title": "Alternative Token Visibility",
   "version": "This is auto replaced",
   "library": false,
+  "socket": true,
   "manifestPlusVersion": "1.0.0",
   "compatibility": {
     "minimum": "10.286",
@@ -22,7 +23,16 @@
         "type": "module",
         "manifest": "https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/master/module.json",
         "compatibility": {
-          "verified": "1.12.4"
+          "verified": "1.12.8"
+        }
+      },
+
+      {
+        "id": "socketlib",
+        "type": "module",
+        "manifest": "https://raw.githubusercontent.com/manuelVo/foundryvtt-socketlib/master/module.json",
+        "compatibility": {
+          "verified": "1.0.12"
         }
       }
     ]

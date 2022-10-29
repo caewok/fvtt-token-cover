@@ -78,7 +78,21 @@ export const SETTINGS = {
       HIGH: "cover-trigger-percent-high"
     },
 
-  }
+    MIDIQOL: {
+      COVERCHECK: "midiqol-covercheck",
+      COVERCHECK_CHOICES: {
+        NONE: "midiqol-covercheck-none",
+        USER: "midiqol-covercheck-user",
+        GM: "midiqol-covercheck-gm",
+        AUTO: "midiqol-covercheck-auto"
+      }
+    },
+
+    COMBAT_AUTO: "cover-combat-auto",
+    CHAT: "cover-chat-message"
+  },
+
+
 };
 
 
@@ -222,6 +236,15 @@ export function registerSettings() {
     }
   });
 
+  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.LOW, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.LOW}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.LOW}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    default: coverNames.LOW
+  });
+
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_PERCENT.LOW, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}.Hint`),
@@ -234,6 +257,15 @@ export function registerSettings() {
     config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
     default: .5,
     type: Number
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.MEDIUM, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.MEDIUM}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.MEDIUM}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    default: coverNames.MEDIUM
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM, {
@@ -250,6 +282,15 @@ export function registerSettings() {
     type: Number
   });
 
+  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.HIGH, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.HIGH}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.HIGH}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    default: coverNames.HIGH
+  });
+
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_PERCENT.HIGH, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}.Hint`),
@@ -262,33 +303,6 @@ export function registerSettings() {
     config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
     default: 1,
     type: Number
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.LOW, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.LOW}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.LOW}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    default: coverNames.LOW
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.MEDIUM, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.MEDIUM}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.MEDIUM}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    default: coverNames.MEDIUM
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.HIGH, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.HIGH}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.HIGH}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    default: coverNames.HIGH
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.EFFECTS.LOW, {
@@ -323,6 +337,41 @@ export function registerSettings() {
     config: false,
     type: Boolean,
     default: false
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.COMBAT_AUTO, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.COMBAT_AUTO}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.COMBAT_AUTO}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.CHAT, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.CHAT}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.CHAT}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+
+  const MIDICHOICES = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
+  game.settings.register(MODULE_ID, SETTINGS.COVER.MIDIQOL.COVERCHECK, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK}.Hint`),
+    scope: "world",
+    config: game.modules.has("midi-qol") && game.modules.get("midi-qol").active,
+    type: String,
+    choices: {
+      [MIDICHOICES.NONE]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.NONE}`),
+      [MIDICHOICES.USER]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.USER}`),
+      [MIDICHOICES.GM]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.GM}`),
+      [MIDICHOICES.AUTO]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.AUTO}`)
+    },
+    default: MIDICHOICES.NONE,
+    onChange: updateCoverSetting
   });
 
   log("Done registering settings.");
