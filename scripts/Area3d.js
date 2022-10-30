@@ -380,7 +380,7 @@ export class Area3d {
    * @returns {number}
    */
   percentAreaVisible() {
-    const debug = game.modules.get(MODULE_ID).api.debug;
+    const debug = game.modules.get(MODULE_ID).api.debug.area;
     if ( debug ) {
       this._drawLineOfSight();
       this._drawTransformedTarget();

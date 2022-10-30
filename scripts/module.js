@@ -17,7 +17,6 @@ import { Point3d, registerPIXIPointMethods } from "./Point3d.js";
 
 // For API
 import * as bench from "./benchmark.js";
-import * as visibility from "./token_visibility.js";
 import * as drawing from "./drawing.js";
 import * as util from "./util.js";
 import { Shadow } from "./Shadow.js";
@@ -44,11 +43,15 @@ Hooks.once("init", async function() {
     Area3d,
     Plane,
     ClipperPaths,
-    visibility,
     util,
     CoverCalculator,
     COVER_TYPES,
-    debug: false
+    debug: {
+      range: false,
+      los: false,
+      cover: false,
+      area: false
+    }
   };
 
   registerSystemHooks();
@@ -107,3 +110,34 @@ function midiqolPreambleCompleteHookTest(workflow) {
 function midiqolPreAttackRoll(workflow) {
   console.log(`midiqolPreAttackRoll user ${game.userId}`, workflow);
 }
+
+/**
+ * A hook event that fires for every Document type after conclusion of an update workflow.
+ * Substitute the Document name in the hook event to target a specific Document type, for example "updateActor".
+ * This hook fires for all connected clients after the update has been processed.
+ *
+ * @event updateDocument
+ * @category Document
+ * @param {Document} document                       The existing Document which was updated
+ * @param {object} change                           Differential data that was used to update the document
+ * @param {DocumentModificationContext} options     Additional options which modified the update request
+ * @param {string} userId                           The ID of the User who triggered the update workflow
+ */
+Hooks.on("updateToken", updateTokenHook);
+
+/**
+ * If the token moves, clear all debug drawings.
+ */
+function updateTokenHook(document, change, options, userId) {
+  if ( Object.hasOwn(change, "x")
+    || Object.hasOwn(change, "y")
+    || Object.hasOwn(change, "elevation") ) {
+
+    const debug = game.modules.get(MODULE_ID).api.debug;
+    if ( debug.range || debug.area || debug.cover || debug.los ) {
+      console.log("Clearing drawings!")
+      drawing.clearDrawings();
+    }
+  }
+}
+

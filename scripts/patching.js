@@ -7,12 +7,15 @@ Token
 import {
   tokenUpdateVisionSource,
   _testLOSDetectionMode,
-  testVisibilityCanvasVisibility,
   _createPolygonPointSource,
+  getConstrainedTokenShape
+} from "./visibility_los.js";
+
+import {
+  testVisibilityCanvasVisibility,
   testVisibilityDetectionMode,
   _testRangeDetectionMode,
-  getConstrainedTokenShape
-} from "./token_visibility.js";
+} from "./visibility_range.js";
 
 import {
   toggleActiveEffectTokenDocument
@@ -35,7 +38,7 @@ export function registerLibWrapperMethods() {
   libWrapper.register(MODULE_ID, "SettingsConfig.prototype._onSubmit", _onSubmitSettingsConfig, libWrapper.WRAPPER);
   libWrapper.register(MODULE_ID, "CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
   libWrapper.register(MODULE_ID, "DetectionMode.prototype.testVisibility", testVisibilityDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
-  libWrapper.register(MODULE_ID, "DetectionMode.prototype._testRange", _testRangeDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+  libWrapper.register(MODULE_ID, "DetectionMode.prototype._testRange", _testRangeDetectionMode, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
 
   // Token HUD status effects for cover
 //   libWrapper.register(MODULE_ID, "TokenHUD.prototype._onToggleStatusEffects", _onToggleStatusEffectsTokenHUD, libWrapper.WRAPPER);
