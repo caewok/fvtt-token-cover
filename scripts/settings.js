@@ -512,7 +512,8 @@ export function updateConfigStatusEffects(type) {
   }
 
   const coverEffect = getCoverEffect(type);
-  const currIdx = CONFIG.statusEffects.findIndex(effect => effect.id === `${MODULE_ID}.cover.${type}`);
+  coverEffect.id = `${MODULE_ID}.cover.${type}`;
+  const currIdx = CONFIG.statusEffects.findIndex(effect => effect.id === coverEffect.id);
 
   if ( !~currIdx ) CONFIG.statusEffects.push(coverEffect);
   else CONFIG.statusEffects[currIdx] = coverEffect;
