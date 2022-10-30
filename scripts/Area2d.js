@@ -39,7 +39,7 @@ export class Area2d {
   constructor(visionSource, target) {
     this.visionSource = visionSource;
     this.target = target;
-    this.debug = game.modules.get(MODULE_ID).api.debug;
+    this.debug = game.modules.get(MODULE_ID).api.debug.area;
 
     this.percentAreaForLOS = getSetting(SETTINGS.LOS.PERCENT_AREA);
   }

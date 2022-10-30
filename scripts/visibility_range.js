@@ -45,9 +45,6 @@ export function testVisibilityCanvasVisibility(wrapped, point, {tolerance=2, obj
  * @returns {boolean}                           Is the test target visible?
  */
 export function testVisibilityDetectionMode(wrapped, visionSource, mode, {object, tests}={}) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
-  debug && drawing.clearDrawings(); // eslint-disable-line no-unused-expressions
-  debug && console.log("Clearing drawings!"); // eslint-disable-line no-unused-expressions
   tests = elevatePoints(tests, visionSource, object);
 
   const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
@@ -121,17 +118,21 @@ function buildTestObject(x, y, z = 0, los = new Map()) {
  * @returns {boolean}                           Is the target within range?
  */
 export function _testRangeDetectionMode(wrapper, visionSource, mode, target, test) {
+  const debug = game.modules.get(MODULE_ID).api.debug.range;
+  let inRange = false;
+
   if ( !getSetting(SETTINGS.RANGE.DISTANCE3D)
-    || !(target instanceof Token) ) return wrapper(visionSource, mode, target, test);
-
-  const debug = game.modules.get(MODULE_ID).api.debug;
-  const radius = visionSource.object.getLightRadius(mode.range);
-  const dx = test.point.x - visionSource.x;
-  const dy = test.point.y - visionSource.y;
-  const dz = test.point.z - visionSource.elevationZ;
-  const inRange3d = ((dx * dx) + (dy * dy) + (dz * dz)) <= (radius * radius);
+    || !(target instanceof Token) ) {
+    inRange = wrapper(visionSource, mode, target, test);
+  } else {
+    const radius = visionSource.object.getLightRadius(mode.range);
+    const dx = test.point.x - visionSource.x;
+    const dy = test.point.y - visionSource.y;
+    const dz = test.point.z - visionSource.elevationZ;
+    inRange = ((dx * dx) + (dy * dy) + (dz * dz)) <= (radius * radius);
+  }
   debug && drawing.drawPoint(test.point,  // eslint-disable-line no-unused-expressions
-    { alpha: 1, radius: 3, color: inRange3d ? drawing.COLORS.green : drawing.COLORS.red });
+    { alpha: 1, radius: 3, color: inRange ? drawing.COLORS.green : drawing.COLORS.red });
 
-  return inRange3d;
+  return inRange;
 }

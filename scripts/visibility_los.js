@@ -171,7 +171,7 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
 }
 
 export function testLOSPoint(visionSource, target, test, hasLOS ) {
-  const debug = game.modules.get(MODULE_ID).api.debug;
+  const debug = game.modules.get(MODULE_ID).api.debug.los;
 
   // If not in the line of sight, no need to test for wall collisions
   if ( !hasLOS ) {
