@@ -22,9 +22,12 @@ import * as util from "./util.js";
 import { Shadow } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
 import { Area3d } from "./Area3d.js";
+import { Area2d } from "./Area2d.js";
 import { Plane } from "./Plane.js";
 import { ClipperPaths } from "./ClipperPaths.js";
 import { CoverCalculator } from "./CoverCalculator.js";
+
+import * as los from "./visibility_los.js";
 
 Hooks.once("init", async function() {
   registerElevationAdditions();
@@ -40,12 +43,14 @@ Hooks.once("init", async function() {
     Shadow,
     Matrix,
     Point3d,
+    Area2d,
     Area3d,
     Plane,
     ClipperPaths,
     util,
     CoverCalculator,
     COVER_TYPES,
+    los,
     debug: {
       range: false,
       los: false,
