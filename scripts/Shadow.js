@@ -355,7 +355,7 @@ export class Shadow extends PIXI.Polygon {
     if ( bottomInfinite && topInfinite ) return null; // Infinite shadow
 
     const maxR = canvas.dimensions.maxR;
-    if ( bottomInfinite ) bottomZ = maxR;
+    if ( bottomInfinite ) bottomZ = -maxR;
     if ( topInfinite ) topZ = maxR;
 
     const pointA = new Point3d(A.x, A.y, topZ);
