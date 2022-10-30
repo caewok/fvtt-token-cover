@@ -48,6 +48,8 @@ export function registerLibWrapperMethods() {
   // Manipulating Token status effects
   libWrapper.register(MODULE_ID, "TokenDocument.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument, libWrapper.WRAPPER);
 
+  libWrapper.register(MODULE_ID, "Token.prototype.updateSource", updateSourceToken, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+
   // Constrained token shape getter.
   // Reset by tokenUpdateVisionSource
   if ( !Object.hasOwn(Token.prototype, "constrainedTokenShape") ) {
@@ -56,6 +58,17 @@ export function registerLibWrapperMethods() {
       enumerable: false
     });
   }
+}
+
+function updateSourceToken(wrapper, ...args) {
+  const api = game.modules.get(MODULE_ID).api;
+  const debug = api.debug;
+    if ( debug.range || debug.area || debug.cover || debug.los ) {
+      console.log("Clearing drawings! (updateSourceToken)")
+      api.drawing.clearDrawings();
+    }
+
+  return wrapper(...args);
 }
 
 function _onToggleStatusEffectsTokenHUD(wrapper, event) {
