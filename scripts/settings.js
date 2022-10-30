@@ -154,7 +154,7 @@ export function registerSettings() {
   log("Registering token visibility settings.");
 
   const RTYPES = SETTINGS.RANGE.TYPES;
-  const VTYPES = SETTINGS.LOS.TYPES;
+  const LTYPES = SETTINGS.LOS.TYPES;
   const CTYPES = SETTINGS.COVER.TYPES;
   const coverNames = getCoverNames();
 
@@ -169,7 +169,7 @@ export function registerSettings() {
       [RTYPES.NINE]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.NINE}`),
       [RTYPES.SEVENTEEN]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.SEVENTEEN}`)
     },
-    default: RTYPES.FOUNDRY
+    default: RTYPES.NINE
   });
 
   game.settings.register(MODULE_ID, SETTINGS.RANGE.DISTANCE3D, {
@@ -188,11 +188,11 @@ export function registerSettings() {
     config: true,
     type: String,
     choices: {
-      [VTYPES.POINTS]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.POINTS}`),
-      [VTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.AREA}`),
-      [VTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${VTYPES.AREA3D}`)
+      [LTYPES.POINTS]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.POINTS}`),
+      [LTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.AREA}`),
+      [LTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.AREA3D}`)
     },
-    default: VTYPES.POINTS,
+    default: LTYPES.POINTS,
     onChange: updateLosSetting
   });
 
@@ -205,7 +205,7 @@ export function registerSettings() {
       step: 0.05
     },
     scope: "world",
-    config: () => getSetting(SETTINGS.LOS.ALGORITHM) !== VTYPES.POINTS,
+    config: () => getSetting(SETTINGS.LOS.ALGORITHM) !== LTYPES.POINTS,
     default: 0,
     type: Number
   });
@@ -378,8 +378,8 @@ function getCoverNames() {
 
 function updateLosSetting(value) {
   log(`Changing to ${value}`);
-  const VTYPES = SETTINGS.LOS.TYPES;
-  const visible = value === VTYPES.AREA || value === VTYPES.AREA3D;
+  const LTYPES = SETTINGS.LOS.TYPES;
+  const visible = value === LTYPES.AREA || value === LTYPES.AREA3D;
   setSettingVisibility(SETTINGS.LOS.PERCENT_AREA, visible);
 }
 
