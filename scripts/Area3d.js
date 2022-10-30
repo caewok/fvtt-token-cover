@@ -70,6 +70,7 @@ export class Area3d {
     this.target = target;
     this.percentAreaForLOS = getSetting(SETTINGS.LOS.PERCENT_AREA);
     this._useShadows = getSetting(SETTINGS.AREA3D_USE_SHADOWS);
+    this.debug = game.modules.get(MODULE_ID).api.debug.area;
   }
 
   /**
@@ -380,8 +381,7 @@ export class Area3d {
    * @returns {number}
    */
   percentAreaVisible() {
-    const debug = game.modules.get(MODULE_ID).api.debug.area;
-    if ( debug ) {
+    if ( this.debug ) {
       this._drawLineOfSight();
       this._drawTransformedTarget();
       this._drawTransformedWalls();
@@ -407,7 +407,7 @@ export class Area3d {
 
       sidesArea += sideArea;
       obscuredSidesArea += obscuredSideArea;
-      if ( debug ) {
+      if ( this.debug ) {
         this.debugSideAreas.sides.push(sideArea);
         this.debugSideAreas.obscuredSides.push(obscuredSideArea);
       }
