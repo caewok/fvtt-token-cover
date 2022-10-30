@@ -7,11 +7,11 @@ game
 import { MODULE_ID, COVER_TYPES } from "./const.js";
 
 // Hooks and method registration
-import { addCoverStatuses, targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook } from "./cover.js";
+import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
 import { registerPIXIRectangleMethods } from "./PIXIRectangle.js";
-import { registerSettings } from "./settings.js";
+import { registerSettings, updateConfigStatusEffects } from "./settings.js";
 import { registerElevationAdditions } from "./elevation.js";
 import { Point3d, registerPIXIPointMethods } from "./Point3d.js";
 
@@ -56,7 +56,7 @@ Hooks.once("init", async function() {
 
 Hooks.once("setup", async function() {
   registerSettings();
-  addCoverStatuses();
+  updateConfigStatusEffects();
 });
 
 /**
@@ -66,11 +66,6 @@ Hooks.once("setup", async function() {
 Hooks.once("devModeReady", ({ registerPackageDebugFlag }) => {
   registerPackageDebugFlag(MODULE_ID);
 });
-
-
-
-
-
 
 function registerSystemHooks() {
   console.log(`Game system is ${game.system.id}`);

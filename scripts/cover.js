@@ -1,7 +1,6 @@
 /* globals
 game,
 canvas,
-CONFIG,
 ChatMessage
 */
 "use strict";
@@ -47,8 +46,8 @@ dnd5e: half, 3/4, full
 
 */
 
-import { MODULE_ID, COVER_TYPES, STATUS_EFFECTS } from "./const.js";
-import { getSetting, SETTINGS } from "./settings.js";
+import { MODULE_ID, COVER_TYPES } from "./const.js";
+import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { log, distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
 import { CoverCalculator, SOCKETS, dialogPromise } from "./CoverCalculator.js";
 import { Point3d } from "./Point3d.js";
@@ -84,11 +83,11 @@ export async function midiqolPreambleCompleteHook(workflow) {
     if ( "Closed" === res ) return false;
 
     // Update the cover calculations with User or GM selections
-    const coverSelections = res.find('[class=CoverSelect]');
+    const coverSelections = res.find("[class=CoverSelect]");
     const targetCoverCalculations = coverCalculations[token.id];
     for ( let i = 0; i < nTargets; i += 1 ) {
       const selectedCover = coverSelections[i].selectedIndex;
-      targetCoverCalculations[targets[i].id] = selectedCover
+      targetCoverCalculations[targets[i].id] = selectedCover;
 
       // Allow the GM or user to omit targets
       if ( selectedCover === COVER_TYPES.TOTAL ) {
@@ -152,9 +151,9 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations) {
     const coverOptions =
     `
     <option value="NONE" ${cover === COVER_TYPES.NONE ? "selected" : ""}>None</option>
-    <option value="LOW" ${cover === COVER_TYPES.LOW ? "selected" : ""}>${getSetting(SETTINGS.COVER.NAMES.LOW)}</option>
-    <option value="MEDIUM" ${cover === COVER_TYPES.MEDIUM ? "selected" : ""}>${getSetting(SETTINGS.COVER.NAMES.MEDIUM)}</option>
-    <option value="HIGH" ${cover === COVER_TYPES.HIGH ? "selected" : ""}>${getSetting(SETTINGS.COVER.NAMES.HIGH)}</option>
+    <option value="LOW" ${cover === COVER_TYPES.LOW ? "selected" : ""}>${getCoverName("LOW")}</option>
+    <option value="MEDIUM" ${cover === COVER_TYPES.MEDIUM ? "selected" : ""}>${getCoverName("MEDIUM")}</option>
+    <option value="HIGH" ${cover === COVER_TYPES.HIGH ? "selected" : ""}>${getCoverName("HIGH")}</option>
     <option value="OMIT">Omit from attack</option>
     `;
     const coverSelector =
@@ -186,7 +185,7 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations) {
   const dialogData = {
     content: html,
     title: "Confirm cover"
-  }
+  };
 
   return dialogData;
 }
@@ -216,26 +215,6 @@ export function dnd5ePreRollAttackHook(item, rollConfig) {
   // Determine cover and distance for each target
   const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30 });
   if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
-}
-
-export function addCoverStatuses() {
-  const statusEffects = currentStatusEffects();
-
-  CONFIG.statusEffects.push(
-    statusEffects.LOW,
-    statusEffects.MEDIUM,
-    statusEffects.HIGH);
-}
-
-// Function to get the current status effects, with labels added from settings.
-export function currentStatusEffects() {
-  const statusEffects = STATUS_EFFECTS[game.system.id] || STATUS_EFFECTS.generic;
-
-  statusEffects.LOW.label = getSetting(SETTINGS.COVER.NAMES.LOW);
-  statusEffects.MEDIUM.label = getSetting(SETTINGS.COVER.NAMES.MEDIUM);
-  statusEffects.HIGH.label = getSetting(SETTINGS.COVER.NAMES.HIGH);
-
-  return statusEffects;
 }
 
 /* Options for determining cover.

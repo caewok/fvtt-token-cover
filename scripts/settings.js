@@ -1,12 +1,17 @@
 /* globals
 game,
-ui
+duplicate,
+CONFIG
 */
 
 "use strict";
 
 import { log } from "./util.js";
 import { MODULE_ID, STATUS_EFFECTS } from "./const.js";
+import {
+  LowCoverEffectConfig,
+  MediumCoverEffectConfig,
+  HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
 export function getSetting(settingName) { return game.settings.get(MODULE_ID, settingName); }
 
@@ -59,15 +64,13 @@ export const SETTINGS = {
       AREA: "cover-area",
       AREA3D: "cover-area-3d"
     },
-    NAMES: {
-      LOW: "cover-name-low",
-      MEDIUM: "cover-name-medium",
-      HIGH: "cover-name-high"
-    },
-    EFFECTS: {
-      LOW: "cover-effect-low",
-      MEDIUM: "cover-effect-medium",
-      HIGH: "cover-effect-high"
+
+    EFFECTS: "cover-effects",
+
+    MENU: {
+      LOW: "menu-cover-effects-low",
+      MEDIUM: "menu-cover-effects-medium",
+      HIGH: "menu-cover-effects-high"
     },
 
     TRIGGER_CENTER: "cover-trigger-center",
@@ -90,9 +93,7 @@ export const SETTINGS = {
 
     COMBAT_AUTO: "cover-combat-auto",
     CHAT: "cover-chat-message"
-  },
-
-
+  }
 };
 
 
@@ -236,15 +237,6 @@ export function registerSettings() {
     }
   });
 
-  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.LOW, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.LOW}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.LOW}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    default: coverNames.LOW
-  });
-
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_PERCENT.LOW, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}.Hint`),
@@ -257,15 +249,6 @@ export function registerSettings() {
     config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
     default: .5,
     type: Number
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.MEDIUM, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.MEDIUM}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.MEDIUM}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    default: coverNames.MEDIUM
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM, {
@@ -282,15 +265,6 @@ export function registerSettings() {
     type: Number
   });
 
-  game.settings.register(MODULE_ID, SETTINGS.COVER.NAMES.HIGH, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.HIGH}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.NAMES.HIGH}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    default: coverNames.HIGH
-  });
-
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_PERCENT.HIGH, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}.Hint`),
@@ -305,38 +279,31 @@ export function registerSettings() {
     type: Number
   });
 
-  game.settings.register(MODULE_ID, SETTINGS.COVER.EFFECTS.LOW, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.EFFECTS.LOW}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.EFFECTS.LOW}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    default: ""
+  game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.LOW, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Hint`),
+    label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Label`),
+    icon: "fas fa-shield-halved",
+    type: LowCoverEffectConfig,
+    restricted: true
   });
 
-  game.settings.register(MODULE_ID, SETTINGS.COVER.EFFECTS.MEDIUM, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.EFFECTS.MEDIUM}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.EFFECTS.MEDIUM}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    default: ""
+  game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.MEDIUM, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Hint`),
+    label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Label`),
+    icon: "fas fa-shield-heart",
+    type: MediumCoverEffectConfig,
+    restricted: true
   });
 
-  game.settings.register(MODULE_ID, SETTINGS.COVER.EFFECTS.HIGH, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.EFFECTS.HIGH}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.EFFECTS.HIGH}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    default: ""
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.AREA3D_USE_SHADOWS, {
-    scope: "world",
-    config: false,
-    type: Boolean,
-    default: false
+  game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.HIGH, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Hint`),
+    label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Label`),
+    icon: "fas fa-shield",
+    type: HighCoverEffectConfig,
+    restricted: true
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.COMBAT_AUTO, {
@@ -374,6 +341,20 @@ export function registerSettings() {
     onChange: updateCoverSetting
   });
 
+  // ----- HIDDEN SETTINGS ----- //
+  game.settings.register(MODULE_ID, SETTINGS.COVER.EFFECTS, {
+    scope: "world",
+    config: false,
+    default: STATUS_EFFECTS
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.AREA3D_USE_SHADOWS, {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false
+  });
+
   log("Done registering settings.");
 }
 
@@ -389,7 +370,6 @@ function getCoverNames() {
 
 function updateLosSetting(value) {
   log(`Changing to ${value}`);
-//   ui.notifications.notify(`Changing to ${value}`);
   const VTYPES = SETTINGS.LOS.TYPES;
   const visible = value === VTYPES.AREA || value === VTYPES.AREA3D;
   setSettingVisibility(SETTINGS.LOS.PERCENT_AREA, visible);
@@ -397,7 +377,6 @@ function updateLosSetting(value) {
 
 function updateCoverSetting(value) {
   log(`Changing to ${value}`);
-//   ui.notifications.notify(`Changing to ${value}`);
   const CTYPES = SETTINGS.COVER.TYPES;
   const center_visible = value === CTYPES.CENTER_CENTER;
 
@@ -411,10 +390,7 @@ function updateCoverSetting(value) {
 export function activateListenersSettingsConfig(wrapper, html) {
   log("activateListenersSettingsConfig", html);
 
-  //   html.on("change", 'td[name="tokenvisibility.vision-algorithm"]', tempUpdateVisionSetting.bind(this));
   html.find(`[name="tokenvisibility.los-algorithm"]`).change(tempUpdateLosSetting.bind(this));
-  //   html.find(`[name="${MODULE_ID}.${SETTINGS.VISION.ALGORITHM}"]`).change(tempUpdateVisionSetting.bind(this));
-
   html.find(`[name="tokenvisibility.cover-algorithm"]`).change(tempUpdateCoverSetting.bind(this));
   wrapper(html);
 }
@@ -423,12 +399,8 @@ let ORIGINAL_LOS_ALGORITHM;
 let ORIGINAL_COVER_ALGORITHM;
 
 async function tempUpdateLosSetting(event) {
-//   log("tempUpdateVisionSetting", event);
-//   ui.notifications.notify(`tempUpdateVisionSetting`)
-
   ORIGINAL_LOS_ALGORITHM = getSetting(SETTINGS.LOS.ALGORITHM);
   await setSetting(SETTINGS.LOS.ALGORITHM, event.currentTarget.value);
-//   updateVisionSetting(event.currentTarget.value);
 }
 
 async function tempUpdateCoverSetting(event) {
@@ -437,8 +409,6 @@ async function tempUpdateCoverSetting(event) {
 }
 
 export async function closeSettingsConfig(wrapper, options = {}) {
-//   log("Closing!")
-//   ui.notifications.notify("Closing settingsConfig");
   const out = wrapper(options);
 
   if ( ORIGINAL_LOS_ALGORITHM ) {
@@ -456,9 +426,6 @@ export async function closeSettingsConfig(wrapper, options = {}) {
 
 
 export async function _onSubmitSettingsConfig(wrapper, options = {}) {
-//   log("on Submitting!")
-//   ui.notifications.notify("Submitting settingsConfig");
-
   if ( ORIGINAL_LOS_ALGORITHM ) ORIGINAL_LOS_ALGORITHM = undefined;
   if ( ORIGINAL_COVER_ALGORITHM ) ORIGINAL_COVER_ALGORITHM = undefined;
 
@@ -466,16 +433,96 @@ export async function _onSubmitSettingsConfig(wrapper, options = {}) {
 }
 
 export async function _onChangeInput(wrapper, event) {
-  log("_onChangeInput!")  ;
-//   ui.notifications.notify("_onChangeInput settingsConfig");
+  log("_onChangeInput!");
 
   return wrapper(event);
+}
+
+/* Status effects
+Stored in two places:
+- SETTINGS.COVER.EFFECTS[][LOW, MEDIUM, HIGH]
+--> by game system
+
+- CONFIG.statusEffects
+--> only current game system
+
+When first loading the scene:
+- Retrieve current status effect for the game system. Update CONFIG.statusEffects.
+
+When user updates an effect:
+- Store the updated effect to SETTINGS.COVER.EFFECTS for the type and game system
+- Update CONFIG.statusEffects
+
+*/
+
+/**
+ * Retrieve from GM settings the cover effect for the provided type for this game system.
+ * @param {string} type   LOW, MEDIUM, or HIGH
+ * @returns {object} Status effect
+ */
+export function getCoverEffect(type = "LOW") {
+  const allStatusEffects = getSetting(SETTINGS.COVER.EFFECTS);
+  const statusEffects = allStatusEffects[game.system.id] || allStatusEffects.generic;
+  return statusEffects[type];
+}
+
+/**
+ * Helper function to get the cover effect name from settings.
+ * @param {string} type   LOW, MEDIUM, HIGH
+ * @returns {string} Label for the cover effect
+ */
+export function getCoverName(type = "LOW") {
+  const effect = getCoverEffect(type);
+  return effect.label;
+}
+
+/**
+ * Store to GM settings the cover effect value provided for the provided type for this game system.
+ * Also updates CONFIG.statusEffects array.
+ * @param {string} type   LOW, MEDIUM, or HIGH
+ * @param {object} value  Status effect
+ */
+export async function setCoverEffect(type, value) {
+  if ( !type ) {
+    console.error("setCoverEffect type must be defined.");
+    return;
+  }
+
+  const allStatusEffects = getSetting(SETTINGS.COVER.EFFECTS);
+  if ( !Object.hasOwn(allStatusEffects, game.system.id) ) {
+    allStatusEffects[game.system.id] = duplicate(allStatusEffects.generic);
+  }
+
+  allStatusEffects[game.system.id][type] = value;
+  await setSetting(SETTINGS.COVER.EFFECTS, allStatusEffects);
+  updateConfigStatusEffects(type);
+}
+
+/**
+ * Update the CONFIG.statusEffects array with the provided type, taken from GM settings.
+ * @type {string} type    LOW, MEDIUM, or HIGH. If not defined, will update all three.
+ */
+export function updateConfigStatusEffects(type) {
+  if ( !type ) {
+    // Update all types
+    updateConfigStatusEffects("LOW");
+    updateConfigStatusEffects("MEDIUM");
+    updateConfigStatusEffects("HIGH");
+    return;
+  }
+
+  const coverEffect = getCoverEffect(type);
+  const currIdx = CONFIG.statusEffects.findIndex(effect => effect.id === `${MODULE_ID}.cover.${type}`);
+
+  if ( !~currIdx ) CONFIG.statusEffects.push(coverEffect);
+  else CONFIG.statusEffects[currIdx] = coverEffect;
 }
 
 /*
 Should probably switch to CSS:
 https://ptb.discord.com/channels/170995199584108546/956243957816377414/1029782382225670201
-No built-in way to do this. I would probably have config: true for all the settings, then use a renderSettingsConfig hook to selectively hide the elements with CSS only and add a listener which toggles that CSS hidden state.
+No built-in way to do this. I would probably have config: true for all the settings,
+then use a renderSettingsConfig hook to selectively hide the elements with CSS only and
+add a listener which toggles that CSS hidden state.
 
 */
-

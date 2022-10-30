@@ -6,7 +6,9 @@ CONST,
 PIXI,
 Hooks,
 socketlib,
-VisionSource
+VisionSource,
+CONFIG,
+Dialog
 */
 
 import { MODULE_ID, COVER_TYPES } from "./const.js";
@@ -17,8 +19,6 @@ import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
 import * as drawing from "./drawing.js";
 import { distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
-import { currentStatusEffects } from "./cover.js";
-
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
 // Don't pass complex classes through the socket. Use token ids instead.
@@ -69,7 +69,10 @@ async function enableCoverStatus(tokenId, type = COVER_TYPES.LOW) {
   if ( !key ) return;
 
   // If already exists, do not add again to avoid duplicate effects.
-  const effect = currentStatusEffects()[key];
+  const id = `${MODULE_ID}.cover.${key}`;
+  const effect = CONFIG.statusEffects.find(effect => effect.id === id);
+  if ( !effect ) return;
+
   const existing = token.document.actor.effects.find(e => e.getFlag("core", "statusId") === effect.id);
   if ( existing ) return;
 
@@ -150,13 +153,13 @@ export class CoverCalculator {
 
   static async disableCoverStatus(tokenId, type = COVER_TYPES.LOW ) {
     // Test id is string for debugging
-    if ( !(typeof tokenId === 'string' || tokenId instanceof String) ) console.error("tokenId is not a string!")
+    if ( !(typeof tokenId === 'string' || tokenId instanceof String) ) console.error("tokenId is not a string!");
     await SOCKETS.socket.executeAsGM("disableCoverStatus", tokenId, type);
   }
 
   static async enableCoverStatus(tokenId, type = COVER_TYPES.LOW ) {
     // Test id is string for debugging
-    if ( !(typeof tokenId === 'string' || tokenId instanceof String) ) console.error("tokenId is not a string!")
+    if ( !(typeof tokenId === 'string' || tokenId instanceof String) ) console.error("tokenId is not a string!");
     await SOCKETS.socket.executeAsGM("enableCoverStatus", tokenId, type);
   }
 
