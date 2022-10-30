@@ -25,7 +25,7 @@
      inkscape:document-units="mm"
      showgrid="true"
      inkscape:zoom="0.66490867"
-     inkscape:cx="524.13213"
+     inkscape:cx="525.6361"
      inkscape:cy="460.96556"
      inkscape:window-width="1728"
      inkscape:window-height="1057"
@@ -77,7 +77,7 @@
      inkscape:groupmode="layer"
      id="layer1">
     <path
-       style="fill:#666666;fill-opacity:0.80000001;stroke:#000000;stroke-width:0.109147"
+       style="fill:#ababab;fill-opacity:1;stroke:#000000;stroke-width:0.109147"
        inkscape:path-effect="#path-effect11790"
        inkscape:original-d="M 126.90729,79.125998 12.632765,79.23751 c 0.199698,64.00902 77.113298,178.84254 113.838255,178.6551 z"
        d="M 126.90729,79.125998 12.632765,79.23751 c 0.199698,64.00902 77.113298,178.84254 113.838255,178.6551 z"
@@ -85,7 +85,7 @@
        class="UnoptimicedTransforms"
        transform="translate(8.0848347)" />
     <path
-       style="fill:#666666;fill-opacity:0.80000001;stroke:#000000;stroke-width:0.109147"
+       style="fill:#ababab;fill-opacity:1;stroke:#000000;stroke-width:0.109147"
        d="M 121.32285,75.945911 12.754537,75.404029 C 12.554838,11.395007 84.599832,8.2264612 121.30602,7.8106064 Z"
        id="path2064"
        transform="matrix(1.0504085,0,0,0.99996004,7.4432789,0.41766631)"
@@ -98,12 +98,12 @@
        class="UnoptimicedTransforms"
        id="path11807"
        d="M 126.90729,79.125998 12.632765,79.23751 c 0.199698,64.00902 77.113298,178.84254 113.838255,178.6551 z"
-       style="fill:#666666;fill-opacity:0.80000001;stroke:#000000;stroke-width:0.109147" />
+       style="fill:#ababab;fill-opacity:1;stroke:#000000;stroke-width:0.109147" />
     <path
        transform="matrix(-1.0504004,-0.00393387,-0.00413233,0.9999523,268.19763,0.90594152)"
        class="UnoptimicedTransforms"
        id="path11809"
        d="M 121.32285,75.945911 12.754537,75.404029 C 12.554838,11.395007 84.599832,8.2264612 121.30602,7.8106064 Z"
-       style="fill:#666666;fill-opacity:0.80000001;stroke:#000000;stroke-width:0.109147" />
+       style="fill:#ababab;fill-opacity:1;stroke:#000000;stroke-width:0.109147" />
   </g>
 </svg>
