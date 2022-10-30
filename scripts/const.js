@@ -19,19 +19,19 @@ export const STATUS_EFFECTS = {
     LOW: {
       id: `${MODULE_ID}.cover.LOW`,
       label: "Low",
-      icon: `modules/${MODULE_ID}/assets/shield-halved.svg`,
+      icon: `modules/${MODULE_ID}/assets/shield_low_gray.svg`,
     },
 
     MEDIUM: {
       id: `${MODULE_ID}.cover.MEDIUM`,
       label: "Medium",
-      icon: `modules/${MODULE_ID}/assets/shield-virus.svg`,
+      icon: `modules/${MODULE_ID}/assets/shield_medium_gray.svg`,
     },
 
     HIGH: {
       id: `${MODULE_ID}.cover.HIGH`,
       label: "High",
-      icon: `modules/${MODULE_ID}/assets/shield.svg`
+      icon: `modules/${MODULE_ID}/assets/shield_high_gray.svg`
     }
   }
 }
