@@ -79,36 +79,6 @@ DetectionMode.prototype._testRange
 
 */
 
-
-/* Token range options
-CENTER
-√ Wrap CanvasVisibility.prototype.testVisibility to intercept the tolerance option.
-
-FOUNDRY
-- Default, just wrap
-
-FOUNDRY_3D
-√ Wrap _testRange and call 2 times per point (top, bottom). Also test the dead center first.
-
-3D: test range in 3 dimensions. Always do this for 2d as well.
-√ Wrap _testRange and test 3d distance if _testRange returns true.
-(The 3d distance will always be >= than 2d distance)
-*/
-
-/* Token los options
-POINTS
-- Base Foundry (Don't need to shift points to top and bottom)
-
-AREA
-- Constrain token boundary by walls.
-- Determine overlap area between token boundary and LOS.
-
-3D: Cast shadows to token elevation (top if viewer is looking down; bottom if viewer is looking up)
-  Block off token boundary covered by shadows, determine remaining token area.
-
-*/
-
-
 // ***** WRAPPERS
 
 /**
@@ -161,97 +131,35 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   if ( algorithm === types.AREA ) {
     const centerPointIsVisible = wrapped(visionSource, mode, target, test);
     const area2d = new Area2d(visionSource, target);
+    area2d.debug = game.modules.get(MODULE_ID).api.debug.los;
+
     test.hasLOSArea = area2d.hasLOS(centerPointIsVisible);
     return test.hasLOSArea;
   } else { // Final: types.AREA3D
     const area3d = new Area3d(visionSource, target);
+    area3d.debug = game.modules.get(MODULE_ID).api.debug.los;
     test.hasLOSArea = area3d.hasLOS();
     return test.hasLOSArea;
   }
 }
 
 export function testLOSPoint(visionSource, target, test, hasLOS ) {
-  const debug = game.modules.get(MODULE_ID).api.debug.los;
-
   // If not in the line of sight, no need to test for wall collisions
-  if ( !hasLOS ) {
-    // Empty
+  // If wall height is not active, collisions will be equivalent to hasLOS
+  if ( !hasLOS || !game.modules.get("wall-height")?.active ) return hasLOS;
 
-  } else if (!game.modules.get("wall-height")?.active) {
-    hasLOS = true;
+  // Test all non-infinite walls for collisions
+  const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
+  hasLOS = !ClockwiseSweepPolygon.testCollision3d(origin, test.point, { type: "sight", mode: "any", wallTypes: "limited" });
 
-  } else {
-    // Test all non-infinite walls for collisions
-    const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
-    hasLOS = !ClockwiseSweepPolygon.testCollision3d(origin, test.point, { type: "sight", mode: "any", wallTypes: "limited" });
-
-  }
-  debug && drawing.drawPoint(test.point, // eslint-disable-line no-unused-expressions
-    { alpha: .2, radius: 7, color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red });
+  const debug = game.modules.get(MODULE_ID).api.debug.los;
+  debug && drawing.drawSegment({A: origin, B: test.point}, {
+    color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red,
+    alpha: 0.5
+  })
 
   return hasLOS;
 }
-
-
-/**
- * Determine whether a visionSource has line-of-sight to a target based on the percent
- * area of the target visible to the source.
- * @param {VisionSource} visionSource
- * @param {Token} target
- * @param {boolean} centerPointIsVisible
- */
-// export function testLOSArea(visionSource, target, centerPointIsVisible) {
-//   const percentArea = getSetting(SETTINGS.LOS.PERCENT_AREA);
-//
-//   // If less than 50% of the token area is required to be viewable, then
-//   // if the center point is viewable, the token is viewable from that source.
-//   if ( centerPointIsVisible && percentArea < 0.50 ) return true;
-//
-//   // If more than 50% of the token area is required to be viewable, then
-//   // the center point must be viewable for the token to be viewable from that source.
-//   // (necessary but not sufficient)
-//   if ( !centerPointIsVisible && percentArea >= 0.50 ) return false;
-//
-//   const constrained = getConstrainedTokenShape(target);
-//   const shadowLOS = getShadowLOS(visionSource, target);
-//
-//   if ( percentArea === 0 ) {
-//     // If percentArea equals zero, it might be possible to skip intersectConstrainedShapeWithLOS
-//     // and instead just measure if a token boundary has been breached.
-//
-//     const bottomTest = shadowLOS.bottom ? targetBoundsTest(shadowLOS.bottom, constrained) : undefined;
-//     if ( bottomTest ) return true;
-//
-//     const topTest = shadowLOS.top ? targetBoundsTest(shadowLOS.top, constrained) : undefined;
-//     if ( topTest ) return true;
-//
-//     if ( typeof bottomTest !== "undefined" || typeof topTest !== "undefined" ) return false;
-//   }
-//
-//   const targetPercentAreaBottom = shadowLOS.bottom ? calculatePercentSeen(shadowLOS.bottom, constrained) : 0;
-//   const targetPercentAreaTop = shadowLOS.top ? calculatePercentSeen(shadowLOS.top, constrained) : 0;
-//   const targetPercentSeen = Math.max(targetPercentAreaBottom, targetPercentAreaTop);
-//
-//   if ( targetPercentSeen.almostEqual(0) ) return false;
-//
-//   return (targetPercentSeen > percentArea) || targetPercentSeen.almostEqual(percentArea);
-// }
-
-/**
- * For polygon shapes, measure if a token boundary has been breached by line-of-sight.
- * @param {PIXI.Polygon|ClipperPaths} los                       Viewer line-of-sight
- * @param {PIXI.Polygon|PIXI.Rectangle} constrainedTokenShape   Token shape constrained by walls.
- */
-// export function targetBoundsTest(los, constrainedTokenShape) {
-//   if ( los instanceof ClipperPaths ) los.simplify();
-//   if ( los instanceof ClipperPaths ) return undefined;
-//
-//   const debug = game.modules.get(MODULE_ID).api.debug;
-//   const hasLOS = sourceIntersectsPolygonBounds(los, constrainedTokenShape);
-//   debug && drawing.drawShape(los, { color: drawing.COLORS.blue }); // eslint-disable-line no-unused-expressions
-//   debug && drawing.drawShape(constrainedTokenShape, { color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red }); // eslint-disable-line no-unused-expressions
-//   return hasLOS;
-// }
 
 export function getConstrainedTokenShape(target) {
   const boundsScale = 1;
@@ -260,142 +168,6 @@ export function getConstrainedTokenShape(target) {
   this._constrainedTokenShape ||= calculateConstrainedTokenShape(this, { boundsScale });
   return this._constrainedTokenShape;
 }
-
-// export function getShadowLOS(visionSource, target) {
-//   // Test top and bottom of target shape.
-//   let bottom;
-//   let top;
-//   const inBetween = visionSource.elevationZ < target.topZ && visionSource.elevationZ > target.bottomZ;
-//
-//   if ( inBetween || visionSource.elevationZ < target.bottomZ ) {
-//     // Looking up at bottom
-//     bottom = shadowPolygonForElevation(visionSource, target.bottomZ);
-//   }
-//
-//   if ( inBetween || visionSource.elevationZ > target.topZ ) {
-//     // Looking down at top
-//     top = shadowPolygonForElevation(visionSource, target.topZ);
-//   }
-//
-//   return { bottom, top };
-// }
-
-/**
- * Determine the percent area of the visible token shape.
- */
-// export function calculatePercentSeen(los, constrainedTokenShape) {
-//   const debug = game.modules.get(MODULE_ID).api.debug;
-//
-//   let visibleTokenShape = intersectConstrainedShapeWithLOS(constrainedTokenShape, los);
-//   const seenArea = visibleTokenShape.area();
-//   if ( !seenArea || seenArea.almostEqual(0) ) return 0;
-//
-//   const tokenArea = constrainedTokenShape.area();
-//   if ( !tokenArea || tokenArea.almostEqual(0) ) return 0;
-//
-//   const percentSeen = seenArea / tokenArea;
-//
-//   if ( debug ) {
-//     // Figure out if this percentage would result in a visible token
-//     const percentArea = getSetting(SETTINGS.LOS.PERCENT_AREA);
-//     const hasLOS = (percentSeen > percentArea) || percentSeen.almostEqual(percentArea);
-//     if ( los instanceof ClipperPaths ) los = los.simplify();
-//     if ( visibleTokenShape instanceof ClipperPaths ) visibleTokenShape = visibleTokenShape.simplify();
-//
-//     if ( los instanceof ClipperPaths ) {
-//       const polys = los.toPolygons();
-//       for ( const poly of polys ) {
-//         drawing.drawShape(poly, { color: drawing.COLORS.blue, width: poly.isHole ? 1 : 2 });
-//       }
-//     } else {
-//       drawing.drawShape(los, { color: drawing.COLORS.blue, width: 2 });
-//     }
-//
-//     if ( visibleTokenShape instanceof ClipperPaths ) {
-//       const polys = visibleTokenShape.toPolygons();
-//       for ( const poly of polys ) {
-//         drawing.drawShape(poly, { color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red });
-//       }
-//     } else {
-//       drawing.drawShape(visibleTokenShape, { color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red });
-//     }
-//   }
-//
-//   return percentSeen;
-// }
-//
-// export function intersectConstrainedShapeWithLOS(constrained, los) {
-//   if ( constrained instanceof PIXI.Rectangle && los instanceof PIXI.Polygon ) {
-//     // Weiler-Atherton is faster for intersecting regular shapes
-//     // Use Clipper for now
-//   }
-//
-//   if ( constrained instanceof PIXI.Rectangle ) constrained = constrained.toPolygon();
-//
-//   return los.intersectPolygon(constrained);
-// }
-
-/**
- * For a given los polygon, get the shadows at a given elevation.
- * Used to determine if there is line-of-sight to a tokken at a specific elevation with shadows.
- */
-// export function shadowPolygonForElevation(visionSource, targetElevation) {
-//   log("Building shadows.");
-//
-//   // Only walls that encounter LOS will shadow the LOS
-//   const los = visionSource.los;
-//   const bounds = los.bounds;
-//   const collisionTest = (o, rect) => isFinite(o.t.topZ) || isFinite(o.t.bottomZ);  // eslint-disable-line no-unused-vars
-//   const walls = canvas.walls.quadtree.getObjects(bounds, { collisionTest });
-//
-//   if ( !walls.size) {
-//     log("No limited walls; no shadows.");
-// //     visionSource._losShadows.set(targetElevation, null);
-//     return los;
-//   }
-//
-//   const shadows = [];
-//   for ( const wall of walls ) {
-//     const shadow = Shadow.construct(wall, visionSource, targetElevation);
-//     if ( shadow ) shadows.push(shadow);
-//   }
-//
-//   const combined = Shadow.combinePolygonWithShadows(los, shadows);
-// //   visionSource._losShadows.set(targetElevation, combined);
-//   return combined;
-// }
-
-/**
- * Does the source intersect the bounding box?
- * @param {PIXI.Polygon} source
- * @param {PIXI.Rectangle} bbox
- * @return {boolean} True if the bbox intersects the source.
- */
-// function sourceIntersectsBounds(source, bbox) {
-//   for ( const si of source.iterateEdges() ) {
-//     if ( bbox.lineSegmentIntersects(si.A, si.B,
-//       { intersectFn: foundry.utils.lineSegmentIntersects }) ) return true;
-//   }
-//   return false;
-// }
-
-/**
- * Stricter intersection test between polygon and a constrained token bounds.
- * 1. Overlapping edges are not considered intersecting.
- * 2. endpoints that overlap the other segment are not considered intersecting.
- * 3. bounds rectangle used to skip edges
- *
- * (1) and (2) are to avoid situations in which the boundary polygon and the source polygon
- * are separated by a wall.
- */
-// function sourceIntersectsPolygonBounds(source, bounds) {
-//   if ( bounds instanceof PIXI.Rectangle ) return sourceIntersectsBounds(source, bounds);
-//   const bbox = bounds.bounds;
-//
-//   // TO-DO: should inside be true or false?
-//   const edges = [...source.iterateEdges()].filter(e => bbox.lineSegmentIntersects(e.A, e.B, { inside: true }));
-//   return bounds.linesCross(edges);
-// }
 
 /**
  * Intersect the token bounds against line-of-sight polygon to trim the token bounds
