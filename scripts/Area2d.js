@@ -37,7 +37,7 @@ export class Area2d {
    * @param {Token} target
    */
   constructor(visionSource, target) {
-    this.visionSource = visionSource;
+    this.visionSource = visionSource instanceof Token ? visionSource.vision : visionSource;
     this.target = target;
     this.debug = game.modules.get(MODULE_ID).api.debug.area;
 
@@ -55,12 +55,25 @@ export class Area2d {
 
     // If less than 50% of the token area is required to be viewable, then
     // if the center point is viewable, the token is viewable from that source.
-    if ( centerPointIsVisible && percentArea < 0.50 ) return true;
+    if ( centerPointIsVisible && percentArea < 0.50 ) {
+      if ( this.debug ) drawing.drawPoint(this.target.center, {
+        alpha: 1,
+        radius: 3,
+        color: drawing.COLORS.green });
+
+      return true;
+    }
 
     // If more than 50% of the token area is required to be viewable, then
     // the center point must be viewable for the token to be viewable from that source.
     // (necessary but not sufficient)
-    if ( !centerPointIsVisible && percentArea >= 0.50 ) return false;
+    if ( !centerPointIsVisible && percentArea >= 0.50 ) {
+      if ( this.debug ) drawing.drawPoint(this.target.center, {
+        alpha: 1,
+        radius: 3,
+        color: drawing.COLORS.red });
+      return false;
+    }
 
     const constrained = this.target.constrainedTokenShape;
     const shadowLOS = this._buildShadowLOS();
@@ -271,7 +284,11 @@ export class Area2d {
     const shadows = [];
     for ( const wall of walls ) {
       const shadow = Shadow.constructFromWall(wall, origin, targetElevation);
-      if ( shadow ) shadows.push(shadow);
+      if ( shadow ) {
+        shadows.push(shadow);
+        if ( this.debug ) shadow.draw();
+      }
+
     }
 
     const combined = Shadow.combinePolygonWithShadows(los, shadows);
