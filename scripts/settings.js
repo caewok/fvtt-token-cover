@@ -33,11 +33,11 @@ export const SETTINGS = {
   RANGE: {
     ALGORITHM: "range-algorithm",
     TYPES: {
-      CENTER: "range-center",
-      FOUNDRY: "range-foundry",
-      FOUNDRY_3D: "range-foundry-3d"
-      // Corners and corners 3d?
-    }
+      CENTER: "range-points-center",
+      NINE: "range-points-nine",
+      SEVENTEEN: "range-points-seventeen"
+    },
+    DISTANCE3D: "range-distance-3d",
   },
 
   LOS: {
@@ -158,7 +158,6 @@ export function registerSettings() {
   const CTYPES = SETTINGS.COVER.TYPES;
   const coverNames = getCoverNames();
 
-
   game.settings.register(MODULE_ID, SETTINGS.RANGE.ALGORITHM, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.ALGORITHM}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.ALGORITHM}.Hint`),
@@ -167,11 +166,20 @@ export function registerSettings() {
     type: String,
     choices: {
       [RTYPES.CENTER]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.CENTER}`),
-      [RTYPES.FOUNDRY]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.FOUNDRY}`),
-      [RTYPES.FOUNDRY_3D]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.FOUNDRY_3D}`)
+      [RTYPES.NINE]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.NINE}`),
+      [RTYPES.SEVENTEEN]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.SEVENTEEN}`)
     },
     default: RTYPES.FOUNDRY
   });
+
+  game.settings.register(MODULE_ID, SETTINGS.RANGE.DISTANCE3D, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.DISTANCE3D}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.DISTANCE3D}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+   });
 
   game.settings.register(MODULE_ID, SETTINGS.LOS.ALGORITHM, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.ALGORITHM}.Name`),

@@ -17,7 +17,6 @@ import { Point3d, registerPIXIPointMethods } from "./Point3d.js";
 
 // For API
 import * as bench from "./benchmark.js";
-import * as visibility from "./token_visibility.js";
 import * as drawing from "./drawing.js";
 import * as util from "./util.js";
 import { Shadow } from "./Shadow.js";
@@ -44,7 +43,6 @@ Hooks.once("init", async function() {
     Area3d,
     Plane,
     ClipperPaths,
-    visibility,
     util,
     CoverCalculator,
     COVER_TYPES,
