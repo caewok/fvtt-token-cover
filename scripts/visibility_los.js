@@ -129,7 +129,9 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   if ( !test.point.almostEqual(centerPoint) && test.centerPoint ) return test.centerPoint.hasLOSArea;
 
   if ( algorithm === types.AREA ) {
-    const centerPointIsVisible = wrapped(visionSource, mode, target, test);
+    const hasLOS = wrapped(visionSource, mode, target, test);
+    const centerPointIsVisible = testLOSPoint(visionSource, target, test, hasLOS);
+
     const area2d = new Area2d(visionSource, target);
     area2d.debug = game.modules.get(MODULE_ID).api.debug.los;
 
