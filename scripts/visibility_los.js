@@ -117,7 +117,10 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
   const types = SETTINGS.LOS.TYPES;
   if ( algorithm === types.POINTS ) {
-    const hasLOS = wrapped(visionSource, mode, target, test);
+    if ( !hasLOSCeilingFloorLevels(new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ), test.point) ) return false;
+
+    let hasLOS = wrapped(visionSource, mode, target, test);
+    hasLOS &&= hasLOSCeilingFloorLevels(new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ), test.point);
     return testLOSPoint(visionSource, target, test, hasLOS);
   }
 
@@ -127,9 +130,11 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   const centerPoint = new Point3d(center.x, center.y, avgElevation);
 
   if ( !test.point.almostEqual(centerPoint) && test.centerPoint ) return test.centerPoint.hasLOSArea;
+  if ( !hasLOSCeilingFloorLevels(new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ), test.point) ) return false;
 
   if ( algorithm === types.AREA ) {
     const hasLOS = wrapped(visionSource, mode, target, test);
+
     const centerPointIsVisible = testLOSPoint(visionSource, target, test, hasLOS);
 
     const area2d = new Area2d(visionSource, target);
@@ -152,7 +157,12 @@ export function testLOSPoint(visionSource, target, test, hasLOS ) {
 
   // Test all non-infinite walls for collisions
   const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
-  hasLOS = !ClockwiseSweepPolygon.testCollision3d(origin, test.point, { type: "sight", mode: "any", wallTypes: "limited" });
+
+  if ( game.modules.get("levels")?.active ) {
+    hasLOS = CONFIG.Levels.API.testCollision(origin, test.point);
+  } else {
+    hasLOS = !ClockwiseSweepPolygon.testCollision3d(origin, test.point, { type: "sight", mode: "any", wallTypes: "limited" });
+  }
 
   const debug = game.modules.get(MODULE_ID).api.debug.los;
   debug && drawing.drawSegment({A: origin, B: test.point}, {
@@ -163,7 +173,51 @@ export function testLOSPoint(visionSource, target, test, hasLOS ) {
   return hasLOS;
 }
 
-export function getConstrainedTokenShape(target) {
+/**
+ * Test whether the origin and test point are on different levels and so no LOS.
+ * See https://github.com/theripper93/Levels/blob/v9/scripts/handlers/sightHandler.js
+ */
+function hasLOSCeilingFloorLevels(origin, testPoint) {
+  if ( !game.modules.get("levels")?.active ) return true;
+
+  const z0 = origin.z;
+  const z1 = testPoint.z;
+
+  //Check the background for collisions
+  const bgElevation = canvas?.scene?.flags?.levels?.backgroundElevation ?? 0
+
+  if ( (origin.z < bgElevation && bgElevation < z1)
+    || (z1 < bgElevation && bgElevation < z0) ) return false;
+
+  //Loop through all the planes and check for both ceiling and floor collision on each tile
+  for (let tile of canvas.tiles.placeables) {
+    if( tile.document.flags?.levels?.noCollision ) continue;
+    const bottom = tile.document.flags?.levels?.rangeBottom ?? -Infinity;
+    const top = tile.document.flags?.levels?.rangeTop ?? Infinity;
+    if ( bottom !== -Infinity &&
+      ((z0 < bottom && bottom < z1) || (z1 < bottom && bottom < z0)) ) {
+
+      const zIntersectionPoint = getPointForPlane(origin, testPoint, bottom);
+      if ( tile.containsPixel(zIntersectionPoint.x, zIntersectionPoint.y, 0.99) ) return false;
+    }
+  }
+
+  return true;
+}
+
+// From https://github.com/theripper93/Levels/blob/v9/scripts/handlers/sightHandler.js
+//Get the intersection point between the ray and the Z plane
+function getPointForPlane(a, b, z) {
+  const dabz = b.z - a.z;
+  if ( !dabz ) return null;
+
+  const dzaz = z - a.z;
+  const x = (dzaz * (b.x - a.x) + (a.x * b.z) - (a.x * a.z)) / dabz;
+  const y = (dzaz * (b.y - a.y) + (b.z * a.y) - (a.z * a.y)) / dabz;
+  return { x, y };
+}
+
+export function getConstrainedTokenShape() {
   const boundsScale = 1;
   // Construct the constrained token shape if not yet present.
   // Store in token so it can be re-used (wrapped updateVisionSource will remove it when necessary)
