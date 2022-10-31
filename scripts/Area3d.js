@@ -413,7 +413,11 @@ export class Area3d {
       }
     }
 
-    return sidesArea ? obscuredSidesArea / sidesArea : 0;
+    const out = sidesArea ? obscuredSidesArea / sidesArea : 0;
+    if ( this.debug ) console.log(`${this.visionSource.object.name} sees ${seenArea * 100}% of ${this.target.name} (Area2d).`);
+
+
+    return out;
   }
 
   /**
