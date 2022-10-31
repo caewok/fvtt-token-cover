@@ -244,12 +244,6 @@ export async function benchCover(n = 100) {
   await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.CORNER_CORNERS_GRID);
   await QBenchmarkLoopFn(n, coverTestFn, "Corners-->Select Grid Corners Target (dnd5e)", controlled, tokens);
 
-  await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.CENTER_CUBE);
-  await QBenchmarkLoopFn(n, coverTestFn, "Center-->Cube", controlled, tokens);
-
-  await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.CUBE_CUBE);
-  await QBenchmarkLoopFn(n, coverTestFn, "Cube-->Cube", controlled, tokens);
-
   await setSetting(SETTINGS.COVER.ALGORITHM, SETTINGS.COVER.TYPES.AREA);
   await QBenchmarkLoopFn(n, coverTestFn, "Center-->Area", controlled, tokens);
 
