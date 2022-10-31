@@ -128,7 +128,7 @@ export class CoverCalculator {
   constructor(viewer, target) {
     this.viewer = viewer instanceof VisionSource ? viewer.object : viewer;
     this.target = target;
-    this.debug = game.modules.get(MODULE_ID).api.debug;
+    this.debug = game.modules.get(MODULE_ID).api.debug.cover;
   }
 
   /**
@@ -212,7 +212,7 @@ export class CoverCalculator {
     imageWidth = 50,
     coverCalculations } = {}) {
 
-    if ( game.modules.get(MODULE_ID).api.debug ) drawing.clearDrawings();
+    if ( game.modules.get(MODULE_ID).api.debug.cover ) drawing.clearDrawings();
     if ( !coverCalculations ) coverCalculations = CoverCalculator.coverCalculations(tokens, targets);
 
     let html = "";
