@@ -167,15 +167,16 @@ export async function benchTokenLOS(n = 100) {
   await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.POINTS);
   await QBenchmarkLoopFn(n, visibilityTestFn, "LOS Points", tokens);
 
+  // Area 3d (Does not vary based on area percentage.)
+  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA3D);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Area3d", tokens);
+
   // ***** Area Percentage = 0 ***********
   console.log("\nArea percentage 0");
   await setSetting(SETTINGS.LOS.PERCENT_AREA, 0);
 
   await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA);
   await QBenchmarkLoopFn(n, visibilityTestFn, "Area", tokens);
-
-  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA3D);
-  await QBenchmarkLoopFn(n, visibilityTestFn, "Area3d", tokens);
 
   // ***** Area Percentage = .25 ***********
   console.log("\nArea percentage .25");
@@ -184,18 +185,12 @@ export async function benchTokenLOS(n = 100) {
   await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA);
   await QBenchmarkLoopFn(n, visibilityTestFn, "Area", tokens);
 
-  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA3D);
-  await QBenchmarkLoopFn(n, visibilityTestFn, "Area3d", tokens);
-
   // ***** Area Percentage = .5 ***********
   console.log("\nArea percentage .5");
   await setSetting(SETTINGS.LOS.PERCENT_AREA, .5);
 
   await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA);
   await QBenchmarkLoopFn(n, visibilityTestFn, "Area", tokens);
-
-  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA3D);
-  await QBenchmarkLoopFn(n, visibilityTestFn, "Area3d", tokens);
 
   // ***** Area Percentage = .75 ***********
   console.log("\nArea percentage .75");
@@ -204,18 +199,12 @@ export async function benchTokenLOS(n = 100) {
   await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA);
   await QBenchmarkLoopFn(n, visibilityTestFn, "Area", tokens);
 
-  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA3D);
-  await QBenchmarkLoopFn(n, visibilityTestFn, "Area3d", tokens);
-
   // ***** Area Percentage = 1 ***********
   console.log("\nArea percentage 1");
   await setSetting(SETTINGS.LOS.PERCENT_AREA, 1);
 
   await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA);
   await QBenchmarkLoopFn(n, visibilityTestFn, "Area", tokens);
-
-  await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.AREA3D);
-  await QBenchmarkLoopFn(n, visibilityTestFn, "Area3d", tokens);
 
   // Reset
   await setSetting(SETTINGS.RANGE.ALGORITHM, default_settings.range_algorithm);
@@ -274,6 +263,10 @@ export async function benchCover(n = 100) {
 
 function visibilityTestFn(tokens) {
   const out = [];
+
+  // Avoid caching the constrained token shape
+  for ( const token of tokens ) token._constrainedTokenShape = undefined;
+
   for ( const token of tokens ) {
     const tolerance = token.document.iconSize / 4;
 
@@ -290,6 +283,10 @@ function visibilityTestFn(tokens) {
 
 function coverTestFn(controlled, targets) {
   const out = [];
+
+  // Avoid caching the constrained token shape
+  for ( const token of targets ) token._constrainedTokenShape = undefined;
+
   for ( const target of targets ) {
     const coverCalc = new CoverCalculator(controlled, target);
     out.push(coverCalc.targetCover());
