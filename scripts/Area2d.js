@@ -2,7 +2,8 @@
 game,
 foundry,
 PIXI,
-canvas
+canvas,
+objectEqual
 */
 "use strict";
 
@@ -158,8 +159,8 @@ export class Area2d {
     const targetPercentAreaBottom = shadowLOS.bottom ? this._calculatePercentSeen(shadowLOS.bottom, constrained) : 0;
     const targetPercentAreaTop = shadowLOS.top ? this._calculatePercentSeen(shadowLOS.top, constrained) : 0;
 
-    if ( this.debug ) console.log(`${this.visionSource.object.name} sees ${targetPercentAreaBottom * 100}% of ${this.target.name}'s bottom (Area2d).`);
-    if ( this.debug ) console.log(`${this.visionSource.object.name} sees ${targetPercentAreaTop * 100}% of ${this.target.name}'s top (Area2d).`);
+    if ( this.debug && shadowLOS.bottom ) console.log(`${this.visionSource.object.name} sees ${targetPercentAreaBottom * 100}% of ${this.target.name}'s bottom (Area2d).`);
+    if ( this.debug && shadowLOS.top ) console.log(`${this.visionSource.object.name} sees ${targetPercentAreaTop * 100}% of ${this.target.name}'s top (Area2d).`);
 
     return Math.max(targetPercentAreaBottom, targetPercentAreaTop);
   }
@@ -197,7 +198,7 @@ export class Area2d {
       top = this.shadowLOSForElevation(target.topZ);
     }
 
-    if ( Objects.equal(top, bottom) ) return { top };
+    if ( top && bottom && objectsEqual(top.points, bottom.points) ) return { top };
 
     return { bottom, top };
   }
