@@ -3,7 +3,8 @@ game,
 foundry,
 PIXI,
 canvas,
-objectEqual
+objectsEqual,
+Token
 */
 "use strict";
 
@@ -15,6 +16,7 @@ import { ClipperPaths } from "./ClipperPaths.js";
 import { Point3d } from "./Point3d.js";
 import { Area3d} from "./Area3d.js";
 import * as drawing from "./drawing.js";
+import { CWSweepInfiniteWallsOnly } from "./CWSweepInfiniteWallsOnly.js";
 
 
 /* Area 2d
@@ -273,7 +275,7 @@ export class Area2d {
     const visionSource = this.visionSource;
     visionSource.los ??= visionSource._createPolygon();
 
-    const los = visionSource.los;
+    let los = visionSource.los;
     const bounds = los.bounds;
     const collisionTest = (o, rect) => isFinite(o.t.topZ) || isFinite(o.t.bottomZ);  // eslint-disable-line no-unused-vars
     let walls = canvas.walls.quadtree.getObjects(bounds, { collisionTest });
@@ -284,6 +286,9 @@ export class Area2d {
       this.target.constrainedTokenShape,
       this.visionSource);
 
+    // Wall Height removes walls from LOS calculation if
+    // 1. origin is above the top of the wall
+    // 2. origin is below the bottom of the wall
 
     if ( !walls.size) {
       log("No limited walls; no shadows.");
@@ -291,7 +296,27 @@ export class Area2d {
       return los;
     }
 
-    const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
+    // In limited cases, we may need to re-do the LOS calc.
+    // 1. origin is below top of wall and target is above top of wall.
+    // 2. origin is above bottom of wall and target is below bottom of wall.
+    // --> Both cases: wall may or may not shadow the target.
+    // e.g., target next to wall at 0 ft but wall bottom is 10 ft. Viewer looking down
+    // may be able to see the target depending on viewer distance.
+    // We need an LOS calc that removes all limited walls; use shadows instead.
+    const elevationZ = visionSource.elevationZ;
+    const redoLOS = walls.some(w => {
+      const { topZ, bottomZ } = w;
+      return (elevationZ < topZ && targetElevation > topZ)
+      || (elevationZ > bottomZ && targetElevation < bottomZ);
+    });
+
+    if ( redoLOS ) {
+      const cfg = visionSource._getPolygonConfiguration();
+      const origin = {x: visionSource.data.x, y: visionSource.data.y};
+      los = CWSweepInfiniteWallsOnly.create(origin, cfg);
+    }
+
+    const origin = new Point3d(visionSource.x, visionSource.y, elevationZ);
     const shadows = [];
     for ( const wall of walls ) {
       const shadow = Shadow.constructFromWall(wall, origin, targetElevation);
