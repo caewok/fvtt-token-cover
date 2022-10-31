@@ -12,7 +12,7 @@ Dialog
 */
 
 import { MODULE_ID, COVER_TYPES } from "./const.js";
-import { getSetting, SETTINGS } from "./settings.js";
+import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { Point3d } from "./Point3d.js";
 import { ClipperPaths } from "./ClipperPaths.js";
 import { Area2d } from "./Area2d.js";
@@ -141,7 +141,7 @@ export class CoverCalculator {
     if ( type === CoverCalculator.COVER_TYPES.NONE ) return "None";
 
     const key = Object.keys(CoverCalculator.COVER_TYPES)[type];
-    return getSetting(SETTINGS.COVER.NAMES[key]);
+    return getCoverName(key);
   }
 
   static disableAllCoverStatus(tokenId) {
@@ -419,7 +419,7 @@ export class CoverCalculator {
   cornerToTargetCorners() {
     this.debug && console.log("Cover algorithm: Corner-to-Corners"); // eslint-disable-line no-unused-expressions
 
-    const tokenCorners = this._getCorners(this.viewer.object.constrainedTokenShape, this.viewer.topZ);
+    const tokenCorners = this._getCorners(this.viewer.constrainedTokenShape, this.viewer.topZ);
     const targetPoints = this._getCorners(this.target.constrainedTokenShape, this.targetAvgElevation);
 
     return this._testTokenTargetPoints(tokenCorners, [targetPoints]);
@@ -451,7 +451,7 @@ export class CoverCalculator {
   cornerToTargetGridCorners() {
     this.debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
 
-    const tokenCorners = this._getCorners(this.viewer.object.constrainedTokenShape, this.viewer.topZ);
+    const tokenCorners = this._getCorners(this.viewer.constrainedTokenShape, this.viewer.topZ);
     const targetShapes = CoverCalculator.constrainedGridShapesUnderToken(this.target);
     const targetElevation = this.targetAvgElevation;
     const targetPointsArray = targetShapes.map(targetShape => this._getCorners(targetShape, targetElevation));
@@ -489,7 +489,7 @@ export class CoverCalculator {
 
     if ( !this.targetHeight ) return this.centerToTargetCorners();
 
-    const tokenCorners = this._getCorners(this.viewer.object.constrainedTokenShape, this.viewer.topZ);
+    const tokenCorners = this._getCorners(this.viewer.constrainedTokenShape, this.viewer.topZ);
     const targetShape = this.target.constrainedTokenShape;
     const targetPoints = [
       ...this._getCorners(targetShape, this.target.topZ),
@@ -680,6 +680,7 @@ export class CoverCalculator {
    */
   _percentVisible2d() {
     const area2d = new Area2d(this.viewer, this.target);
+    if ( this.debug ) area2d.debug = true;
     return area2d.percentAreaVisible();
   }
 
@@ -690,6 +691,7 @@ export class CoverCalculator {
    */
   _percentVisible3d() {
     const area3d = new Area3d(this.viewer, this.target);
+    if ( this.debug ) area3d.debug = true;
     return area3d.percentAreaVisible();
   }
 
