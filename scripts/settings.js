@@ -59,8 +59,6 @@ export const SETTINGS = {
       CENTER_CORNERS_GRID: "cover-center-to-target-grid-corners",
       CORNER_CORNERS_GRID: "cover-corner-to-target-grid-corners",
       CENTER_CENTER: "cover-center-to-center",
-      CENTER_CUBE: "cover-center-to-cube",
-      CUBE_CUBE: "cover-cube-to-cube",
       AREA: "cover-area",
       AREA3D: "cover-area-3d"
     },
@@ -222,8 +220,6 @@ export function registerSettings() {
       [CTYPES.CORNER_CORNERS_TARGET]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CORNER_CORNERS_TARGET}`),
       [CTYPES.CENTER_CORNERS_GRID]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CORNERS_GRID}`),
       [CTYPES.CORNER_CORNERS_GRID]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CORNER_CORNERS_GRID}`),
-      [CTYPES.CENTER_CUBE]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CUBE}`),
-      [CTYPES.CUBE_CUBE]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CUBE_CUBE}`),
       [CTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA}`),
       [CTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA3D}`)
     },
