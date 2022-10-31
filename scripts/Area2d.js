@@ -150,11 +150,17 @@ export class Area2d {
    * @param {object{top: {PIXI.Polygon|undefined}, bottom: {PIXI.Polygon|undefined}}} shadowLOS
    * @returns {number}
    */
-  percentAreaVisible(shadowLOS = this._buildShadowLOS) {
+  percentAreaVisible(shadowLOS) {
+    shadowLOS ??= this._buildShadowLOS();
+
     const constrained = this.target.constrainedTokenShape;
 
     const targetPercentAreaBottom = shadowLOS.bottom ? this._calculatePercentSeen(shadowLOS.bottom, constrained) : 0;
     const targetPercentAreaTop = shadowLOS.top ? this._calculatePercentSeen(shadowLOS.top, constrained) : 0;
+
+    if ( this.debug ) console.log(`${this.visionSource.object.name} sees ${targetPercentAreaBottom * 100}% of ${this.target.name}'s bottom (Area2d).`);
+    if ( this.debug ) console.log(`${this.visionSource.object.name} sees ${targetPercentAreaTop * 100}% of ${this.target.name}'s top (Area2d).`);
+
     return Math.max(targetPercentAreaBottom, targetPercentAreaTop);
   }
 
@@ -190,6 +196,8 @@ export class Area2d {
       // Looking down at top
       top = this.shadowLOSForElevation(target.topZ);
     }
+
+    if ( Objects.equal(top, bottom) ) return { top };
 
     return { bottom, top };
   }
