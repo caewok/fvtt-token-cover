@@ -270,6 +270,8 @@ export class Area2d {
    */
   shadowLOSForElevation(targetElevation = 0) {
     const visionSource = this.visionSource;
+    visionSource.los ??= visionSource._createPolygon();
+
     const los = visionSource.los;
     const bounds = los.bounds;
     const collisionTest = (o, rect) => isFinite(o.t.topZ) || isFinite(o.t.bottomZ);  // eslint-disable-line no-unused-vars
