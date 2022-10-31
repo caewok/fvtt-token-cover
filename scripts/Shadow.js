@@ -228,7 +228,8 @@ export class Shadow extends PIXI.Polygon {
   /**
    * Construct shadow using strong assumptions about the set-up.
    * - Origin is above the shadow surface.
-   * - Shadow surface assumed nearly parallel to XY plane, such that it does not intersect AB or CD.
+   * - Shadow surface assumed parallel to XY plane, such that it does not intersect AB or CD.
+   * - Shadow surface elevation is at surfacePlane.point.z.
    * - Points A and B represent the top of the wall.
    * - Points C and D represent the bottom of the wall.
    * - AC is orthogonal to the XY plane, as is BD. AC and BD are parallel as are AB and CD.
@@ -243,11 +244,21 @@ export class Shadow extends PIXI.Polygon {
    *  because it is infinite and starts at the wall-surface intersection.
    */
   static simpleSurfaceOriginAbove(A, B, C, D, origin, surfacePlane) {
+    const surfaceElevation = surfacePlane.point.z;
+    if ( origin.z <= surfaceElevation ) {
+      console.error("simpleSurfaceOriginAbove given origin below the surface plane.");
+      return null;
+    }
+
     if ( origin.z <= C.z ) return null; // Viewer is below the wall bottom.
 
     const upV = Shadow.upV;
-    const ixAC = surfacePlane.lineIntersection(A, upV);
-    if ( origin.z <= A.z && C.z <= ixAC.z ) return null; // Wall intersects surface above C and viewer is below the wall.
+
+    // Because the surfacePlane is parallel to XY, we can infer the intersection of the wall.
+    // const ixAC = surfacePlane.lineIntersection(A, upV);
+    // const ixBD = surfacePlane.lineIntersection(B, upV);
+    const ixAC = new Point3d(A.x, A.y, surfacePlane.point.z)
+    const ixBD = new Point3d(B.x, B.y, surfacePlane.point.z)
 
     const ixOriginA = wallPointSurfaceIntersection(A, origin, surfacePlane);
     const ixOriginB = wallPointSurfaceIntersection(B, origin, surfacePlane);
@@ -259,15 +270,23 @@ export class Shadow extends PIXI.Polygon {
     }
 
     let ixOriginC;
-    let ixOriginD;
-    if ( origin.z > C.z ) {
-      // Viewer is above bottom of the wall, so find origin --> C --> surface
-      ixOriginC = surfacePlane.lineSegmentIntersection(origin, C);
-      ixOriginD = surfacePlane.lineSegmentIntersection(origin, D);
-    } else {
-      // Use the wall --> surface intersection
+    if ( C.z <= ixAC.z ) {
+      // Wall bottom at C is below the surface, so shadow extends from wall --> surface intersection
       ixOriginC = ixAC;
-      ixOriginD = surfacePlane.lineIntersection(B, upV);
+    } else {
+      // Established above that viewer is above the wall bottom.
+      // Find origin --> C --> surface
+      ixOriginC = surfacePlane.lineSegmentIntersection(origin, C);
+    }
+
+    let ixOriginD;
+    if ( D.z <= ixBD.z ) {
+      // Wall bottom at C is below the surface, so shadow extends from wall --> surface intersection
+      ixOriginD = ixBD;
+    } else {
+      // Established above that viewer is above the wall bottom.
+      // Find origin --> C --> surface
+      ixOriginD = surfacePlane.lineSegmentIntersection(origin, D);
     }
 
     // Debugging
@@ -355,7 +374,7 @@ export class Shadow extends PIXI.Polygon {
     if ( bottomInfinite && topInfinite ) return null; // Infinite shadow
 
     const maxR = canvas.dimensions.maxR;
-    if ( bottomInfinite ) bottomZ = maxR;
+    if ( bottomInfinite ) bottomZ = -maxR;
     if ( topInfinite ) topZ = maxR;
 
     const pointA = new Point3d(A.x, A.y, topZ);

@@ -10,7 +10,7 @@
     "tokenvisibility.settings.range-distance-3d.Hint": "Whether to measure token visibility range calculations in 3 dimensions, versus 2 (overhead view).",
 
     "tokenvisibility.settings.los-algorithm.Name": "Line of Sight Algorithm",
-    "tokenvisibility.settings.los-algorithm.Hint": "How to test a token's line-of-sight to another.\nPoints will use the points from Range Algorithm. Area is generally more performance-intensive, but not always.\\nSee https://github.com/caewok/fvtt-token-visibility#settings for a full explanation.",
+    "tokenvisibility.settings.los-algorithm.Hint": "How to test a token's line-of-sight to another. Points will use the points from Range Algorithm. Area is generally more performance-intensive, but not always. See https://github.com/caewok/fvtt-token-visibility#settings for a full explanation.",
 
     "tokenvisibility.settings.los-percent-area.Name": "Percent Token Area",
     "tokenvisibility.settings.los-percent-area.Hint": "Percentage of the token hit area that must be viewable to another token to be considered visible by that other token. If set to 0, then if any part of the token is viewable, it is considered visible.",
@@ -20,7 +20,7 @@
     "tokenvisibility.settings.los-area-3d": "Token area 3d",
 
     "tokenvisibility.settings.cover-algorithm.Name": "Cover Algorithm",
-    "tokenvisibility.settings.cover-algorithm.Hint": "How to test whether a token has cover in relation to another.\nAlgorithms loosely sorted from least to most performance-intensive.\nSee https://github.com/caewok/fvtt-token-visibility#settings for a full explanation.",
+    "tokenvisibility.settings.cover-algorithm.Hint": "How to test whether a token has cover in relation to another. Algorithms loosely sorted from least to most performance-intensive. See https://github.com/caewok/fvtt-token-visibility#settings for a full explanation.",
 
     "tokenvisibility.settings.cover-center-to-target-corners": "Center to target corners",
     "tokenvisibility.settings.cover-corner-to-target-corners": "Corner to target corners",
