@@ -33,11 +33,11 @@
     "tokenvisibility.settings.cover-area-3d": "Area 3d",
 
     "tokenvisibility.settings.cover-trigger-percent-low.Name": "Low Cover Trigger",
-    "tokenvisibility.settings.cover-trigger-percent-low.Hint": "If less than this percent of the corners or token area (depending on algorithm) is viewable, the token will have low cover.",
+    "tokenvisibility.settings.cover-trigger-percent-low.Hint": "If greater than or equal to this percent of the corners or token area (depending on algorithm) is not viewable, the token will have low cover.",
     "tokenvisibility.settings.cover-trigger-percent-medium.Name": "Medium cover trigger",
-    "tokenvisibility.settings.cover-trigger-percent-medium.Hint": "If less than this percent of the corners or token area (depending on algorithm) is viewable, the token will have medium cover.",
+    "tokenvisibility.settings.cover-trigger-percent-medium.Hint": "If greater than or equal to this percent of the corners or token area (depending on algorithm) is not viewable, the token will have medium cover.",
     "tokenvisibility.settings.cover-trigger-percent-high.Name": "High cover trigger",
-    "tokenvisibility.settings.cover-trigger-percent-high.Hint": "If less than this percent of the corner or token area (depending on algorithm) is viewable, the token will have high cover.",
+    "tokenvisibility.settings.cover-trigger-percent-high.Hint": "If greater than or equal to this percent of the corner or token area (depending on algorithm) is not viewable, the token will have high cover.",
 
     "tokenvisibility.settings.cover-trigger-center.Name": "Trigger",
     "tokenvisibility.settings.cover-trigger-center.Hint": "When the line from one token center to another token center is blocked, use this cover type. (PF2e uses Medium, or Standard, cover.)",

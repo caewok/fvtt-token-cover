@@ -2,7 +2,8 @@
 game,
 foundry,
 PIXI,
-canvas
+canvas,
+objectEqual
 */
 "use strict";
 
@@ -150,11 +151,17 @@ export class Area2d {
    * @param {object{top: {PIXI.Polygon|undefined}, bottom: {PIXI.Polygon|undefined}}} shadowLOS
    * @returns {number}
    */
-  percentAreaVisible(shadowLOS = this._buildShadowLOS) {
+  percentAreaVisible(shadowLOS) {
+    shadowLOS ??= this._buildShadowLOS();
+
     const constrained = this.target.constrainedTokenShape;
 
     const targetPercentAreaBottom = shadowLOS.bottom ? this._calculatePercentSeen(shadowLOS.bottom, constrained) : 0;
     const targetPercentAreaTop = shadowLOS.top ? this._calculatePercentSeen(shadowLOS.top, constrained) : 0;
+
+    if ( this.debug && shadowLOS.bottom ) console.log(`${this.visionSource.object.name} sees ${targetPercentAreaBottom * 100}% of ${this.target.name}'s bottom (Area2d).`);
+    if ( this.debug && shadowLOS.top ) console.log(`${this.visionSource.object.name} sees ${targetPercentAreaTop * 100}% of ${this.target.name}'s top (Area2d).`);
+
     return Math.max(targetPercentAreaBottom, targetPercentAreaTop);
   }
 
@@ -190,6 +197,8 @@ export class Area2d {
       // Looking down at top
       top = this.shadowLOSForElevation(target.topZ);
     }
+
+    if ( top && bottom && objectsEqual(top.points, bottom.points) ) return { top };
 
     return { bottom, top };
   }
@@ -262,6 +271,8 @@ export class Area2d {
    */
   shadowLOSForElevation(targetElevation = 0) {
     const visionSource = this.visionSource;
+    visionSource.los ??= visionSource._createPolygon();
+
     const los = visionSource.los;
     const bounds = los.bounds;
     const collisionTest = (o, rect) => isFinite(o.t.topZ) || isFinite(o.t.bottomZ);  // eslint-disable-line no-unused-vars
