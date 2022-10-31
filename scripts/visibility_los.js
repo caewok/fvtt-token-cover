@@ -152,7 +152,12 @@ export function testLOSPoint(visionSource, target, test, hasLOS ) {
 
   // Test all non-infinite walls for collisions
   const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
-  hasLOS = !ClockwiseSweepPolygon.testCollision3d(origin, test.point, { type: "sight", mode: "any", wallTypes: "limited" });
+
+  if ( game.modules.get("levels")?.active ) {
+    hasLOS = CONFIG.Levels.API.testCollision(origin, test.point);
+  } else {
+    hasLOS = !ClockwiseSweepPolygon.testCollision3d(origin, test.point, { type: "sight", mode: "any", wallTypes: "limited" });
+  }
 
   const debug = game.modules.get(MODULE_ID).api.debug.los;
   debug && drawing.drawSegment({A: origin, B: test.point}, {
