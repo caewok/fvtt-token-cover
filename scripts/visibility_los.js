@@ -159,7 +159,7 @@ export function testLOSPoint(visionSource, target, test, hasLOS ) {
   const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
 
   if ( game.modules.get("levels")?.active ) {
-    hasLOS = CONFIG.Levels.API.testCollision(origin, test.point);
+    hasLOS = !CONFIG.Levels.API.testCollision(origin, test.point);
   } else {
     hasLOS = !ClockwiseSweepPolygon.testCollision3d(origin, test.point, { type: "sight", mode: "any", wallTypes: "limited" });
   }
@@ -193,7 +193,6 @@ function hasLOSCeilingFloorLevels(origin, testPoint) {
   for (let tile of canvas.tiles.placeables) {
     if( tile.document.flags?.levels?.noCollision ) continue;
     const bottom = tile.document.flags?.levels?.rangeBottom ?? -Infinity;
-    const top = tile.document.flags?.levels?.rangeTop ?? Infinity;
     if ( bottom !== -Infinity &&
       ((z0 < bottom && bottom < z1) || (z1 < bottom && bottom < z0)) ) {
 
