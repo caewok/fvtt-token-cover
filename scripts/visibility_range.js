@@ -30,8 +30,18 @@ Algorithms (points):
  * @returns {boolean}                           Whether the point is currently visible.
  */
 export function testVisibilityCanvasVisibility(wrapped, point, {tolerance=2, object=null}={}) {
-  const algorithm = getSetting(SETTINGS.RANGE.ALGORITHM);
-  if ( object instanceof Token && algorithm === SETTINGS.RANGE.TYPES.CENTER ) tolerance = 0;
+  if ( !(object instanceof Token) ) return wrapped(point, { tolerance, object });
+
+  if ( game.modules.get("levels")?.active ) {
+    // Reset the tolerance
+    tolerance = Math.min(object.w, object.h) / 4;
+
+    // Prevent Levels from messing with the Sweep contains method during this visibility test.
+    CONFIG.Levels.visibilityTestObject = undefined;
+  }
+
+  if ( getSetting(SETTINGS.RANGE.ALGORITHM) === SETTINGS.RANGE.TYPES.CENTER ) tolerance = 0;
+
   return wrapped(point, { tolerance, object });
 }
 
@@ -45,6 +55,8 @@ export function testVisibilityCanvasVisibility(wrapped, point, {tolerance=2, obj
  * @returns {boolean}                           Is the test target visible?
  */
 export function testVisibilityDetectionMode(wrapped, visionSource, mode, {object, tests}={}) {
+  if ( !(object instanceof Token) ) return wrapped(visionSource, mode, { object, tests });
+
   tests = elevatePoints(tests, visionSource, object);
 
   const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
