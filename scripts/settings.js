@@ -155,6 +155,8 @@ export function registerSettings() {
   const LTYPES = SETTINGS.LOS.TYPES;
   const CTYPES = SETTINGS.COVER.TYPES;
   const coverNames = getCoverNames();
+  const levelsActive = game.modules.get("levels")?.active;
+  const pvActive = game.modules.get("perfect-vision")?.active;
 
   game.settings.register(MODULE_ID, SETTINGS.RANGE.ALGORITHM, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.ALGORITHM}.Name`),
@@ -174,7 +176,7 @@ export function registerSettings() {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.DISTANCE3D}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.DISTANCE3D}.Hint`),
     scope: "world",
-    config: true,
+    config: !levelsActive && !pvActive,
     type: Boolean,
     default: true
    });
