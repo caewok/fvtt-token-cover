@@ -37,40 +37,44 @@ None yet! Feel free to file an issue if/when you find one!
 
 ## I want the Foundry defaults!
 
-Range Points: Foundry default (9 points)
-Test Bottom and Top Token Points: unchecked
-Measure Range Distance in 3d: unchecked
-Line of Sight Algorithm: Points on token
-Combatant targeting applies cover: unchecked
-Display cover in chat: unchecked
+- Range Points: Foundry default (9 points)
+- Test Bottom and Top Token Points: unchecked
+- Measure Range Distance in 3d: unchecked
+- Line of Sight Algorithm: Points on token
+- Combatant targeting applies cover: unchecked
+- Display cover in chat: unchecked
 
 ## Make it faster!
-Range Points: Token center only (1 point)
+
+- Range Points: Token center only (1 point)
 
 Otherwise use the Foundry defaults, above.
 
 <em>Note: Measure Range Distance in 3d has minimal performance impact. Depending on scene walls and token configuration, Area3d can be faster than Area2d.</em>
 
 ## 3d
-Measure Range Distance in 3d: checked
-Test Bottom and Top Token Points: checked
-Line of Sight Algorithm: Token area 3d
-Cover Algorithm: Area 3d
+
+- Measure Range Distance in 3d: checked
+- Test Bottom and Top Token Points: checked
+- Line of Sight Algorithm: Token area 3d
+- Cover Algorithm: Area 3d
 
 ## dnd5e cover, no automation
-Cover Algorithm: Corner to corners of select target squares (dnd5e DMG)
-Low Cover Trigger: 0.5
-Medium Cover Trigger: 0.75
-High Cover Trigger: 1
-Combatant targeting applies cover: unchecked
-Display cover in chat: Your choice—--Use this and/or the Measure Cover macro.
+
+- Cover Algorithm: Corner to corners of select target squares (dnd5e DMG)
+- Low Cover Trigger: 0.5
+- Medium Cover Trigger: 0.75
+- High Cover Trigger: 1
+- Combatant targeting applies cover: unchecked
+- Display cover in chat: Your choice—--Use this and/or the Measure Cover macro.
 
 ## dnd5e cover with Midiqol automation
-Save as dnd5e cover, with the following changes:
-Confirm that Low, Medium and High Cover Active Effects are to your liking.
-Combatant targeting applies cover: Irrelevant if using Midiqol attack workflow.
-Display cover in chat: Your choice—--Use this and/or the Midi-qol Attack Workflow
-Midi-qol Attack Workflow: Your choice of GM decides, User decides, or Automatically apply
+
+- Save as dnd5e cover, with the following changes:
+- Confirm that Low, Medium and High Cover Active Effects are to your liking.
+- Combatant targeting applies cover: Irrelevant if using Midiqol attack workflow.
+- Display cover in chat: Your choice—--Use this and/or the Midi-qol Attack Workflow
+- Midi-qol Attack Workflow: Your choice of GM decides, User decides, or Automatically apply
 
 # Settings
 
@@ -108,8 +112,6 @@ Line of Sight Algorithm lets you select from:
 #### Point on Token
 
 By default, Foundry measures line-of-sight by drawing a line from the viewer to the 9 points on the target token. If at least one line is not obstructed, then the viewer has line-of-sight to the target.
-
-<img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/token_dots.jpg" width="200" alt="9 red dots inside a large token square">
 
 https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/demo-los-points.mov
 
