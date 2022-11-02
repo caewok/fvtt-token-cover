@@ -180,7 +180,7 @@ export class Area3d {
   }
 
   get viewerViewM() {
-    if ( !this._viewerViewM ) this.viewerCameraM;
+    if ( !this._viewerViewM ) this.viewerCameraM; // eslint-disable-line no-unused-expressions
     return this._viewerViewM;
   }
 
