@@ -34,9 +34,10 @@ export const SETTINGS = {
     ALGORITHM: "range-algorithm",
     TYPES: {
       CENTER: "range-points-center",
-      NINE: "range-points-nine",
-      SEVENTEEN: "range-points-seventeen"
+      FIVE: "range-points-five",
+      NINE: "range-points-nine"
     },
+    POINTS3D: "range-points-3d",
     DISTANCE3D: "range-distance-3d",
   },
 
@@ -166,11 +167,20 @@ export function registerSettings() {
     type: String,
     choices: {
       [RTYPES.CENTER]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.CENTER}`),
-      [RTYPES.NINE]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.NINE}`),
-      [RTYPES.SEVENTEEN]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.SEVENTEEN}`)
+      [RTYPES.FIVE]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.FIVE}`),
+      [RTYPES.NINE]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.NINE}`)
     },
     default: RTYPES.NINE
   });
+
+  game.settings.register(MODULE_ID, SETTINGS.RANGE.POINTS3D, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.POINTS3D}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.POINTS3D}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+   });
 
   game.settings.register(MODULE_ID, SETTINGS.RANGE.DISTANCE3D, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.DISTANCE3D}.Name`),

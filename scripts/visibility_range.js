@@ -80,15 +80,19 @@ export function testVisibilityDetectionMode(wrapped, visionSource, mode, {object
 function elevatePoints(tests, visionSource, object) {
   if ( !(object instanceof Token) ) return tests;
 
+  // We assume for the moment that test points are arranged as in default Foundry:
+  // center, 4 corners, 4 midpoints
+  // We deal with the center test in testVisibilityCanvasVisibility
+  const rangeAlg = getSetting(SETTINGS.RANGE.ALGORITHM);
+  if ( rangeAlg === SETTINGS.RANGE.TYPES.FIVE ) tests = tests.splice(0, 5);
+
   // Create default elevations
   const objectHeight = object.topZ - object.bottomZ;
   const avgElevation = object.bottomZ + (objectHeight * 0.5);
   for ( const test of tests ) test.point.z ??= avgElevation;
 
   // If top/bottom equal or not doing 3d points, no need for extra test points
-  if ( !objectHeight || getSetting(SETTINGS.RANGE.ALGORITHM) !== SETTINGS.RANGE.TYPES.SEVENTEEN ) {
-    return tests;
-  }
+  if ( !objectHeight || !getSetting(SETTINGS.RANGE.POINTS3D) ) return tests;
 
   // Add points to the tests array representing top and bottom
   const tests3d = [tests[0]];
