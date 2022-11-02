@@ -91,8 +91,12 @@ export const SETTINGS = {
     },
 
     COMBAT_AUTO: "cover-combat-auto",
-    CHAT: "cover-chat-message"
-  }
+    CHAT: "cover-chat-message",
+  },
+
+  WELCOME_DIALOG: {
+      v020: "welcome-dialog-v0-20"
+    }
 };
 
 
@@ -369,6 +373,13 @@ export function registerSettings() {
     config: false,
     type: Boolean,
     default: false
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.WELCOME_DIALOG.v020, {
+    scope: "world",
+    config: false,
+    default: false,
+    type: Boolean
   });
 
   log("Done registering settings.");

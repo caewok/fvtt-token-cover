@@ -101,7 +101,7 @@ export async function midiqolPreambleCompleteHook(workflow) {
     // Update targets' cover
     const targetCoverCalculations = coverCalculations[token.id];
     for ( const target of targets ) {
-      CoverCalculator.setCoverStatus(target.id, targetCoverCalculations[target.id]);
+      await CoverCalculator.setCoverStatus(target.id, targetCoverCalculations[target.id]);
     }
   }
 
@@ -364,15 +364,14 @@ export async function targetTokenHook(user, target, targeted) {
   if ( !isUserCombatTurn(user) ) return;
 
   if ( !targeted ) {
-    CoverCalculator.disableAllCoverStatus(target.id);
-    return;
+    return await CoverCalculator.disableAllCoverStatus(target.id);
   }
 
   // Target from the current combatant to the target token
   const c = game.combats.active;
   const combatToken = c.combatant.token.object;
   const coverCalc = new CoverCalculator(combatToken, target);
-  coverCalc.setTargetCoverEffect();
+  return await coverCalc.setTargetCoverEffect();
 }
 
 /**

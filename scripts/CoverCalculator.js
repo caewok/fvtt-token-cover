@@ -167,7 +167,7 @@ export class CoverCalculator {
     if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL )
       return CoverCalculator.disableAllCoverStatus(tokenId);
 
-    return CoverCalculator.enableCoverStatus(type);
+    return CoverCalculator.enableCoverStatus(tokenId, type);
   }
 
   /**

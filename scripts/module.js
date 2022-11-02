@@ -1,6 +1,7 @@
 /* globals
 Hooks,
-game
+game,
+Dialog
 */
 "use strict";
 
@@ -11,7 +12,7 @@ import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambl
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
 import { registerPIXIRectangleMethods } from "./PIXIRectangle.js";
-import { registerSettings, updateConfigStatusEffects } from "./settings.js";
+import { registerSettings, getSetting, setSetting, SETTINGS, updateConfigStatusEffects } from "./settings.js";
 import { registerElevationAdditions } from "./elevation.js";
 import { Point3d, registerPIXIPointMethods } from "./Point3d.js";
 
@@ -67,6 +68,44 @@ Hooks.once("setup", async function() {
   updateConfigStatusEffects();
 });
 
+Hooks.once("ready", async function() {
+  if ( !getSetting(SETTINGS.WELCOME_DIALOG.v020) ) {
+    Dialog.prompt({
+      title: "Alt Token Visibility v0.2.0 Changes!",
+      content: `
+<p>
+As of version 0.2.0, Alternative Token Visibility now can calculate cover! And it now has a fancy
+new 3d area option for line-of-sight and cover! Read all about the new options on the <a href="https://github.com/caewok/fvtt-token-visibility">Git page</a>.
+</p>
+
+<p>
+A "Measure Cover" macro is available in the Macro Compendium, allowing any user to measure cover between
+one or more tokens to one or more targets.
+</p>
+
+<p>
+The GM can also designate a cover algorithm, define thresholds for the different cover levels, and
+set up status conditions with active effects for cover types.
+</p>
+
+<p>
+The 3d area considers the scene, with relevant walls, from the perspective of your token viewing a target.
+(Think 1st-person shooter view for your token.) It then measures how much of the target is viewable
+from that perspective. The new 3d area option works great with the <a href="https://github.com/theripper93/wall-height">Wall Height</a> module.
+</p>
+
+<p>
+<br>
+<em>Clicking the button below will make this message no longer display when FoundryVTT loads. If you
+want to keep seeing this message, please click the close button above.</em>
+</p>
+`,
+      rejectClose: false,
+      callback: () => setSetting(SETTINGS.WELCOME_DIALOG.v020, true)
+    });
+  }
+});
+
 /**
  * Tell DevMode that we want a flag for debugging this module.
  * https://github.com/League-of-Foundry-Developers/foundryvtt-devMode
@@ -103,18 +142,18 @@ function registerSystemHooks() {
   }
 }
 
-Hooks.on("midi-qol.preAttackRoll", midiqolPreAttackRoll);
+// Hooks.on("midi-qol.preAttackRoll", midiqolPreAttackRoll);
 
 // Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHookTest);
 
 
-function midiqolPreambleCompleteHookTest(workflow) {
-  console.log(`midiqolPreambleCompleteHookTest user ${game.userId}`, workflow);
-}
-
-function midiqolPreAttackRoll(workflow) {
-  console.log(`midiqolPreAttackRoll user ${game.userId}`, workflow);
-}
+// function midiqolPreambleCompleteHookTest(workflow) {
+//   console.log(`midiqolPreambleCompleteHookTest user ${game.userId}`, workflow);
+// }
+//
+// function midiqolPreAttackRoll(workflow) {
+//   console.log(`midiqolPreAttackRoll user ${game.userId}`, workflow);
+// }
 
 /**
  * A hook event that fires for every Document type after conclusion of an update workflow.
@@ -133,14 +172,14 @@ Hooks.on("updateToken", updateTokenHook);
 /**
  * If the token moves, clear all debug drawings.
  */
-function updateTokenHook(document, change, options, userId) {
+function updateTokenHook(document, change, options, userId) { // eslint-disable-line no-unused-vars
   if ( Object.hasOwn(change, "x")
     || Object.hasOwn(change, "y")
     || Object.hasOwn(change, "elevation") ) {
 
     const debug = game.modules.get(MODULE_ID).api.debug;
     if ( debug.range || debug.area || debug.cover || debug.los ) {
-      console.log("Clearing drawings!")
+      console.log("Clearing drawings!");
       drawing.clearDrawings();
     }
   }
