@@ -3,10 +3,11 @@
   "title": "Alternative Token Visibility",
   "version": "This is auto replaced",
   "library": false,
+  "socket": true,
   "manifestPlusVersion": "1.0.0",
   "compatibility": {
     "minimum": "10.286",
-    "verified": "10.286"
+    "verified": "10"
   },
   "authors": [
     {
@@ -22,13 +23,31 @@
         "type": "module",
         "manifest": "https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/master/module.json",
         "compatibility": {
-          "verified": "1.12.4"
+          "verified": "1.12.8"
+        }
+      },
+
+      {
+        "id": "socketlib",
+        "type": "module",
+        "manifest": "https://raw.githubusercontent.com/manuelVo/foundryvtt-socketlib/master/module.json",
+        "compatibility": {
+          "verified": "1.0.12"
         }
       }
     ]
   },
   "esmodules": [
     "scripts/module.js"
+  ],
+  "packs": [
+    {
+      "name": "tokenvisionmacros",
+      "label": "Alternative Token Vision Macros",
+      "path": "packs/macros.db",
+      "type": "Macro",
+      "private": false
+    }
   ],
   "languages": [
     {
