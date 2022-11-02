@@ -733,7 +733,7 @@ export class Area3d {
     // Avoid walls for which a tile separates the observer from the wall.
     const rect = new PIXI.Rectangle(origin.x - 1, origin.y - 1, 2, 2);
     const tiles = canvas.tiles.quadtree.getObjects(rect);
-    walls = walls.filter(w => !Area3d.isWallUnderneathTile(origin, w, tiles));
+    walls = walls.filter(w => !Area3d.isWallBetweenTile(origin, w, tiles));
 
     return walls;
   }
@@ -748,7 +748,7 @@ export class Area3d {
    * @param {Tile[]} tiles    Set of tiles; will default to all tiles under the observer
    * @returns {boolean}
    */
-  static isWallUnderneathTile(origin, wall, tiles) {
+  static isWallBetweenTile(origin, wall, tiles) {
     if ( !tiles ) {
       const rect = new PIXI.Rectangle(origin.x - 1, origin.y - 1, 2, 2);
       tiles = canvas.tiles.quadtree.getObjects(rect);
@@ -759,7 +759,8 @@ export class Area3d {
 
       const tileE = tile.document.flags?.levels.rangeBottom ?? tile.document.elevation;
       const tileZ = zValue(tileE);
-      if ( origin.z > tileZ && wall.topZ < tileZ ) return true;
+      if ( (origin.z > tileZ && wall.topZ < tileZ)
+        || (origin.z < tileZ && wall.bottomZ > tileZ) ) return true;
     }
     return false;
   }
