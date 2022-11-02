@@ -113,7 +113,7 @@ Line of Sight Algorithm lets you select from:
 
 By default, Foundry measures line-of-sight by drawing a line from the viewer to the 9 points on the target token. If at least one line is not obstructed, then the viewer has line-of-sight to the target.
 
-https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/demo-los-points.mov
+https://user-images.githubusercontent.com/1267134/199608338-c869bc26-a987-4166-9199-be53d11b222d.mov
 
 #### Token Area 2d
 
@@ -121,7 +121,7 @@ Token area works by intersecting the line-of-sight polygon for the viewer token 
 
 Note that if the target token is overlapping one or more walls, a "constrained" target shape is first constructed that approximates the portion of the target shape on the same side of the wall(s) as the center point of the target token. This prevents situations where a target token slightly overlapping a wall would otherwise be seen from the "wrong" side of the wall.
 
-https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/demo-los-area2d.mov
+https://user-images.githubusercontent.com/1267134/199608374-d438f129-23c1-475a-941e-7e30f65ee67e.mov
 
 #### Token Area 3d
 
@@ -131,7 +131,7 @@ As with Token Area 2d, the target token is trimmed if walls overlap the target.
 
 This method is probably the most accurate way to determine if a token has visibility of another token, and should, in theory, work even in [Ripper's 3d Canvas](https://theripper93.com/).
 
-https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/demo-los-area3d.mov
+https://user-images.githubusercontent.com/1267134/199608396-22c017fc-2c58-4f5e-ace0-898ede8aa6fd.mov
 
 ### Percent Token Area
 
