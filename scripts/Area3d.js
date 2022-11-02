@@ -33,7 +33,7 @@ import { Shadow, truncateWallAtElevation } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
 import { Point3d } from "./Point3d.js";
 import { Plane } from "./Plane.js";
-import { elementsByIndex, segmentBlocks } from "./util.js";
+import { elementsByIndex, segmentBlocks, zValue } from "./util.js";
 import * as drawing from "./drawing.js"; // For debugging
 
 export class Area3d {
@@ -180,7 +180,7 @@ export class Area3d {
   }
 
   get viewerViewM() {
-    if ( !this._viewerViewM ) this.viewerCameraM;
+    if ( !this._viewerViewM ) this.viewerCameraM; // eslint-disable-line no-unused-expressions
     return this._viewerViewM;
   }
 
@@ -721,10 +721,48 @@ export class Area3d {
 
     const visionPoly = new PIXI.Polygon([origin, ...keyPoints]);
 
-    return walls.filter(wall =>
+    walls = walls.filter(wall =>
       visionPoly.contains(wall.A.x, wall.A.y)
       || visionPoly.contains(wall.B.x, wall.B.y)
       || visionPoly.linesCross([wall]));
+
+    // Avoid walls that are underground if origin is above ground, or vice-versa
+    if ( origin.z >= 0 ) walls = walls.filter(w => w.topZ >= 0);
+    else walls = walls.filter(w => w.bottomZ <= 0);
+
+    // Avoid walls for which a tile separates the observer from the wall.
+    const rect = new PIXI.Rectangle(origin.x - 1, origin.y - 1, 2, 2);
+    const tiles = canvas.tiles.quadtree.getObjects(rect);
+    walls = walls.filter(w => !Area3d.isWallBetweenTile(origin, w, tiles));
+
+    return walls;
+  }
+
+  /**
+   * Also in Elevated Vision clockwise_sweep.js
+   * From point of view of a source (light or vision observer), is the wall underneath the tile?
+   * Only source elevation and position, not perspective, taken into account.
+   * So if source is above tile and wall is below tile, that counts.
+   * @param {PointSource} observer
+   * @param {Wall} wall
+   * @param {Tile[]} tiles    Set of tiles; will default to all tiles under the observer
+   * @returns {boolean}
+   */
+  static isWallBetweenTile(origin, wall, tiles) {
+    if ( !tiles ) {
+      const rect = new PIXI.Rectangle(origin.x - 1, origin.y - 1, 2, 2);
+      tiles = canvas.tiles.quadtree.getObjects(rect);
+    }
+
+    for ( const tile of tiles ) {
+      if ( !tile.bounds.contains(origin.x, origin.y) ) continue;
+
+      const tileE = tile.document.flags?.levels.rangeBottom ?? tile.document.elevation;
+      const tileZ = zValue(tileE);
+      if ( (origin.z > tileZ && wall.topZ < tileZ)
+        || (origin.z < tileZ && wall.bottomZ > tileZ) ) return true;
+    }
+    return false;
   }
 
   /**

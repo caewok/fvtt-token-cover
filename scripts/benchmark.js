@@ -91,7 +91,8 @@ export async function benchTokenRange(n = 100) {
   const default_settings = {
     range_algorithm: getSetting(SETTINGS.RANGE.ALGORITHM),
     los_algorithm: getSetting(SETTINGS.LOS.ALGORITHM),
-    range_3d: getSetting(SETTINGS.RANGE.DISTANCE3D)
+    range_3d: getSetting(SETTINGS.RANGE.DISTANCE3D),
+    points_3d: getSetting(SETTINGS.RANGE.POINTS3D)
   };
 
   const controlled = _token;
@@ -108,6 +109,7 @@ export async function benchTokenRange(n = 100) {
 
   console.log(`\n2D range measurements`);
   await setSetting(SETTINGS.RANGE.DISTANCE3D, false);
+  await setSetting(SETTINGS.RANGE.POINTS3D, false);
 
   // Foundry
   await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.NINE);
@@ -118,11 +120,12 @@ export async function benchTokenRange(n = 100) {
   await QBenchmarkLoopFn(n, visibilityTestFn, "Range Center Only", tokens);
 
   // Foundry 3d
-  await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.SEVENTEEN);
-  await QBenchmarkLoopFn(n, visibilityTestFn, "Range 17-point", tokens);
+  await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.FIVE);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Range 5-point", tokens);
 
   console.log(`\n3D range measurements`);
   await setSetting(SETTINGS.RANGE.DISTANCE3D, true);
+  await setSetting(SETTINGS.RANGE.POINTS3D, true);
 
   // Foundry
   await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.NINE);
@@ -133,13 +136,14 @@ export async function benchTokenRange(n = 100) {
   await QBenchmarkLoopFn(n, visibilityTestFn, "Range Center Only", tokens);
 
   // Foundry 3d
-  await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.SEVENTEEN);
-  await QBenchmarkLoopFn(n, visibilityTestFn, "Range 17-point", tokens);
+  await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.FIVE);
+  await QBenchmarkLoopFn(n, visibilityTestFn, "Range 5-point", tokens);
 
   // Reset
   await setSetting(SETTINGS.RANGE.ALGORITHM, default_settings.range_algorithm);
   await setSetting(SETTINGS.LOS.ALGORITHM, default_settings.los_algorithm);
   await setSetting(SETTINGS.RANGE.DISTANCE3D, default_settings.range_3d);
+  await setSetting(SETTINGS.RANGE.POINTS3D, default_settings.points_3d);
 }
 
 export async function benchTokenLOS(n = 100) {
@@ -161,7 +165,7 @@ export async function benchTokenLOS(n = 100) {
   console.log(`\nBenching token visibility LOS for ${tokens.length} tokens.`);
 
   // Set to default Range for test
-  await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.FOUNDRY);
+  await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.NINE);
 
   // Foundry (Points)
   await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.POINTS);

@@ -30,28 +30,33 @@ import {
 } from "./settings.js";
 
 export function registerLibWrapperMethods() {
-  libWrapper.register(MODULE_ID, "PointSource.prototype._createPolygon", _createPolygonPointSource, libWrapper.WRAPPER);
-  libWrapper.register(MODULE_ID, "Token.prototype.updateVisionSource", tokenUpdateVisionSource, libWrapper.WRAPPER);
-  libWrapper.register(MODULE_ID, "DetectionMode.prototype._testLOS", _testLOSDetectionMode, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
+  const levelsActive = game.modules.get("levels")?.active;
+  const pvActive = game.modules.get("perfect-vision")?.active;
+
+  // ---- Settings manipulations to hide unneeded settings ----- //
   libWrapper.register(MODULE_ID, "SettingsConfig.prototype.activateListeners", activateListenersSettingsConfig, libWrapper.WRAPPER);
   libWrapper.register(MODULE_ID, "SettingsConfig.prototype.close", closeSettingsConfig, libWrapper.WRAPPER);
   libWrapper.register(MODULE_ID, "SettingsConfig.prototype._onSubmit", _onSubmitSettingsConfig, libWrapper.WRAPPER);
-  libWrapper.register(MODULE_ID, "CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+
+  // ----- Token Visibility ----- //
+  libWrapper.register(MODULE_ID, "CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
   libWrapper.register(MODULE_ID, "DetectionMode.prototype.testVisibility", testVisibilityDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
-  libWrapper.register(MODULE_ID, "DetectionMode.prototype._testRange", _testRangeDetectionMode, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
 
-  // Token HUD status effects for cover
-//   libWrapper.register(MODULE_ID, "TokenHUD.prototype._onToggleStatusEffects", _onToggleStatusEffectsTokenHUD, libWrapper.WRAPPER);
-//   libWrapper.register(MODULE_ID, "TokenHUD.prototype._toggleStatusEffects", _toggleStatusEffectsTokenHUD, libWrapper.WRAPPER);
-//   libWrapper.register(MODULE_ID, "TokenHUD.prototype._onToggleEffect", _onToggleEffectTokenHUD, libWrapper.WRAPPER);
+  // ----- Range Testing ----- //
+  if ( !(levelsActive || pvActive) )
+    libWrapper.register(MODULE_ID, "DetectionMode.prototype._testRange", _testRangeDetectionMode, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
 
-  // Manipulating Token status effects
+  // ----- LOS Testing ----- //
+  libWrapper.register(MODULE_ID, "DetectionMode.prototype._testLOS", _testLOSDetectionMode, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
+  libWrapper.register(MODULE_ID, "PointSource.prototype._createPolygon", _createPolygonPointSource, libWrapper.WRAPPER);
+
+  // ----- Cover status effects ----- //
   libWrapper.register(MODULE_ID, "TokenDocument.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument, libWrapper.WRAPPER);
-
   libWrapper.register(MODULE_ID, "Token.prototype.updateSource", updateSourceToken, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
-  // Constrained token shape getter.
-  // Reset by tokenUpdateVisionSource
+  // ----- Constrained token shape ----- //
+  libWrapper.register(MODULE_ID, "Token.prototype.updateVisionSource", tokenUpdateVisionSource, libWrapper.WRAPPER);
+
   if ( !Object.hasOwn(Token.prototype, "constrainedTokenShape") ) {
     Object.defineProperty(Token.prototype, "constrainedTokenShape", {
       get: getConstrainedTokenShape,

@@ -257,10 +257,11 @@ export class Area2d {
    * @param {PIXI.Polygon} los
    */
   _intersectShapeWithLOS(constrained, los) {
-//     if ( constrained instanceof PIXI.Rectangle && los instanceof PIXI.Polygon ) {
-//       // Weiler-Atherton is faster for intersecting regular shapes
-//       // Use Clipper for now
-//     }
+    // TODO: Use Weiler-Atherton
+    //     if ( constrained instanceof PIXI.Rectangle && los instanceof PIXI.Polygon ) {
+    //       // Weiler-Atherton is faster for intersecting regular shapes
+    //       // Use Clipper for now
+    //     }
 
     if ( constrained instanceof PIXI.Rectangle ) constrained = constrained.toPolygon();
     return los.intersectPolygon(constrained);
@@ -273,6 +274,7 @@ export class Area2d {
    */
   shadowLOSForElevation(targetElevation = 0) {
     const visionSource = this.visionSource;
+    const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
     visionSource.los ??= visionSource._createPolygon();
 
     let los = visionSource.los;
@@ -284,7 +286,7 @@ export class Area2d {
     if ( walls.size ) walls = Area3d.filterWallsForVisionCone(
       walls,
       this.target.constrainedTokenShape,
-      this.visionSource);
+      origin);
 
     // Wall Height removes walls from LOS calculation if
     // 1. origin is above the top of the wall
@@ -292,7 +294,7 @@ export class Area2d {
 
     if ( !walls.size) {
       log("No limited walls; no shadows.");
-  //     visionSource._losShadows.set(targetElevation, null);
+      // TODO: Caching   visionSource._losShadows.set(targetElevation, null);
       return los;
     }
 
@@ -312,11 +314,9 @@ export class Area2d {
 
     if ( redoLOS ) {
       const cfg = visionSource._getPolygonConfiguration();
-      const origin = {x: visionSource.data.x, y: visionSource.data.y};
       los = CWSweepInfiniteWallsOnly.create(origin, cfg);
     }
 
-    const origin = new Point3d(visionSource.x, visionSource.y, elevationZ);
     const shadows = [];
     for ( const wall of walls ) {
       const shadow = Shadow.constructFromWall(wall, origin, targetElevation);
@@ -324,11 +324,10 @@ export class Area2d {
         shadows.push(shadow);
         if ( this.debug ) shadow.draw();
       }
-
     }
 
     const combined = Shadow.combinePolygonWithShadows(los, shadows);
-  //   visionSource._losShadows.set(targetElevation, combined);
+    // TODO: Caching visionSource._losShadows.set(targetElevation, combined);
     return combined;
   }
 }

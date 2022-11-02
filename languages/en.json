@@ -3,8 +3,11 @@
     "tokenvisibility.settings.range-algorithm.Hint": "Number of points to use when testing whether a token is within range of another. Also controls number of points for line-of-sight points algorithm. See https://github.com/caewok/fvtt-token-visibility#settings for a full explanation.",
 
     "tokenvisibility.settings.range-points-center": "Token center only (1 point)",
+    "tokenvisibility.settings.range-points-five": "Token corners and center (5 points)",
     "tokenvisibility.settings.range-points-nine": "Foundry default (9 points)",
-    "tokenvisibility.settings.range-points-seventeen": "Token top and bottom (17 points)",
+
+    "tokenvisibility.settings.range-points-3d.Name": "Test Bottom and Top Token Points",
+    "tokenvisibility.settings.range-points-3d.Hint": "When applicable, use both the token elevation and the token line-of-sight to construct additional points for testing range and the line-of-sight points algorithm.",
 
     "tokenvisibility.settings.range-distance-3d.Name": "Measure Range Distance in 3d",
     "tokenvisibility.settings.range-distance-3d.Hint": "Whether to measure token visibility range calculations in 3 dimensions, versus 2 (overhead view).",
