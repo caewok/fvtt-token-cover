@@ -117,11 +117,15 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
   const types = SETTINGS.LOS.TYPES;
   if ( algorithm === types.POINTS ) {
-    if ( !hasLOSCeilingFloorLevels(new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ), test.point) ) return false;
+    if ( !hasLOSCeilingFloorLevels(new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ), test.point) ) {
+      drawDebugPoint(visionSource, test, hasLOS);
+      return false;
+    }
 
     let hasLOS = wrapped(visionSource, mode, target, test);
-    hasLOS &&= hasLOSCeilingFloorLevels(new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ), test.point);
-    return testLOSPoint(visionSource, target, test, hasLOS);
+    hasLOS = testLOSPoint(visionSource, target, test, hasLOS);
+    drawDebugPoint(visionSource, test, hasLOS);
+    return hasLOS;
   }
 
   // Only need to test area once, so use the center point to do this.
@@ -150,6 +154,14 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   }
 }
 
+function drawDebugPoint(origin, test, hasLOS) {
+  const debug = game.modules.get(MODULE_ID).api.debug.los;
+  debug && drawing.drawSegment({A: origin, B: test.point}, {
+    color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red,
+    alpha: 0.5
+  })
+}
+
 export function testLOSPoint(visionSource, target, test, hasLOS ) {
   // If not in the line of sight, no need to test for wall collisions
   // If wall height is not active, collisions will be equivalent to hasLOS
@@ -158,17 +170,8 @@ export function testLOSPoint(visionSource, target, test, hasLOS ) {
   // Test all non-infinite walls for collisions
   const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
 
-  if ( game.modules.get("levels")?.active ) {
-    hasLOS = !CONFIG.Levels.API.testCollision(origin, test.point);
-  } else {
-    hasLOS = !ClockwiseSweepPolygon.testCollision3d(origin, test.point, { type: "sight", mode: "any", wallTypes: "limited" });
-  }
-
-  const debug = game.modules.get(MODULE_ID).api.debug.los;
-  debug && drawing.drawSegment({A: origin, B: test.point}, {
-    color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red,
-    alpha: 0.5
-  })
+  if ( game.modules.get("levels")?.active ) return !CONFIG.Levels.API.testCollision(origin, test.point);
+  else return !ClockwiseSweepPolygon.testCollision3d(origin, test.point, { type: "sight", mode: "any", wallTypes: "limited" });
 
   return hasLOS;
 }

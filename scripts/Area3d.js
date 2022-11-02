@@ -472,7 +472,13 @@ export class Area3d {
     const center = this.viewerCenter;
     const centerZ = this.viewerCenter.z;
     const target = this.target;
-    const { bottomZ, topZ, constrainedTokenShape } = target;
+    const { bottomZ, constrainedTokenShape } = target;
+    let topZ = target.topZ;
+    if ( bottomZ === topZ ) {
+      // Give the target a minimal height so area calcs work
+      topZ += 2;
+    }
+
     const targetPoly = constrainedTokenShape instanceof PIXI.Rectangle
       ? constrainedTokenShape.toPolygon() : constrainedTokenShape;
 
