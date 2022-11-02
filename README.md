@@ -4,7 +4,7 @@
 
 # Alternative Token Visibility
 
-This module optionally replaces Foundry's default method of measuring visibility of tokens with a more precise, but (at times) more computationally expensive, method.
+This module provides options to modify Foundry's default methods for measuring visibility range and line-of-sight between tokens. Some options are more performant, while others trade some performance for a more precise method of computing visibility.
 
 As of v0.2.0, this module also optionally assists with cover calculations in a (mostly) system-agnostic manner. Various cover measurement options are provided. A macro is also provided to allow any user to calculate cover from one or more selected tokens to one or more targeted tokens. (Import from the Macro compendium.)
 
