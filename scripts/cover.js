@@ -381,7 +381,7 @@ export async function targetTokenHook(user, target, targeted) {
  * @returns {boolean}
  */
 function isUserCombatTurn(user) {
-  if ( !game.combat?.started ) return;
+  if ( !game.combat?.started ) return false;
 
   const c = game.combats.active;
   // If no players, than it must be a GM token
