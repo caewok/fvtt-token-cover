@@ -118,10 +118,9 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   const types = SETTINGS.LOS.TYPES;
   if ( algorithm === types.POINTS ) {
     if ( !hasLOSCeilingFloorLevels(new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ), test.point) ) {
-      drawDebugPoint(visionSource, test, hasLOS);
+      drawDebugPoint(visionSource, test, false);
       return false;
     }
-
     let hasLOS = wrapped(visionSource, mode, target, test);
     hasLOS = testLOSPoint(visionSource, target, test, hasLOS);
     drawDebugPoint(visionSource, test, hasLOS);
