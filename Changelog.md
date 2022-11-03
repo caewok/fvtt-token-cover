@@ -1,5 +1,7 @@
-# 0.2.0
+# 0.2.1
+Fix for `_hasLOS` not initialized error, which occurs sometimes with Levels installed.
 
+# 0.2.0
 Revamp Range settings:
 - Choice of single point, 5 points, or 9 points (Foundry default)
 - Toggle to add additional "3d" points to measure token height and token elevation
