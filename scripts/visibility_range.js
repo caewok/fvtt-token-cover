@@ -7,6 +7,7 @@ import { SETTINGS, getSetting } from "./settings.js";
 import { MODULE_ID } from "./const.js";
 import { Point3d } from "./Point3d.js";
 import * as drawing from "./drawing.js";
+import { log } from "./util.js";
 
 /* Range Options
 
@@ -100,7 +101,7 @@ function elevatePoints(tests, visionSource, object) {
   for ( let i = 1; i < ln; i += 1 ) {
     const test = tests[i];
     const { x, y } = test.point;
-    if ( test.los.size > 0 ) console.warn("Test point has los mapping already.");
+    if ( test.los.size > 0 ) log("Test point has los mapping already.");
 
     tests3d.push(
       // Use the same map so that x,y contains tests are cached and not repeated.
