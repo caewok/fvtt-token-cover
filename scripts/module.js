@@ -27,6 +27,7 @@ import { Area2d } from "./Area2d.js";
 import { Plane } from "./Plane.js";
 import { ClipperPaths } from "./ClipperPaths.js";
 import { CoverCalculator } from "./CoverCalculator.js";
+import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 import * as los from "./visibility_los.js";
 
@@ -51,6 +52,7 @@ Hooks.once("init", async function() {
     util,
     CoverCalculator,
     COVER_TYPES,
+    ConstrainedTokenBorder,
     los,
     debug: {
       range: false,

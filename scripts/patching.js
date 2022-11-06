@@ -29,6 +29,11 @@ import {
   _onSubmitSettingsConfig
 } from "./settings.js";
 
+import {
+  getTokenBorder,
+  getTokenShape,
+  getConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+
 export function registerLibWrapperMethods() {
   const levelsActive = game.modules.get("levels")?.active;
   const pvActive = game.modules.get("perfect-vision")?.active;
@@ -56,6 +61,28 @@ export function registerLibWrapperMethods() {
 
   // ----- Constrained token shape ----- //
   libWrapper.register(MODULE_ID, "Token.prototype.updateVisionSource", tokenUpdateVisionSource, libWrapper.WRAPPER);
+
+
+  if ( !Object.hasOwn(Token.prototype, "tokenShape") ) {
+    Object.defineProperty(Token.prototype, "tokenShape", {
+      get: getTokenShape,
+      enumerable: false
+    });
+  }
+
+  if ( !Object.hasOwn(Token.prototype, "tokenBorder") ) {
+    Object.defineProperty(Token.prototype, "tokenBorder", {
+      get: getTokenBorder,
+      enumerable: false
+    });
+  }
+
+  if ( !Object.hasOwn(Token.prototype, "constrainedTokenBorder") ) {
+    Object.defineProperty(Token.prototype, "constrainedTokenBorder", {
+      get: getConstrainedTokenBorder,
+      enumerable: false
+    });
+  }
 
   if ( !Object.hasOwn(Token.prototype, "constrainedTokenShape") ) {
     Object.defineProperty(Token.prototype, "constrainedTokenShape", {
