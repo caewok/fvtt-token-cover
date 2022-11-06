@@ -79,18 +79,37 @@ DetectionMode.prototype._testRange
 
 */
 
+
 // ***** WRAPPERS
 
 /**
- * Wrap PointSource.prototype._createPolygon
- * Add a map to temporarily store shadows
+ * Wrap VisionSource.prototype.initialize
+ * Clear the cache when initializing
  */
-export function _createPolygonPointSource(wrapped) {
-  this._losShadows ??= new Map();
-  this._losShadows.clear();
-
-  return wrapped();
+export function initializeVisionSource(wrapper, data={}) {
+  this._losCache = {};
+  return wrapper(data);
 }
+
+/**
+ * Override VisionSource.prototype._createPolygon()
+ * Pass an optional type; store the resulting los for that type in the token.
+ * Pass other options to affect the config.
+ * @param {string} type   light, sight, sound, move
+ */
+export function _createPolygonVisionSource(config) {
+  config ??= this._getPolygonConfiguration();
+  this._losCache ??= {};
+
+  // Vision source is destroyed on token move, so we can cache for the type.
+  if ( this._losCache[config.type] ) return this._losCache[config.type];
+
+  const origin = { x: this.data.x, y: this.data.y };
+  const poly = CONFIG.Canvas.losBackend.create(origin, config);
+  this._losCache[config.type] = poly;
+  return poly;
+}
+
 
 /**
  * Wrap Token.prototype.updateVisionSource
@@ -114,6 +133,9 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   // Only apply this test to tokens
   if ( !(target instanceof Token) ) return wrapped(visionSource, mode, target, test);
 
+  // If not constrained by walls or no walls present, line-of-sight is guaranteed.
+  if ( !this.walls || !canvas.walls.placeables.length  ) return true;
+
   const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
   const types = SETTINGS.LOS.TYPES;
   if ( algorithm === types.POINTS ) {
@@ -121,13 +143,20 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
       drawDebugPoint(visionSource, test, false);
       return false;
     }
+    const losContainsPoint = wrapped(visionSource, mode, target, test);
+
     let hasLOS = wrapped(visionSource, mode, target, test);
-    hasLOS = testLOSPoint(visionSource, target, test, hasLOS);
+    hasLOS = testLOSPoint(visionSource, target, test, losContainsPoint);
     drawDebugPoint(visionSource, test, hasLOS);
     return hasLOS;
   }
 
   // Only need to test area once, so use the center point to do this.
+  if ( !test.centerPoint ) return false;
+
+
+
+
   const center = target.center;
   const avgElevation = CoverCalculator.averageTokenElevation(target);
   const centerPoint = new Point3d(center.x, center.y, avgElevation);
@@ -161,10 +190,15 @@ function drawDebugPoint(origin, test, hasLOS) {
   })
 }
 
-export function testLOSPoint(visionSource, target, test, hasLOS ) {
+function testLOSPoint(visionSource, target, test, losContainsPoint ) {
   // If not in the line of sight, no need to test for wall collisions
   // If wall height is not active, collisions will be equivalent to hasLOS
-  if ( !hasLOS || !game.modules.get("wall-height")?.active ) return hasLOS;
+  if ( !losContainsPoint || !game.modules.get("wall-height")?.active ) return losContainsPoint;
+
+  // If not within the constrained token shape, then don't test.
+  // Assume that unconstrained token shapes contain all test points.
+  const cst = ConstrainedTokenShape.get(target)
+  if ( cst._unrestricted ) return true;
 
   // Test all non-infinite walls for collisions
   const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
@@ -216,63 +250,4 @@ function getPointForPlane(a, b, z) {
   const x = (dzaz * (b.x - a.x) + (a.x * b.z) - (a.x * a.z)) / dabz;
   const y = (dzaz * (b.y - a.y) + (b.z * a.y) - (a.z * a.y)) / dabz;
   return { x, y };
-}
-
-export function getConstrainedTokenShape() {
-  const boundsScale = 1;
-  // Construct the constrained token shape if not yet present.
-  // Store in token so it can be re-used (wrapped updateVisionSource will remove it when necessary)
-  this._constrainedTokenShape ||= calculateConstrainedTokenShape(this, { boundsScale });
-  return this._constrainedTokenShape;
-}
-
-/**
- * Intersect the token bounds against line-of-sight polygon to trim the token bounds
- * to only that portion that does not overlap a wall.
- * @param {Token} token
- * @return {PIXI.Polygon}
- */
-export function calculateConstrainedTokenShape(token, { boundsScale } = {}) {
-  boundsScale ??= 1;
-
-  let bbox = token.bounds;
-  if ( boundsScale !== 1) {
-    // BoundsScale is a percentage where less than one means make the bounds smaller,
-    // greater than one means make the bounds larger.
-    const scalar = boundsScale - 1;
-    bbox.pad(Math.ceil(bbox.width * scalar), Math.ceil(bbox.height * scalar)); // Prefer integer values; round up to avoid zeroes.
-  }
-
-  let walls = Array.from(canvas.walls.quadtree.getObjects(bbox).values());
-  if ( !walls.length ) return bbox;
-
-  // Only care about walls that strictly intersect the bbox or are inside the bbox.
-  // Many times with a grid, a wall will overlap a bbox edge.
-  walls = walls.filter(w =>
-    bbox.lineSegmentIntersects(w.A, w.B, { inside: true, intersectFn: foundry.utils.lineSegmentIntersects }));
-
-  // Don't include walls that are in line with a boundary edge
-  walls = walls.filter(w => {
-    if ( w.A.x === w.B.x && (w.A.x === bbox.left || w.A.x === bbox.right) ) return false;
-    if ( w.A.y === w.B.y && (w.A.y === bbox.top || w.A.y === bbox.bottom) ) return false;
-    return true;
-  });
-
-  if ( !walls.length ) return bbox;
-
-  // One or more walls are inside or intersect the bounding box.
-  const constrained = new ClockwiseSweepPolygon();
-  constrained.initialize(token.center, { type: "sight", source: token.vision, boundaryShapes: [bbox] });
-  constrained.compute();
-
-  // Check if we are basically still dealing with an unconstrained token shape, b/c
-  // that is faster than dealing with an arbitrary polygon.
-  if ( constrained.points.length !== 10 ) return constrained;
-
-  for ( const pt of constrained.iteratePoints({ close: false }) ) {
-    if ( !(pt.x.almostEqual(bbox.left) || pt.x.almostEqual(bbox.right)) ) return constrained;
-    if ( !(pt.x.almostEqual(bbox.top) || pt.y.almostEqual(bbox.bottom)) ) return constrained;
-  }
-
-  return bbox;
 }

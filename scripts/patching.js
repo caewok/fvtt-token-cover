@@ -7,8 +7,8 @@ Token
 import {
   tokenUpdateVisionSource,
   _testLOSDetectionMode,
-  _createPolygonPointSource,
-  getConstrainedTokenShape
+  _createPolygonVisionSource,
+  initializeVisionSource
 } from "./visibility_los.js";
 
 import {
@@ -53,7 +53,6 @@ export function registerLibWrapperMethods() {
 
   // ----- LOS Testing ----- //
   libWrapper.register(MODULE_ID, "DetectionMode.prototype._testLOS", _testLOSDetectionMode, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
-  libWrapper.register(MODULE_ID, "PointSource.prototype._createPolygon", _createPolygonPointSource, libWrapper.WRAPPER);
 
   // ----- Cover status effects ----- //
   libWrapper.register(MODULE_ID, "TokenDocument.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument, libWrapper.WRAPPER);
@@ -61,6 +60,7 @@ export function registerLibWrapperMethods() {
 
   // ----- Constrained token shape ----- //
   libWrapper.register(MODULE_ID, "Token.prototype.updateVisionSource", tokenUpdateVisionSource, libWrapper.WRAPPER);
+  libWrapper.register(MODULE_ID, "VisionSource.prototype.initialize", initializeVisionSource, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
 
   if ( !Object.hasOwn(Token.prototype, "tokenShape") ) {
@@ -84,12 +84,11 @@ export function registerLibWrapperMethods() {
     });
   }
 
-  if ( !Object.hasOwn(Token.prototype, "constrainedTokenShape") ) {
-    Object.defineProperty(Token.prototype, "constrainedTokenShape", {
-      get: getConstrainedTokenShape,
-      enumerable: false
-    });
-  }
+  Object.defineProperty(VisionSource.prototype, "_createPolygon", {
+    value: _createPolygonVisionSource,
+    writable: true,
+    configurable: true
+  });
 }
 
 function updateSourceToken(wrapper, ...args) {
