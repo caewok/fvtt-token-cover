@@ -60,15 +60,6 @@ export function testVisibilityDetectionMode(wrapped, visionSource, mode, {object
 
   tests = elevatePoints(tests, visionSource, object);
 
-  const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
-  if ( algorithm === SETTINGS.LOS.TYPES.AREA || algorithm === SETTINGS.LOS.TYPES.AREA3D ) {
-    // Link tests to the center test for los area
-    const ln = tests.length;
-    for ( let i = 1; i < ln; i += 1 ) {
-      tests[i].centerPoint = tests[0];
-    }
-  }
-
   return wrapped(visionSource, mode, { object, tests });
 }
 
@@ -91,6 +82,9 @@ function elevatePoints(tests, visionSource, object) {
   const objectHeight = object.topZ - object.bottomZ;
   const avgElevation = object.bottomZ + (objectHeight * 0.5);
   for ( const test of tests ) test.point.z ??= avgElevation;
+
+  // Identify the center point
+  tests[0].centerPoint = true;
 
   // If top/bottom equal or not doing 3d points, no need for extra test points
   if ( !objectHeight || !getSetting(SETTINGS.RANGE.POINTS3D) ) return tests;
