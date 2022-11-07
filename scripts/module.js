@@ -22,7 +22,7 @@ import * as drawing from "./drawing.js";
 import * as util from "./util.js";
 import { Shadow } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
-import { Area3d } from "./Area3d.js";
+import { Area3d, TokenPoints3d } from "./Area3d.js";
 import { Area2d } from "./Area2d.js";
 import { Plane } from "./Plane.js";
 import { ClipperPaths } from "./ClipperPaths.js";
@@ -54,6 +54,7 @@ Hooks.once("init", async function() {
     COVER_TYPES,
     ConstrainedTokenBorder,
     los,
+    TokenPoints3d,
     debug: {
       range: false,
       los: false,
