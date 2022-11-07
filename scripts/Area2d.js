@@ -302,7 +302,7 @@ export class Area2d {
     let walls = canvas.walls.quadtree.getObjects(bounds, { collisionTest });
 
     // Further limit walls based on the vision cone to the target
-    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constraineBorder();
+    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
     if ( walls.size ) walls = Area3d.filterWallsForVisionCone(
       walls,
       constrained,
