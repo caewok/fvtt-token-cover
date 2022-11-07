@@ -719,7 +719,7 @@ export class Area3d {
    * @param {hasLOS: {Boolean}, hasFOV: {Boolean}}
    * @return {Boolean} Returns false if the source definitely cannot provide LOS; true otherwise.
    */
-  static filterWallsForVisionCone(walls, constrained, origin) {
+  static filterWallsForVisionCone(walls, constrained, origin, type = "sight") {
     const keyPoints = (constrained instanceof PIXI.Polygon)
       ? Area3d.polygonKeyPointsForOrigin(constrained, origin)
       : Area3d.bboxKeyCornersForOrigin(constrained, origin);
@@ -728,7 +728,9 @@ export class Area3d {
     const visionPoly = new PIXI.Polygon([origin, ...keyPoints]);
 
     walls = walls.filter(wall =>
-      visionPoly.contains(wall.A.x, wall.A.y)
+      !wall.document[type]
+      || wall.isOpen
+      || visionPoly.contains(wall.A.x, wall.A.y)
       || visionPoly.contains(wall.B.x, wall.B.y)
       || visionPoly.linesCross([wall]));
 
