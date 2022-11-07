@@ -149,11 +149,15 @@ export class ConstrainedTokenBorder extends ClockwiseSweepPolygon {
       this._wallsID = ConstrainedTokenBorder._wallsID;
       this._dirty = true;
 
-      const config = { source: this._token.vision, type: this._type };
-      const border = this._token.tokenBorder;
-      if ( !(border instanceof PIXI.Rectangle) ) config.boundaryShapes = [border];
 
-      super.initialize({ x, y }, config);
+      const border = this._token.tokenBorder;
+      const config = {
+        source: this._token.vision,
+        type: this._type,
+        boundaryShapes: [border] };
+
+      const center = _token.center;
+      super.initialize({ x: center.x, y: center.y }, config);
     }
   }
 
