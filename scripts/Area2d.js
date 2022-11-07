@@ -95,7 +95,8 @@ export class Area2d {
       return false;
     }
 
-    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constrainedShape();
+    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
+
     const shadowLOS = this._buildShadowLOS();
 
     if ( percentArea === 0 ) {
@@ -173,7 +174,7 @@ export class Area2d {
   percentAreaVisible(shadowLOS) {
     shadowLOS ??= this._buildShadowLOS();
 
-    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constrainedShape();
+    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
 
     const targetPercentAreaBottom = shadowLOS.bottom ? this._calculatePercentSeen(shadowLOS.bottom, constrained) : 0;
     const targetPercentAreaTop = shadowLOS.top ? this._calculatePercentSeen(shadowLOS.top, constrained) : 0;
@@ -301,7 +302,7 @@ export class Area2d {
     let walls = canvas.walls.quadtree.getObjects(bounds, { collisionTest });
 
     // Further limit walls based on the vision cone to the target
-    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constrainedShape();
+    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constraineBorder();
     if ( walls.size ) walls = Area3d.filterWallsForVisionCone(
       walls,
       constrained,

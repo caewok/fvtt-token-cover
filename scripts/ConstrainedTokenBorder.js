@@ -23,7 +23,7 @@ function updateTokenHook(document, change, options, userId) { // eslint-disable-
  * @returns {ConstrainedTokenShape|PIXI.Rectangle}
  */
 export function getConstrainedTokenBorder() {
-  return ConstrainedTokenBorder.get(this, "sight").constrainedShape();
+  return ConstrainedTokenBorder.get(this, "sight").constrainedBorder();
 }
 
 /**
@@ -149,14 +149,13 @@ export class ConstrainedTokenBorder extends ClockwiseSweepPolygon {
       this._wallsID = ConstrainedTokenBorder._wallsID;
       this._dirty = true;
 
-
       const border = this._token.tokenBorder;
       const config = {
         source: this._token.vision,
         type: this._type,
         boundaryShapes: [border] };
 
-      const center = _token.center;
+      const center = this._token.center;
       super.initialize({ x: center.x, y: center.y }, config);
     }
   }
@@ -227,7 +226,7 @@ export class ConstrainedTokenBorder extends ClockwiseSweepPolygon {
    * Return either this polygon or the underlying token border if possible.
    * @returns {ConstrainedTokenShape|PIXI.Rectangle}
    */
-  constrainedShape() {
+  constrainedBorder() {
     return this._unrestricted ? this._token.tokenBorder : this;
   }
 }

@@ -111,21 +111,6 @@ export function _createPolygonVisionSource(config) {
 }
 
 /**
- * Wrap Token.prototype.updateVisionSource
- * Reset the constrained token shape when updating vision for a token.
- * @param {Function} wrapper
- * @param {object} [options]        Options which affect how the vision source is updated
- * @param {boolean} [options.defer]     Defer refreshing the LightingLayer to manually call that refresh later.
- * @param {boolean} [options.deleted]   Indicate that this vision source has been deleted.
- *
- */
-export function tokenUpdateVisionSource(wrapped, { defer=false, deleted=false }={}) {
-  // Remove the prior constrained shape, if any
-  this._constrainedTokenShape = undefined;
-  return wrapped({ defer, deleted });
-}
-
-/**
  * Wrap DetectionMode.prototype._testLOS
  */
 export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test) {

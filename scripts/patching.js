@@ -5,7 +5,6 @@ Token
 "use strict";
 
 import {
-  tokenUpdateVisionSource,
   _testLOSDetectionMode,
   _createPolygonVisionSource,
   initializeVisionSource
@@ -59,7 +58,6 @@ export function registerLibWrapperMethods() {
   libWrapper.register(MODULE_ID, "Token.prototype.updateSource", updateSourceToken, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
   // ----- Constrained token shape ----- //
-  libWrapper.register(MODULE_ID, "Token.prototype.updateVisionSource", tokenUpdateVisionSource, libWrapper.WRAPPER);
   libWrapper.register(MODULE_ID, "VisionSource.prototype.initialize", initializeVisionSource, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
 
