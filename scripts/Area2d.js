@@ -17,7 +17,7 @@ import { Point3d } from "./Point3d.js";
 import { Area3d} from "./Area3d.js";
 import * as drawing from "./drawing.js";
 import { CWSweepInfiniteWallsOnly } from "./CWSweepInfiniteWallsOnly.js";
-
+import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 /* Area 2d
 1. Center point shortcut:
@@ -35,15 +35,32 @@ import { CWSweepInfiniteWallsOnly } from "./CWSweepInfiniteWallsOnly.js";
 */
 
 export class Area2d {
+
+  /** @type {VisionSource} */
+  visionSource;
+
+  /** @type {Token} */
+  target;
+
+  /** @type {boolean} */
+  debug = false;
+
+  /** @type {string} */
+  type = "sight";
+
+  /** @type {number} */
+  percentAreaForLOS = 0;
+
   /**
    * @param {VisionSource} visionSource
    * @param {Token} target
    */
-  constructor(visionSource, target) {
+  constructor(visionSource, target, type = "sight") {
     this.visionSource = visionSource instanceof Token ? visionSource.vision : visionSource;
     this.target = target;
-    this.debug = game.modules.get(MODULE_ID).api.debug.area;
+    this.type = type;
 
+    this.debug = game.modules.get(MODULE_ID).api.debug.area;
     this.percentAreaForLOS = getSetting(SETTINGS.LOS.PERCENT_AREA);
   }
 
@@ -78,7 +95,8 @@ export class Area2d {
       return false;
     }
 
-    const constrained = this.target.constrainedTokenShape;
+    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
+
     const shadowLOS = this._buildShadowLOS();
 
     if ( percentArea === 0 ) {
@@ -103,7 +121,7 @@ export class Area2d {
   /**
    * For polygon shapes, measure if a token boundary has been breached by line-of-sight.
    * @param {PIXI.Polygon|ClipperPaths} los                       Viewer line-of-sight
-   * @param {PIXI.Polygon|PIXI.Rectangle} constrainedTokenShape   Token shape constrained by walls.
+   * @param {PIXI.Polygon|PIXI.Rectangle} tokenShape   Token shape constrained by walls.
    */
   _targetBoundsTest(los, tokenShape) {
     if ( los instanceof ClipperPaths ) los.simplify();
@@ -156,7 +174,7 @@ export class Area2d {
   percentAreaVisible(shadowLOS) {
     shadowLOS ??= this._buildShadowLOS();
 
-    const constrained = this.target.constrainedTokenShape;
+    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
 
     const targetPercentAreaBottom = shadowLOS.bottom ? this._calculatePercentSeen(shadowLOS.bottom, constrained) : 0;
     const targetPercentAreaTop = shadowLOS.top ? this._calculatePercentSeen(shadowLOS.top, constrained) : 0;
@@ -275,18 +293,21 @@ export class Area2d {
   shadowLOSForElevation(targetElevation = 0) {
     const visionSource = this.visionSource;
     const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
-    visionSource.los ??= visionSource._createPolygon();
+    const config = visionSource._getPolygonConfiguration;
+    config.type = this.type;
+    let los = visionSource._createPolygon(config);
 
-    let los = visionSource.los;
     const bounds = los.bounds;
     const collisionTest = (o, rect) => isFinite(o.t.topZ) || isFinite(o.t.bottomZ);  // eslint-disable-line no-unused-vars
     let walls = canvas.walls.quadtree.getObjects(bounds, { collisionTest });
 
     // Further limit walls based on the vision cone to the target
+    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
     if ( walls.size ) walls = Area3d.filterWallsForVisionCone(
       walls,
-      this.target.constrainedTokenShape,
-      origin);
+      constrained,
+      origin,
+      this.type);
 
     // Wall Height removes walls from LOS calculation if
     // 1. origin is above the top of the wall
@@ -314,6 +335,7 @@ export class Area2d {
 
     if ( redoLOS ) {
       const cfg = visionSource._getPolygonConfiguration();
+      cfg.type = this.type;
       los = CWSweepInfiniteWallsOnly.create(origin, cfg);
     }
 

@@ -5,10 +5,9 @@ Token
 "use strict";
 
 import {
-  tokenUpdateVisionSource,
   _testLOSDetectionMode,
-  _createPolygonPointSource,
-  getConstrainedTokenShape
+  _createPolygonVisionSource,
+  initializeVisionSource
 } from "./visibility_los.js";
 
 import {
@@ -29,6 +28,11 @@ import {
   _onSubmitSettingsConfig
 } from "./settings.js";
 
+import {
+  getTokenBorder,
+  getTokenShape,
+  getConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+
 export function registerLibWrapperMethods() {
   const levelsActive = game.modules.get("levels")?.active;
   const pvActive = game.modules.get("perfect-vision")?.active;
@@ -48,21 +52,41 @@ export function registerLibWrapperMethods() {
 
   // ----- LOS Testing ----- //
   libWrapper.register(MODULE_ID, "DetectionMode.prototype._testLOS", _testLOSDetectionMode, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
-  libWrapper.register(MODULE_ID, "PointSource.prototype._createPolygon", _createPolygonPointSource, libWrapper.WRAPPER);
 
   // ----- Cover status effects ----- //
   libWrapper.register(MODULE_ID, "TokenDocument.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument, libWrapper.WRAPPER);
   libWrapper.register(MODULE_ID, "Token.prototype.updateSource", updateSourceToken, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
   // ----- Constrained token shape ----- //
-  libWrapper.register(MODULE_ID, "Token.prototype.updateVisionSource", tokenUpdateVisionSource, libWrapper.WRAPPER);
+  libWrapper.register(MODULE_ID, "VisionSource.prototype.initialize", initializeVisionSource, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
-  if ( !Object.hasOwn(Token.prototype, "constrainedTokenShape") ) {
-    Object.defineProperty(Token.prototype, "constrainedTokenShape", {
-      get: getConstrainedTokenShape,
+
+  if ( !Object.hasOwn(Token.prototype, "tokenShape") ) {
+    Object.defineProperty(Token.prototype, "tokenShape", {
+      get: getTokenShape,
       enumerable: false
     });
   }
+
+  if ( !Object.hasOwn(Token.prototype, "tokenBorder") ) {
+    Object.defineProperty(Token.prototype, "tokenBorder", {
+      get: getTokenBorder,
+      enumerable: false
+    });
+  }
+
+  if ( !Object.hasOwn(Token.prototype, "constrainedTokenBorder") ) {
+    Object.defineProperty(Token.prototype, "constrainedTokenBorder", {
+      get: getConstrainedTokenBorder,
+      enumerable: false
+    });
+  }
+
+  Object.defineProperty(VisionSource.prototype, "_createPolygon", {
+    value: _createPolygonVisionSource,
+    writable: true,
+    configurable: true
+  });
 }
 
 function updateSourceToken(wrapper, ...args) {

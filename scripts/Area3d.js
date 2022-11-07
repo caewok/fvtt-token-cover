@@ -34,23 +34,33 @@ import { Matrix } from "./Matrix.js";
 import { Point3d } from "./Point3d.js";
 import { Plane } from "./Plane.js";
 import { elementsByIndex, segmentBlocks, zValue } from "./util.js";
+import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import * as drawing from "./drawing.js"; // For debugging
 
 export class Area3d {
-  _M = undefined;
 
+  /** @type {VisionSource} */
   viewer = undefined;
 
+  /** @type {Token} */
   target = undefined;
 
+  /** @type {string} */
+  type = "sight";
+
+  /** @type {PIXI.Rectangle} */
   _boundsXY = null;
 
+  /** @type {Wall[]} */
   _blockingWalls = null;
 
+  /** @type {Point3d[]} */
   _transformedTarget = undefined;
 
+  /** @type {object[]}  An object with A and B. */
   _transformedWalls = undefined;
 
+  /** @type {Shadow[]} */
   wallShadows = [];
 
   /**
@@ -60,17 +70,17 @@ export class Area3d {
    */
   static _upVector = new Point3d(0, 0, -1);
 
-
   /**
    * @param {VisionSource|TOKEN} visionSource     Token, viewing from token.topZ.
    * @param {Target} target   Target; token is looking at the target center.
    */
-  constructor(viewer, target) {
+  constructor(viewer, target, type = "sight") {
     this.viewer = viewer instanceof Token ? viewer.vision : viewer;
     this.target = target;
     this.percentAreaForLOS = getSetting(SETTINGS.LOS.PERCENT_AREA);
     this._useShadows = getSetting(SETTINGS.AREA3D_USE_SHADOWS);
     this.debug = game.modules.get(MODULE_ID).api.debug.area;
+    this.type = type;
   }
 
   /**
@@ -449,9 +459,10 @@ export class Area3d {
     let walls = canvas.walls.quadtree.getObjects(this.boundsXY, { collisionTest });
 
     // If any walls, refine further by testing against the vision triangle
+    const constrainedTokenBorder = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
     if ( walls.size ) walls = Area3d.filterWallsForVisionCone(
       walls,
-      this.target.constrainedTokenShape,
+      constrainedTokenBorder,
       this.viewerCenter);
 
     return walls;
@@ -472,15 +483,16 @@ export class Area3d {
     const center = this.viewerCenter;
     const centerZ = this.viewerCenter.z;
     const target = this.target;
-    const { bottomZ, constrainedTokenShape } = target;
+    const constrainedTokenBorder = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
+    const bottomZ = target.bottomZ;
     let topZ = target.topZ;
     if ( bottomZ === topZ ) {
       // Give the target a minimal height so area calcs work
       topZ += 2;
     }
 
-    const targetPoly = constrainedTokenShape instanceof PIXI.Rectangle
-      ? constrainedTokenShape.toPolygon() : constrainedTokenShape;
+    const targetPoly = constrainedTokenBorder instanceof PIXI.Rectangle
+      ? constrainedTokenBorder.toPolygon() : constrainedTokenBorder;
 
     const out = {
       points: [],
@@ -719,7 +731,7 @@ export class Area3d {
    * @param {hasLOS: {Boolean}, hasFOV: {Boolean}}
    * @return {Boolean} Returns false if the source definitely cannot provide LOS; true otherwise.
    */
-  static filterWallsForVisionCone(walls, constrained, origin) {
+  static filterWallsForVisionCone(walls, constrained, origin, type = "sight") {
     const keyPoints = (constrained instanceof PIXI.Polygon)
       ? Area3d.polygonKeyPointsForOrigin(constrained, origin)
       : Area3d.bboxKeyCornersForOrigin(constrained, origin);
@@ -728,7 +740,9 @@ export class Area3d {
     const visionPoly = new PIXI.Polygon([origin, ...keyPoints]);
 
     walls = walls.filter(wall =>
-      visionPoly.contains(wall.A.x, wall.A.y)
+      !wall.document[type]
+      || wall.isOpen
+      || visionPoly.contains(wall.A.x, wall.A.y)
       || visionPoly.contains(wall.B.x, wall.B.y)
       || visionPoly.linesCross([wall]));
 

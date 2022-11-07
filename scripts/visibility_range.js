@@ -7,6 +7,7 @@ import { SETTINGS, getSetting } from "./settings.js";
 import { MODULE_ID } from "./const.js";
 import { Point3d } from "./Point3d.js";
 import * as drawing from "./drawing.js";
+import { log } from "./util.js";
 
 /* Range Options
 
@@ -59,15 +60,6 @@ export function testVisibilityDetectionMode(wrapped, visionSource, mode, {object
 
   tests = elevatePoints(tests, visionSource, object);
 
-  const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
-  if ( algorithm === SETTINGS.LOS.TYPES.AREA || algorithm === SETTINGS.LOS.TYPES.AREA3D ) {
-    // Link tests to the center test for los area
-    const ln = tests.length;
-    for ( let i = 1; i < ln; i += 1 ) {
-      tests[i].centerPoint = tests[0];
-    }
-  }
-
   return wrapped(visionSource, mode, { object, tests });
 }
 
@@ -91,6 +83,9 @@ function elevatePoints(tests, visionSource, object) {
   const avgElevation = object.bottomZ + (objectHeight * 0.5);
   for ( const test of tests ) test.point.z ??= avgElevation;
 
+  // Identify the center point
+  tests[0].centerPoint = true;
+
   // If top/bottom equal or not doing 3d points, no need for extra test points
   if ( !objectHeight || !getSetting(SETTINGS.RANGE.POINTS3D) ) return tests;
 
@@ -100,7 +95,7 @@ function elevatePoints(tests, visionSource, object) {
   for ( let i = 1; i < ln; i += 1 ) {
     const test = tests[i];
     const { x, y } = test.point;
-    if ( test.los.size > 0 ) console.warn("Test point has los mapping already.");
+    if ( test.los.size > 0 ) log("Test point has los mapping already.");
 
     tests3d.push(
       // Use the same map so that x,y contains tests are cached and not repeated.
