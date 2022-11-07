@@ -3,16 +3,16 @@ Token,
 canvas,
 game,
 ClockwiseSweepPolygon,
-foundry
+CONFIG
 */
 "use strict";
 
 import { MODULE_ID } from "./const.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Point3d } from "./Point3d.js";
-import { CoverCalculator } from "./CoverCalculator.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
+import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import * as drawing from "./drawing.js";
 
 /* Visibility algorithm
@@ -110,7 +110,6 @@ export function _createPolygonVisionSource(config) {
   return poly;
 }
 
-
 /**
  * Wrap Token.prototype.updateVisionSource
  * Reset the constrained token shape when updating vision for a token.
@@ -134,79 +133,124 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   if ( !(target instanceof Token) ) return wrapped(visionSource, mode, target, test);
 
   // If not constrained by walls or no walls present, line-of-sight is guaranteed.
-  if ( !this.walls || !canvas.walls.placeables.length  ) return true;
+  if ( !this.walls || !canvas.walls.placeables.length ) return true;
 
+  // Check the cached value; return if there.
+  let hasLOS = test.los.get(visionSource);
+  if ( hasLOS === true || hasLOS === false ) return hasLOS;
+
+  const debug = game.modules.get(MODULE_ID).api.debug.los;
   const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
   const types = SETTINGS.LOS.TYPES;
-  if ( algorithm === types.POINTS ) {
-    if ( !hasLOSCeilingFloorLevels(new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ), test.point) ) {
-      drawDebugPoint(visionSource, test, false);
-      return false;
-    }
-    const losContainsPoint = wrapped(visionSource, mode, target, test);
-
-    let hasLOS = wrapped(visionSource, mode, target, test);
-    hasLOS = testLOSPoint(visionSource, target, test, losContainsPoint);
-    drawDebugPoint(visionSource, test, hasLOS);
-    return hasLOS;
+  switch ( algorithm ) {
+    case types.POINTS:
+      hasLOS = testLOSPoint(visionSource, target, test);
+      debug && drawDebugPoint(visionSource, test.point, hasLOS); // eslint-disable-line no-unused-expressions
+      break;
+    case types.AREA:
+      hasLOS = testLOSArea(visionSource, target, test);
+      break;
+    case types.AREA3D:
+      hasLOS = testLOSArea3d(visionSource, target, test);
+      break;
   }
 
-  // Only need to test area once, so use the center point to do this.
-  if ( !test.centerPoint ) return false;
-
-
-
-
-  const center = target.center;
-  const avgElevation = CoverCalculator.averageTokenElevation(target);
-  const centerPoint = new Point3d(center.x, center.y, avgElevation);
-
-  if ( !test.point.almostEqual(centerPoint) && test.centerPoint ) return test.centerPoint.hasLOSArea;
-  if ( !hasLOSCeilingFloorLevels(new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ), test.point) ) return false;
-
-  if ( algorithm === types.AREA ) {
-    const hasLOS = wrapped(visionSource, mode, target, test);
-
-    const centerPointIsVisible = testLOSPoint(visionSource, target, test, hasLOS);
-
-    const area2d = new Area2d(visionSource, target);
-    area2d.debug = game.modules.get(MODULE_ID).api.debug.los;
-
-    test.hasLOSArea = area2d.hasLOS(centerPointIsVisible);
-    return test.hasLOSArea;
-  } else { // Final: types.AREA3D
-    const area3d = new Area3d(visionSource, target);
-    area3d.debug = game.modules.get(MODULE_ID).api.debug.los;
-    test.hasLOSArea = area3d.hasLOS();
-    return test.hasLOSArea;
-  }
+  test.los.set(visionSource, hasLOS);
+  return hasLOS;
 }
 
-function drawDebugPoint(origin, test, hasLOS) {
-  const debug = game.modules.get(MODULE_ID).api.debug.los;
-  debug && drawing.drawSegment({A: origin, B: test.point}, {
+/**
+ * Draw red or green test points for debugging.
+ * @param {VisionSource} visionSource
+ * @param {Point} pt
+ * @param {boolean} hasLOS       Is there line-of-sight to the point?
+ */
+function drawDebugPoint(visionSource, pt, hasLOS) {
+  const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
+  drawing.drawSegment({A: origin, B: pt}, {
     color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red,
     alpha: 0.5
-  })
+  });
 }
 
-function testLOSPoint(visionSource, target, test, losContainsPoint ) {
-  // If not in the line of sight, no need to test for wall collisions
-  // If wall height is not active, collisions will be equivalent to hasLOS
-  if ( !losContainsPoint || !game.modules.get("wall-height")?.active ) return losContainsPoint;
+/**
+ * Test a point for line-of-sight. Confirm:
+ * 1. Point is on the same level as the visionSource.
+ * 2. Point is in LOS.
+ * 3. Point is within the constrained target shape.
+ * 4. No collisions with wall height limited walls.
+ * @param {VisionSource} visionSource
+ * @param {Token} target
+ * @param {object} test       Object containing Point to test
+ * @returns {boolean} True if source has line-of-sight to point
+ */
+function testLOSPoint(visionSource, target, test) {
+  // Test for Levels to avoid vision between levels tiles
+  const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
+  const pt = test.point;
+  if ( !hasLOSCeilingFloorLevels(origin, pt) ) return false;
+
+  // If not within LOS, then we are done.
+  if ( !visionSource.los.contains(pt.x, pt.y) ) return false;
 
   // If not within the constrained token shape, then don't test.
   // Assume that unconstrained token shapes contain all test points.
-  const cst = ConstrainedTokenShape.get(target)
-  if ( cst._unrestricted ) return true;
+  const cst = ConstrainedTokenBorder.get(target);
+  if ( !cst.contains(pt.x, pt.y) ) return false;
+
+  // If wall height is not active, collisions will be equivalent to the contains test
+  // because no limited walls to screw this up. (Note that contains is true at this point.)
+  if ( !game.modules.get("wall-height")?.active ) return true;
 
   // Test all non-infinite walls for collisions
+  if ( game.modules.get("levels")?.active ) return !CONFIG.Levels.API.testCollision(origin, pt);
+  else return !ClockwiseSweepPolygon.testCollision3d(origin, pt, { type: "sight", mode: "any", wallTypes: "limited" });
+}
+
+/**
+ * Test a target token for line-of-sight using top/bottom token areas.
+ * @param {VisionSource} visionSource
+ * @param {Token} target
+ * @param {object} pt       Point to test
+ * @returns {boolean} True if source has line-of-sight to point for center point, false otherwise.
+ */
+function testLOSArea(visionSource, target, test) {
+  // If this is not the center point, do not test.
+  if ( !test.centerPoint ) return false;
+
+  // For now, test for Levels to avoid vision between levels tiles.
+  // TODO: Incorporate into 2d area test?
   const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
+  const pt = test.point;
+  if ( !hasLOSCeilingFloorLevels(origin, pt) ) return false;
 
-  if ( game.modules.get("levels")?.active ) return !CONFIG.Levels.API.testCollision(origin, test.point);
-  else return !ClockwiseSweepPolygon.testCollision3d(origin, test.point, { type: "sight", mode: "any", wallTypes: "limited" });
+  const centerPointIsVisible = testLOSPoint(visionSource, target, test);
 
-  return hasLOS;
+  const area2d = new Area2d(visionSource, target);
+  area2d.debug = game.modules.get(MODULE_ID).api.debug.los;
+  return area2d.hasLOS(centerPointIsVisible);
+}
+
+/**
+ * Test a target token for line-of-sight using top/bottom token areas.
+ * @param {VisionSource} visionSource
+ * @param {Token} target
+ * @param {object} pt       Point to test
+ * @returns {boolean} True if source has line-of-sight for center point, false otherwise
+ */
+function testLOSArea3d(visionSource, target, test) {
+  // If this is not the center point, do not test.
+  if ( !test.centerPoint ) return false;
+
+  // For now, test for Levels to avoid vision between levels tiles.
+  // TODO: Incorporate into 3d area test?
+  const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
+  const pt = test.point;
+  if ( !hasLOSCeilingFloorLevels(origin, pt) ) return false;
+
+  const area3d = new Area3d(visionSource, target);
+  area3d.debug = game.modules.get(MODULE_ID).api.debug.los;
+  return area3d.hasLOS();
 }
 
 /**
@@ -219,18 +263,18 @@ function hasLOSCeilingFloorLevels(origin, testPoint) {
   const z0 = origin.z;
   const z1 = testPoint.z;
 
-  //Check the background for collisions
-  const bgElevation = canvas?.scene?.flags?.levels?.backgroundElevation ?? 0
+  // Check the background for collisions
+  const bgElevation = canvas?.scene?.flags?.levels?.backgroundElevation ?? 0;
 
   if ( (origin.z < bgElevation && bgElevation < z1)
     || (z1 < bgElevation && bgElevation < z0) ) return false;
 
-  //Loop through all the planes and check for both ceiling and floor collision on each tile
+  // Loop through all the planes and check for both ceiling and floor collision on each tile
   for (let tile of canvas.tiles.placeables) {
-    if( tile.document.flags?.levels?.noCollision ) continue;
+    if ( tile.document.flags?.levels?.noCollision ) continue;
     const bottom = tile.document.flags?.levels?.rangeBottom ?? -Infinity;
-    if ( bottom !== -Infinity &&
-      ((z0 < bottom && bottom < z1) || (z1 < bottom && bottom < z0)) ) {
+    if ( bottom !== -Infinity
+      && ((z0 < bottom && bottom < z1) || (z1 < bottom && bottom < z0)) ) {
 
       const zIntersectionPoint = getPointForPlane(origin, testPoint, bottom);
       if ( tile.containsPixel(zIntersectionPoint.x, zIntersectionPoint.y, 0.99) ) return false;
@@ -241,13 +285,13 @@ function hasLOSCeilingFloorLevels(origin, testPoint) {
 }
 
 // From https://github.com/theripper93/Levels/blob/v9/scripts/handlers/sightHandler.js
-//Get the intersection point between the ray and the Z plane
+// Get the intersection point between the ray and the Z plane
 function getPointForPlane(a, b, z) {
   const dabz = b.z - a.z;
   if ( !dabz ) return null;
 
   const dzaz = z - a.z;
-  const x = (dzaz * (b.x - a.x) + (a.x * b.z) - (a.x * a.z)) / dabz;
-  const y = (dzaz * (b.y - a.y) + (b.z * a.y) - (a.z * a.y)) / dabz;
+  const x = ((dzaz * (b.x - a.x)) + (a.x * b.z) - (a.x * a.z)) / dabz;
+  const y = ((dzaz * (b.y - a.y)) + (b.z * a.y) - (a.z * a.y)) / dabz;
   return { x, y };
 }
