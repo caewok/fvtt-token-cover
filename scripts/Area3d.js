@@ -34,6 +34,7 @@ import { Matrix } from "./Matrix.js";
 import { Point3d } from "./Point3d.js";
 import { Plane } from "./Plane.js";
 import { elementsByIndex, segmentBlocks, zValue } from "./util.js";
+import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import * as drawing from "./drawing.js"; // For debugging
 
 export class Area3d {
@@ -58,9 +59,6 @@ export class Area3d {
 
   /** @type {object[]}  An object with A and B. */
   _transformedWalls = undefined;
-
-  /** @type {string} */
-  type = "sight";
 
   /** @type {Shadow[]} */
   wallShadows = [];
@@ -461,9 +459,10 @@ export class Area3d {
     let walls = canvas.walls.quadtree.getObjects(this.boundsXY, { collisionTest });
 
     // If any walls, refine further by testing against the vision triangle
+    const constrainedTokenBorder = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
     if ( walls.size ) walls = Area3d.filterWallsForVisionCone(
       walls,
-      this.target.constrainedTokenShape,
+      constrainedTokenBorder,
       this.viewerCenter);
 
     return walls;
