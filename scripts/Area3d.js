@@ -1059,13 +1059,17 @@ export class WallPoints3d {
   /**
    * Truncate the transformed walls to keep only the below z = 0 portion
    */
-  _truncateTransform() {
+  _truncateTransform(rep = 0) {
+    if ( rep > 1 ) return;
+
+    const needsRep = false;
     const targetE = -1;
     let A = this.tPoints[3];
     for ( let i = 0; i < 4; i += 1 ) {
       const B = this.tPoints[i];
       const Aabove = A.z > targetE;
       const Babove = B.z > targetE;
+      if ( Aabove && Babove ) needsRep = true;
       if ( !(Aabove ^ Babove) ) continue;
 
       const res = truncateWallAtElevation(A, B, targetE, -1, 0);
@@ -1075,6 +1079,8 @@ export class WallPoints3d {
       }
       A = B;
     }
+    rep += 1;
+    needsRep && this._truncateTransform(rep);
   }
 
   /**
