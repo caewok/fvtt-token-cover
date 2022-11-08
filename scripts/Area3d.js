@@ -33,7 +33,7 @@ import { Shadow, truncateWallAtElevation } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
 import { Point3d } from "./Point3d.js";
 import { Plane } from "./Plane.js";
-import { elementsByIndex, segmentBlocks, zValue } from "./util.js";
+import { elementsByIndex, zValue } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import * as drawing from "./drawing.js"; // For debugging
 
@@ -83,8 +83,6 @@ export class Area3d {
     this.type = type;
 
     this.targetPoints = new TokenPoints3d(target);
-
-
   }
 
   /**
@@ -156,7 +154,8 @@ export class Area3d {
    * @type {Point3d[]}
    */
   get transformedTarget() {
-    return this._transformedTarget || (this._transformedTarget = this._transformTarget());
+    if ( !this.targetPoints.viewIsSet ) this._transformTarget();
+    return this.targetPoints.tFaces;
   }
 
   /**
@@ -166,13 +165,8 @@ export class Area3d {
    * @type {Point3d[]}
    */
   get perspectiveTarget() {
-    const tTarget = this.transformedTarget;
-    return {
-      points: tTarget.points.map(pt => Area3d.perspectiveTransform(pt)),
-      sides: tTarget.sides,
-      top: tTarget.top,
-      bottom: tTarget.bottom
-    };
+    if ( !this.targetPoints.viewIsSet ) this._transformTarget();
+    return this.targetPoints.perspectiveTransform();
   }
 
   /**
@@ -279,20 +273,11 @@ export class Area3d {
   }
 
   /**
-   * Transform the token center
-   * Only used for debugging
-   */
-  _transformViewerCenter() {
-    return Matrix.fromPoint3d(this.viewerCenter).multiply(this.viewerViewM).toPoint3d();
-  }
-
-  /**
    * Transform the target location.
    */
   _transformTarget() {
-    const t = this._target3dPoints();
-    t.points = t.points.map(pt => Matrix.fromPoint3d(pt).multiply(this.viewerViewM).toPoint3d());
-    return t;
+    this.targetPoints.setViewingPoint(this.viewerCenter);
+    this.targetPoints.setViewMatrix(this.viewerViewM);
   }
 
   /**
@@ -365,19 +350,17 @@ export class Area3d {
 
   _obscureSides() {
     const tTarget = this.perspectiveTarget;
-    const sides = tTarget.sides;
     const shadowsArr = this._useShadows ? this.perspectiveShadows : undefined;
     const walls = this.perspectiveWalls;
     const wallPolys = walls.map(w => new PIXI.Polygon(w));
 
     // For each side, union the blocking wall with any shadows and then take diff against the side
-    const nSides = sides.length;
+    const nSides = tTarget.length;
     const obscuredSides = [];
     this.sidePolys = [];
     for ( let i = 0; i < nSides; i += 1 ) {
-      const side = sides[i];
-      const sidePoints = elementsByIndex(tTarget.points, side);
-      const sidePoly = new PIXI.Polygon(sidePoints);
+      const side = tTarget[i];
+      const sidePoly = new PIXI.Polygon(side);
       this.sidePolys.push(sidePoly);
 
       const blockingPolygons = [...wallPolys];
@@ -718,6 +701,12 @@ export class TokenPoints3d {
   /** @type {PIXI.Polygon} */
   tokenPolygon = new PIXI.Polygon();
 
+  /** @type {Point3d[][]} */
+  faces = [];
+
+  /** @type {Point3d[][]} */
+  tFaces = [];
+
   /**
    * @param {Token} token
    * @param {string} type     Wall restriction type, for constructing the constrained token shape.
@@ -762,6 +751,21 @@ export class TokenPoints3d {
     return topZ === this.bottomZ ? topZ + 2 : topZ;
   }
 
+  /** @type {boolean} */
+  get viewIsSet() {
+    return Boolean(this.tFaces.length);
+  }
+
+  setViewingPoint(viewingPoint) {
+    this.viewingPoint = viewingPoint;
+    this.faces = this._viewableFaces(viewingPoint);
+  }
+
+  setViewMatrix(M) {
+    this.M = M;
+    this.tFaces = this._transform(M);
+  }
+
   /**
    * Helper to get the points of the token border.
    */
@@ -777,8 +781,8 @@ export class TokenPoints3d {
    *   {Points3d|undefined} bottom
    *   {Points3d[]} sides
    */
-  viewableFaces(viewingPoint) {
-    const sides = this.viewableSides(viewingPoint);
+  _viewableFaces(viewingPoint) {
+    const sides = this._viewableSides(viewingPoint);
 
     if ( viewingPoint.z > this.topZ ) sides.push(this.topPoints);
     else if ( viewingPoint.z < this.bottomZ ) sides.push(this.bottomPoints);
@@ -794,7 +798,7 @@ export class TokenPoints3d {
    * @param {Point3d} viewingPoint
    * @returns {Point3d[][]} Array of sides, each containing 4 points.
    */
-  viewableSides(viewingPoint) {
+  _viewableSides(viewingPoint) {
     const { topPoints, bottomPoints, tokenPolygon } = this;
     const keys = Area3d.polygonKeyPointsForOrigin(tokenPolygon, viewingPoint, { returnKeys: true });
 
@@ -811,24 +815,40 @@ export class TokenPoints3d {
   }
 
   /**
+   * Transform the faces using a transformation matrix.
+   * @param {Matrix} M
+   */
+  _transform(M) {
+    return this.faces.map(face => face.map(pt => Matrix.fromPoint3d(pt).multiply(M).toPoint3d()));
+  }
+
+  /**
+   * Transform the wall to a 2d perspective.
+   * @returns {Point2d[]}
+   */
+  perspectiveTransform() {
+    return this.tFaces.map(face => face.map(pt => Area3d.perspectiveTransform(pt)));
+  }
+
+  /**
    * Transform the faces using a provided function.
    * @param {function} transformFn
    * @returns {Point3d[][]}
    */
-  static transformFaces(faces, transformFn) {
-    // Use for loop with preset arrays for speed. Map would be simpler.
-    const nFaces = faces.length;
-    const tFaces = Array(nFaces);
-    for ( let i = 0; i < nFaces; i += 1 ) {
-      const face = faces[i];
-      const nPts = face.length;
-      const tFace = Array(nPts);
-      tFaces[i] = tFace;
-      for ( let j = 0; j < nPts; j += 1 ) {
-        tFace[j] = transformFn(face[j]);
-      }
-    }
-    return tFaces;
-  }
+//   static transformFaces(faces, transformFn) {
+//     // Use for loop with preset arrays for speed. Map would be simpler.
+//     const nFaces = faces.length;
+//     const tFaces = Array(nFaces);
+//     for ( let i = 0; i < nFaces; i += 1 ) {
+//       const face = faces[i];
+//       const nPts = face.length;
+//       const tFace = Array(nPts);
+//       tFaces[i] = tFace;
+//       for ( let j = 0; j < nPts; j += 1 ) {
+//         tFace[j] = transformFn(face[j]);
+//       }
+//     }
+//     return tFaces;
+//   }
 }
 
