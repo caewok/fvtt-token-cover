@@ -44,17 +44,17 @@ export class Area3d {
   /** @type {VisionSource} */
   viewer = undefined;
 
+  /** @type {Point3d} */
+  _viewerCenter = undefined;
+
   /** @type {Token} */
   target = undefined;
 
   /** @type {string} */
   type = "sight";
 
-  /** @type {PIXI.Rectangle} */
-  _boundsXY = null;
-
-  /** @type {Wall[]} */
-  _blockingWalls = undefined;
+  /** @type object{walls: Set<WallPoints3d>|undefined, tiles: Set<WallPoints3d>, tokens: Set<TokenPoints3d>} */
+  _blockingObjects = undefined;
 
   /** @type {Point3d[]} */
   _transformedTarget = undefined;
@@ -106,25 +106,11 @@ export class Area3d {
   }
 
   /**
-   * Find the bounds rectangle encompassing the token center and the target shape.
-   * XY (original) coordinates
-   * @type {PIXI.Rectangle}
+   * Get the blocking objects
+   * @type {object{walls: Set<WallPoints3d>|undefined, tiles: Set<WallPoints3d>, tokens: Set<TokenPoints3d>}}
    */
-  get boundsXY() {
-    return this._boundsXY || (this._boundsXY = this._calculateBoundsXY());
-  }
-
-  /**
-   * Get the blocking walls
-   * @type {<Set>{Point3d[]}
-   */
-  get blockingWalls() {
-    if ( !this._blockingWalls ) {
-      const walls = this._findBlockingWalls();
-      this._blockingWalls = walls.map(w => new WallPoints3d(w));
-    }
-
-    return this._blockingWalls;
+  get blockingObjects() {
+    return this._blockingObjects ?? (this._blockingObjects = this._findBlockingObjects());
   }
 
   /**
@@ -163,8 +149,12 @@ export class Area3d {
     tp.setViewingPoint(this.viewerCenter);
     tp.setViewMatrix(this.viewerViewM);
 
-    this.blockingWalls.forEach(w => {
-      w.setViewMatrix(this.viewerViewM);
+    const objs = this.blockingObjects;
+    objs.walls.forEach(w => w.setViewMatrix(this.viewerViewM));
+    objs.tiles.forEach(t => t.setViewMatrix(this.viewerViewM));
+    objs.tokens.forEach(t => {
+      t.setViewingPoint(this.viewerCenter);
+      t.setViewMatrix(this.viewerViewM);
     });
 
     this.viewIsSet = true;
@@ -262,39 +252,23 @@ export class Area3d {
   }
 
   /**
-   * Transform the target location.
-   */
-  _transformTarget() {
-    const tp = this.targetPoints;
-    tp.setViewingPoint(this.viewerCenter);
-    tp.setViewMatrix(this.viewerViewM);
-  }
-
-  /**
-   * Transform the wall locations.
-   */
-  _transformWalls() {
-    this.blockingWalls.forEach(w => {
-      w.setViewMatrix(this.viewerViewM);
-    });
-  }
-
-  /**
    * Construct wall shadows in the transformed coordinates.
    * Shadows for where walls block vision of the token due to angle of token view --> wall edge.
    * Each edge is considered a separate "wall".
    * - Treat the wall as 2d, with each edge a line that can block vision.
    */
   _projectShadowsForWalls() {
+    // TODO: Fix
+    console.error("_projectShadowsForWalls not implemented.");
+    return;
+
     if ( !this.viewIsSet ) this.calculateViewMatrix();
 
     const origin = new Point3d(0, 0, 0);
     const tTarget = this.targetPoints.tFaces;
-    const tWalls = this.blockingWalls.map(w => w.tPoints);
+    const tWalls = this.blockingObjects.walls.map(w => w.tPoints);
 
-    // TODO: Fix
-    console.error("_projectShadowsForWalls not implemented.");
-    return;
+
 
     const sides = tTarget.sides;
     const shadowsArr = [];
@@ -323,7 +297,7 @@ export class Area3d {
     if ( !this.viewIsSet ) this.calculateViewMatrix();
 
     const tTarget = this.targetPoints.perspectiveTransform();
-    const walls = this.blockingWalls.map(w => w.perspectiveTransform());
+    const walls = this.blockingObjects.walls.map(w => w.perspectiveTransform());
 
     const shadowsArr = this._useShadows ? this.perspectiveShadows : undefined;
     const wallPolys = walls.map(w => new PIXI.Polygon(w));
@@ -358,7 +332,9 @@ export class Area3d {
     if ( this.debug ) {
       this._drawLineOfSight();
       this.targetPoints.drawTransformed();
-      this.blockingWalls.forEach(w => w.drawTransformed());
+      this.blockingObjects.walls.forEach(w => w.drawTransformed());
+      this.blockingObjects.tiles.forEach(w => w.drawTransformed({color: drawing.COLORS.yellow}));
+      this.blockingObjects.tokens.forEach(t => t.drawTransformed({color: drawing.COLORS.orange}));
 
       if (this._useShadows ) this._drawTransformedShadows();
 
@@ -370,7 +346,7 @@ export class Area3d {
         sides: [],
         obscuredSides: []
       };
-    } else if ( !this.blockingWalls.size ) return 1; // Only skip calcs and drawings if not debugging.
+    } else if ( !this.blockingObjects.walls.size && !this.blockingObjects.tiles.size && !this.blockingObjects.tokens.size ) return 1; // Only skip calcs and drawings if not debugging.
 
     const obscuredSides = this.obscuredSides;
     let sidesArea = 0;
@@ -419,18 +395,19 @@ export class Area3d {
   /**
    * Find relevant walls—--those intersecting the boundary between token center and target.
    */
-  _findBlockingWalls() {
-    const collisionTest = (o, rect) => this._testWallInclusion(o.t, rect);
-    let walls = canvas.walls.quadtree.getObjects(this.boundsXY, { collisionTest });
+  _findBlockingObjects() {
+    const out = Area3d.filterSceneObjectByVisionTriangle(this.viewerCenter, this.target, {
+      type: this.type,
+      filterWalls: true,
+      filterTokens: true,
+      filterTiles: true,
+      viewerId: this.viewer.object.id });
 
-    // If any walls, refine further by testing against the vision triangle
-    const constrainedTokenBorder = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
-    if ( walls.size ) walls = Area3d.filterWallsForVisionCone(
-      walls,
-      constrainedTokenBorder,
-      this.viewerCenter);
+    out.walls = out.walls.map(w => new WallPoints3d(w));
+    out.tiles = out.tiles.map(t => new WallPoints3d(t));
+    out.tokens = out.tokens.map(t => new TokenPoints3d(t, this.type));
 
-    return walls;
+    return out;
   }
 
   /**
@@ -475,7 +452,7 @@ export class Area3d {
     if ( !keyPoints || !keyPoints.length ) {
       console.error("visionTriangle: no key points found.");
       return null;
-    };
+    }
 
     return new PIXI.Polygon([viewingPoint, ...keyPoints]);
   }
@@ -1121,12 +1098,11 @@ export class WallPoints3d {
   /**
    * Draw the transformed shape.
    */
-  drawTransformed({perspective = true} = {}) {
+  drawTransformed({perspective = true, color = drawing.COLORS.blue } = {}) {
     if ( !this.viewIsSet ) {
       console.warn(`WallPoints3d: View is not yet set for Token ${this.token.name}.`);
       return;
     }
-    const color = drawing.COLORS.blue;
     const pts = perspective ? this.perspectiveTransform() : this.tPoints;
     const poly = new PIXI.Polygon(pts);
     drawing.drawShape(poly, { color, fill: color, fillAlpha: 0.2 });
