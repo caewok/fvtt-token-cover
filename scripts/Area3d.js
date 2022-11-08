@@ -44,17 +44,20 @@ export class Area3d {
   /** @type {VisionSource} */
   viewer = undefined;
 
+  /** @type {Point3d} */
+  _viewerCenter = undefined;
+
   /** @type {Token} */
   target = undefined;
 
   /** @type {string} */
   type = "sight";
 
-  /** @type {PIXI.Rectangle} */
-  _boundsXY = null;
+  /** @type {boolean} */
+  debug = false;
 
-  /** @type {Wall[]} */
-  _blockingWalls = undefined;
+  /** @type object{walls: Set<WallPoints3d>|undefined, tiles: Set<WallPoints3d>, tokens: Set<TokenPoints3d>} */
+  _blockingObjects = undefined;
 
   /** @type {Point3d[]} */
   _transformedTarget = undefined;
@@ -84,8 +87,14 @@ export class Area3d {
     this.target = target;
     this.percentAreaForLOS = getSetting(SETTINGS.LOS.PERCENT_AREA);
     this._useShadows = getSetting(SETTINGS.AREA3D_USE_SHADOWS);
-    this.debug = game.modules.get(MODULE_ID).api.debug.area;
     this.type = type;
+
+    // Set debug only if the target is being targeted.
+    // Avoids "double-vision" from multiple targets for area3d on scene.
+    if ( game.modules.get(MODULE_ID).api.debug.area ) {
+      const targets = canvas.tokens.placeables.filter(t => t.isTargeted);
+      this.debug = targets.some(t => t === target);
+    }
 
     this.targetPoints = new TokenPoints3d(target);
   }
@@ -106,25 +115,11 @@ export class Area3d {
   }
 
   /**
-   * Find the bounds rectangle encompassing the token center and the target shape.
-   * XY (original) coordinates
-   * @type {PIXI.Rectangle}
+   * Get the blocking objects
+   * @type {object{walls: Set<WallPoints3d>|undefined, tiles: Set<WallPoints3d>, tokens: Set<TokenPoints3d>}}
    */
-  get boundsXY() {
-    return this._boundsXY || (this._boundsXY = this._calculateBoundsXY());
-  }
-
-  /**
-   * Get the blocking walls
-   * @type {<Set>{Point3d[]}
-   */
-  get blockingWalls() {
-    if ( !this._blockingWalls ) {
-      const walls = this._findBlockingWalls();
-      this._blockingWalls = walls.map(w => new WallPoints3d(w));
-    }
-
-    return this._blockingWalls;
+  get blockingObjects() {
+    return this._blockingObjects ?? (this._blockingObjects = this._findBlockingObjects());
   }
 
   /**
@@ -163,8 +158,12 @@ export class Area3d {
     tp.setViewingPoint(this.viewerCenter);
     tp.setViewMatrix(this.viewerViewM);
 
-    this.blockingWalls.forEach(w => {
-      w.setViewMatrix(this.viewerViewM);
+    const objs = this.blockingObjects;
+    objs.walls.forEach(w => w.setViewMatrix(this.viewerViewM));
+    objs.tiles.forEach(t => t.setViewMatrix(this.viewerViewM));
+    objs.tokens.forEach(t => {
+      t.setViewingPoint(this.viewerCenter);
+      t.setViewMatrix(this.viewerViewM);
     });
 
     this.viewIsSet = true;
@@ -262,39 +261,23 @@ export class Area3d {
   }
 
   /**
-   * Transform the target location.
-   */
-  _transformTarget() {
-    const tp = this.targetPoints;
-    tp.setViewingPoint(this.viewerCenter);
-    tp.setViewMatrix(this.viewerViewM);
-  }
-
-  /**
-   * Transform the wall locations.
-   */
-  _transformWalls() {
-    this.blockingWalls.forEach(w => {
-      w.setViewMatrix(this.viewerViewM);
-    });
-  }
-
-  /**
    * Construct wall shadows in the transformed coordinates.
    * Shadows for where walls block vision of the token due to angle of token view --> wall edge.
    * Each edge is considered a separate "wall".
    * - Treat the wall as 2d, with each edge a line that can block vision.
    */
   _projectShadowsForWalls() {
+    // TODO: Fix
+    console.error("_projectShadowsForWalls not implemented.");
+    return;
+
     if ( !this.viewIsSet ) this.calculateViewMatrix();
 
     const origin = new Point3d(0, 0, 0);
     const tTarget = this.targetPoints.tFaces;
-    const tWalls = this.blockingWalls.map(w => w.tPoints);
+    const tWalls = this.blockingObjects.walls.map(w => w.tPoints);
 
-    // TODO: Fix
-    console.error("_projectShadowsForWalls not implemented.");
-    return;
+
 
     const sides = tTarget.sides;
     const shadowsArr = [];
@@ -323,7 +306,7 @@ export class Area3d {
     if ( !this.viewIsSet ) this.calculateViewMatrix();
 
     const tTarget = this.targetPoints.perspectiveTransform();
-    const walls = this.blockingWalls.map(w => w.perspectiveTransform());
+    const walls = this.blockingObjects.walls.map(w => w.perspectiveTransform());
 
     const shadowsArr = this._useShadows ? this.perspectiveShadows : undefined;
     const wallPolys = walls.map(w => new PIXI.Polygon(w));
@@ -358,7 +341,9 @@ export class Area3d {
     if ( this.debug ) {
       this._drawLineOfSight();
       this.targetPoints.drawTransformed();
-      this.blockingWalls.forEach(w => w.drawTransformed());
+      this.blockingObjects.walls.forEach(w => w.drawTransformed());
+      this.blockingObjects.tiles.forEach(w => w.drawTransformed({color: drawing.COLORS.yellow}));
+      this.blockingObjects.tokens.forEach(t => t.drawTransformed({color: drawing.COLORS.orange}));
 
       if (this._useShadows ) this._drawTransformedShadows();
 
@@ -370,7 +355,7 @@ export class Area3d {
         sides: [],
         obscuredSides: []
       };
-    } else if ( !this.blockingWalls.size ) return 1; // Only skip calcs and drawings if not debugging.
+    } else if ( !this.blockingObjects.walls.size && !this.blockingObjects.tiles.size && !this.blockingObjects.tokens.size ) return 1; // Only skip calcs and drawings if not debugging.
 
     const obscuredSides = this.obscuredSides;
     let sidesArea = 0;
@@ -419,18 +404,19 @@ export class Area3d {
   /**
    * Find relevant walls—--those intersecting the boundary between token center and target.
    */
-  _findBlockingWalls() {
-    const collisionTest = (o, rect) => this._testWallInclusion(o.t, rect);
-    let walls = canvas.walls.quadtree.getObjects(this.boundsXY, { collisionTest });
+  _findBlockingObjects() {
+    const out = Area3d.filterSceneObjectByVisionTriangle(this.viewerCenter, this.target, {
+      type: this.type,
+      filterWalls: true,
+      filterTokens: true,
+      filterTiles: true,
+      viewerId: this.viewer.object.id });
 
-    // If any walls, refine further by testing against the vision triangle
-    const constrainedTokenBorder = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
-    if ( walls.size ) walls = Area3d.filterWallsForVisionCone(
-      walls,
-      constrainedTokenBorder,
-      this.viewerCenter);
+    out.walls = out.walls.map(w => new WallPoints3d(w));
+    out.tiles = out.tiles.map(t => new WallPoints3d(t));
+    out.tokens = out.tokens.map(t => new TokenPoints3d(t, this.type));
 
-    return walls;
+    return out;
   }
 
   /**
@@ -455,6 +441,175 @@ export class Area3d {
   _drawTransformedShadowsForSide(side = 0, perspective = true) {
     const shadowsArr = perspective ? this.perspectiveShadows : this.transformedShadows;
     shadowsArr[side].forEach(s => s.draw());
+  }
+
+  /**
+   * Vision Triangle for the view point --> target.
+   * From the given token location, get the edge-most viewable points of the target.
+   * Construct a triangle between the two target points and the token center.
+   * @param {PIXI.Point|Point3d} viewingPoint
+   * @param {Token} target
+   * @param {object} [options]
+   * @param {string} [type]     Wall restriction type: sight, light, move, sound
+   * @returns {PIXI.Polygon} Triangle between view point and target
+   */
+  static visionTriangle(viewingPoint, target, { type = "sight"} = {}) {
+    const constrainedTokenBorder = ConstrainedTokenBorder.get(target, type).constrainedBorder();
+    const keyPoints = (constrainedTokenBorder instanceof PIXI.Polygon)
+      ? Area3d.polygonKeyPointsForOrigin(constrainedTokenBorder, viewingPoint)
+      : Area3d.bboxKeyCornersForOrigin(constrainedTokenBorder, viewingPoint);
+    if ( !keyPoints || !keyPoints.length ) {
+      console.error("visionTriangle: no key points found.");
+      return null;
+    }
+
+    return new PIXI.Polygon([viewingPoint, ...keyPoints]);
+  }
+
+  /**
+   * Filter relevant objects in the scene using the vision triangle.
+   * For the z dimension, keeps objects that are between the lowest target point,
+   * highest target point, and the viewing point.
+   * @param {Point3d} viewingPoint
+   * @param {Token} target
+   * @param {object} [options]
+   * @param {string} [type]    Wall restriction type: sight, light, move, sound
+   * @param {boolean} [filterWalls]   If true, find and filter walls
+   * @param {boolean} [filterTokens]  If true, find and filter tokens
+   * @param {boolean} [filterTiles]   If true, find and filter tiles
+   * @param {string} [viewerId]       Viewer token to exclude from results
+   * @return {object} Object with walls, tokens, tiles as three distinct sets or undefined.
+   */
+  static filterSceneObjectByVisionTriangle(viewingPoint, target,
+    { type = "sight", filterWalls = true, filterTokens = true, filterTiles = true, viewerId } = {}) {
+
+    const visionTriangle = Area3d.visionTriangle(viewingPoint, target, { type });
+
+    const maxE = Math.max(viewingPoint.z ?? 0, target.topZ);
+    const minE = Math.min(viewingPoint.z ?? 0, target.bottomZ);
+
+    const out = { walls: undefined, tokens: undefined, tiles: undefined };
+    if ( filterWalls ) {
+      out.walls = Area3d.filterWallsByVisionTriangle(viewingPoint, visionTriangle, { type });
+
+      // Filter walls that are definitely too low or too high
+      out.walls = out.walls.filter(w => {
+        return w.topZ > minE && w.bottomZ < maxE;
+      });
+    }
+
+    if ( filterTokens ) {
+      out.tokens = Area3d.filterTokensByVisionTriangle(viewingPoint, visionTriangle, { viewerId, targetId: target.id });
+
+      // Filter tokens that are definitely too low or too high
+      out.tokens = out.tokens.filter(t => {
+        return t.topZ > minE && t.bottomZ < maxE;
+      });
+    }
+
+    if ( filterTiles ) {
+      out.tiles = Area3d.filterTilesByVisionTriangle(viewingPoint, visionTriangle);
+
+      // For Levels, "noCollision" is the "Allow Sight" config option. Drop those tiles.
+      if ( game.modules.get("levels")?.active && type === "sight" ) {
+        out.tiles = out.tiles.filter(t => {
+          return !t.document?.flags?.levels?.noCollision;
+        });
+      }
+
+      // Filter tiles that are definitely too low or too high
+      out.tiles = out.tiles.filter(t => {
+        const tZ = zValue(t.document.elevation);
+        return tZ < maxE && tZ > minE;
+      });
+    }
+
+    return out;
+  }
+
+  /**
+   * Filter tokens in the scene by a triangle representing the view from viewingPoint to
+   * token (or other two points). Only considers 2d top-down view.
+   * @param {Point3d} viewingPoint
+   * @param {PIXI.Polygon} visionTriangle
+   * @param {object} [options]
+   * @param {string|undefined} viewerId   Id of viewer token to exclude
+   * @param {string|undefined} targetId   Id of target token to exclude
+   * @return {Set<Token>}
+   */
+  static filterTokensByVisionTriangle(viewingPoint, visionTriangle, { viewerId, targetId } = {}) {
+    let tokens = canvas.tokens.quadtree.getObjects(visionTriangle.getBounds());
+    if ( viewerId || targetId ) tokens = tokens.filter(t => t.id !== viewerId && t.id !== targetId);
+
+    if ( !tokens.size ) return tokens;
+
+    // Filter by the precise triangle cone
+    // For speed and simplicity, consider only token rectangular bounds
+    const edges = [...visionTriangle.iterateEdges()];
+    tokens = tokens.filter(t => {
+      const tBounds = t.bounds;
+      return edges.some(e => tBounds.lineSegmentIntersects(e.A, e.B, { inside: true }));
+    });
+    return tokens;
+  }
+
+  /**
+   * Filter tiles in the scene by a triangle representing the view from viewingPoint to
+   * token (or other two points). Only considers 2d top-down view.
+   * @param {Point3d} viewingPoint
+   * @param {PIXI.Polygon} visionTriangle
+   * @return {Set<Tile>}
+   */
+  static filterTilesByVisionTriangle(viewingPoint, visionTriangle) {
+    let tiles = canvas.tiles.quadtree.getObjects(visionTriangle.getBounds());
+    if ( !tiles.size ) return tiles;
+
+    // Filter by the precise triangle cone
+    const edges = [...visionTriangle.iterateEdges()];
+    tiles = tiles.filter(t => {
+      const tBounds = t.bounds;
+      return edges.some(e => tBounds.lineSegmentIntersects(e.A, e.B, { inside: true }));
+    });
+    return tiles;
+  }
+
+
+  /**
+   * Filter walls in the scene by a triangle representing the view from viewingPoint to some
+   * token (or other two points). Only considers 2d top-down view.
+   * @param {Point3d} viewingPoint
+   * @param {PIXI.Polygon} visionTriangle
+   * @param {object} [options]
+   * @param {string} [type]     Wall restriction type: sight, light, move, sound
+   * @return {Set<Wall>}
+   */
+  static filterWallsByVisionTriangle(viewingPoint, visionTriangle, { type = "sight" } = {}) {
+    let walls = canvas.walls.quadtree.getObjects(visionTriangle.getBounds());
+    walls = walls.filter(w => Area3d._testWallInclusion(w, viewingPoint, { type }));
+
+    if ( !walls.size ) return walls;
+
+    // Filter by the precise triangle cone.
+    const edges = [...visionTriangle.iterateEdges()];
+    walls = walls.filter(w => {
+      if ( visionTriangle.contains(w.A.x, w.A.y) || visionTriangle.contains(w.B.x, w.B.y) ) return true;
+      return edges.some(e => foundry.utils.lineSegmentIntersects(w.A, w.B, e.A, e.B));
+    });
+    return walls;
+  }
+
+  /**
+   * Test whether a wall should be included as potentially blocking from point of view of
+   * token.
+   * Comparable to ClockwiseSweep.prototype._testWallInclusion but less thorough.
+   */
+  static _testWallInclusion(wall, viewingPoint, { type = "sight" } = {}) {
+    // Ignore walls that are not blocking for the type
+    if (!wall.document[type] || wall.isOpen ) return false;
+
+    // Ignore one-directional walls facing away
+    const side = wall.orientPoint(viewingPoint);
+    return !wall.document.dir || (side !== wall.document.dir);
   }
 
   /**
@@ -864,13 +1019,15 @@ export class WallPoints3d {
     this.wall = wall;
 
     if ( wall instanceof Tile ) {
-      const { x, y, width, height, elevation } = wall;
+      const { x, y, width, height, elevation } = wall.document;
+      const eZ = zValue(elevation); // There is a wall.document.z value but not sure from where -- Levels?
       this.isTile = true;
 
-      this.points[0] = new Point3d(x, y, elevation);
-      this.points[1] = new Point3d(x + width, y, elevation);
-      this.points[2] = new Point3d(x + width, y + height, elevation);
-      this.points[3] = new Point3d(x, y + height, elevation);
+
+      this.points[0] = new Point3d(x, y, eZ);
+      this.points[1] = new Point3d(x + width, y, eZ);
+      this.points[2] = new Point3d(x + width, y + height, eZ);
+      this.points[3] = new Point3d(x, y + height, eZ);
 
     } else {
       const { A, B, topZ, bottomZ } = wall;
@@ -911,13 +1068,17 @@ export class WallPoints3d {
   /**
    * Truncate the transformed walls to keep only the below z = 0 portion
    */
-  _truncateTransform() {
+  _truncateTransform(rep = 0) {
+    if ( rep > 1 ) return;
+
+    let needsRep = false;
     const targetE = -1;
     let A = this.tPoints[3];
     for ( let i = 0; i < 4; i += 1 ) {
       const B = this.tPoints[i];
       const Aabove = A.z > targetE;
       const Babove = B.z > targetE;
+      if ( Aabove && Babove ) needsRep = true; // Cannot redo the A--B line until others points are complete.
       if ( !(Aabove ^ Babove) ) continue;
 
       const res = truncateWallAtElevation(A, B, targetE, -1, 0);
@@ -927,6 +1088,8 @@ export class WallPoints3d {
       }
       A = B;
     }
+    rep += 1;
+    needsRep && this._truncateTransform(rep);
   }
 
   /**
@@ -952,14 +1115,11 @@ export class WallPoints3d {
   /**
    * Draw the transformed shape.
    */
-  drawTransformed({perspective = true} = {}) {
+  drawTransformed({perspective = true, color = drawing.COLORS.blue } = {}) {
     if ( !this.viewIsSet ) {
       console.warn(`WallPoints3d: View is not yet set for Token ${this.token.name}.`);
       return;
     }
-
-
-
     const pts = perspective ? this.perspectiveTransform() : this.tPoints;
     const poly = new PIXI.Polygon(pts);
     drawing.drawShape(poly, { color, fill: color, fillAlpha: 0.2 });
