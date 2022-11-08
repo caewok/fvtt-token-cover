@@ -234,7 +234,13 @@ function testLOSArea3d(visionSource, target, test) {
   if ( !hasLOSCeilingFloorLevels(origin, pt) ) return false;
 
   const area3d = new Area3d(visionSource, target);
-  area3d.debug = game.modules.get(MODULE_ID).api.debug.los;
+
+  // Set debug only if the target is being targeted.
+  // Avoids "double-vision" from multiple targets for area3d on scene.
+  if ( game.modules.get(MODULE_ID).api.debug.los ) {
+    const targets = canvas.tokens.placeables.filter(t => t.isTargeted);
+    area3d.debug = targets.some(t => t === target);
+  }
   return area3d.hasLOS();
 }
 

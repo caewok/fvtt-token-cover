@@ -53,6 +53,9 @@ export class Area3d {
   /** @type {string} */
   type = "sight";
 
+  /** @type {boolean} */
+  debug = false;
+
   /** @type object{walls: Set<WallPoints3d>|undefined, tiles: Set<WallPoints3d>, tokens: Set<TokenPoints3d>} */
   _blockingObjects = undefined;
 
@@ -84,8 +87,14 @@ export class Area3d {
     this.target = target;
     this.percentAreaForLOS = getSetting(SETTINGS.LOS.PERCENT_AREA);
     this._useShadows = getSetting(SETTINGS.AREA3D_USE_SHADOWS);
-    this.debug = game.modules.get(MODULE_ID).api.debug.area;
     this.type = type;
+
+    // Set debug only if the target is being targeted.
+    // Avoids "double-vision" from multiple targets for area3d on scene.
+    if ( game.modules.get(MODULE_ID).api.debug.area ) {
+      const targets = canvas.tokens.placeables.filter(t => t.isTargeted);
+      this.debug = targets.some(t => t === target);
+    }
 
     this.targetPoints = new TokenPoints3d(target);
   }
@@ -1062,14 +1071,14 @@ export class WallPoints3d {
   _truncateTransform(rep = 0) {
     if ( rep > 1 ) return;
 
-    const needsRep = false;
+    let needsRep = false;
     const targetE = -1;
     let A = this.tPoints[3];
     for ( let i = 0; i < 4; i += 1 ) {
       const B = this.tPoints[i];
       const Aabove = A.z > targetE;
       const Babove = B.z > targetE;
-      if ( Aabove && Babove ) needsRep = true;
+      if ( Aabove && Babove ) needsRep = true; // Cannot redo the A--B line until others points are complete.
       if ( !(Aabove ^ Babove) ) continue;
 
       const res = truncateWallAtElevation(A, B, targetE, -1, 0);
