@@ -619,7 +619,8 @@ export class Area3d {
 
     const pts = [...poly.iteratePoints({ close: false })];
     const nPts = pts.length;
-    const keys = [];
+    const startKeys = [];
+    const endKeys = [];
 
     let foundNonKeyFirst = false;
     let foundNonKeyAfter = false;
@@ -641,8 +642,8 @@ export class Area3d {
 
       if ( isKey ) {
         foundKey = true;
-        !foundNonKeyAfter && keys.push(i); // eslint-disable-line no-unused-expressions
-        foundNonKeyAfter && keys.unshift(i); // eslint-disable-line no-unused-expressions
+        !foundNonKeyAfter && startKeys.push(i); // eslint-disable-line no-unused-expressions
+        foundNonKeyAfter && endKeys.push(i); // eslint-disable-line no-unused-expressions
       } else { // !isKey
         foundNonKeyFirst ||= !foundKey;
         foundNonKeyAfter ||= foundKey;
