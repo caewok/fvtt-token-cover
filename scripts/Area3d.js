@@ -33,7 +33,7 @@ import { Shadow, truncateWallAtElevation } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
 import { Point3d } from "./Point3d.js";
 import { Plane } from "./Plane.js";
-import { elementsByIndex, segmentBlocks, zValue } from "./util.js";
+import { elementsByIndex, zValue } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import * as drawing from "./drawing.js"; // For debugging
 
@@ -81,6 +81,8 @@ export class Area3d {
     this._useShadows = getSetting(SETTINGS.AREA3D_USE_SHADOWS);
     this.debug = game.modules.get(MODULE_ID).api.debug.area;
     this.type = type;
+
+    this.targetPoints = new TokenPoints3d(target);
   }
 
   /**
@@ -136,7 +138,8 @@ export class Area3d {
   }
 
   static perspectiveTransform(pt) {
-    return new PIXI.Point(pt.x / -pt.z * 1000, pt.y / -pt.z * 1000);
+    const mult = 1000 / -pt.z;
+    return new PIXI.Point(pt.x * mult, pt.y * mult);
   }
 
   /**
@@ -151,7 +154,8 @@ export class Area3d {
    * @type {Point3d[]}
    */
   get transformedTarget() {
-    return this._transformedTarget || (this._transformedTarget = this._transformTarget());
+    if ( !this.targetPoints.viewIsSet ) this._transformTarget();
+    return this.targetPoints.tFaces;
   }
 
   /**
@@ -161,13 +165,8 @@ export class Area3d {
    * @type {Point3d[]}
    */
   get perspectiveTarget() {
-    const tTarget = this.transformedTarget;
-    return {
-      points: tTarget.points.map(pt => Area3d.perspectiveTransform(pt)),
-      sides: tTarget.sides,
-      top: tTarget.top,
-      bottom: tTarget.bottom
-    };
+    if ( !this.targetPoints.viewIsSet ) this._transformTarget();
+    return this.targetPoints.perspectiveTransform();
   }
 
   /**
@@ -274,20 +273,11 @@ export class Area3d {
   }
 
   /**
-   * Transform the token center
-   * Only used for debugging
-   */
-  _transformViewerCenter() {
-    return Matrix.fromPoint3d(this.viewerCenter).multiply(this.viewerViewM).toPoint3d();
-  }
-
-  /**
    * Transform the target location.
    */
   _transformTarget() {
-    const t = this._target3dPoints();
-    t.points = t.points.map(pt => Matrix.fromPoint3d(pt).multiply(this.viewerViewM).toPoint3d());
-    return t;
+    this.targetPoints.setViewingPoint(this.viewerCenter);
+    this.targetPoints.setViewMatrix(this.viewerViewM);
   }
 
   /**
@@ -360,19 +350,17 @@ export class Area3d {
 
   _obscureSides() {
     const tTarget = this.perspectiveTarget;
-    const sides = tTarget.sides;
     const shadowsArr = this._useShadows ? this.perspectiveShadows : undefined;
     const walls = this.perspectiveWalls;
     const wallPolys = walls.map(w => new PIXI.Polygon(w));
 
     // For each side, union the blocking wall with any shadows and then take diff against the side
-    const nSides = sides.length;
+    const nSides = tTarget.length;
     const obscuredSides = [];
     this.sidePolys = [];
     for ( let i = 0; i < nSides; i += 1 ) {
-      const side = sides[i];
-      const sidePoints = elementsByIndex(tTarget.points, side);
-      const sidePoly = new PIXI.Polygon(sidePoints);
+      const side = tTarget[i];
+      const sidePoly = new PIXI.Polygon(side);
       this.sidePolys.push(sidePoly);
 
       const blockingPolygons = [...wallPolys];
@@ -468,179 +456,6 @@ export class Area3d {
     return walls;
   }
 
-  /**
-   * Get the 3d points representing the target, along with
-   * indices indicating the potentially viewable sides.
-   * @returns {object} [object]
-   *   [object.points]  Points used
-   * Indices for object.points:
-   *   [object.top]     Top points, or undefined
-   *   [object.bottom]  Bottom points, or undefined
-   *   [object.sides]   Array of sides, including top or bottom
-   */
-  _target3dPoints() {
-    // In 2d XY coordinates, check what points are visible.
-    const center = this.viewerCenter;
-    const centerZ = this.viewerCenter.z;
-    const target = this.target;
-    const constrainedTokenBorder = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
-    const bottomZ = target.bottomZ;
-    let topZ = target.topZ;
-    if ( bottomZ === topZ ) {
-      // Give the target a minimal height so area calcs work
-      topZ += 2;
-    }
-
-    const targetPoly = constrainedTokenBorder instanceof PIXI.Rectangle
-      ? constrainedTokenBorder.toPolygon() : constrainedTokenBorder;
-
-    const out = {
-      points: [],
-      sides: []
-    };
-
-    const edges = [...targetPoly.iterateEdges()];
-    const points = [...targetPoly.iteratePoints()];
-    let seen = [];
-    const ln = points.length;
-    for ( let i = 0; i < ln; i += 1 ) {
-      const pt = points[i];
-      if ( !edges.some(edge => segmentBlocks(center, pt, edge.A, edge.B)) ) seen.push(i);
-    }
-
-    // Re-arrange so the first viewable point moving clockwise is index 0
-    const sLn = seen.length;
-    let splitIndex;
-    for ( let i = 1; i < sLn; i += 1 ) {
-      if ( seen[i - 1] + 1 !== seen[i] ) {
-        splitIndex = i;
-        break;
-      }
-    }
-    if ( splitIndex ) seen = [...seen.slice(splitIndex), ...seen.slice(0, splitIndex)];
-
-    if ( centerZ > topZ ) {
-      // Looking down at the target
-      // Top face only
-      out.top = Array.fromRange(points.length);
-
-      // Make the 3d top points
-      out.points = points.map(pt => new Point3d(pt.x, pt.y, topZ));
-
-      if ( seen.length < 2 ) return out;
-
-      // Add the bottom seen points and corresponding indices for the sides
-      // Assuming for the moment that points are clockwise
-      // Start by adding the initial bottom right
-      const right = points[seen[0]];
-      out.points.push(new Point3d(right.x, right.y, bottomZ));
-
-      const numSides = sLn - 1;
-      for ( let i = 0; i < numSides; i += 1 ) {
-        const pLn = out.points.length;
-        const side = [];
-        out.sides.push(side);
-
-        // Top right
-        side.push(seen[i]);
-
-        // Bottom right
-        side.push(pLn - 1);
-
-        // Bottom left
-        const left = points[seen[i + 1]];
-        out.points.push(new Point3d(left.x, left.y, bottomZ));
-        side.push(pLn);
-
-        // Top left
-        side.push(seen[i + 1]);
-
-      }
-
-    } else if ( centerZ < bottomZ ) {
-      // Looking up at the target
-      // Bottom face only
-
-      out.bottom = Array.fromRange(points.length);
-
-      // Make the 3d top points
-      out.points = points.map(pt => new Point3d(pt.x, pt.y, bottomZ));
-
-      if ( seen.length < 2 ) return out;
-
-      // Add the bottom seen points and corresponding indices for the sides
-      // Assuming for the moment that points are clockwise
-      // Start by adding the initial bottom right
-      const right = points[seen[0]];
-      out.points.push(new Point3d(right.x, right.y, topZ));
-
-      const numSides = sLn - 1;
-      for ( let i = 0; i < numSides; i += 1 ) {
-        const pLn = out.points.length;
-        const side = [];
-        out.sides.push(side);
-
-        // Top right
-        side.push(pLn - 1);
-
-        // Bottom right
-        side.push(seen[i]);
-
-        // Bottom left
-        side.push(seen[i + 1]);
-
-        // Top left
-        const left = points[seen[i + 1]];
-        out.points.push(new Point3d(left.x, left.y, topZ));
-        side.push(pLn);
-
-      }
-
-
-    } else {
-      // Looking face-on.
-      // No top or bottom faces.
-
-      if ( seen.length < 2 ) return out;
-
-      // Add the bottom seen points and corresponding indices for the sides
-      // Assuming for the moment that points are clockwise
-      // Start by adding the initial top right and bottom right
-      const right = points[seen[0]];
-      out.points.push(new Point3d(right.x, right.y, bottomZ));
-      out.points.push(new Point3d(right.x, right.y, topZ));
-
-
-      const numSides = sLn - 1;
-      for ( let i = 0; i < numSides; i += 1 ) {
-        const pLn = out.points.length;
-        const side = [];
-        out.sides.push(side);
-
-        // Top right
-        side.push(pLn - 1);
-
-        // Bottom right
-        side.push(pLn - 2);
-
-        // Bottom left
-        const left = points[seen[i + 1]];
-        out.points.push(new Point3d(left.x, left.y, bottomZ));
-        side.push(pLn);
-
-        // Top left
-        out.points.push(new Point3d(left.x, left.y, topZ));
-        side.push(pLn + 1);
-
-      }
-    }
-
-    if ( out.top ) out.sides.push(out.top);
-    if ( out.bottom ) out.sides.push(out.bottom);
-
-    return out;
-
-  }
 
   /**
    * Get 3d points representing a given wall.
@@ -679,22 +494,16 @@ export class Area3d {
    */
   _drawTransformedTarget(perspective = true) {
     const t = perspective ? this.perspectiveTarget : this.transformedTarget;
-    t.points.forEach(pt => drawing.drawPoint(pt, { color: drawing.COLORS.red }));
-
-    for ( const side of t.sides ) {
-      this._drawSide(t.points, side, { color: drawing.COLORS.red });
-    }
+    t.forEach(side => side.forEach(pt => drawing.drawPoint(pt, { color: drawing.COLORS.red })));
+    t.forEach(side => this._drawSide(side, { color: drawing.COLORS.red }));
   }
 
-  _drawSide(points, index, { color = drawing.COLORS.blue } = {}) {
-    const ln = index.length;
-    if ( ln !== 4 ) console.error("_drawSide expects sides with 4 points.");
-
-    const pts = elementsByIndex(points, index);
+  _drawSide(side, { color = drawing.COLORS.blue } = {}) {
+    const ln = side.length;
     for ( let i = 1; i < ln; i += 1 ) {
-      drawing.drawSegment({A: pts[i - 1], B: pts[i]}, { color });
+      drawing.drawSegment({A: side[i - 1], B: side[i]}, { color });
     }
-    drawing.drawSegment({A: pts[ln - 1], B: pts[0]}, { color });
+    drawing.drawSegment({A: side[ln - 1], B: side[0]}, { color });
   }
 
   /**
@@ -792,7 +601,7 @@ export class Area3d {
    * @param {Point} origin
    * @return {Point[]|null} Returns null if origin is inside the polygon
    */
-  static polygonKeyPointsForOrigin(poly, origin) {
+  static polygonKeyPointsForOrigin(poly, origin, { returnKeys = false } = {}) {
     // Key point is a line from origin to the point that does not intersect the polygon
     // the outermost key points are the most ccw and cw of the key points.
 
@@ -802,13 +611,18 @@ export class Area3d {
     // 3. key key n   n   key  <-- last key(s) should be shifted to beginning of array
     // 4. n   n   key key key n
 
-    const keyPoints = [];
+    const pts = [...poly.iteratePoints({ close: false })];
+    const nPts = pts.length;
+    const startKeys = [];
+    const endKeys = [];
 
     let foundNonKeyFirst = false;
     let foundNonKeyAfter = false;
     let foundKey = false;
-    for ( const pt of poly.iteratePoints({ close: false }) ) {
+    for ( let i = 0; i < nPts; i += 1 ) {
       let isKey = true;
+      const pt = pts[i];
+
 
       for ( const edge of poly.iterateEdges() ) {
         if ( (edge.A.x === pt.x && edge.A.y === pt.y)
@@ -822,8 +636,8 @@ export class Area3d {
 
       if ( isKey ) {
         foundKey = true;
-        !foundNonKeyAfter && keyPoints.push(pt); // eslint-disable-line no-unused-expressions
-        foundNonKeyAfter && keyPoints.unshift(pt); // eslint-disable-line no-unused-expressions
+        !foundNonKeyAfter && startKeys.push(i); // eslint-disable-line no-unused-expressions
+        foundNonKeyAfter && endKeys.push(i); // eslint-disable-line no-unused-expressions
       } else { // !isKey
         foundNonKeyFirst ||= !foundKey;
         foundNonKeyAfter ||= foundKey;
@@ -831,7 +645,10 @@ export class Area3d {
       }
     }
 
-    return [keyPoints[0], keyPoints[keyPoints.length - 1]];
+    // Keep the keys CW, same order as pts
+
+    const keys = [...endKeys, ...startKeys];
+    return returnKeys ? keys : [pts[keys[0]], pts[keys[keys.length - 1]]];
   }
 
   /**
@@ -860,3 +677,185 @@ export class Area3d {
   }
 
 }
+
+/**
+ * Represent a token as a set of 3d points, representing its corners.
+ * If the token has no height, give it a minimal height.
+ */
+export class TokenPoints3d {
+
+  /** @type {Token} */
+  token = undefined;
+
+  /** @type {string} */
+  type = "sight";
+
+  /** @type {Point3d[]} */
+  bottomPoints = [];
+
+  /** @type {Point3d[]} */
+  topPoints = [];
+
+  /** @type {PIXI.Polygon} */
+  tokenPolygon = new PIXI.Polygon();
+
+  /** @type {Point3d[][]} */
+  faces = [];
+
+  /** @type {Point3d[][]} */
+  tFaces = [];
+
+  /**
+   * @param {Token} token
+   * @param {string} type     Wall restriction type, for constructing the constrained token shape.
+   */
+  constructor(token, type = "sight") {
+    this.token = token;
+    this.type = type;
+
+    const constrainedTokenBorder = ConstrainedTokenBorder.get(this.token, this.type).constrainedBorder();
+    this.tokenPolygon = constrainedTokenBorder instanceof PIXI.Rectangle
+      ? constrainedTokenBorder.toPolygon() : constrainedTokenBorder;
+
+    // Determine the top and bottom points
+    this._setTopBottomPoints();
+  }
+
+  /**
+   * Create the 3d top and bottom points for this token.
+   */
+  _setTopBottomPoints() {
+    const points = this._points2d();
+    const { topZ, bottomZ } = this;
+
+    const nPts = points.length;
+    this.topPoints = Array(nPts);
+    this.bottomPoints = Array(nPts);
+    for ( let i = 0; i < nPts; i += 1 ) {
+      const pt = points[i];
+      this.topPoints[i] = new Point3d(pt.x, pt.y, topZ);
+      this.bottomPoints[i] = new Point3d(pt.x, pt.y, bottomZ);
+    }
+  }
+
+  /** @type {number} */
+  get bottomZ() {
+    return this.token.bottomZ;
+  }
+
+  /** @type {number} */
+  get topZ() {
+    const topZ = this.token.topZ;
+    return topZ === this.bottomZ ? topZ + 2 : topZ;
+  }
+
+  /** @type {boolean} */
+  get viewIsSet() {
+    return Boolean(this.tFaces.length);
+  }
+
+  /**
+   * Set the point from which this token is being viewed and construct the viewable faces.
+   * Determines how many faces are visible.
+   * @param {Point3d} viewingPoint
+   */
+  setViewingPoint(viewingPoint) {
+    this.viewingPoint = viewingPoint;
+    this.faces = this._viewableFaces(viewingPoint);
+  }
+
+  /**
+   * Set the view matrix used to transform the faces and transform the faces.
+   * @param {Matrix} M
+   */
+  setViewMatrix(M) {
+    this.M = M;
+    this.tFaces = this._transform(M);
+  }
+
+  /**
+   * Helper to get the points of the token border.
+   */
+  _points2d() {
+    return [...this.tokenPolygon.iteratePoints()];
+  }
+
+  /**
+   * Get the top, bottom and sides viewable from a given 3d position in space.
+   * @param {Point3d} viewingPoint
+   * @returns {object}  Object with properties:
+   *   {Points3d|undefined} top
+   *   {Points3d|undefined} bottom
+   *   {Points3d[]} sides
+   */
+  _viewableFaces(viewingPoint) {
+    const sides = this._viewableSides(viewingPoint);
+
+    if ( viewingPoint.z > this.topZ ) sides.push(this.topPoints);
+    else if ( viewingPoint.z < this.bottomZ ) sides.push(this.bottomPoints);
+
+    return sides;
+  }
+
+  /**
+   * Determine which edges of the token polygon are viewable in a 2d sense.
+   * Viewable if the line between center and edge points is not blocked.
+   * For now, this returns the points.
+   * TODO: Depending on token shape, it may be faster to return indices and only keep the unique points.
+   * @param {Point3d} viewingPoint
+   * @returns {Point3d[][]} Array of sides, each containing 4 points.
+   */
+  _viewableSides(viewingPoint) {
+    const { topPoints, bottomPoints, tokenPolygon } = this;
+    const keys = Area3d.polygonKeyPointsForOrigin(tokenPolygon, viewingPoint, { returnKeys: true });
+
+    const nSides = keys.length - 1;
+    const sides = Array(nSides);
+    for ( let i = 0; i < nSides; i += 1 ) {
+      const t0 = topPoints[keys[i]];
+      const t1 = topPoints[keys[i+1]];
+      const b0 = bottomPoints[keys[i]];
+      const b1 = bottomPoints[keys[i+1]];
+      sides[i] = [t0, b0, b1, t1];
+    }
+    return sides;
+  }
+
+  /**
+   * Transform the faces using a transformation matrix.
+   * @param {Matrix} M
+   */
+  _transform(M) {
+    return this.faces.map(face => face.map(pt => Matrix.fromPoint3d(pt).multiply(M).toPoint3d()));
+  }
+
+  /**
+   * Transform the wall to a 2d perspective.
+   * @returns {Point2d[]}
+   */
+  perspectiveTransform() {
+    return this.tFaces.map(face => face.map(pt => Area3d.perspectiveTransform(pt)));
+  }
+
+  /**
+   * Transform the faces using a provided function.
+   * @param {function} transformFn
+   * @returns {Point3d[][]}
+   */
+//   static transformFaces(faces, transformFn) {
+//     // Use for loop with preset arrays for speed. Map would be simpler.
+//     const nFaces = faces.length;
+//     const tFaces = Array(nFaces);
+//     for ( let i = 0; i < nFaces; i += 1 ) {
+//       const face = faces[i];
+//       const nPts = face.length;
+//       const tFace = Array(nPts);
+//       tFaces[i] = tFace;
+//       for ( let j = 0; j < nPts; j += 1 ) {
+//         tFace[j] = transformFn(face[j]);
+//       }
+//     }
+//     return tFaces;
+//   }
+}
+
