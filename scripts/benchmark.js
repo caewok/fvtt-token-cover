@@ -392,7 +392,7 @@ export async function QBenchmarkLoopFn(iterations, fn, name, ...args) {
  * @param {Object} ...args        Additional arguments to pass to setup function
  * @return {Number[]}             Array with the time elapsed for each iteration.
  */
-async function QBenchmarkLoopWithSetupFn(iterations, setupFn, fn, name, ...setupArgs) {
+export async function QBenchmarkLoopWithSetupFn(iterations, setupFn, fn, name, ...setupArgs) {
   const timings = [];
   const num_warmups = Math.ceil(iterations * .05);
 

@@ -792,7 +792,7 @@ export class Area3d {
    * @param {Point} origin
    * @return {Point[]|null} Returns null if origin is inside the polygon
    */
-  static polygonKeyPointsForOrigin(poly, origin, { returnAll = false } = {}) {
+  static polygonKeyPointsForOrigin(poly, origin, { returnKeys = false } = {}) {
     // Key point is a line from origin to the point that does not intersect the polygon
     // the outermost key points are the most ccw and cw of the key points.
 
@@ -802,13 +802,17 @@ export class Area3d {
     // 3. key key n   n   key  <-- last key(s) should be shifted to beginning of array
     // 4. n   n   key key key n
 
-    const keyPoints = [];
+    const pts = [...poly.iteratePoints({ close: false })];
+    const nPts = pts.length;
+    const keys = [];
 
     let foundNonKeyFirst = false;
     let foundNonKeyAfter = false;
     let foundKey = false;
-    for ( const pt of poly.iteratePoints({ close: false }) ) {
+    for ( let i = 0; i < nPts; i += 1 ) {
       let isKey = true;
+      const pt = pts[i];
+
 
       for ( const edge of poly.iterateEdges() ) {
         if ( (edge.A.x === pt.x && edge.A.y === pt.y)
@@ -822,8 +826,8 @@ export class Area3d {
 
       if ( isKey ) {
         foundKey = true;
-        !foundNonKeyAfter && keyPoints.push(pt); // eslint-disable-line no-unused-expressions
-        foundNonKeyAfter && keyPoints.unshift(pt); // eslint-disable-line no-unused-expressions
+        !foundNonKeyAfter && keys.push(i); // eslint-disable-line no-unused-expressions
+        foundNonKeyAfter && keys.unshift(i); // eslint-disable-line no-unused-expressions
       } else { // !isKey
         foundNonKeyFirst ||= !foundKey;
         foundNonKeyAfter ||= foundKey;
@@ -831,9 +835,7 @@ export class Area3d {
       }
     }
 
-    if ( returnAll ) return keyPoints;
-
-    return [keyPoints[0], keyPoints[keyPoints.length - 1]];
+    return returnKeys ? keys : [pts[keys[0]], pts[keys[keys.length - 1]]];
   }
 
   /**
@@ -863,11 +865,94 @@ export class Area3d {
 
 }
 
+/*  Bench
+api = game.modules.get('tokenvisibility').api;
+Point3d = api.Point3d
+Area3d = api.Area3d
+TokenPoints3d = api.TokenPoints3d
+bench = api.bench
+Matrix = api.Matrix
+
+tp = new TokenPoints3d(_token);
+viewingPoint = new Point3d(_token.center.x + 500, _token.center.y + 500, 200)
+f = tp.viewableFaces(viewingPoint)
+f2 = tp.viewableFaces2(viewingPoint)
+
+M = Matrix.rotationXYZ(Math.random() * Math.PI, Math.random() * Math.PI , Math.random() * Math.PI)
+
+transformFn = function(pt) {
+ return Matrix.fromPoint3d(pt).multiply(M).toPoint3d()
+}
+
+TokenPoints3d.transformFaces(f, transformFn)
+TokenPoints3d.transformFaces2(f2, transformFn)
+
+function randomPoint3d(max = 5000) {
+  return new Point3d(Math.floor(Math.random() * max),
+           Math.floor(Math.random() * max),
+           Math.floor((Math.random() - .5) * 1000));
+}
+
+function elementsByIndex(arr, indices) {
+  return indices.map(aIndex => arr[aIndex]);
+}
+
+function setupFn() {
+  M = Matrix.rotationXYZ(Math.random() * Math.PI, Math.random() * Math.PI , Math.random() * Math.PI)
+  viewingPoint = randomPoint3d()
+  return [M, viewingPoint];
+}
+
+function fn1(M, viewingPoint) {
+  const tp = new TokenPoints3d(_token);
+  const f = tp.viewableFaces(viewingPoint);
+
+  transformFn = function(pt) {
+    return Matrix.fromPoint3d(pt).multiply(M).toPoint3d()
+  }
+
+  return TokenPoints3d.transformFaces(f, transformFn)
+}
+
+function fn2(M, viewingPoint) {
+  const tp = new TokenPoints3d(_token);
+  const f = tp.viewableFaces2(viewingPoint);
+
+  transformFn = function(pt) {
+    return Matrix.fromPoint3d(pt).multiply(M).toPoint3d()
+  }
+
+  const tFaces = TokenPoints3d.transformFaces2(f, transformFn);
+  return tFaces.faces.map(f => elementsByIndex(tFaces.points, f));
+}
+
+N = 10000
+await bench.QBenchmarkLoopWithSetupFn(N, setupFn, fn1, "1")
+await bench.QBenchmarkLoopWithSetupFn(N, setupFn, fn2, "2")
+
+*/
+
+
 /**
  * Represent a token as a set of 3d points, representing its corners.
  * If the token has no height, give it a minimal height.
  */
 export class TokenPoints3d {
+
+  /** @type {Token} */
+  token = undefined;
+
+  /** @type {string} */
+  type = "sight";
+
+  /** @type {Point3d[]} */
+  bottomPoints = [];
+
+  /** @type {Point3d[]} */
+  topPoints = [];
+
+  /** @type {PIXI.Polygon} */
+  tokenPolygon = new PIXI.Polygon();
 
   /**
    * @param {Token} token
@@ -876,11 +961,37 @@ export class TokenPoints3d {
   constructor(token, type = "sight") {
     this.token = token;
     this.type = type;
+
+    const constrainedTokenBorder = ConstrainedTokenBorder.get(this.token, this.type).constrainedBorder();
+    this.tokenPolygon = constrainedTokenBorder instanceof PIXI.Rectangle
+      ? constrainedTokenBorder.toPolygon() : constrainedTokenBorder;
+
+    // Determine the top and bottom points
+    this._setTopBottomPoints();
+
+    //
+  }
+
+  /**
+   * Create the 3d top and bottom points for this token.
+   */
+  _setTopBottomPoints() {
+    const points = this._points2d();
+    const { topZ, bottomZ } = this;
+
+    const nPts = points.length;
+    this.topPoints = Array(nPts);
+    this.bottomPoints = Array(nPts);
+    for ( let i = 0; i < nPts; i += 1 ) {
+      const pt = points[i];
+      this.topPoints[i] = new Point3d(pt.x, pt.y, topZ);
+      this.bottomPoints[i] = new Point3d(pt.x, pt.y, bottomZ);
+    }
   }
 
   /** @type {number} */
   get bottomZ() {
-    return this.token.bottomz;
+    return this.token.bottomZ;
   }
 
   /** @type {number} */
@@ -890,33 +1001,10 @@ export class TokenPoints3d {
   }
 
   /**
-   * Points3d arranged to represent the top of the token.
-   * @type {Point3d[]}
-   */
-  get top() {
-    const points = this.points2d();
-    const topZ = this.topZ;
-    return points.map(pt => new Point3d(pt.x, pt.y, topZ));
-  }
-
-  /**
-   * Points3d arranged to represent the bottom of the token.
-   * @type {Point3d[]}
-   */
-  get bottom() {
-    const points = this._points2d();
-    const topZ = this.topZ;
-    return points.map(pt => new Point3d(pt.x, pt.y, topZ));
-  }
-
-  /**
    * Helper to get the points of the token border.
    */
   _points2d() {
-    const constrainedTokenBorder = ConstrainedTokenBorder.get(this.token, this.type).constrainedBorder();
-    const targetPoly = constrainedTokenBorder instanceof PIXI.Rectangle
-      ? constrainedTokenBorder.toPolygon() : constrainedTokenBorder;
-    return [...targetPoly.iteratePoints()];
+    return [...this.tokenPolygon.iteratePoints()];
   }
 
   /**
@@ -928,288 +1016,414 @@ export class TokenPoints3d {
    *   {Points3d[]} sides
    */
   viewableFaces(viewingPoint) {
-    const out = { sides: [] };
+    const sides = this.viewableSides(viewingPoint);
+
     if ( viewingPoint.z > this.topZ ) {
       // Top is viewable because viewer is above token.
-      out.top = this.top;
-      out.sides.push(out.top);
+      sides.push(this.topPoints);
     } else if ( viewingPoint.z < this.bottomZ ) {
       // Bottom is viewable because viewer is below token.
-      out.bottom = this.bottom;
-      out.sides.push(out.bottom);
-    }
+      sides.push(this.bottomPoints);
+    } // Else neither top nor bottom is viewable; sides only
 
-    out.sides.push(...this.viewableSides(viewingPoint));
+    return sides;
+  }
+
+  viewableFaces2(viewingPoint) {
+    let keepTop = false;
+    let keepBottom = false;
+    if ( viewingPoint.z > this.topZ ) keepTop = true;
+    else if ( viewingPoint.z < this.bottomZ ) keepBottom = true;
+
+    return this.viewableSides2(viewingPoint, { keepTop, keepBottom });
   }
 
   /**
    * Determine which edges of the token polygon are viewable in a 2d sense.
-   * Viewable if the line between center and edge points is not blocked
+   * Viewable if the line between center and edge points is not blocked.
+   * For now, this returns the points.
+   * TODO: Depending on token shape, it may be faster to return indices and only keep the unique points.
    * @param {Point3d} viewingPoint
+   * @returns {Point3d[][]} Array of sides, each containing 4 points.
    */
   viewableSides(viewingPoint) {
-    const constrainedTokenBorder = ConstrainedTokenBorder.get(this.token, this.type).constrainedBorder();
-    const targetPoly = constrainedTokenBorder instanceof PIXI.Rectangle
-      ? constrainedTokenBorder.toPolygon() : constrainedTokenBorder;
+    const { topPoints, bottomPoints, tokenPolygon } = this;
+    const keys = Area3d.polygonKeyPointsForOrigin(tokenPolygon, viewingPoint, { returnKeys: true });
 
-    const pts = Area3d.polygonKeyPointsForOrigin(targetPoly, viewingPoint, { returnAll: true });
-
-    const sides = [];
-    const ln = pts.length - 1;
-    const { topZ, bottomZ } = this;
-    for ( let i = 0; i < ln; i += 1 ) {
-      const p0 = pts[i];
-      const p1 = pts[i + 1];
-
-      sides.push([
-        new Point3d(p0.x, p0.y, topZ),
-        new Point3d(p0.x, p0.y, bottomZ),
-        new Point3d(p1.x, p1.y, bottomZ),
-        new Point3d(p1.x, p1.y, topZ)
-      ]);
+    const nSides = keys.length - 1;
+    const sides = Array(nSides);
+    for ( let i = 0; i < nSides; i += 1 ) {
+      const t0 = topPoints[keys[i]];
+      const t1 = topPoints[keys[i+1]];
+      const b0 = bottomPoints[keys[i]];
+      const b1 = bottomPoints[keys[i+1]];
+      sides[i] = [t0, b0, b1, t1];
     }
     return sides;
   }
 
+  viewableSides2(viewingPoint, { keepTop = false, keepBottom = false } = {}) {
+    const { topPoints, bottomPoints, tokenPolygon } = this;
+    const keys = Area3d.polygonKeyPointsForOrigin(tokenPolygon, viewingPoint, { returnKeys: true });
+    if ( keepTop && keepBottom ) console.error("viewableSides top and bottom cannot both be true.");
+
+    const keepFace = keepTop || keepBottom;
+    const nTop = topPoints.length;
+    const nSides = keys.length - 1;
+    const points = Array(keepFace ? nTop + keys.length : keys.length * 2);
+    const k0 = keys[0];
+    const sidesKeys = Array(nSides);
+
+    if ( keepTop ) {
+      // Add all the top points.
+      for ( let i = 0; i < nTop; i += 1 ) points[i] = topPoints[i];
+      // Add starting points
+      points[nTop] = topPoints[k0];
+
+      for ( let i = 0; i < nSides; i += 1 ) {
+        const sideKeys = Array(4);
+        sidesKeys[i] = sideKeys;
+        const ptIdx = nTop + i;
+        const keyR = keys[i];
+        const keyL = keys[i+1];
+
+        sideKeys[0] = keyR;  // Top point R
+        sideKeys[1] = ptIdx;
+        sideKeys[2] = ptIdx + 1;
+        sideKeys[3] = keyL;  // Top point L
+
+        points[ptIdx + 1] = bottomPoints[keyL];
+      }
+
+    } else if ( keepBottom ) {
+      // Add all the bottom points.
+      for ( let i = 0; i < nTop; i += 1 ) points[i] = bottomPoints[i];
+
+      // Add starting points
+      points[nTop] = bottomPoints[k0];
+
+      for ( let i = 0; i < nSides; i += 1 ) {
+        const sideKeys = Array(4);
+        sidesKeys[i] = sideKeys;
+        const ptIdx = nTop + i;
+        const keyR = keys[i];
+        const keyL = keys[i+1];
+
+        sideKeys[0] = ptIdx;
+        sideKeys[1] = keyR;  // Bottom point R
+        sideKeys[2] = keyL;  // Bottom point L
+        sideKeys[3] = ptIdx + 1;
+
+        points[ptIdx + 1] = topPoints[keyL];
+      }
+
+
+    } else {  // Just the sides
+      // Add starting points
+      points[0] = topPoints[k0];
+      points[1] = bottomPoints[k0];
+
+      for ( let i = 0; i < nSides; i += 1 ) {
+        const sideKeys = Array(4);
+        sidesKeys[i] = sideKeys;
+        const ptIdx = (i+1) * 2;
+        const keyL = keys[i+1];
+
+        const idx = i * 2;
+        sideKeys[0] = idx;
+        sideKeys[1] = idx + 1;
+        sideKeys[2] = idx + 2;
+        sideKeys[3] = idx + 3;
+
+        points[ptIdx] = bottomPoints[keyL]; // Added R last iteration.
+        points[ptIdx + 1] = topPoints[keyL]; // Added R last iteration.
+      }
+    }
+
+    const out = { points, sides: sidesKeys, faces: [...sidesKeys] };
+    if ( keepTop ) {
+      out.top = Array.fromRange(nTop);
+      out.faces.push(out.top);
+    }
+    if ( keepBottom ) {
+      out.bottom = Array.fromRange(nTop);
+      out.faces.push(out.bottom);
+    }
+
+    return out;
+  }
+
 
   /**
-   * Transform the points using a provided perspective matrix.
+   * Transform the faces using a provided function.
+   * @param {function} transformFn
+   * @returns {Point3d[][]}
    */
-
-}
-
-
-function randomPoint(max = 5000) {
-  return { x: Math.floor(Math.random() * max),
-           y: Math.floor(Math.random() * max) }
-}
-
-function randomPoint(max = 5000) {
-  return { x: Math.random() * max,
-           y: Math.random() * max }
-}
-
-
-function elementsByIndex(arr, indices) {
-  return indices.map(aIndex => arr[aIndex]);
-}
-
-class Point3d {
-  constructor(x, y, z = 0) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-  }
-}
-
-class Matrix {
-  constructor(arr) {
-    this.arr = arr;
-  }
-
-  get dim1() { return this.arr.length; }
-  get dim2() { return this.arr[0].length; }
-
-  static fromFlatArray(arr, rows, cols) {
-    const ln = arr.length;
-    if ( rows * cols !== ln ) {
-      console.error("Rows or columns incorrectly specified.");
-      return undefined;
-    }
-
-    const out = new Array(rows);
-    for ( let r = 0; r < rows; r += 1 ) {
-      const arrR = new Array(cols);
-      out[r] = arrR;
-      const i = r * cols;
-      for ( let c = 0; c < cols; c += 1 ) {
-        arrR[c] = arr[i + c];
+  static transformFaces(faces, transformFn) {
+    // Use for loop with preset arrays for speed. Map would be simpler.
+    const nFaces = faces.length;
+    const tFaces = Array(nFaces);
+    for ( let i = 0; i < nFaces; i += 1 ) {
+      const face = faces[i];
+      const nPts = face.length;
+      const tFace = Array(nPts);
+      tFaces[i] = tFace;
+      for ( let j = 0; j < nPts; j += 1 ) {
+        tFace[j] = transformFn(face[j]);
       }
     }
-    return new Matrix(out);
+    return tFaces;
   }
 
-  static empty(rows, cols) {
-    return Matrix.fromFlatArray(new Array(rows * cols), rows, cols);
-  }
-
-  static zeroes(rows, cols) {
-    return Matrix.fromFlatArray(new Array(rows * cols).fill(0), rows, cols);
-  }
-
-  multiply(other) {
-    // A is this matrix; B is other matrix
-    const rowsA = this.dim1;
-    const colsA = this.dim2;
-    const rowsB = other.dim1;
-    const colsB = other.dim2;
-
-    if ( colsA !== rowsB ) {
-      console.error("Matrices cannot be multiplied.");
-      return undefined;
+  static transformFaces2(faces, transformFn) {
+    const nPoints = faces.points.length;
+    const tPoints = Array(nPoints);
+    for ( let i = 0; i < nPoints; i += 1 ) {
+      tPoints[i] = transformFn(faces.points[i]);
     }
 
-    const multiplication = Matrix.zeroes(rowsA, colsB);
-    for ( let x = 0; x < rowsA; x += 1 ) {
-      for ( let y = 0; y < colsB; y += 1 ) {
-        for ( let z = 0; z < colsA; z += 1 ) {
-          multiplication.arr[x][y] = multiplication.arr[x][y] + (this.arr[x][z] * other.arr[z][y]);
-        }
-      }
-    }
-    return multiplication;
-  }
-
-  static fromPoint3d(p, { homogenous = true } = {}) {
-    const arr = [p.x, p.y, p.z];
-    if ( homogenous ) arr.push(1);
-    return Matrix.fromFlatArray(arr, 1, homogenous ? 4 : 3);
-  }
-
-  toPoint3d({ xIndex = 0, yIndex = 1, zIndex = 2, homogenous = true } = {}) {
-    let x = this.arr[0][xIndex];
-    let y = this.arr[0][yIndex];
-    let z = this.arr[0][zIndex];
-
-    if ( homogenous ) {
-      const h = this.arr[0][this.dim2 - 1];
-      x /= h;
-      y /= h;
-      z /= h;
-    }
-
-    return new Point3d(x, y, z);
-  }
-}
-
-function fromRange(n, min=0) {
-  return Array.from({length: n}, (v, i) => i + min);
-}
-
-
-corners = [ randomPoint(), randomPoint(), randomPoint(), randomPoint()]
-topZ = Math.round(Math.random() * 1000)
-bottomZ = topZ - 100
-keys = [1,2,3]
-
-topPts = corners.map(pt => new Point3d(pt.x, pt.y, topZ));
-bottomPts = corners.map(pt => new Point3d(pt.x, pt.y, bottomZ));
-sides = [];
-ln = keys.length - 1;
-for ( let i = 0; i < ln; i += 1 ) {
-  const t0 = topPts[keys[i]];
-  const t1 = topPts[keys[i+1]];
-  const b0 = bottomPts[keys[i]];
-  const b1 = bottomPts[keys[i+1]];
-
-  sides.push([t0, b0, b1, t1]);
-}
-
-// Use map
-m = new Map();
-for ( const pt of topPts ) m.set(JSON.stringify(pt), m.size)
-
-sidesKeys = [];
-for ( const side of sides ) {
-  const sideKeys = [];
-  sidesKeys.push(sideKeys);
-  for ( const pt of side ) {
-    const key = JSON.stringify(pt);
-    if ( !m.has(key) ) m.set(key, m.size);
-    sideKeys.push(m.get(key));
-  }
-}
-
-// Use map v2
-m = new Map();
-for ( const pt of topPts ) m.set(pt, m.size)
-
-sidesKeys = [];
-for ( const side of sides ) {
-  const sideKeys = [];
-  sidesKeys.push(sideKeys);
-  for ( const pt of side ) {
-    if ( !m.has(pt) ) m.set(pt, m.size);
-    sideKeys.push(m.get(pt));
+    return {
+      points: tPoints,
+      sides: faces.sides,
+      faces: faces.faces,
+      top: faces.top,
+      bottom: faces.bottom
+    };
   }
 }
 
 
-
-
-// Use keys
-topKeys = fromRange(topPts.length);
-points = [...topPts]
-
-sidesKeys = [];
-ln = keys.length - 1;
-
-// push the first bottom
-p0 = points[keys[0]]
-points.push(new Point3d(p0.x, p0.y, bottomZ))
-for ( let i = 0; i < ln; i += 1 ) {
-  const nPts = points.length;
-  const t0 = keys[i];
-  const t1 = keys[i + 1];
-  const b0 = nPts - 1;
-  const b1 = nPts;
-
-  const p1 = points[t1];
-
-  const sideKeys = [];
-  sidesKeys.push(sideKeys);
-
-  points.push(new Point3d(p1.x, p1.y, bottomZ))
-
-  sideKeys.push(
-    t0,
-    b0,
-    b1,
-    t1)
-}
-
-
-// Multiply all points
-
-M = new Matrix([
-  [1, 0, 0, 0],
-  [0, 0.26749882862458735, 0.963558185417193, 0],
-  [0, -0.963558185417193, 0.26749882862458735, 0],
-  [0, 0, 0, 1]
-])
-
-tTopPts = topPts.map(pt => {
-  const ptM = Matrix.fromPoint3d(pt);
-  const resM = ptM.multiply(M);
-  return resM.toPoint3d()
-})
-
-tSides = [];
-for ( const side of sides ) tSides.push(side.map(pt => {
-  const ptM = Matrix.fromPoint3d(pt);
-  const resM = ptM.multiply(M);
-  return resM.toPoint3d()
-}))
-
-
-// Multiple mapped points
-tPoints = []
-for ( const elem of m ) {
-  const ptM = Matrix.fromPoint3d(elem);
-  const resM = ptM.multiply(M);
-  tPoints.push(resM.toPoint3d())
-}
-
-tPoints = Array(m.size)
-for ( const [elem, idx] of m.entries() ) {
-  const ptM = Matrix.fromPoint3d(elem);
-  const resM = ptM.multiply(M);
-  tPoints[idx] = resM.toPoint3d()
-}
-
-tPoints = []
-m.forEach(elem => {
-  const ptM = Matrix.fromPoint3d(elem);
-  const resM = ptM.multiply(M);
-  tPoints.push(resM.toPoint3d())
-})
+// function randomPoint(max = 5000) {
+//   return { x: Math.floor(Math.random() * max),
+//            y: Math.floor(Math.random() * max) }
+// }
+//
+// function randomPoint(max = 5000) {
+//   return { x: Math.random() * max,
+//            y: Math.random() * max }
+// }
+//
+//
+// function elementsByIndex(arr, indices) {
+//   return indices.map(aIndex => arr[aIndex]);
+// }
+//
+// class Point3d {
+//   constructor(x, y, z = 0) {
+//     this.x = x;
+//     this.y = y;
+//     this.z = z;
+//   }
+// }
+//
+// class Matrix {
+//   constructor(arr) {
+//     this.arr = arr;
+//   }
+//
+//   get dim1() { return this.arr.length; }
+//   get dim2() { return this.arr[0].length; }
+//
+//   static fromFlatArray(arr, rows, cols) {
+//     const ln = arr.length;
+//     if ( rows * cols !== ln ) {
+//       console.error("Rows or columns incorrectly specified.");
+//       return undefined;
+//     }
+//
+//     const out = new Array(rows);
+//     for ( let r = 0; r < rows; r += 1 ) {
+//       const arrR = new Array(cols);
+//       out[r] = arrR;
+//       const i = r * cols;
+//       for ( let c = 0; c < cols; c += 1 ) {
+//         arrR[c] = arr[i + c];
+//       }
+//     }
+//     return new Matrix(out);
+//   }
+//
+//   static empty(rows, cols) {
+//     return Matrix.fromFlatArray(new Array(rows * cols), rows, cols);
+//   }
+//
+//   static zeroes(rows, cols) {
+//     return Matrix.fromFlatArray(new Array(rows * cols).fill(0), rows, cols);
+//   }
+//
+//   multiply(other) {
+//     // A is this matrix; B is other matrix
+//     const rowsA = this.dim1;
+//     const colsA = this.dim2;
+//     const rowsB = other.dim1;
+//     const colsB = other.dim2;
+//
+//     if ( colsA !== rowsB ) {
+//       console.error("Matrices cannot be multiplied.");
+//       return undefined;
+//     }
+//
+//     const multiplication = Matrix.zeroes(rowsA, colsB);
+//     for ( let x = 0; x < rowsA; x += 1 ) {
+//       for ( let y = 0; y < colsB; y += 1 ) {
+//         for ( let z = 0; z < colsA; z += 1 ) {
+//           multiplication.arr[x][y] = multiplication.arr[x][y] + (this.arr[x][z] * other.arr[z][y]);
+//         }
+//       }
+//     }
+//     return multiplication;
+//   }
+//
+//   static fromPoint3d(p, { homogenous = true } = {}) {
+//     const arr = [p.x, p.y, p.z];
+//     if ( homogenous ) arr.push(1);
+//     return Matrix.fromFlatArray(arr, 1, homogenous ? 4 : 3);
+//   }
+//
+//   toPoint3d({ xIndex = 0, yIndex = 1, zIndex = 2, homogenous = true } = {}) {
+//     let x = this.arr[0][xIndex];
+//     let y = this.arr[0][yIndex];
+//     let z = this.arr[0][zIndex];
+//
+//     if ( homogenous ) {
+//       const h = this.arr[0][this.dim2 - 1];
+//       x /= h;
+//       y /= h;
+//       z /= h;
+//     }
+//
+//     return new Point3d(x, y, z);
+//   }
+// }
+//
+// function fromRange(n, min=0) {
+//   return Array.from({length: n}, (v, i) => i + min);
+// }
+//
+//
+// corners = [ randomPoint(), randomPoint(), randomPoint(), randomPoint()]
+// topZ = Math.round(Math.random() * 1000)
+// bottomZ = topZ - 100
+// keys = [1,2,3]
+//
+// topPts = corners.map(pt => new Point3d(pt.x, pt.y, topZ));
+// bottomPts = corners.map(pt => new Point3d(pt.x, pt.y, bottomZ));
+// sides = [];
+// ln = keys.length - 1;
+// for ( let i = 0; i < ln; i += 1 ) {
+//   const t0 = topPts[keys[i]];
+//   const t1 = topPts[keys[i+1]];
+//   const b0 = bottomPts[keys[i]];
+//   const b1 = bottomPts[keys[i+1]];
+//
+//   sides.push([t0, b0, b1, t1]);
+// }
+//
+// // Use map
+// m = new Map();
+// for ( const pt of topPts ) m.set(JSON.stringify(pt), m.size)
+//
+// sidesKeys = [];
+// for ( const side of sides ) {
+//   const sideKeys = [];
+//   sidesKeys.push(sideKeys);
+//   for ( const pt of side ) {
+//     const key = JSON.stringify(pt);
+//     if ( !m.has(key) ) m.set(key, m.size);
+//     sideKeys.push(m.get(key));
+//   }
+// }
+//
+// // Use map v2
+// m = new Map();
+// for ( const pt of topPts ) m.set(pt, m.size)
+//
+// sidesKeys = [];
+// for ( const side of sides ) {
+//   const sideKeys = [];
+//   sidesKeys.push(sideKeys);
+//   for ( const pt of side ) {
+//     if ( !m.has(pt) ) m.set(pt, m.size);
+//     sideKeys.push(m.get(pt));
+//   }
+// }
+//
+//
+//
+//
+// // Use keys
+// topKeys = fromRange(topPts.length);
+// points = [...topPts]
+//
+// sidesKeys = [];
+// ln = keys.length - 1;
+//
+// // push the first bottom
+// p0 = points[keys[0]]
+// points.push(new Point3d(p0.x, p0.y, bottomZ))
+// for ( let i = 0; i < ln; i += 1 ) {
+//   const nPts = points.length;
+//   const t0 = keys[i];
+//   const t1 = keys[i + 1];
+//   const b0 = nPts - 1;
+//   const b1 = nPts;
+//
+//   const p1 = points[t1];
+//
+//   const sideKeys = [];
+//   sidesKeys.push(sideKeys);
+//
+//   points.push(new Point3d(p1.x, p1.y, bottomZ))
+//
+//   sideKeys.push(
+//     t0,
+//     b0,
+//     b1,
+//     t1)
+// }
+//
+//
+// // Multiply all points
+//
+// M = new Matrix([
+//   [1, 0, 0, 0],
+//   [0, 0.26749882862458735, 0.963558185417193, 0],
+//   [0, -0.963558185417193, 0.26749882862458735, 0],
+//   [0, 0, 0, 1]
+// ])
+//
+// tTopPts = topPts.map(pt => {
+//   const ptM = Matrix.fromPoint3d(pt);
+//   const resM = ptM.multiply(M);
+//   return resM.toPoint3d()
+// })
+//
+// tSides = [];
+// for ( const side of sides ) tSides.push(side.map(pt => {
+//   const ptM = Matrix.fromPoint3d(pt);
+//   const resM = ptM.multiply(M);
+//   return resM.toPoint3d()
+// }))
+//
+//
+// // Multiple mapped points
+// tPoints = []
+// for ( const elem of m ) {
+//   const ptM = Matrix.fromPoint3d(elem);
+//   const resM = ptM.multiply(M);
+//   tPoints.push(resM.toPoint3d())
+// }
+//
+// tPoints = Array(m.size)
+// for ( const [elem, idx] of m.entries() ) {
+//   const ptM = Matrix.fromPoint3d(elem);
+//   const resM = ptM.multiply(M);
+//   tPoints[idx] = resM.toPoint3d()
+// }
+//
+// tPoints = []
+// m.forEach(elem => {
+//   const ptM = Matrix.fromPoint3d(elem);
+//   const resM = ptM.multiply(M);
+//   tPoints.push(resM.toPoint3d())
+// })
