@@ -859,3 +859,145 @@ export class TokenPoints3d {
 //   }
 }
 
+
+/**
+ * Represent a wall or tile as a set of 4 3d points
+ * To avoid numeric difficulties, set the top and bottom elevations to max radius and
+ * negative max radius, respectively, of the scene if the respective elevation is infinite.
+ */
+export class Wall3d {
+  /**
+   * Wall: TopA, TopB, bottomB, bottomA
+   * Tile: xy, xy + width, xy + width + height, xy + height
+   * @type {Point3d}
+   */
+  points = Array(4);
+
+  /**
+   * Points when a transform is set
+   * @type {Point3d}
+   */
+  tPoints = Array(4);
+
+  /** @type {Wall|Tile} */
+  wall;
+
+  /** @type {boolean} */
+  isTile = false;
+
+  /**
+   * @param {Wall|Tile}
+   */
+  constructor(wall) {
+    this.wall = wall;
+
+    if ( wall instanceof Tile ) {
+      const { x, y, width, height, elevation } = wall;
+      const isTile = true;
+
+      this.points[0] = new Point3d(x, y, elevation);
+      this.points[1] = new Point3d(x + width, y, elevation);
+      this.points[2] = new Point3d(x + width, y + height, elevation);
+      this.points[3] = new Point3d(x, y + height, elevation);
+
+    } else {
+      const { A, B, topZ, bottomZ } = wall;
+      const maxR = canvas.dimensions.maxR;
+
+      const top = isFinite(topZ) ? topZ : maxR;
+      const bottom = isFinite(bottomZ) ? bottomZ : -maxR;
+
+      this.points[0] = new Point3d(A.x, A.y, top);
+      this.points[1] = new Point3d(B.x, B.y, top);
+      this.points[2] = new Point3d(B.x, B.y, bottom);
+      this.points[3] = new Point3d(A.x, A.y, bottom);
+
+    }
+  }
+
+  /**
+   * Set the view matrix used to transform the wall and transform the wall points.
+   * @param {Matrix} M
+   */
+  setViewMatrix(M) {
+    this.M = M;
+    this._transform(M);
+    this._truncateTransform();
+  }
+
+  /**
+   * Transform the point using a transformation matrix.
+   * @param {Matrix} M
+   */
+  _transform(M) {
+    for ( let i = 0; i < 4; i += 1 ) {
+      this.tPoints[i] = Matrix.fromPoint3d(this.points[i]).multiply(M).toPoint3d();
+    }
+  }
+
+ /**
+  * Truncate the transformed walls to keep only the below z = 0 portion
+  */
+  _truncateTransform() {
+    const targetE = -1;
+    let A = this.tPoints[3];
+    for ( let i = 0; i < 4; i += 1 ) {
+      const B = this.tPoints[i];
+      const Aabove = A.z > targetE;
+      const Babove = B.z > targetE;
+      if ( !(Aabove ^ Babove) ) continue;
+
+      const res = truncateWallAtElevation(A, B, targetE, -1, 0);
+      if ( res ) {
+        A.copyFrom(res.A);
+        B.copyFrom(res.B);
+      }
+      A = B;
+    }
+  }
+
+  /**
+   * Transform the wall to a 2d perspective.
+   * @returns {Point2d[]}
+   */
+  perspectiveTransform() {
+    return this.tPoints.map(pt => Area3d.perspectiveTransform(pt));
+  }
+
+  /**
+   * Given an array of terrain walls, trim the polygons by combining.
+   * Should be 2d perspective transform walls.
+   * @param {PIXI.Point[][]} walls2d
+   * @returns {ClipperPaths}
+   */
+  combineTerrainWalls(walls2d) {
+    // TODO: Handle walls that are actually lines?
+
+    // Terrain walls can be represented as the union of the intersection of every two pairs
+    // For each wall, union the intersection of it with every other wall.
+    // Then union the set of resulting walls.
+    const nWalls = walls2d.length;
+    if ( nWalls < 2 ) return null;
+
+    walls2d = walls2d.map(w => new PIXI.Polygon(w));
+
+    const paths = Array(nWalls);
+    for ( let i = 0; i < nWalls; i += 1 ) {
+      const cp = ClipperPaths.fromPolygon([walls2d[i]]);
+      const ixs = [];
+
+      for ( let j = 0; j < nWalls; j += 1 ) {
+        if ( i === j ) continue;
+        ixs.push(cp.intersectPolygon(walls2d[j]));
+      }
+
+      paths[i] = (new ClipperPaths([cp, ...ixs])).combine();
+    }
+
+    return (new ClipperPaths(paths)).combine();
+  }
+
+
+
+}
+
