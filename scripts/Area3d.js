@@ -56,7 +56,12 @@ export class Area3d {
   /** @type {boolean} */
   debug = false;
 
-  /** @type object{walls: Set<WallPoints3d>|undefined, tiles: Set<WallPoints3d>, tokens: Set<TokenPoints3d>} */
+  /** @type {object}:
+   *   walls: Set<WallPoints3d>|undefined,
+   *   tiles: Set<WallPoints3d>|undefined,
+   *  tokens: Set<TokenPoints3d>|undefined}
+   *  terrainWalls: Set<WallPoints3d>|undefined
+   */
   _blockingObjects = undefined;
 
   /** @type {Point3d[]} */
@@ -415,6 +420,15 @@ export class Area3d {
     out.walls = out.walls.map(w => new WallPoints3d(w));
     out.tiles = out.tiles.map(t => new WallPoints3d(t));
     out.tokens = out.tokens.map(t => new TokenPoints3d(t, this.type));
+    out.terrainWalls = new Set();
+
+    // Separate the terrain walls
+    out.walls.forEach(w => {
+      if ( w.document[this.type] === CONST.WALL_SENSE_TYPES.LIMITED ) {
+        out.terrainWalls.add(w);
+        out.walls.delete(w);s
+      }
+    });
 
     return out;
   }
