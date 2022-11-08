@@ -1010,13 +1010,15 @@ export class WallPoints3d {
     this.wall = wall;
 
     if ( wall instanceof Tile ) {
-      const { x, y, width, height, elevation } = wall;
+      const { x, y, width, height, elevation } = wall.document;
+      const eZ = zValue(elevation); // There is a wall.document.z value but not sure from where -- Levels?
       this.isTile = true;
 
-      this.points[0] = new Point3d(x, y, elevation);
-      this.points[1] = new Point3d(x + width, y, elevation);
-      this.points[2] = new Point3d(x + width, y + height, elevation);
-      this.points[3] = new Point3d(x, y + height, elevation);
+
+      this.points[0] = new Point3d(x, y, eZ);
+      this.points[1] = new Point3d(x + width, y, eZ);
+      this.points[2] = new Point3d(x + width, y + height, eZ);
+      this.points[3] = new Point3d(x, y + height, eZ);
 
     } else {
       const { A, B, topZ, bottomZ } = wall;
