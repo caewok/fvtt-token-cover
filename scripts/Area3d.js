@@ -65,6 +65,9 @@ export class Area3d {
   /** @type {Shadow[]} */
   wallShadows = [];
 
+  /** @type {boolean} */
+  viewIsSet = false;
+
   /**
    * Vector representing the up position on the canvas.
    * Used to construct the token camera and view matrices.
@@ -118,7 +121,7 @@ export class Area3d {
   get blockingWalls() {
     if ( !this._blockingWalls ) {
       const walls = this._findBlockingWalls();
-      this._blockingWalls = walls.map(w => new Wall3d(w));
+      this._blockingWalls = walls.map(w => new WallPoints3d(w));
     }
 
     return this._blockingWalls;
@@ -150,58 +153,28 @@ export class Area3d {
   }
 
   /**
+   * Calculate the view matrix for the given token and target.
+   * Also sets the view matrix for the target, walls, tiles, and other tokens as applicable.
+   */
+  calculateViewMatrix() {
+    this._calculateViewerCameraMatrix();
+
+    const tp = this.targetPoints;
+    tp.setViewingPoint(this.viewerCenter);
+    tp.setViewMatrix(this.viewerViewM);
+
+    this.blockingWalls.forEach(w => {
+      w.setViewMatrix(this.viewerViewM);
+    });
+
+    this.viewIsSet = true;
+  }
+
+  /**
    * Get the array of sides, obscured by walls and shadows, if any.
    */
   get obscuredSides() {
     return this._obscuredSides || (this._obscuredSides = this._obscureSides());
-  }
-
-  // TODO: Don't really need this anymore to get the transformed target faces
-  /** @type {Point3d[]} */
-  get transformedTarget() {
-    const tp = this.targetPoints;
-    if ( !tp.viewIsSet ) this._transformTarget();
-    return tp.tFaces;
-  }
-
-  /**
-   * Perspective divide the target points.
-   * See https://www.scratchapixel.com/lessons/3d-basic-rendering/computing-pixel-coordinates-of-3d-point/mathematics-computing-2d-coordinates-of-3d-points
-   * Then scale by 1000, primarily for debug drawing.
-   * @type {Point3d[]}
-   */
-  get perspectiveTarget() {
-    const tp = this.targetPoints;
-    if ( !tp.viewIsSet ) this._transformTarget();
-    return tp.perspectiveTransform();
-  }
-
-  // TODO: Don't really need this anymore to get the transformed wall points
-  /** @type {Object{Point3d[]}[]} */
-  get transformedWalls() {
-    const bw = this.blockingWalls;
-
-    if (bw.size ) {
-      const [w] = bw;
-      if ( !w.viewIsSet ) this._transformWalls();
-    }
-
-    return bw.map(w => w.tPoints);
-  }
-
-  /**
-   * Perspective divide the target points.
-   * See https://www.scratchapixel.com/lessons/3d-basic-rendering/computing-pixel-coordinates-of-3d-point/mathematics-computing-2d-coordinates-of-3d-points
-   * Then scale by 1000, primarily for debug drawing.
-   * @type {Object{Point3d[]}[]}
-   */
-  get perspectiveWalls() {
-    if ( this.blockingWalls.size ) {
-      const [w] = this.blockingWalls;
-      if ( !w.viewIsSet ) this._transformWalls();
-    }
-
-    return this.blockingWalls.map(w => w.perspectiveTransform());
   }
 
   get viewerViewM() {
@@ -313,9 +286,16 @@ export class Area3d {
    * - Treat the wall as 2d, with each edge a line that can block vision.
    */
   _projectShadowsForWalls() {
+    if ( !this.viewIsSet ) this.calculateViewMatrix();
+
     const origin = new Point3d(0, 0, 0);
-    const tTarget = this.transformedTarget;
-    const tWalls = this.transformedWalls;
+    const tTarget = this.targetPoints.tFaces;
+    const tWalls = this.blockingWalls.map(w => w.tPoints);
+
+    // TODO: Fix
+    console.error("_projectShadowsForWalls not implemented.");
+    return;
+
     const sides = tTarget.sides;
     const shadowsArr = [];
     for ( const side of sides ) {
@@ -340,9 +320,12 @@ export class Area3d {
   }
 
   _obscureSides() {
-    const tTarget = this.perspectiveTarget;
+    if ( !this.viewIsSet ) this.calculateViewMatrix();
+
+    const tTarget = this.targetPoints.perspectiveTransform();
+    const walls = this.blockingWalls.map(w => w.perspectiveTransform());
+
     const shadowsArr = this._useShadows ? this.perspectiveShadows : undefined;
-    const walls = this.perspectiveWalls;
     const wallPolys = walls.map(w => new PIXI.Polygon(w));
 
     // For each side, union the blocking wall with any shadows and then take diff against the side
@@ -370,10 +353,13 @@ export class Area3d {
    * @returns {number}
    */
   percentAreaVisible() {
+    if ( !this.viewIsSet ) this.calculateViewMatrix();
+
     if ( this.debug ) {
       this._drawLineOfSight();
-      this._drawTransformedTarget();
-      this._drawTransformedWalls();
+      this.targetPoints.drawTransformed();
+      this.blockingWalls.forEach(w => w.drawTransformed());
+
       if (this._useShadows ) this._drawTransformedShadows();
 
       const target = this.target;
@@ -453,35 +439,6 @@ export class Area3d {
    */
   _drawLineOfSight() {
     drawing.drawSegment({A: this.viewerCenter, B: this.targetCenter});
-  }
-
-  /**
-   * For debugging.
-   * Draw the transformed target.
-   */
-  _drawTransformedTarget(perspective = true) {
-    const t = perspective ? this.perspectiveTarget : this.transformedTarget;
-    t.forEach(side => side.forEach(pt => drawing.drawPoint(pt, { color: drawing.COLORS.red })));
-    t.forEach(side => this._drawSide(side, { color: drawing.COLORS.red }));
-  }
-
-  _drawSide(side, { color = drawing.COLORS.blue } = {}) {
-    const ln = side.length;
-    for ( let i = 1; i < ln; i += 1 ) {
-      drawing.drawSegment({A: side[i - 1], B: side[i]}, { color });
-    }
-    drawing.drawSegment({A: side[ln - 1], B: side[0]}, { color });
-  }
-
-  /**
-   * For debugging.
-   */
-  _drawTransformedWalls(perspective = true) {
-    const walls = perspective ? this.perspectiveWalls : this.transformedWalls;
-    walls.forEach(w => {
-      const poly = new PIXI.Polygon(w);
-      drawing.drawShape(poly, { color: drawing.COLORS.blue, fill: drawing.COLORS.blue, fillAlpha: 0.2 });
-    });
   }
 
   /**
@@ -679,6 +636,9 @@ export class TokenPoints3d {
   /** @type {boolean} */
   viewIsSet = false;
 
+  /** @type {Point3d} */
+  viewingPoint = undefined;
+
   /**
    * @param {Token} token
    * @param {string} type     Wall restriction type, for constructing the constrained token shape.
@@ -808,6 +768,44 @@ export class TokenPoints3d {
   }
 
   /**
+   * Draw the constrained token shape and the points on the 2d canvas.
+   */
+  draw() {
+    drawing.drawShape(this.tokenPolygon, { color: drawing.COLORS.red });
+    if ( this.viewingPoint ) drawing.drawSegment(
+      { A: this.viewingPoint, B: this.token.center },
+      { color: drawing.COLORS.blue, alpha: 0.5 });
+    this.topPoints.forEach(pt => drawing.drawPoint(pt));
+  }
+
+  /**
+   * Draw the transformed faces.
+   * @param {object} [options]
+   * @param {boolean} [perspective]   Draw using 2d perspective.
+   */
+  drawTransformed({perspective = true, color = drawing.COLORS.red} = {}) {
+    if ( !this.viewIsSet ) {
+      console.warn(`TokenPoints3d: View is not yet set for Token ${this.token.name}.`);
+      return;
+    }
+
+    const t = perspective ? this.perspectiveTransform() : this.tFaces;
+    t.forEach(side => side.forEach(pt => drawing.drawPoint(pt, { color })));
+    t.forEach(side => this._drawSide(side, { color}));
+  }
+
+  /**
+   * Draw a side.
+   */
+  _drawSide(side, { color = drawing.COLORS.blue } = {}) {
+    const ln = side.length;
+    for ( let i = 1; i < ln; i += 1 ) {
+      drawing.drawSegment({A: side[i - 1], B: side[i]}, { color });
+    }
+    drawing.drawSegment({A: side[ln - 1], B: side[0]}, { color });
+  }
+
+  /**
    * Transform the faces using a provided function.
    * @param {function} transformFn
    * @returns {Point3d[][]}
@@ -835,7 +833,7 @@ export class TokenPoints3d {
  * To avoid numeric difficulties, set the top and bottom elevations to max radius and
  * negative max radius, respectively, of the scene if the respective elevation is infinite.
  */
-export class Wall3d {
+export class WallPoints3d {
 
   /**
    * Wall: TopA, TopB, bottomB, bottomA
@@ -867,7 +865,7 @@ export class Wall3d {
 
     if ( wall instanceof Tile ) {
       const { x, y, width, height, elevation } = wall;
-      const isTile = true;
+      this.isTile = true;
 
       this.points[0] = new Point3d(x, y, elevation);
       this.points[1] = new Point3d(x + width, y, elevation);
@@ -887,11 +885,6 @@ export class Wall3d {
       this.points[3] = new Point3d(A.x, A.y, bottom);
 
     }
-  }
-
-  /** @type {boolean} */
-  get viewIsSet() {
-    return Boolean(this.tPoints.length);
   }
 
   /**
@@ -942,6 +935,34 @@ export class Wall3d {
    */
   perspectiveTransform() {
     return this.tPoints.map(pt => Area3d.perspectiveTransform(pt));
+  }
+
+  /**
+   * Draw the wall or tile shape and points on the 2d canvas.
+   */
+  draw(options = {}) {
+    this.points.forEach(pt => drawing.drawPoint(pt, options));
+
+    for ( let i = 1; i < 4; i += 1 ) {
+      drawing.drawSegment({ A: this.points[i - 1], B: this.points[i] }, options);
+    }
+    drawing.drawSegment({ A: this.points[3], B: this.points[0] }, options);
+  }
+
+  /**
+   * Draw the transformed shape.
+   */
+  drawTransformed({perspective = true} = {}) {
+    if ( !this.viewIsSet ) {
+      console.warn(`WallPoints3d: View is not yet set for Token ${this.token.name}.`);
+      return;
+    }
+
+
+
+    const pts = perspective ? this.perspectiveTransform() : this.tPoints;
+    const poly = new PIXI.Polygon(pts);
+    drawing.drawShape(poly, { color, fill: color, fillAlpha: 0.2 });
   }
 
   /**
