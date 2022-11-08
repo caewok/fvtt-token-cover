@@ -138,7 +138,7 @@ export class Area3d {
   }
 
   static perspectiveTransform(pt) {
-    const mult = 1 / (-pt.z * 1000);
+    const mult = 1000 / -pt.z;
     return new PIXI.Point(pt.x * mult, pt.y * mult);
   }
 
@@ -494,22 +494,16 @@ export class Area3d {
    */
   _drawTransformedTarget(perspective = true) {
     const t = perspective ? this.perspectiveTarget : this.transformedTarget;
-    t.points.forEach(pt => drawing.drawPoint(pt, { color: drawing.COLORS.red }));
-
-    for ( const side of t.sides ) {
-      this._drawSide(t.points, side, { color: drawing.COLORS.red });
-    }
+    t.forEach(side => side.forEach(pt => drawing.drawPoint(pt, { color: drawing.COLORS.red })));
+    t.forEach(side => this._drawSide(side, { color: drawing.COLORS.red }));
   }
 
-  _drawSide(points, index, { color = drawing.COLORS.blue } = {}) {
-    const ln = index.length;
-    if ( ln !== 4 ) console.error("_drawSide expects sides with 4 points.");
-
-    const pts = elementsByIndex(points, index);
+  _drawSide(side, { color = drawing.COLORS.blue } = {}) {
+    const ln = side.length;
     for ( let i = 1; i < ln; i += 1 ) {
-      drawing.drawSegment({A: pts[i - 1], B: pts[i]}, { color });
+      drawing.drawSegment({A: side[i - 1], B: side[i]}, { color });
     }
-    drawing.drawSegment({A: pts[ln - 1], B: pts[0]}, { color });
+    drawing.drawSegment({A: side[ln - 1], B: side[0]}, { color });
   }
 
   /**
@@ -651,6 +645,9 @@ export class Area3d {
       }
     }
 
+    // Keep the keys CW, same order as pts
+
+    const keys = [...endKeys, ...startKeys];
     return returnKeys ? keys : [pts[keys[0]], pts[keys[keys.length - 1]]];
   }
 
@@ -757,11 +754,20 @@ export class TokenPoints3d {
     return Boolean(this.tFaces.length);
   }
 
+  /**
+   * Set the point from which this token is being viewed and construct the viewable faces.
+   * Determines how many faces are visible.
+   * @param {Point3d} viewingPoint
+   */
   setViewingPoint(viewingPoint) {
     this.viewingPoint = viewingPoint;
     this.faces = this._viewableFaces(viewingPoint);
   }
 
+  /**
+   * Set the view matrix used to transform the faces and transform the faces.
+   * @param {Matrix} M
+   */
   setViewMatrix(M) {
     this.M = M;
     this.tFaces = this._transform(M);
