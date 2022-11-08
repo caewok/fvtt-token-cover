@@ -424,9 +424,9 @@ export class Area3d {
 
     // Separate the terrain walls
     out.walls.forEach(w => {
-      if ( w.document[this.type] === CONST.WALL_SENSE_TYPES.LIMITED ) {
+      if ( w.wall.document[this.type] === CONST.WALL_SENSE_TYPES.LIMITED ) {
         out.terrainWalls.add(w);
-        out.walls.delete(w);s
+        out.walls.delete(w);
       }
     });
 
