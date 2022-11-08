@@ -3,7 +3,8 @@ PIXI,
 canvas,
 game,
 foundry,
-Token
+Token,
+Tile
 */
 "use strict";
 
@@ -35,6 +36,7 @@ import { Point3d } from "./Point3d.js";
 import { Plane } from "./Plane.js";
 import { elementsByIndex, zValue } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+import { ClipperPaths } from "./ClipperPaths.js";
 import * as drawing from "./drawing.js"; // For debugging
 
 export class Area3d {
@@ -52,7 +54,7 @@ export class Area3d {
   _boundsXY = null;
 
   /** @type {Wall[]} */
-  _blockingWalls = null;
+  _blockingWalls = undefined;
 
   /** @type {Point3d[]} */
   _transformedTarget = undefined;
@@ -114,7 +116,12 @@ export class Area3d {
    * @type {<Set>{Point3d[]}
    */
   get blockingWalls() {
-    return this._blockingWalls || (this._blockingWalls = this._findBlockingWalls());
+    if ( !this._blockingWalls ) {
+      const walls = this._findBlockingWalls();
+      this._blockingWalls = walls.map(w => new Wall3d(w));
+    }
+
+    return this._blockingWalls;
   }
 
   /**
@@ -149,13 +156,12 @@ export class Area3d {
     return this._obscuredSides || (this._obscuredSides = this._obscureSides());
   }
 
-  /**
-   * Get the transformed target points
-   * @type {Point3d[]}
-   */
+  // TODO: Don't really need this anymore to get the transformed target faces
+  /** @type {Point3d[]} */
   get transformedTarget() {
-    if ( !this.targetPoints.viewIsSet ) this._transformTarget();
-    return this.targetPoints.tFaces;
+    const tp = this.targetPoints;
+    if ( !tp.viewIsSet ) this._transformTarget();
+    return tp.tFaces;
   }
 
   /**
@@ -165,16 +171,22 @@ export class Area3d {
    * @type {Point3d[]}
    */
   get perspectiveTarget() {
-    if ( !this.targetPoints.viewIsSet ) this._transformTarget();
-    return this.targetPoints.perspectiveTransform();
+    const tp = this.targetPoints;
+    if ( !tp.viewIsSet ) this._transformTarget();
+    return tp.perspectiveTransform();
   }
 
-  /**
-   * Get the transformed walls
-   * @type {Object{Point3d[]}[]}
-   */
+  // TODO: Don't really need this anymore to get the transformed wall points
+  /** @type {Object{Point3d[]}[]} */
   get transformedWalls() {
-    return this._transformedWalls || (this._transformedWalls = this._transformWalls());
+    const bw = this.blockingWalls;
+
+    if (bw.size ) {
+      const [w] = bw;
+      if ( !w.viewIsSet ) this._transformWalls();
+    }
+
+    return bw.map(w => w.tPoints);
   }
 
   /**
@@ -184,8 +196,12 @@ export class Area3d {
    * @type {Object{Point3d[]}[]}
    */
   get perspectiveWalls() {
-    const tWalls = this.transformedWalls;
-    return tWalls.map(wall => wall.map(pt => Area3d.perspectiveTransform(pt)));
+    if ( this.blockingWalls.size ) {
+      const [w] = this.blockingWalls;
+      if ( !w.viewIsSet ) this._transformWalls();
+    }
+
+    return this.blockingWalls.map(w => w.perspectiveTransform());
   }
 
   get viewerViewM() {
@@ -276,43 +292,18 @@ export class Area3d {
    * Transform the target location.
    */
   _transformTarget() {
-    this.targetPoints.setViewingPoint(this.viewerCenter);
-    this.targetPoints.setViewMatrix(this.viewerViewM);
+    const tp = this.targetPoints;
+    tp.setViewingPoint(this.viewerCenter);
+    tp.setViewMatrix(this.viewerViewM);
   }
 
   /**
    * Transform the wall locations.
    */
   _transformWalls() {
-    return this.blockingWalls.map(w => {
-      const pts = Area3d.wall3dPoints(w);
-      const wall = pts.map(pt => Matrix.fromPoint3d(pt).multiply(this.viewerViewM).toPoint3d());
-      return this._trucateTransformedWall(wall);
+    this.blockingWalls.forEach(w => {
+      w.setViewMatrix(this.viewerViewM);
     });
-  }
-
-  /**
-   * Truncate transformed walls so only the visible portions (below z = 0) are kept.
-   * Warning: destructive operation on wall points!
-   */
-  _trucateTransformedWall(wall) {
-    const targetE = -1;
-    const ln = wall.length;
-    let A = wall[ln - 1];
-    for ( let i = 0; i < ln; i += 1 ) {
-      const B = wall[i];
-      const Aabove = A.z > targetE;
-      const Babove = B.z > targetE;
-      if ( !(Aabove ^ Babove) ) continue;
-
-      const res = truncateWallAtElevation(A, B, targetE, -1, 0);
-      if ( res ) {
-        A.copyFrom(res.A);
-        B.copyFrom(res.B);
-      }
-      A = B;
-    }
-    return wall;
   }
 
   /**
@@ -456,30 +447,6 @@ export class Area3d {
     return walls;
   }
 
-
-  /**
-   * Get 3d points representing a given wall.
-   * To avoid numeric difficulties, set the top and bottom elevations to max radius and
-   * negative max radius, respectively, of the scene if the respective elevation is infinite.
-   * @param {Wall} wall
-   * @returns {Point3d[]}
-   */
-  static wall3dPoints(wall) {
-    const { A, B, topZ, bottomZ } = wall;
-    const maxR = canvas.dimensions.maxR;
-
-    const top = isFinite(topZ) ? topZ : maxR;
-    const bottom = isFinite(bottomZ) ? bottomZ : -maxR;
-
-    return [
-      new Point3d(A.x, A.y, top),
-      new Point3d(B.x, B.y, top),
-      new Point3d(B.x, B.y, bottom),
-      new Point3d(A.x, A.y, bottom)
-    ];
-  }
-
-
   /**
    * For debugging.
    * Draw the line of sight from token to target.
@@ -566,6 +533,7 @@ export class Area3d {
 
     return walls;
   }
+
 
   /**
    * Also in Elevated Vision clockwise_sweep.js
@@ -705,6 +673,12 @@ export class TokenPoints3d {
   /** @type {Point3d[][]} */
   tFaces = [];
 
+  /** @type {Matrix} */
+  M = undefined;
+
+  /** @type {boolean} */
+  viewIsSet = false;
+
   /**
    * @param {Token} token
    * @param {string} type     Wall restriction type, for constructing the constrained token shape.
@@ -749,11 +723,6 @@ export class TokenPoints3d {
     return topZ === this.bottomZ ? topZ + 2 : topZ;
   }
 
-  /** @type {boolean} */
-  get viewIsSet() {
-    return Boolean(this.tFaces.length);
-  }
-
   /**
    * Set the point from which this token is being viewed and construct the viewable faces.
    * Determines how many faces are visible.
@@ -771,6 +740,7 @@ export class TokenPoints3d {
   setViewMatrix(M) {
     this.M = M;
     this.tFaces = this._transform(M);
+    this.viewIsSet = true;
   }
 
   /**
@@ -866,6 +836,7 @@ export class TokenPoints3d {
  * negative max radius, respectively, of the scene if the respective elevation is infinite.
  */
 export class Wall3d {
+
   /**
    * Wall: TopA, TopB, bottomB, bottomA
    * Tile: xy, xy + width, xy + width + height, xy + height
@@ -884,6 +855,9 @@ export class Wall3d {
 
   /** @type {boolean} */
   isTile = false;
+
+  /** @type {boolean} */
+  viewIsSet = false;
 
   /**
    * @param {Wall|Tile}
@@ -915,6 +889,11 @@ export class Wall3d {
     }
   }
 
+  /** @type {boolean} */
+  get viewIsSet() {
+    return Boolean(this.tPoints.length);
+  }
+
   /**
    * Set the view matrix used to transform the wall and transform the wall points.
    * @param {Matrix} M
@@ -923,6 +902,7 @@ export class Wall3d {
     this.M = M;
     this._transform(M);
     this._truncateTransform();
+    this.viewIsSet = true;
   }
 
   /**
@@ -935,9 +915,9 @@ export class Wall3d {
     }
   }
 
- /**
-  * Truncate the transformed walls to keep only the below z = 0 portion
-  */
+  /**
+   * Truncate the transformed walls to keep only the below z = 0 portion
+   */
   _truncateTransform() {
     const targetE = -1;
     let A = this.tPoints[3];
@@ -996,8 +976,5 @@ export class Wall3d {
 
     return (new ClipperPaths(paths)).combine();
   }
-
-
-
 }
 
