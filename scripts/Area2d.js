@@ -303,7 +303,7 @@ export class Area2d {
     const visionSource = this.visionSource;
     const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
     const { type, tokensBlock, liveTokensBlock, deadTokensBlock, deadHalfHeight } = this.config;
-    const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKEN.ATTRIBUTE).split(".");
+    const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE).split(".");
 
     // Find the walls and, optionally, tokens, for the triangle between origin and target
     const filterConfig = {
