@@ -87,7 +87,7 @@ async function enableCoverStatus(tokenId, type = COVER_TYPES.LOW) {
  */
 export function dialogPromise(data, options = {}) {
   return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
-    dialogCallback(data, (html) => resolve(html), options);
+    dialogCallback(data, html => resolve(html), options);
   });
 }
 
@@ -102,15 +102,15 @@ function dialogCallback(data, callbackFn, options = {}) {
     one: {
       icon: '<i class="fas fa-check"></i>',
       label: "Confirm",
-      callback: (html) => callbackFn(html)
+      callback: html => callbackFn(html)
     }
   };
 
   data.default = "one";
   data.close = () => callbackFn("Close");
 
-	let d = new Dialog(data, options);
-	d.render(true, { height: "100%" });
+  let d = new Dialog(data, options);
+  d.render(true, { height: "100%" });
 }
 
 /* Cover Calculation Class
@@ -153,19 +153,19 @@ export class CoverCalculator {
 
   static async disableCoverStatus(tokenId, type = COVER_TYPES.LOW ) {
     // Test id is string for debugging
-    if ( !(typeof tokenId === 'string' || tokenId instanceof String) ) console.error("tokenId is not a string!");
+    if ( !(typeof tokenId === "string" || tokenId instanceof String) ) console.error("tokenId is not a string!");
     await SOCKETS.socket.executeAsGM("disableCoverStatus", tokenId, type);
   }
 
   static async enableCoverStatus(tokenId, type = COVER_TYPES.LOW ) {
     // Test id is string for debugging
-    if ( !(typeof tokenId === 'string' || tokenId instanceof String) ) console.error("tokenId is not a string!");
+    if ( !(typeof tokenId === "string" || tokenId instanceof String) ) console.error("tokenId is not a string!");
     await SOCKETS.socket.executeAsGM("enableCoverStatus", tokenId, type);
   }
 
   static async setCoverStatus(tokenId, type = COVER_TYPES.NONE ) {
-    if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL )
-      return CoverCalculator.disableAllCoverStatus(tokenId);
+    if ( type === COVER_TYPES.NONE
+      || type === COVER_TYPES.TOTAL ) return CoverCalculator.disableAllCoverStatus(tokenId);
 
     return CoverCalculator.enableCoverStatus(tokenId, type);
   }
@@ -690,7 +690,18 @@ export class CoverCalculator {
    * @returns {number} Percentage seen, of the total viewable target area.
    */
   _percentVisible3d() {
-    const area3d = new Area3d(this.viewer, this.target);
+    const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
+    const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
+    const config = {
+      type: "move",
+      wallsBlock: true,
+      tilesBlock: game.modules.get("levels")?.active,
+      liveTokensBlock: getSetting(SETTINGS.COVER.LIVE_TOKENS),
+      deadTokensBlock: deadTokenAlg !== deadTypes.NONE,
+      deadHalfHeight: deadTokenAlg === deadTypes.HALF
+    };
+
+    const area3d = new Area3d(this.viewer, this.target, config);
     if ( this.debug ) area3d.debug = true;
     return area3d.percentAreaVisible();
   }

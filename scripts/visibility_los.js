@@ -239,7 +239,16 @@ function testLOSArea3d(visionSource, target, test) {
   const pt = test.point;
   if ( !hasLOSCeilingFloorLevels(origin, pt) ) return false;
 
-  const area3d = new Area3d(visionSource, target);
+  // TODO: Add debug to config, add a getter to check for targeted?
+  const config = {
+    type: "sight",
+    wallsBlock: true,
+    tilesBlock: game.modules.get("levels")?.active,
+    liveTokensBlock: false,
+    deadTokensBlock: false
+  };
+
+  const area3d = new Area3d(visionSource, target, config);
 
   // Set debug only if the target is being targeted.
   // Avoids "double-vision" from multiple targets for area3d on scene.

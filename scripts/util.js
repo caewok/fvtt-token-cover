@@ -26,6 +26,22 @@ export function log(...args) {
 }
 
 
+/**
+ * Retrieve an embedded property from an object using a string.
+ * @param {object} obj
+ * @param {string} str
+ * @returns {object}
+ */
+function getObjectProperty(obj, str) {
+  return str
+    .replace(/\[([^\[\]]*)\]/g, '.$1.')
+    .split('.')
+    .filter(t => t !== '')
+    .reduce((prev, cur) => prev && prev[cur], obj)
+}
+
+
+
 
 
 /**
