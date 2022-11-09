@@ -36,7 +36,7 @@ import { Shadow, truncateWallAtElevation } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
 import { Point3d } from "./Point3d.js";
 import { Plane } from "./Plane.js";
-import { elementsByIndex, zValue } from "./util.js";
+import { elementsByIndex, zValue, log } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import { ClipperPaths } from "./ClipperPaths.js";
 import * as drawing from "./drawing.js"; // For debugging
@@ -510,8 +510,8 @@ export class Area3d {
       ? Area3d.polygonKeyPointsForOrigin(constrainedTokenBorder, viewingPoint)
       : Area3d.bboxKeyCornersForOrigin(constrainedTokenBorder, viewingPoint);
     if ( !keyPoints || !keyPoints.length ) {
-      console.error("visionTriangle: no key points found.");
-      return null;
+      log("visionTriangle: no key points found.");
+      return constrainedTokenBorder.toPolygon();
     }
 
     return new PIXI.Polygon([viewingPoint, ...keyPoints]);

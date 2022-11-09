@@ -204,7 +204,7 @@ function testLOSArea(visionSource, target, test) {
   if ( !test.centerPoint ) return false;
 
   // Avoid errors when testing vision for tokens directly on top of one another
-  if ( visionSource.x === target.x && visionSource.y === target.y && visionSource.elevationZ === target.topZ ) return true;
+  if ( visionSource.x === target.center.x && visionSource.y === target.center.y ) return false;
 
   // For now, test for Levels to avoid vision between levels tiles.
   // TODO: Incorporate into 2d area test?
@@ -231,7 +231,7 @@ function testLOSArea3d(visionSource, target, test) {
   if ( !test.centerPoint ) return false;
 
   // Avoid errors when testing vision for tokens directly on top of one another
-  if ( visionSource.x === target.x && visionSource.y === target.y && visionSource.elevationZ === target.topZ ) return true;
+  if ( visionSource.x === target.center.x && visionSource.y === target.center.y ) return false;
 
   // For now, test for Levels to avoid vision between levels tiles.
   // TODO: Incorporate into 3d area test?
