@@ -92,6 +92,18 @@ export const SETTINGS = {
 
     COMBAT_AUTO: "cover-combat-auto",
     CHAT: "cover-chat-message",
+
+    DEAD_TOKENS: {
+      ALGORITHM: "cover-token-dead",
+      ATTRIBUTE: "cover-token-dead-attribute",
+      TYPES: {
+        NONE: "cover-token-dead-none",
+        HALF: "cover-token-dead-half",
+        FULL: "cover-token-dead-full"
+      }
+    },
+
+    LIVE_TOKENS:  "cover-token-live"
   },
 
   WELCOME_DIALOG: {
@@ -359,6 +371,40 @@ export function registerSettings() {
     },
     default: MIDICHOICES.NONE,
     onChange: updateCoverSetting
+  });
+
+  const DEADCHOICES = SETTINGS.COVER.DEAD_TOKENS.TYPES;
+  game.settings.register(MODULE_ID, SETTINGS.COVER.DEAD_TOKENS.ALGORITHM, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ALGORITHM}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ALGORITHM}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      [DEADCHOICES.NONE]: game.i18n.localize(`${MODULE_ID}.settings.${DEADCHOICES.NONE}`),
+      [DEADCHOICES.HALF]: game.i18n.localize(`${MODULE_ID}.settings.${DEADCHOICES.HALF}`),
+      [DEADCHOICES.FULL]: game.i18n.localize(`${MODULE_ID}.settings.${DEADCHOICES.FULL}`)
+    },
+    default: DEADCHOICES.NONE,
+    onChange: updateCoverSetting
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.LIVE_TOKENS, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.LIVE_TOKENS}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.LIVE_TOKENS}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    default: "system.attributes.hp.value"
   });
 
   // ----- HIDDEN SETTINGS ----- //

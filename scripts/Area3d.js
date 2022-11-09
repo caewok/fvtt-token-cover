@@ -36,7 +36,7 @@ import { Shadow, truncateWallAtElevation } from "./Shadow.js";
 import { Matrix } from "./Matrix.js";
 import { Point3d } from "./Point3d.js";
 import { Plane } from "./Plane.js";
-import { elementsByIndex, zValue, log } from "./util.js";
+import { elementsByIndex, zValue, log, getObjectProperty } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import { ClipperPaths } from "./ClipperPaths.js";
 import * as drawing from "./drawing.js"; // For debugging
@@ -51,6 +51,9 @@ export class Area3d {
 
   /** @type {Token} */
   target = undefined;
+
+  /** @type object */
+  config = {};
 
   /** @type {string} */
   type = "sight";
@@ -89,12 +92,29 @@ export class Area3d {
    * @param {VisionSource|TOKEN} visionSource     Token, viewing from token.topZ.
    * @param {Target} target   Target; token is looking at the target center.
    */
-  constructor(viewer, target, type = "sight") {
+  constructor(viewer, target, {
+    type = "sight",
+    wallsBlock = true,
+    tilesBlock = false,
+    liveTokensBlock = false,
+    deadTokensBlock = false,
+    deadHalfHeight = false } = {}) {
+
     this.viewer = viewer instanceof Token ? viewer.vision : viewer;
     this.target = target;
-    this.percentAreaForLOS = getSetting(SETTINGS.LOS.PERCENT_AREA);
-    this._useShadows = getSetting(SETTINGS.AREA3D_USE_SHADOWS);
-    this.type = type;
+
+    // Configuration options
+    this.config = {
+      type,
+      wallsBlock,
+      tilesBlock,
+      tokensBlock: liveTokensBlock || deadTokensBlock,
+      percentAreaForLOS: getSetting(SETTINGS.LOS.PERCENT_AREA),
+      _useShadows: getSetting(SETTINGS.AREA3D_USE_SHADOWS),
+      liveTokensBlock,
+      deadTokensBlock,
+      deadHalfHeight
+    };
 
     // Set debug only if the target is being targeted.
     // Avoids "double-vision" from multiple targets for area3d on scene.
@@ -111,7 +131,7 @@ export class Area3d {
    * area of the target visible to the source.
    */
   hasLOS() {
-    const percentArea = this.percentAreaForLOS;
+    const percentArea = this.config.percentAreaForLOS;
 
     // If center point is visible, then target is likely visible but not always.
     // e.g., walls slightly block the center point. Or walls block all but center.
@@ -205,24 +225,6 @@ export class Area3d {
 
   get targetCenter() {
     return this._targetCenter || (this._targetCenter = Area3d.tokenCenter(this.target));
-  }
-
-  /**
-   * Calculate the bounds rectangle encompassing the token center and the target shape.
-   * XY (original) coordinates
-   * @returns {PIXI.Rectangle}
-   */
-  _calculateBoundsXY() {
-    if ( !this.target || !this.viewer ) return undefined;
-
-    const targetBounds = this.target.bounds;
-
-    const maxX = Math.max(this.viewerCenter.x, targetBounds.right);
-    const maxY = Math.max(this.viewerCenter.y, targetBounds.bottom);
-    const minX = Math.min(this.viewerCenter.x, targetBounds.left);
-    const minY = Math.min(this.viewerCenter.y, targetBounds.top);
-
-    return new PIXI.Rectangle(minX, minY, maxX - minX, maxY - minY);
   }
 
   /**
@@ -324,7 +326,7 @@ export class Area3d {
     }
 
     const combinedTerrainWalls = this.blockingObjects.combinedTerrainWalls;
-    const shadowsArr = this._useShadows ? this.perspectiveShadows : undefined;
+    const shadowsArr = this.config._useShadows ? this.perspectiveShadows : undefined;
     const wallPolys = walls.map(w => new PIXI.Polygon(w));
 
     // For each side, union the blocking wall with any shadows and then take diff against the side
@@ -337,7 +339,7 @@ export class Area3d {
       this.sidePolys.push(sidePoly);
 
       const blockingPolygons = [...wallPolys];
-      if ( this._useShadows ) blockingPolygons.push(...shadowsArr[i]);
+      if ( this.config._useShadows ) blockingPolygons.push(...shadowsArr[i]);
 
       let obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, blockingPolygons);
 
@@ -385,11 +387,13 @@ export class Area3d {
       this.blockingObjects.walls.forEach(w => w.drawTransformed());
       this.blockingObjects.tiles.forEach(w => w.drawTransformed({color: drawing.COLORS.yellow}));
       this.blockingObjects.tokens.forEach(t => t.drawTransformed({color: drawing.COLORS.orange}));
-      this.blockingObjects.terrainWalls.forEach(w => w.drawTransformed({ color: drawing.COLORS.lightgreen, fillAlpha: 0.1 }));
+      this.blockingObjects.terrainWalls.forEach(w =>
+        w.drawTransformed({ color: drawing.COLORS.lightgreen, fillAlpha: 0.1 }));
 
-      if ( this.blockingObjects.combinedTerrainWalls ) this.blockingObjects.combinedTerrainWalls.draw({color: drawing.COLORS.green, fillAlpha: 0.3})
+      if ( this.blockingObjects.combinedTerrainWalls )
+        this.blockingObjects.combinedTerrainWalls.draw({color: drawing.COLORS.green, fillAlpha: 0.3});
 
-      if (this._useShadows ) this._drawTransformedShadows();
+      if (this.config._useShadows ) this._drawTransformedShadows();
 
       const target = this.target;
       this.debugSideAreas = {
@@ -447,25 +451,64 @@ export class Area3d {
    * Find relevant walls—--those intersecting the boundary between token center and target.
    */
   _findBlockingObjects() {
+    const {
+      type,
+      wallsBlock,
+      tokensBlock,
+      tilesBlock,
+      liveTokensBlock,
+      deadTokensBlock,
+      deadHalfHeight } = this.config;
+
     const out = Area3d.filterSceneObjectByVisionTriangle(this.viewerCenter, this.target, {
-      type: this.type,
-      filterWalls: true,
-      filterTokens: true,
-      filterTiles: true,
+      type,
+      filterWalls: wallsBlock,
+      filterTokens: tokensBlock,
+      filterTiles: tilesBlock,
       viewerId: this.viewer.object.id });
 
-    out.walls = out.walls.map(w => new WallPoints3d(w));
-    out.tiles = out.tiles.map(t => new WallPoints3d(t));
-    out.tokens = out.tokens.map(t => new TokenPoints3d(t, this.type));
-    out.terrainWalls = new Set();
+    // TODO: Make filterSceneObjectByVisionTriangle return empty sets if not using that type?
+    if ( out.tiles && out.tiles.size ) out.tiles = out.tiles.map(t => new WallPoints3d(t));
+
+    if ( out.tokens && out.tokens.size ) {
+      // Check for dead tokens and either set to half height or omit, dependent on settings.
+      const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKEN.ATTRIBUTE).split(".");
+
+      // Filter live or dead tokens, depending on config.
+      if ( liveTokensBlock ^ deadTokensBlock ) { // We handled tokensBlock above
+        out.tokens = out.tokens.filter(t => {
+          const hp = getObjectProperty(t.actor, hpAttribute);
+          if ( typeof hp !== "number" ) return true;
+
+          if ( liveTokensBlock && hp > 0 ) return true;
+          if ( deadTokensBlock && hp <= 0 ) return true;
+          return false;
+        });
+      }
+
+      // Construct the TokenPoints3d for each token, using half-height if required
+      if ( deadHalfHeight ) {
+        out.tokens = out.tokens.map(t => {
+          const hp = getObjectProperty(t.actor, hpAttribute);
+          const halfHeight = (typeof hp === "number") && (hp <= 0);
+          return new TokenPoints3d(t, this.config.type, halfHeight);
+        });
+      } else {
+        out.tokens = out.tokens.map(t => new TokenPoints3d(t, this.config.type));
+      }
+    }
 
     // Separate the terrain walls
-    out.walls.forEach(w => {
-      if ( w.wall.document[this.type] === CONST.WALL_SENSE_TYPES.LIMITED ) {
-        out.terrainWalls.add(w);
-        out.walls.delete(w);
-      }
-    });
+    if ( out.walls && out.walls.size ) {
+      out.walls = out.walls.map(w => new WallPoints3d(w));
+      out.terrainWalls = new Set();
+      out.walls.forEach(w => {
+        if ( w.wall.document[this.config.type] === CONST.WALL_SENSE_TYPES.LIMITED ) {
+          out.terrainWalls.add(w);
+          out.walls.delete(w);
+        }
+      });
+    }
 
     return out;
   }
@@ -849,9 +892,10 @@ export class TokenPoints3d {
    * @param {Token} token
    * @param {string} type     Wall restriction type, for constructing the constrained token shape.
    */
-  constructor(token, type = "sight") {
+  constructor(token, type = "sight", halfHeight = false) {
     this.token = token;
     this.type = type;
+    this.halfHeight = halfHeight;
 
     const constrainedTokenBorder = ConstrainedTokenBorder.get(this.token, this.type).constrainedBorder();
     this.tokenPolygon = constrainedTokenBorder instanceof PIXI.Rectangle
@@ -885,8 +929,10 @@ export class TokenPoints3d {
 
   /** @type {number} */
   get topZ() {
-    const topZ = this.token.topZ;
-    return topZ === this.bottomZ ? topZ + 2 : topZ;
+    const { topZ, bottomZ } = this.token;
+    return topZ === this.bottomZ ? (topZ + 2)
+      : this.halfHeight ? topZ - ((topZ - bottomZ) * 0.5)
+      : topZ;
   }
 
   /**
