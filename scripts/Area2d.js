@@ -313,7 +313,7 @@ export class Area2d {
       filterTiles: false,
       viewerId: visionSource.object?.id
     };
-    const viewableObjs = Area3d.filterSceneObjectsByVisionTriangle(this.target, filterConfig);
+    const viewableObjs = Area3d.filterSceneObjectsByVisionTriangle(origin, this.target, filterConfig);
 
     if ( viewableObjs.tokens.size ) {
       // Filter live or dead tokens, depending on config.
