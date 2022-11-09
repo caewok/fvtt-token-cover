@@ -2,15 +2,14 @@
 game,
 foundry,
 PIXI,
-canvas,
 objectsEqual,
 Token
 */
 "use strict";
 
 import { MODULE_ID } from "./const.js";
+import { getObjectProperty } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
-import { log } from "./util.js";
 import { Shadow } from "./Shadow.js";
 import { ClipperPaths } from "./ClipperPaths.js";
 import { Point3d } from "./Point3d.js";
@@ -45,23 +44,33 @@ export class Area2d {
   /** @type {boolean} */
   debug = false;
 
-  /** @type {string} */
-  type = "sight";
-
-  /** @type {number} */
-  percentAreaForLOS = 0;
+  /** @type {object} */
+  config = {};
 
   /**
    * @param {VisionSource} visionSource
    * @param {Token} target
    */
-  constructor(visionSource, target, type = "sight") {
+  constructor(visionSource, target, {
+    type = "sight",
+    liveTokensBlock = false,
+    deadTokensBlock = false,
+    deadHalfHeight = false } = {}) {
+
     this.visionSource = visionSource instanceof Token ? visionSource.vision : visionSource;
     this.target = target;
-    this.type = type;
+
+    // Configuration options
+    this.config = {
+      type,
+      percentAreaForLOS: getSetting(SETTINGS.LOS.PERCENT_AREA),
+      tokensBlock: liveTokensBlock || deadTokensBlock,
+      liveTokensBlock,
+      deadTokensBlock,
+      deadHalfHeight
+    };
 
     this.debug = game.modules.get(MODULE_ID).api.debug.area;
-    this.percentAreaForLOS = getSetting(SETTINGS.LOS.PERCENT_AREA);
   }
 
   /**
@@ -71,7 +80,7 @@ export class Area2d {
    * @returns {boolean}
    */
   hasLOS(centerPointIsVisible) {
-    const percentArea = this.percentAreaForLOS;
+    const percentArea = this.config.percentAreaForLOS;
 
     // If less than 50% of the token area is required to be viewable, then
     // if the center point is viewable, the token is viewable from that source.
@@ -95,7 +104,7 @@ export class Area2d {
       return false;
     }
 
-    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
+    const constrained = ConstrainedTokenBorder.get(this.target, this.config.type).constrainedBorder();
 
     const shadowLOS = this._buildShadowLOS();
 
@@ -174,7 +183,7 @@ export class Area2d {
   percentAreaVisible(shadowLOS) {
     shadowLOS ??= this._buildShadowLOS();
 
-    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
+    const constrained = ConstrainedTokenBorder.get(this.target, this.config.type).constrainedBorder();
 
     const targetPercentAreaBottom = shadowLOS.bottom ? this._calculatePercentSeen(shadowLOS.bottom, constrained) : 0;
     const targetPercentAreaTop = shadowLOS.top ? this._calculatePercentSeen(shadowLOS.top, constrained) : 0;
@@ -293,31 +302,36 @@ export class Area2d {
   shadowLOSForElevation(targetElevation = 0) {
     const visionSource = this.visionSource;
     const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
-    const config = visionSource._getPolygonConfiguration;
-    config.type = this.type;
-    let los = visionSource._createPolygon(config);
+    const { type, tokensBlock, liveTokensBlock, deadTokensBlock, deadHalfHeight } = this.config;
+    const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKEN.ATTRIBUTE).split(".");
 
-    const bounds = los.bounds;
-    const collisionTest = (o, rect) => isFinite(o.t.topZ) || isFinite(o.t.bottomZ);  // eslint-disable-line no-unused-vars
-    let walls = canvas.walls.quadtree.getObjects(bounds, { collisionTest });
+    // Find the walls and, optionally, tokens, for the triangle between origin and target
+    const filterConfig = {
+      type,
+      filterWalls: true,
+      filterTokens: tokensBlock,
+      filterTiles: false,
+      viewerId: visionSource.object?.id
+    };
+    const viewableObjs = Area3d.filterSceneObjectsByVisionTriangle(this.target, filterConfig);
 
-    // Further limit walls based on the vision cone to the target
-    const constrained = ConstrainedTokenBorder.get(this.target, this.type).constrainedBorder();
-    if ( walls.size ) walls = Area3d.filterWallsForVisionCone(
-      walls,
-      constrained,
-      origin,
-      this.type);
+    if ( viewableObjs.tokens.size ) {
+      // Filter live or dead tokens, depending on config.
+      if ( liveTokensBlock ^ deadTokensBlock ) { // We handled tokensBlock above
+        viewableObjs.tokens = viewableObjs.tokens.filter(t => {
+          const hp = getObjectProperty(t.actor, hpAttribute);
+          if ( typeof hp !== "number" ) return true;
 
-    // Wall Height removes walls from LOS calculation if
+          if ( liveTokensBlock && hp > 0 ) return true;
+          if ( deadTokensBlock && hp <= 0 ) return true;
+          return false;
+        });
+      }
+    }
+
+    // Note: Wall Height removes walls from LOS calculation if
     // 1. origin is above the top of the wall
     // 2. origin is below the bottom of the wall
-
-    if ( !walls.size) {
-      log("No limited walls; no shadows.");
-      // TODO: Caching   visionSource._losShadows.set(targetElevation, null);
-      return los;
-    }
 
     // In limited cases, we may need to re-do the LOS calc.
     // 1. origin is below top of wall and target is above top of wall.
@@ -326,26 +340,44 @@ export class Area2d {
     // e.g., target next to wall at 0 ft but wall bottom is 10 ft. Viewer looking down
     // may be able to see the target depending on viewer distance.
     // We need an LOS calc that removes all limited walls; use shadows instead.
-    const elevationZ = visionSource.elevationZ;
-    const redoLOS = walls.some(w => {
-      const { topZ, bottomZ } = w;
-      return (elevationZ < topZ && targetElevation > topZ)
-      || (elevationZ > bottomZ && targetElevation < bottomZ);
-    });
-
-    if ( redoLOS ) {
-      const cfg = visionSource._getPolygonConfiguration();
-      cfg.type = this.type;
-      los = CWSweepInfiniteWallsOnly.create(origin, cfg);
+    // 3. Tokens are potentially blocking -- construct shadows based on those tokens
+    let redoLOS = viewableObjs.tokens.size;
+    if ( redoLOS || viewableObjs.walls.size ) {
+      const elevationZ = visionSource.elevationZ;
+      redoLOS = viewableObjs.walls.some(w => {
+        const { topZ, bottomZ } = w;
+        return (elevationZ < topZ && targetElevation > topZ)
+        || (elevationZ > bottomZ && targetElevation < bottomZ);
+      });
     }
 
+    const losConfig = visionSource._getPolygonConfiguration();
+    losConfig.type = this.config.type;
+    if ( !redoLOS ) return visionSource._createPolygon(losConfig);
+
+    // Rerun the LOS with infinite walls only
+    const los = CWSweepInfiniteWallsOnly.create(origin, losConfig);
+
     const shadows = [];
-    for ( const wall of walls ) {
+    for ( const wall of viewableObjs.walls ) {
       const shadow = Shadow.constructFromWall(wall, origin, targetElevation);
       if ( shadow ) {
         shadows.push(shadow);
         if ( this.debug ) shadow.draw();
       }
+    }
+
+    // Add token borders as shadows if tokens block
+    for ( const token of viewableObjs.tokens ) {
+      let halfHeight = false;
+      if ( deadHalfHeight ) {
+        const hp = getObjectProperty(token.actor, hpAttribute);
+        halfHeight = (typeof hp === "number") && (hp <= 0);
+      }
+
+      const shadows = Shadow.constructfromToken(token, origin, targetElevation, type, halfHeight);
+      if ( shadows && shadows.length ) shadows.push(...shadows);
+      if ( this.debug ) shadows.forEach(s => s.draw());
     }
 
     const combined = Shadow.combinePolygonWithShadows(los, shadows);

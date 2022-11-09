@@ -460,17 +460,16 @@ export class Area3d {
       deadTokensBlock,
       deadHalfHeight } = this.config;
 
-    const out = Area3d.filterSceneObjectByVisionTriangle(this.viewerCenter, this.target, {
+    const out = Area3d.filterSceneObjectsByVisionTriangle(this.viewerCenter, this.target, {
       type,
       filterWalls: wallsBlock,
       filterTokens: tokensBlock,
       filterTiles: tilesBlock,
       viewerId: this.viewer.object.id });
 
-    // TODO: Make filterSceneObjectByVisionTriangle return empty sets if not using that type?
-    if ( out.tiles && out.tiles.size ) out.tiles = out.tiles.map(t => new WallPoints3d(t));
+    if ( out.tiles.size ) out.tiles = out.tiles.map(t => new WallPoints3d(t));
 
-    if ( out.tokens && out.tokens.size ) {
+    if ( out.tokens.size ) {
       // Check for dead tokens and either set to half height or omit, dependent on settings.
       const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKEN.ATTRIBUTE).split(".");
 
@@ -499,9 +498,9 @@ export class Area3d {
     }
 
     // Separate the terrain walls
-    if ( out.walls && out.walls.size ) {
+    out.terrainWalls = new Set();
+    if ( out.walls.size ) {
       out.walls = out.walls.map(w => new WallPoints3d(w));
-      out.terrainWalls = new Set();
       out.walls.forEach(w => {
         if ( w.wall.document[this.config.type] === CONST.WALL_SENSE_TYPES.LIMITED ) {
           out.terrainWalls.add(w);
@@ -574,15 +573,19 @@ export class Area3d {
    * @param {string} [viewerId]       Viewer token to exclude from results
    * @return {object} Object with walls, tokens, tiles as three distinct sets or undefined.
    */
-  static filterSceneObjectByVisionTriangle(viewingPoint, target,
-    { type = "sight", filterWalls = true, filterTokens = true, filterTiles = true, viewerId } = {}) {
+  static filterSceneObjectsByVisionTriangle(viewingPoint, target, {
+    type = "sight",
+    filterWalls = true,
+    filterTokens = true,
+    filterTiles = true,
+    viewerId } = {}) {
 
     const visionTriangle = Area3d.visionTriangle(viewingPoint, target, { type });
 
     const maxE = Math.max(viewingPoint.z ?? 0, target.topZ);
     const minE = Math.min(viewingPoint.z ?? 0, target.bottomZ);
 
-    const out = { walls: undefined, tokens: undefined, tiles: undefined };
+    const out = { walls: new Set(), tokens: new Set(), tiles: new Set() };
     if ( filterWalls ) {
       out.walls = Area3d.filterWallsByVisionTriangle(viewingPoint, visionTriangle, { type });
 
