@@ -4,7 +4,9 @@ canvas,
 game,
 foundry,
 Token,
-Tile
+Tile,
+ClipperLib,
+CONST
 */
 "use strict";
 
@@ -282,8 +284,6 @@ export class Area3d {
     const tTarget = this.targetPoints.tFaces;
     const tWalls = this.blockingObjects.walls.map(w => w.tPoints);
 
-
-
     const sides = tTarget.sides;
     const shadowsArr = [];
     for ( const side of sides ) {
@@ -313,6 +313,17 @@ export class Area3d {
     const tTarget = this.targetPoints.perspectiveTransform();
     const walls = this.blockingObjects.walls.map(w => w.perspectiveTransform());
 
+    if ( this.blockingObjects.terrainWalls.size > 1 && !this.blockingObjects.combinedTerrainWalls) {
+      console.log("_obscureSides: need to handle terrain walls!");
+
+      const tws = this.blockingObjects.terrainWalls.map(w => {
+        if ( !w.viewIsSet ) w.setViewMatrix(this.viewerViewM);
+        return w.perspectiveTransform();
+      });
+      this.blockingObjects.combinedTerrainWalls = WallPoints3d.combineTerrainWalls(tws);
+    }
+
+    const combinedTerrainWalls = this.blockingObjects.combinedTerrainWalls;
     const shadowsArr = this._useShadows ? this.perspectiveShadows : undefined;
     const wallPolys = walls.map(w => new PIXI.Polygon(w));
 
@@ -328,7 +339,27 @@ export class Area3d {
       const blockingPolygons = [...wallPolys];
       if ( this._useShadows ) blockingPolygons.push(...shadowsArr[i]);
 
-      const obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, blockingPolygons);
+      let obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, blockingPolygons);
+
+      if ( combinedTerrainWalls ) {
+        // Same underlying code used in Shadow.combinePolygonWithShadows
+        // TODO: Clean this up; don't translate back from Clipper to Polygon.
+        const c = new ClipperLib.Clipper();
+        const solution = new ClipperPaths();
+        const type = ClipperLib.ClipType.ctDifference;
+        const subjFillType = ClipperLib.PolyFillType.pftEvenOdd;
+        const clipFillType = ClipperLib.PolyFillType.pftEvenOdd;
+        solution.scalingFactor = 1;
+        if ( obscuredSide instanceof PIXI.Polygon ) obscuredSide = obscuredSide.toClipperPoints({ scalingFactor: 1 });
+
+        c.AddPath(obscuredSide, ClipperLib.PolyType.ptSubject, true);
+        c.AddPaths(combinedTerrainWalls, ClipperLib.PolyType.ptClip, true);
+        c.Execute(type, solution.paths, subjFillType, clipFillType);
+        solution.clean();
+
+        obscuredSide = solution;
+      }
+
       obscuredSides.push(obscuredSide);
     }
 
@@ -341,14 +372,22 @@ export class Area3d {
    * @returns {number}
    */
   percentAreaVisible() {
-    if ( !this.viewIsSet ) this.calculateViewMatrix();
+    if ( !this.debug
+      && !this.blockingObjects.walls.size
+      && !this.blockingObjects.tiles.size
+      && !this.blockingObjects.tokens.size
+      && this.blockingObjects.terrainWalls.size < 2 ) return 1;
 
+    const obscuredSides = this.obscuredSides;
     if ( this.debug ) {
       this._drawLineOfSight();
       this.targetPoints.drawTransformed();
       this.blockingObjects.walls.forEach(w => w.drawTransformed());
       this.blockingObjects.tiles.forEach(w => w.drawTransformed({color: drawing.COLORS.yellow}));
       this.blockingObjects.tokens.forEach(t => t.drawTransformed({color: drawing.COLORS.orange}));
+      this.blockingObjects.terrainWalls.forEach(w => w.drawTransformed({ color: drawing.COLORS.lightgreen, fillAlpha: 0.1 }));
+
+      if ( this.blockingObjects.combinedTerrainWalls ) this.blockingObjects.combinedTerrainWalls.draw({color: drawing.COLORS.green, fillAlpha: 0.3})
 
       if (this._useShadows ) this._drawTransformedShadows();
 
@@ -360,9 +399,8 @@ export class Area3d {
         sides: [],
         obscuredSides: []
       };
-    } else if ( !this.blockingObjects.walls.size && !this.blockingObjects.tiles.size && !this.blockingObjects.tokens.size ) return 1; // Only skip calcs and drawings if not debugging.
+    }
 
-    const obscuredSides = this.obscuredSides;
     let sidesArea = 0;
     let obscuredSidesArea = 0;
     const nSides = obscuredSides.length;
@@ -380,7 +418,6 @@ export class Area3d {
 
     const out = sidesArea ? obscuredSidesArea / sidesArea : 0;
     if ( this.debug ) console.log(`${this.viewer.object.name} sees ${out * 100}% of ${this.target.name} (Area3d).`);
-
 
     return out;
   }
@@ -1103,7 +1140,7 @@ export class WallPoints3d {
       A = B;
     }
     rep += 1;
-    needsRep && this._truncateTransform(rep);
+    needsRep && this._truncateTransform(rep); // eslint-disable-line no-unused-expressions
   }
 
   /**
@@ -1129,14 +1166,14 @@ export class WallPoints3d {
   /**
    * Draw the transformed shape.
    */
-  drawTransformed({perspective = true, color = drawing.COLORS.blue } = {}) {
+  drawTransformed({perspective = true, color = drawing.COLORS.blue, fillAlpha = 0.2 } = {}) {
     if ( !this.viewIsSet ) {
-      console.warn(`WallPoints3d: View is not yet set for Token ${this.token.name}.`);
+      console.warn(`WallPoints3d: View is not yet set for ${this.isTile ? "tile" : "wall"} ${this.wall.id}.`);
       return;
     }
     const pts = perspective ? this.perspectiveTransform() : this.tPoints;
     const poly = new PIXI.Polygon(pts);
-    drawing.drawShape(poly, { color, fill: color, fillAlpha: 0.2 });
+    drawing.drawShape(poly, { color, fill: color, fillAlpha });
   }
 
   /**
@@ -1145,7 +1182,7 @@ export class WallPoints3d {
    * @param {PIXI.Point[][]} walls2d
    * @returns {ClipperPaths}
    */
-  combineTerrainWalls(walls2d) {
+  static combineTerrainWalls(walls2d) {
     // TODO: Handle walls that are actually lines?
 
     // Terrain walls can be represented as the union of the intersection of every two pairs
@@ -1154,22 +1191,25 @@ export class WallPoints3d {
     const nWalls = walls2d.length;
     if ( nWalls < 2 ) return null;
 
-    walls2d = walls2d.map(w => new PIXI.Polygon(w));
+    walls2d = [...walls2d.map(w => new PIXI.Polygon(w))];
 
-    const paths = Array(nWalls);
-    for ( let i = 0; i < nWalls; i += 1 ) {
-      const cp = ClipperPaths.fromPolygon([walls2d[i]]);
-      const ixs = [];
+    const combined = new ClipperPaths();
+    const ln = nWalls - 1;
+    for ( let i = 0; i < ln; i += 1 ) {
+      const cp = ClipperPaths.fromPolygons([walls2d[i]]);
+      const ixs = new ClipperPaths();
 
-      for ( let j = 0; j < nWalls; j += 1 ) {
-        if ( i === j ) continue;
-        ixs.push(cp.intersectPolygon(walls2d[j]));
+      for ( let j = i + 1; j < nWalls; j += 1 ) {
+        ixs.paths.push(cp.intersectPolygon(walls2d[j]).paths[0]);
       }
 
-      paths[i] = (new ClipperPaths([cp, ...ixs])).combine();
+      ixs.paths.push(cp.paths[0]);
+      combined.paths.push(...(ixs.combine().paths));
     }
 
-    return (new ClipperPaths(paths)).combine();
+    const finalPath = combined.combine();
+    finalPath.clean();
+
+    return finalPath;
   }
 }
-
