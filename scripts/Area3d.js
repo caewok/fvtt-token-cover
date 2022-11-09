@@ -52,6 +52,9 @@ export class Area3d {
   /** @type {Token} */
   target = undefined;
 
+  /** @type object */
+  config = {}
+
   /** @type {string} */
   type = "sight";
 
@@ -89,12 +92,20 @@ export class Area3d {
    * @param {VisionSource|TOKEN} visionSource     Token, viewing from token.topZ.
    * @param {Target} target   Target; token is looking at the target center.
    */
-  constructor(viewer, target, type = "sight") {
+  constructor(viewer, target, { type = "sight", wallsBlock: true, tilesBlock: false, tokensBlock: false } = {}) {
     this.viewer = viewer instanceof Token ? viewer.vision : viewer;
     this.target = target;
-    this.percentAreaForLOS = getSetting(SETTINGS.LOS.PERCENT_AREA);
-    this._useShadows = getSetting(SETTINGS.AREA3D_USE_SHADOWS);
-    this.type = type;
+
+    // Configuration options
+    this.config = {
+      type,
+      wallsBlock,
+      tilesBlock,
+      tokensBlock,
+      percentAreaForLOS: getSetting(SETTINGS.LOS.PERCENT_AREA),
+      _useShadows: getSetting(SETTINGS.AREA3D_USE_SHADOWS),
+      deadTokens: getSetting(SETTINGS.COVER.DEAD_TOKEN.ALGORITHM)
+    }
 
     // Set debug only if the target is being targeted.
     // Avoids "double-vision" from multiple targets for area3d on scene.
@@ -111,7 +122,7 @@ export class Area3d {
    * area of the target visible to the source.
    */
   hasLOS() {
-    const percentArea = this.percentAreaForLOS;
+    const percentArea = this.config.percentAreaForLOS;
 
     // If center point is visible, then target is likely visible but not always.
     // e.g., walls slightly block the center point. Or walls block all but center.
@@ -324,7 +335,7 @@ export class Area3d {
     }
 
     const combinedTerrainWalls = this.blockingObjects.combinedTerrainWalls;
-    const shadowsArr = this._useShadows ? this.perspectiveShadows : undefined;
+    const shadowsArr = this.config._useShadows ? this.perspectiveShadows : undefined;
     const wallPolys = walls.map(w => new PIXI.Polygon(w));
 
     // For each side, union the blocking wall with any shadows and then take diff against the side
@@ -337,7 +348,7 @@ export class Area3d {
       this.sidePolys.push(sidePoly);
 
       const blockingPolygons = [...wallPolys];
-      if ( this._useShadows ) blockingPolygons.push(...shadowsArr[i]);
+      if ( this.config._useShadows ) blockingPolygons.push(...shadowsArr[i]);
 
       let obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, blockingPolygons);
 
@@ -389,7 +400,7 @@ export class Area3d {
 
       if ( this.blockingObjects.combinedTerrainWalls ) this.blockingObjects.combinedTerrainWalls.draw({color: drawing.COLORS.green, fillAlpha: 0.3})
 
-      if (this._useShadows ) this._drawTransformedShadows();
+      if (this.config._useShadows ) this._drawTransformedShadows();
 
       const target = this.target;
       this.debugSideAreas = {
@@ -448,7 +459,7 @@ export class Area3d {
    */
   _findBlockingObjects() {
     const out = Area3d.filterSceneObjectByVisionTriangle(this.viewerCenter, this.target, {
-      type: this.type,
+      type: this.config.type,
       filterWalls: true,
       filterTokens: true,
       filterTiles: true,
@@ -456,12 +467,12 @@ export class Area3d {
 
     out.walls = out.walls.map(w => new WallPoints3d(w));
     out.tiles = out.tiles.map(t => new WallPoints3d(t));
-    out.tokens = out.tokens.map(t => new TokenPoints3d(t, this.type));
+    out.tokens = out.tokens.map(t => new TokenPoints3d(t, this.config.type));
     out.terrainWalls = new Set();
 
     // Separate the terrain walls
     out.walls.forEach(w => {
-      if ( w.wall.document[this.type] === CONST.WALL_SENSE_TYPES.LIMITED ) {
+      if ( w.wall.document[this.config.type] === CONST.WALL_SENSE_TYPES.LIMITED ) {
         out.terrainWalls.add(w);
         out.walls.delete(w);
       }
