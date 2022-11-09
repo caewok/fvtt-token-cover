@@ -95,6 +95,7 @@ export const SETTINGS = {
 
     DEAD_TOKENS: {
       ALGORITHM: "cover-token-dead",
+      ATTRIBUTE: "cover-token-dead-attribute",
       TYPES: {
         NONE: "cover-token-dead-none",
         HALF: "cover-token-dead-half",
@@ -395,6 +396,15 @@ export function registerSettings() {
     config: true,
     type: Boolean,
     default: false
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    default: "system.attributes.hp.value"
   });
 
   // ----- HIDDEN SETTINGS ----- //
