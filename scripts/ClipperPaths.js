@@ -4,6 +4,8 @@ ClipperLib
 */
 "use strict";
 
+import * as drawing from "./drawing.js";
+
 /**
  * Class to manage ClipperPaths for multiple polygons.
  */
@@ -171,5 +173,21 @@ export class ClipperPaths {
    */
   area() {
     return ClipperLib.JS.AreaOfPolygons(this.paths);
+  }
+
+  /**
+   * Draw the clipper paths, to the extent possible
+   */
+  draw({ color = drawing.COLORS.black, width = 1, fill, fillAlpha = 1 } = {}) {
+    if ( !fill ) fill = color;
+    const polys = this.toPolygons();
+
+    canvas.controls.debug.beginFill(fill, fillAlpha);
+    for ( const poly of polys ) {
+      if ( poly.isHole ) canvas.controls.debug.beginHole();
+      canvas.controls.debug.lineStyle(width, color).drawShape(poly);
+      if ( poly.isHole ) canvas.controls.debug.endHole();
+    }
+    canvas.controls.debug.endFill();
   }
 }
