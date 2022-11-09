@@ -152,8 +152,8 @@ export class Matrix {
       console.warn("lookAt zAxis.x and y are zero.")
       // Camera either directly overhead or directly below
       // Overhead if zAxis.z is positive
-     //  xAxis = new Point3d(1, 0, 0);
-//       yAxis = new Point3d(0, 1, 0);
+      // xAxis = new Point3d(1, 0, 0);
+      // yAxis = new Point3d(0, 1, 0);
 
     }
 
