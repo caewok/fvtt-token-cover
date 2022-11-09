@@ -219,24 +219,6 @@ export class Area3d {
   }
 
   /**
-   * Calculate the bounds rectangle encompassing the token center and the target shape.
-   * XY (original) coordinates
-   * @returns {PIXI.Rectangle}
-   */
-  _calculateBoundsXY() {
-    if ( !this.target || !this.viewer ) return undefined;
-
-    const targetBounds = this.target.bounds;
-
-    const maxX = Math.max(this.viewerCenter.x, targetBounds.right);
-    const maxY = Math.max(this.viewerCenter.y, targetBounds.bottom);
-    const minX = Math.min(this.viewerCenter.x, targetBounds.left);
-    const minY = Math.min(this.viewerCenter.y, targetBounds.top);
-
-    return new PIXI.Rectangle(minX, minY, maxX - minX, maxY - minY);
-  }
-
-  /**
    * Center of a token in 3d.
    * For height, uses the average between token bottom and top.
    * @param {Token} token
