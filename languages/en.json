@@ -80,5 +80,9 @@
     "tokenvisibility.settings.cover-token-dead-attribute.Hint": "String indicating where the hit points for a `token.actor` can be found. Required to use dead tokens for cover.",
 
     "tokenvisibility.settings.cover-token-live.Name": "Live Tokens Grant Cover",
-    "tokenvisibility.settings.cover-token-live.Hint": "If checked, live tokens will be considered blocking for measuring cover."
+    "tokenvisibility.settings.cover-token-live.Hint": "If checked, live tokens will be considered blocking for measuring cover.",
+
+    "tokenvisibility.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
+    "tokenvisibility.DrawingConfiguration.isHole.Name": "Drawing is Hole",
+    "tokenvisibility.DrawingConfiguration.isHole.Hint": "For area algorithms, treat the space indicated by the drawing (including elevation) as a hole for tiles. Only applicable when Levels is active."
 }

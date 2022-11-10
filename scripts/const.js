@@ -1,9 +1,14 @@
 /* globals
+duplicate
 */
 "use strict";
 
 export const MODULE_ID = "tokenvisibility";
 export const EPSILON = 1e-08;
+
+export const FLAGS = {
+  DRAWING: { IS_HOLE: "is-hole" }
+};
 
 export const COVER_TYPES = {
   NONE: 0,
@@ -19,13 +24,13 @@ export const STATUS_EFFECTS = {
     LOW: {
       id: `${MODULE_ID}.cover.LOW`,
       label: "Low",
-      icon: `modules/${MODULE_ID}/assets/shield_low_gray.svg`,
+      icon: `modules/${MODULE_ID}/assets/shield_low_gray.svg`
     },
 
     MEDIUM: {
       id: `${MODULE_ID}.cover.MEDIUM`,
       label: "Medium",
-      icon: `modules/${MODULE_ID}/assets/shield_medium_gray.svg`,
+      icon: `modules/${MODULE_ID}/assets/shield_medium_gray.svg`
     },
 
     HIGH: {
@@ -34,7 +39,7 @@ export const STATUS_EFFECTS = {
       icon: `modules/${MODULE_ID}/assets/shield_high_gray.svg`
     }
   }
-}
+};
 
 STATUS_EFFECTS.dnd5e = duplicate(STATUS_EFFECTS.generic);
 STATUS_EFFECTS.dnd5e.LOW.label = "Half";

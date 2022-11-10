@@ -16,6 +16,9 @@ import { registerSettings, getSetting, setSetting, SETTINGS, updateConfigStatusE
 import { registerElevationAdditions } from "./elevation.js";
 import { Point3d, registerPIXIPointMethods } from "./Point3d.js";
 
+// Rendering configs
+import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
+
 // For API
 import * as bench from "./benchmark.js";
 import * as drawing from "./drawing.js";
@@ -188,3 +191,7 @@ function updateTokenHook(document, change, options, userId) { // eslint-disable-
   }
 }
 
+/**
+ * Add controls to the measured template configuration
+ */
+Hooks.on("renderDrawingConfig", renderDrawingConfigHook);
