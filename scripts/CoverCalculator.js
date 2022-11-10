@@ -653,7 +653,7 @@ export class CoverCalculator {
   area2d() {
     this.debug && console.log("Cover algorithm: Area"); // eslint-disable-line no-unused-expressions
 
-    const percentCover = 1 - this._percentVisible2d();
+    const percentCover = 1 - this._percentVisible(Area2d);
     this.debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
 
     return CoverCalculator.typeForPercentage(percentCover);
@@ -668,7 +668,7 @@ export class CoverCalculator {
   area3d() {
     this.debug && console.log("Cover algorithm: Area 3d"); // eslint-disable-line no-unused-expressions
 
-    const percentCover = 1 - this._percentVisible3d();
+    const percentCover = 1 - this._percentVisible(Area3d);
     this.debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
 
     return CoverCalculator.typeForPercentage(percentCover);
@@ -823,21 +823,11 @@ export class CoverCalculator {
   }
 
   /**
-   * Determine the percent of the target top or bottom that is visible to the viewer.
+   * Determine the percent of the target top or bottom visible to the viewer.
+   * @param {Area2d|Area3d} Area    Class to use to calculate percent visibility
    * @returns {number} Percentage seen, of the total target top or bottom area.
    */
-  _percentVisible2d() {
-    const area2d = new Area2d(this.viewer, this.target);
-    if ( this.debug ) area2d.debug = true;
-    return area2d.percentAreaVisible();
-  }
-
-  /**
-   * Determine the percent of the target visible based on the perspective of the viewer when
-   * looking directly at the target. Projected from 3d.
-   * @returns {number} Percentage seen, of the total viewable target area.
-   */
-  _percentVisible3d() {
+  _percentVisible(Area) {
     const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
     const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
     const config = {
@@ -847,11 +837,11 @@ export class CoverCalculator {
       liveTokensBlock: getSetting(SETTINGS.COVER.LIVE_TOKENS),
       deadTokensBlock: deadTokenAlg !== deadTypes.NONE,
       deadHalfHeight: deadTokenAlg === deadTypes.HALF
-    };
+    }
 
-    const area3d = new Area3d(this.viewer, this.target, config);
-    if ( this.debug ) area3d.debug = true;
-    return area3d.percentAreaVisible();
+    const area = new Area(this.viewer, this.target, config);
+    if ( this.debug ) area.debug = true;
+    return area.percentAreaVisible();
   }
 
   /**
