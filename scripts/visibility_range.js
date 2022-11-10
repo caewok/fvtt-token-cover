@@ -2,6 +2,7 @@
 Token,
 game
 */
+"use strict";
 
 import { SETTINGS, getSetting } from "./settings.js";
 import { MODULE_ID } from "./const.js";

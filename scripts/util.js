@@ -2,8 +2,7 @@
 game,
 foundry,
 canvas,
-PIXI,
-Dialog
+PIXI
 */
 "use strict";
 
@@ -25,24 +24,19 @@ export function log(...args) {
   }
 }
 
-
 /**
  * Retrieve an embedded property from an object using a string.
  * @param {object} obj
  * @param {string} str
  * @returns {object}
  */
-function getObjectProperty(obj, str) {
+export function getObjectProperty(obj, str) {
   return str
-    .replace(/\[([^\[\]]*)\]/g, '.$1.')
-    .split('.')
-    .filter(t => t !== '')
-    .reduce((prev, cur) => prev && prev[cur], obj)
+    .replace(/\[([^\[\]]*)\]/g, ".$1.")
+    .split(".")
+    .filter(t => t !== "")
+    .reduce((prev, cur) => prev && prev[cur], obj);
 }
-
-
-
-
 
 /**
  * Get elements of an array by a list of indices
@@ -149,7 +143,8 @@ export function segmentBlocks(a, b, c, d) {
 
   if ( lineSegmentCrosses(a, b, c, d) ) return true;
 
-  if ( foundry.utils.lineSegmentIntersects(a, b, c, d) && (!foundry.utils.orient2dFast(a, b, c) || !foundry.utils.orient2dFast(a, b, d)) ) return true;
+  if ( foundry.utils.lineSegmentIntersects(a, b, c, d)
+    && (!foundry.utils.orient2dFast(a, b, c) || !foundry.utils.orient2dFast(a, b, d)) ) return true;
 
   return false;
 }
@@ -327,6 +322,140 @@ export function lineSegment3dPlaneIntersects(a, b, c, d, e = new Point3d(c.x, c.
   return xa * xb <= 0;
 }
 
+
+/**
+ * Möller-Trumbore ray-triangle intersection
+ * Calculate intersection of a ray and a triangle in three dimensions.
+ * @param {Point3d} A   Point on the line. For a ray, the ray origin point.
+ * @param {Point3d} rayVector   Line vector, from origin.
+ * @param {Point3d} v0          Triangle vertex 0
+ * @param {Point3d} v1          Triangle vertex 1
+ * @param {Point3d} v2          Triangle vertex 2
+ * @returns {number|null}  Intersection point of the line, relative to A.
+ */
+export function lineIntersectionTriangle3d(A, rayVector, v0, v1, v2) {
+  const EPSILON = 1e-08;
+
+  const edge1 = v1.subtract(v0);
+  const edge2 = v2.subtract(v0);
+
+  const h = rayVector.cross(edge2);
+  const a = edge1.dot(h);
+
+  if ( a.almostEqual(0, EPSILON) ) return null; // Ray is parallel to triangle.
+
+  const f = 1.0 / a;
+
+  const s = A.subtract(v0);
+  return lineTriangleIntersectionLocation(rayVector, edge1, edge2, s, f, h);
+
+  // To compute the intersection location using t and outPoint = new Point3d():
+  // A.add(rayVector.multiplyScalar(t, outPoint), outPoint);
+  // If t > 0, t is on the ray.
+  // if t < 1, t is between rayOrigin and B, where rayVector = B.subtract(A)
+}
+
+/**
+ * Helper to get intersection of line with triangle, assuming not parallel.
+ * @param {Point3d} rayVector   Line vector, from origin A.
+ * @param {Point3d} edge1       Vector from v0 for one triangle edge
+ * @param {Point3d} edge2       Vector from v0 for other triangle edge
+ * @param {number} f            Ratio from rayIntersectsTriangle3d
+ * @param {Point3d} h           Cross of rayVector with edge2.
+ * @param {Point3d} s           A minus v0.
+ * @returns {number|null}
+ */
+export function lineTriangleIntersectionLocation(rayVector, edge1, edge2, s, f, h) {
+  const u = f * s.dot(h);
+  if ( u < 0.0 || u > 1.0 ) return null;
+
+  const q = s.cross(edge1);
+  const v = f * rayVector.dot(q);
+  if ( v < 0.0 || (u + v) > 1.0 ) return null;
+
+  return f * edge2.dot(q); // t
+
+  // To compute the intersection location using t and outPoint = new Point3d():
+  // A.add(rayVector.multiplyScalar(t, outPoint), outPoint);
+  // If t > 0, t is on the ray.
+  // if t < 1, t is between rayOrigin and B, where rayVector = B.subtract(A)
+}
+
+/**
+ * Test if line intersects a quadrilateral in 3d.
+ * Applies Möller-Trumbore ray-triangle intersection but does the planar test only once.
+ * @param {Point3d} A           Point on the line. For a ray, the ray origin point.
+ * @param {Point3d} rayVector   Line vector, from origin.
+ * @param {Point3d} r0          Quad vertex 0  Expected vertices in CW order.
+ * @param {Point3d} r1          Quad vertex 1
+ * @param {Point3d} r2          Quad vertex 2
+ * @param {Point3d} r3          Quad vertex 3
+ * @returns {number|null}  Place on the ray of the intersection or null if none.
+ */
+export function lineIntersectionQuadrilateral3d(A, rayVector, r0, r1, r2, r3) {
+  // Triangles are 0-1-2 and 0-2-3
+  const edge1 = r1.subtract(r0);
+  const edge2 = r2.subtract(r0);
+
+  const h = rayVector.cross(edge2);
+  const a = edge1.dot(h);
+
+  if ( a.almostEqual(0, EPSILON) ) return null; // Ray is parallel to triangle.
+
+  const f = 1.0 / a;
+  const s = A.subtract(r0);
+
+  const tri1 = lineTriangleIntersectionLocation(rayVector, edge1, edge2, s, f, h);
+  if ( tri1 !== null ) return tri1;
+
+  const edge3 = r3.subtract(r0);
+  const h2 = rayVector.cross(edge3);
+  const a2 = edge1.dot(h);
+  const f2 = 1.0 / a2;
+
+  return lineTriangleIntersectionLocation(rayVector, edge1, edge3, s, f2, h2);
+}
+
+/**
+ * Boolean test for whether a line segment intersects a quadrilateral.
+ * Relies on Möller-Trumbore ray-triangle intersection.
+ * @param {Point3d} A     First endpoint of the segment
+ * @param {Point3d} B     Second endpoint of the segment
+ * @param {Point3d} r0          Quad vertex 0  Expected vertices in CW order.
+ * @param {Point3d} r1          Quad vertex 1
+ * @param {Point3d} r2          Quad vertex 2
+ * @param {Point3d} r3          Quad vertex 3
+ * @returns {boolean} True if intersection occurs.
+ */
+export function lineSegmentIntersectsQuadrilateral3d(A, B, r0, r1, r2, r3, { EPSILON = 1e-08 } = {}) {
+  const rayVector = B.subtract(A);
+  const t = lineIntersectionQuadrilateral3d(A, rayVector, r0, r1, r2, r3);
+  if ( t === null ) return false;
+
+  return !(t < EPSILON || t > (1 + EPSILON));
+}
+
+/**
+ * Test whether a line segment AB intersects with a flat, convex polygon in 3d.
+ * @param {Point3d} a   The first endpoint of segment AB
+ * @param {Point3d} b   The second endpoint of segment AB
+ * @param {Points3d[]} points    The polygon to test, as an array of 3d points.
+ *   It is assumed, but not strictly tested, that the points form both a plane and a convex polygon.
+ * @returns {boolean}
+ */
+export function lineSegment3dPolygonIntersects(a, b, points) {
+  if ( points.length < 3 ) {
+    console.warn("lineSegment3dPolygonIntersects provided less than 3 points.");
+    return false;
+  }
+
+  // First test the infinite plane.
+  if ( !lineSegment3dPlaneIntersects(a, b, points[0], points[1], points[2]) ) return false;
+
+  // Flip around and test whether some of the points are to the right and left of the segment.
+
+}
+
 /**
  * Get the intersection of a 3d line with a wall extended as a plane.
  * See https://stackoverflow.com/questions/5666222/3d-line-plane-intersection
@@ -347,27 +476,32 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
 }
 
 /**
- * See https://github.com/mourner/robust-predicates
- * Each Point3d should have {x, y, z} coordinates.
- * @param {Point3d} a
- * @param {Point3d} b
- * @param {Point3d} c
- * @param {Point3d} d
- * @return {number}
- * Returns a positive value if the point d lies above the plane passing through a, b, and c,
- *   meaning that a, b, and c appear in counterclockwise order when viewed from d.
- * Returns a negative value if d lies below the plane.
- * Returns zero if the points are coplanar.
- *
- * The result is also an approximation of six times the signed volume of the tetrahedron
- * defined by the four points.
+ * Get the intersection of a 3d line with a tile extended
+
+/**
+ * Adapted from https://github.com/mourner/robust-predicates/blob/main/src/orient3d.js
+ * @param {Point3d} a   Point in the plane
+ * @param {Point3d} b   Point in the plane
+ * @param {Point3d} c   Point in the plane
+ * @param {Point3d} d   Point to test
+ * @returns {boolean}
+ *   - Returns a positive value if the point d lies above the plane passing through a, b, and c,
+ *     meaning that a, b, and c appear in counterclockwise order when viewed from d.
+ *   - Returns a negative value if d lies below the plane.
+ *   - Returns zero if the points are coplanar.
  */
 export function orient3dFast(a, b, c, d) {
-  const deltaAD = a.subtract(d);
-  const deltaBD = b.subtract(d);
-  const deltaCD = c.subtract(d);
+  const adx = a.x - d.x;
+  const bdx = b.x - d.x;
+  const cdx = c.x - d.x;
+  const ady = a.y - d.y;
+  const bdy = b.y - d.y;
+  const cdy = c.y - d.y;
+  const adz = a.z - d.z;
+  const bdz = b.z - d.z;
+  const cdz = c.z - d.z;
 
-  return ( deltaAD.x * ((deltaBD.y * deltaCD.z) - (deltaBD.z * deltaCD.y)))
-    + (deltaBD.x * ((deltaCD.y * deltaAD.z) - (deltaCD.z * deltaAD.y)))
-    + (deltaCD.x * ((deltaAD.y * deltaBD.z) - (deltaAD.z * deltaBD.y)));
+  return (adx * ((bdy * cdz) - (bdz * cdy)))
+    + (bdx * ((cdy * adz) - (cdz * ady)))
+    + (cdx * ((ady * bdz) - (adz * bdy)));
 }
