@@ -8,7 +8,8 @@ Hooks,
 socketlib,
 VisionSource,
 CONFIG,
-Dialog
+Dialog,
+Ray
 */
 
 import { MODULE_ID, COVER_TYPES } from "./const.js";
@@ -16,9 +17,14 @@ import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { Point3d } from "./Point3d.js";
 import { ClipperPaths } from "./ClipperPaths.js";
 import { Area2d } from "./Area2d.js";
-import { Area3d } from "./Area3d.js";
+import { Area3d, TokenPoints3d } from "./Area3d.js";
 import * as drawing from "./drawing.js";
-import { distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
+import {
+  distanceBetweenPoints,
+  pixelsToGridUnits,
+  zValue,
+  lineSegmentIntersectsQuadrilateral3d,
+  getObjectProperty } from "./util.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
 // Don't pass complex classes through the socket. Use token ids instead.
@@ -117,9 +123,15 @@ function dialogCallback(data, callbackFn, options = {}) {
  * Calculate cover between a token and target, based on different algorithms.
  */
 export class CoverCalculator {
+
+  /** @type {object} */
   static COVER_TYPES = COVER_TYPES;
 
+  /** @type {object} */
   static ALGORITHMS = SETTINGS.COVER.TYPES;
+
+  /** @type {object} */
+  config = {};
 
   /**
    * @param {VisionSource|Token} viewer
@@ -129,6 +141,18 @@ export class CoverCalculator {
     this.viewer = viewer instanceof VisionSource ? viewer.object : viewer;
     this.target = target;
     this.debug = game.modules.get(MODULE_ID).api.debug.cover;
+
+    const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
+    const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
+    this.config = {
+      type: "move",
+      wallsBlock: true,
+      tilesBlock: game.modules.get("levels")?.active,
+      liveTokensBlock: getSetting(SETTINGS.COVER.LIVE_TOKENS),
+      deadTokensBlock: deadTokenAlg !== deadTypes.NONE,
+      deadHalfHeight: deadTokenAlg === deadTypes.HALF
+    };
+    this.config.tokensBlock = this.config.liveTokensBlock || this.config.deadTokensBlock;
   }
 
   /**
@@ -248,7 +272,7 @@ export class CoverCalculator {
         const target_center = new Point3d(
           target.center.x,
           target.center.y,
-          CoverCalculator.averageTokenElevation(target));
+          CoverCalculator.averageTokenElevationZ(target));
 
         const cover = coverCalculations[token.id][target.id];
 
@@ -317,8 +341,8 @@ export class CoverCalculator {
    * Point halfway between target bottom and target top.
    * @type {number}
    */
-  get targetAvgElevation() {
-    return CoverCalculator.averageTokenElevation(this.target);
+  get targetAvgElevationZ() {
+    return CoverCalculator.averageTokenElevationZ(this.target);
   }
 
   // ----- MAIN USER METHODS ----- //
@@ -371,6 +395,101 @@ export class CoverCalculator {
     }
   }
 
+  _hasWallCollision(tokenPoint, targetPoint) {
+    const mode = "any";
+    const type = this.config.type;
+    return ClockwiseSweepPolygon.testCollision3d(tokenPoint, targetPoint, { type, mode });
+  }
+
+  _hasTileCollision(tokenPoint, targetPoint) {
+    const ray = new Ray(tokenPoint, targetPoint);
+    const tiles = canvas.tiles.quadtree.getObjects(ray.bounds);
+
+    // Because tiles are parallel to the XY plane, we need not test ones obviously above or below.
+    const maxE = Math.max(tokenPoint.z, targetPoint.z);
+    const minE = Math.min(tokenPoint.z, targetPoint.z);
+
+    for ( const tile of tiles ) {
+      if ( this.config.type === "light" && tile.document.flags?.levels?.noCollision ) continue;
+
+      const { x, y, width, height, elevation } = tile.document;
+      const elevationZ = zValue(elevation);
+
+      if ( elevationZ < minE || elevationZ > maxE ) continue;
+
+      const r0 = new Point3d(x, y, elevationZ);
+      const r1 = new Point3d(x + width, y, elevationZ);
+      const r2 = new Point3d(x + width, y + height, elevationZ);
+      const r3 = new Point3d(x, y + height, elevationZ);
+
+      if ( lineSegmentIntersectsQuadrilateral3d(tokenPoint, targetPoint, r0, r1, r2, r3) ) return true;
+    }
+
+    return false;
+  }
+
+  _hasTokenCollision(tokenPoint, targetPoint) {
+    const { liveTokensBlock, deadTokensBlock, deadHalfHeight } = this.config;
+    const ray = new Ray(tokenPoint, targetPoint);
+    let tokens = canvas.tokens.quadtree.getObjects(ray.bounds);
+    const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
+
+    // Filter out the viewer and target token
+    tokens.delete(this.viewer);
+    tokens.delete(this.target);
+
+    // Filter live or dead tokens
+    if ( liveTokensBlock ^ deadTokensBlock ) {
+      tokens = tokens.filter(t => {
+        const hp = getObjectProperty(t.actor, hpAttribute);
+        if ( typeof hp !== "number" ) return true;
+
+        if ( liveTokensBlock && hp > 0 ) return true;
+        if ( deadTokensBlock && hp <= 0 ) return true;
+        return false;
+      });
+    }
+
+    // Construct the TokenPoints3d for each token, using half-height if required
+    if ( deadHalfHeight ) {
+      tokens = tokens.map(t => {
+        const hp = getObjectProperty(t.actor, hpAttribute);
+        const halfHeight = (typeof hp === "number") && (hp <= 0);
+        return new TokenPoints3d(t, this.config.type, halfHeight);
+      });
+    } else {
+      tokens = tokens.map(t => new TokenPoints3d(t, this.config.type));
+    }
+
+    // Set viewing position and test token sides for collisions
+    for ( const token of tokens ) {
+      const sides = token._viewableFaces(tokenPoint);
+      for ( const side of sides ) {
+        if ( lineSegmentIntersectsQuadrilateral3d(tokenPoint, targetPoint,
+          side[0],
+          side[1],
+          side[2],
+          side[3]) ) return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Determine if there is a collision between two 3d points.
+   * Depending on configuration, accounts for tokens and tiles as well as walls.
+   */
+  _hasCollision(tokenPoint, targetPoint) {
+    const { wallsBlock, tokensBlock, tilesBlock } = this.config;
+
+    if ( wallsBlock && this._hasWallCollision(tokenPoint, targetPoint) ) return true;
+    if ( tilesBlock && this._hasTileCollision(tokenPoint, targetPoint) ) return true;
+    if ( tokensBlock && this._hasTokenCollision(tokenPoint, targetPoint) ) return true;
+
+    return false;
+  }
+
   // ----- COVER ALGORITHM METHODS ----- //
 
   /**
@@ -385,15 +504,30 @@ export class CoverCalculator {
 
     // Test all non-infinite walls for collisions
     const tokenPoint = this.viewerCenter;
-    const targetPoint = new Point3d(this.target.center.x, this.target.center.y, this.targetAvgElevation);
-    const collision = ClockwiseSweepPolygon.testCollision3d(tokenPoint, targetPoint, { type: "sight", mode: "any" });
+    const targetPoint = new Point3d(this.target.center.x, this.target.center.y, this.targetAvgElevationZ);
+
+    const { wallsBlock, tokensBlock, tilesBlock } = this.config;
+
+    const collision = (wallsBlock && this._hasWallCollision(tokenPoint, targetPoint))
+      || (tilesBlock && this._hasTileCollision(tokenPoint, targetPoint));
 
     this.debug && drawing.drawSegment(  // eslint-disable-line no-unused-expressions
       {A: tokenPoint, B: targetPoint},
       { color: collision ? drawing.COLORS.red : drawing.COLORS.green });
 
     if ( collision ) return COVER_TYPES[getSetting(SETTINGS.COVER.TRIGGER_CENTER)];
-    else return COVER_TYPES.NONE;
+
+    if ( tokensBlock ) {
+      const collision = this._hasTokenCollision(tokenPoint, targetPoint);
+      if ( collision ) {
+        this.debug && drawing.drawSegment(  // eslint-disable-line no-unused-expressions
+          {A: tokenPoint, B: targetPoint},
+          { color: collision ? drawing.COLORS.lightred : drawing.COLORS.lightgreen });
+        return Math.max(COVER_TYPES.NONE, COVER_TYPES[getSetting(SETTINGS.COVER.TRIGGER_CENTER)] - 1);
+      }
+    }
+
+    return COVER_TYPES.NONE;
   }
 
   /**
@@ -405,7 +539,7 @@ export class CoverCalculator {
   centerToTargetCorners() {
     this.debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
 
-    const targetPoints = this._getCorners(this.target.constrainedTokenBorder, this.targetAvgElevation);
+    const targetPoints = this._getCorners(this.target.constrainedTokenBorder, this.targetAvgElevationZ);
 
     return this._testTokenTargetPoints([this.viewerCenter], [targetPoints]);
   }
@@ -420,7 +554,7 @@ export class CoverCalculator {
     this.debug && console.log("Cover algorithm: Corner-to-Corners"); // eslint-disable-line no-unused-expressions
 
     const tokenCorners = this._getCorners(this.viewer.constrainedTokenBorder, this.viewer.topZ);
-    const targetPoints = this._getCorners(this.target.constrainedTokenBorder, this.targetAvgElevation);
+    const targetPoints = this._getCorners(this.target.constrainedTokenBorder, this.targetAvgElevationZ);
 
     return this._testTokenTargetPoints(tokenCorners, [targetPoints]);
   }
@@ -453,8 +587,8 @@ export class CoverCalculator {
 
     const tokenCorners = this._getCorners(this.viewer.constrainedTokenBorder, this.viewer.topZ);
     const targetShapes = CoverCalculator.constrainedGridShapesUnderToken(this.target);
-    const targetElevation = this.targetAvgElevation;
-    const targetPointsArray = targetShapes.map(targetShape => this._getCorners(targetShape, targetElevation));
+    const targetElevationZ = this.targetAvgElevationZ;
+    const targetPointsArray = targetShapes.map(targetShape => this._getCorners(targetShape, targetElevationZ));
 
     return this._testTokenTargetPoints(tokenCorners, targetPointsArray);
   }
@@ -625,7 +759,7 @@ export class CoverCalculator {
    * @param {Token} token
    * @returns {number}
    */
-  static averageTokenElevation(token) {
+  static averageTokenElevationZ(token) {
     return token.bottomZ + ((token.topZ - token.bottomZ) * 0.5);
   }
 
@@ -666,7 +800,7 @@ export class CoverCalculator {
     const ln = targetPoints.length;
     for ( let i = 0; i < ln; i += 1 ) {
       const targetPoint = targetPoints[i];
-      const collision = ClockwiseSweepPolygon.testCollision3d(tokenPoint, targetPoint, { type: "sight", mode: "any" });
+      const collision = this._hasCollision(tokenPoint, targetPoint);
       if ( collision ) numCornersBlocked += 1;
     }
 
@@ -716,7 +850,7 @@ export class CoverCalculator {
     const ln = targetPoints.length;
     for ( let i = 0; i < ln; i += 1 ) {
       const targetPoint = targetPoints[i];
-      const collision = ClockwiseSweepPolygon.testCollision3d(tokenPoint, targetPoint, { type: "sight", mode: "any" });
+      const collision = this._hasCollision(tokenPoint, targetPoint);
 
       drawing.drawSegment(  // eslint-disable-line no-unused-expressions
         {A: tokenPoint, B: targetPoint},

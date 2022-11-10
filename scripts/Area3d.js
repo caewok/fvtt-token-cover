@@ -465,13 +465,13 @@ export class Area3d {
       filterWalls: wallsBlock,
       filterTokens: tokensBlock,
       filterTiles: tilesBlock,
-      viewerId: this.viewer.object.id });
+      viewer: this.viewer.object });
 
     if ( out.tiles.size ) out.tiles = out.tiles.map(t => new WallPoints3d(t));
 
     if ( out.tokens.size ) {
       // Check for dead tokens and either set to half height or omit, dependent on settings.
-      const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKEN.ATTRIBUTE).split(".");
+      const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
 
       // Filter live or dead tokens, depending on config.
       if ( liveTokensBlock ^ deadTokensBlock ) { // We handled tokensBlock above
@@ -578,7 +578,7 @@ export class Area3d {
     filterWalls = true,
     filterTokens = true,
     filterTiles = true,
-    viewerId } = {}) {
+    viewer } = {}) {
 
     const visionTriangle = Area3d.visionTriangle(viewingPoint, target, { type });
 
@@ -596,7 +596,7 @@ export class Area3d {
     }
 
     if ( filterTokens ) {
-      out.tokens = Area3d.filterTokensByVisionTriangle(viewingPoint, visionTriangle, { viewerId, targetId: target.id });
+      out.tokens = Area3d.filterTokensByVisionTriangle(viewingPoint, visionTriangle, { viewer, target });
 
       // Filter tokens that are definitely too low or too high
       out.tokens = out.tokens.filter(t => {
@@ -634,9 +634,12 @@ export class Area3d {
    * @param {string|undefined} targetId   Id of target token to exclude
    * @return {Set<Token>}
    */
-  static filterTokensByVisionTriangle(viewingPoint, visionTriangle, { viewerId, targetId } = {}) {
+  static filterTokensByVisionTriangle(viewingPoint, visionTriangle, { viewer, target } = {}) {
     let tokens = canvas.tokens.quadtree.getObjects(visionTriangle.getBounds());
-    if ( viewerId || targetId ) tokens = tokens.filter(t => t.id !== viewerId && t.id !== targetId);
+
+    // Filter out the viewer and target token
+    tokens.delete(viewer);
+    tokens.delete(target);
 
     if ( !tokens.size ) return tokens;
 

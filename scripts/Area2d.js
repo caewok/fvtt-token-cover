@@ -303,7 +303,7 @@ export class Area2d {
     const visionSource = this.visionSource;
     const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
     const { type, tokensBlock, liveTokensBlock, deadTokensBlock, deadHalfHeight } = this.config;
-    const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE).split(".");
+    const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
 
     // Find the walls and, optionally, tokens, for the triangle between origin and target
     const filterConfig = {
@@ -313,7 +313,7 @@ export class Area2d {
       filterTiles: false,
       viewerId: visionSource.object?.id
     };
-    const viewableObjs = Area3d.filterSceneObjectsByVisionTriangle(origin, this.target, filterConfig);
+    const viewableObjs = Area3d.filterSceneObjectsByVisionTriangle(origin, this.target, filterConfig, {viewer: this.visionSource.object });
 
     if ( viewableObjs.tokens.size ) {
       // Filter live or dead tokens, depending on config.

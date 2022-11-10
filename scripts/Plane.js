@@ -5,6 +5,7 @@
 
 import { Point3d } from "./Point3d.js";
 import { Matrix } from "./Matrix.js";
+import { lineSegment3dPlaneIntersects } from "./util.js";
 
 // Class to represent a plane
 export class Plane {
@@ -288,4 +289,17 @@ export class Plane {
 //     const u = u.multiplyScalar(fac);
 //     return p0.add(u);
   }
+
+  /**
+   * Test whether a line segment intersects a plane
+   * @param {Point3d} a   First point of the segment
+   * @param {Point3d} b   Second point of the segment
+   * @returns {boolean}
+   */
+  lineSegmentIntersects(a, b) {
+    const vs = this.getVectorsOnPlane();
+    const p0 = this.point;
+    return lineSegment3dPlaneIntersects(a, b, p0, p0.add(vs.u), p0.add(vs.v));
+  }
+
 }
