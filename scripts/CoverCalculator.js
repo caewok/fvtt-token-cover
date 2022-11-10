@@ -24,6 +24,7 @@ import {
   pixelsToGridUnits,
   zValue,
   lineSegmentIntersectsQuadrilateral3d,
+  lineIntersectionQuadrilateral3d,
   getObjectProperty } from "./util.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
@@ -409,6 +410,11 @@ export class CoverCalculator {
     const maxE = Math.max(tokenPoint.z, targetPoint.z);
     const minE = Math.min(tokenPoint.z, targetPoint.z);
 
+    // Precalculate
+    const rayVector = targetPoint.subtract(tokenPoint);
+    const zeroMin = 1e-08;
+    const oneMax = 1 + 1e-08;
+
     for ( const tile of tiles ) {
       if ( this.config.type === "light" && tile.document.flags?.levels?.noCollision ) continue;
 
@@ -422,7 +428,15 @@ export class CoverCalculator {
       const r2 = new Point3d(x + width, y + height, elevationZ);
       const r3 = new Point3d(x, y + height, elevationZ);
 
-      if ( lineSegmentIntersectsQuadrilateral3d(tokenPoint, targetPoint, r0, r1, r2, r3) ) return true;
+      // Need to test the tile intersection point for transparency (Levels holes).
+      // Otherwise, could just use lineSegmentIntersectsQuadrilateral3d
+      const t = lineIntersectionQuadrilateral3d(tokenPoint, rayVector, r0, r1, r2, r3);
+      if ( t === null || t < zeroMin || t > oneMax ) continue;
+      const ix = new Point3d();
+      tokenPoint.add(rayVector.multiplyScalar(t, ix), ix);
+      if ( !tile.containsPixel(ix.x, ix.y, 0.99) ) continue; // Transparent, so no collision.
+
+      return true;
     }
 
     return false;
