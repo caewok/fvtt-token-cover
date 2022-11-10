@@ -374,9 +374,9 @@ export class Area2d {
         halfHeight = (typeof hp === "number") && (hp <= 0);
       }
 
-      const shadows = Shadow.constructfromToken(token, origin, targetElevation, type, halfHeight);
-      if ( shadows && shadows.length ) shadows.push(...shadows);
-      if ( this.debug ) shadows.forEach(s => s.draw());
+      const tokenShadows = Shadow.constructfromToken(token, origin, targetElevation, type, halfHeight);
+      if ( tokenShadows && tokenShadows.length ) shadows.push(...tokenShadows);
+      if ( this.debug ) tokenShadows.forEach(s => s.draw());
     }
 
     const combined = Shadow.combinePolygonWithShadows(los, shadows);
