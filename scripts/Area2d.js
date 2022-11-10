@@ -311,9 +311,9 @@ export class Area2d {
       filterWalls: true,
       filterTokens: tokensBlock,
       filterTiles: false,
-      viewerId: visionSource.object?.id
+      viewer: visionSource.object
     };
-    const viewableObjs = Area3d.filterSceneObjectsByVisionTriangle(origin, this.target, filterConfig, {viewer: this.visionSource.object });
+    const viewableObjs = Area3d.filterSceneObjectsByVisionTriangle(origin, this.target, filterConfig);
 
     if ( viewableObjs.tokens.size ) {
       // Filter live or dead tokens, depending on config.
@@ -342,14 +342,13 @@ export class Area2d {
     // We need an LOS calc that removes all limited walls; use shadows instead.
     // 3. Tokens are potentially blocking -- construct shadows based on those tokens
     let redoLOS = viewableObjs.tokens.size;
-    if ( redoLOS || viewableObjs.walls.size ) {
-      const elevationZ = visionSource.elevationZ;
-      redoLOS = viewableObjs.walls.some(w => {
-        const { topZ, bottomZ } = w;
-        return (elevationZ < topZ && targetElevation > topZ)
-        || (elevationZ > bottomZ && targetElevation < bottomZ);
-      });
-    }
+    const elevationZ = visionSource.elevationZ;
+    redoLOS ||= viewableObjs.walls.some(w => {
+      const { topZ, bottomZ } = w;
+      return (elevationZ < topZ && targetElevation > topZ)
+      || (elevationZ > bottomZ && targetElevation < bottomZ);
+    });
+
 
     const losConfig = visionSource._getPolygonConfiguration();
     losConfig.type = this.config.type;
