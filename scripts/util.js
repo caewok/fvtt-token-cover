@@ -25,6 +25,54 @@ export function log(...args) {
 }
 
 /**
+ * Take an array of 2d points and flatten them to an array of numbers,
+ * like what is used by PIXI.Polygon.
+ * Much faster than Array.flatMap.
+ * @param {Point[]} ptsArr        Array of objects with x, y values
+ * @param {function} transformFn  Function to apply to each object
+ * @returns {number[]} An array with [pt0.x, pt0.y, pt1.x, ...]
+ */
+export flatMapPoint2d = function(ptsArr, transformFn) {
+	const N = ptsArr.length;
+	const ln = N * 2;
+    const newArr = Array(ln);
+    for ( let i = 0; i < N; i += 1 ) {
+	    const j = i * 2;
+	    const pt = testFn(ptsArr[i], i);
+	    newArr[j] = pt.x;
+	    newArr[j + 1] = pt.y;
+    }
+	return newArr;
+}
+
+/**
+ * Rotate a point around a given angle
+ * @param {Point} point
+ * @param {number} angle  In radians
+ * @returns {Point}
+ */
+export function rotatePoint(point, angle) {
+  return {
+    x: (point.x * Math.cos(angle)) - (point.y * Math.sin(angle)),
+    y: (point.y * Math.cos(angle)) + (point.x * Math.sin(angle))
+  };
+}
+
+/**
+ * Translate a point by a given dx, dy
+ * @param {Point} point
+ * @param {number} dx
+ * @param {number} dy
+ * @returns {Point}
+ */
+export function translatePoint(point, dx, dy) {
+  return {
+    x: point.x + dx,
+    y: point.y + dy
+  };
+}
+
+/**
  * Retrieve an embedded property from an object using a string.
  * @param {object} obj
  * @param {string} str
