@@ -10,11 +10,14 @@ import { MODULE_ID, COVER_TYPES } from "./const.js";
 // Hooks and method registration
 import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
-import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
-import { registerPIXIRectangleMethods } from "./PIXIRectangle.js";
+import { registerPIXIPolygonMethods } from "./geometry/PIXIPolygon.js";
+import { registerPIXIRectangleMethods } from "./geometry/PIXIRectangle.js";
 import { registerSettings, getSetting, setSetting, SETTINGS, updateConfigStatusEffects } from "./settings.js";
 import { registerElevationAdditions } from "./elevation.js";
-import { Point3d, registerPIXIPointMethods } from "./Point3d.js";
+import { Point3d, registerPIXIPointMethods } from "./geometry/Point3d.js";
+
+// geometry
+
 
 // Rendering configs
 import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
@@ -23,12 +26,12 @@ import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
 import * as bench from "./benchmark.js";
 import * as drawing from "./drawing.js";
 import * as util from "./util.js";
-import { Shadow } from "./Shadow.js";
-import { Matrix } from "./Matrix.js";
+import { Shadow } from "./geometry/Shadow.js";
+import { Matrix } from "./geometry/Matrix.js";
 import { Area3d, TokenPoints3d } from "./Area3d.js";
 import { Area2d } from "./Area2d.js";
-import { Plane } from "./Plane.js";
-import { ClipperPaths } from "./ClipperPaths.js";
+import { Plane } from "./geometry/Plane.js";
+import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 

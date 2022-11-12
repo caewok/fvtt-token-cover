@@ -3,7 +3,7 @@ PIXI
 */
 "use strict";
 
-import { rotatePoint, translatePoint } from "./util.js";
+import { rotatePoint, translatePoint } from "../util.js";
 
 /* Testing
 api = game.modules.get('tokenvisibility').api;

@@ -10,13 +10,14 @@ Token
 import { MODULE_ID } from "./const.js";
 import { getObjectProperty } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
-import { Shadow } from "./Shadow.js";
-import { ClipperPaths } from "./ClipperPaths.js";
-import { Point3d } from "./Point3d.js";
 import { Area3d} from "./Area3d.js";
 import * as drawing from "./drawing.js";
 import { CWSweepInfiniteWallsOnly } from "./CWSweepInfiniteWallsOnly.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+
+import { Shadow } from "./geometry/Shadow.js";
+import { ClipperPaths } from "./geometry/ClipperPaths.js";
+import { Point3d } from "./geometry/Point3d.js";
 
 /* Area 2d
 1. Center point shortcut:

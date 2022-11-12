@@ -32,15 +32,17 @@ Area:
 
 import { MODULE_ID } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
-import { Shadow, truncateWallAtElevation } from "./Shadow.js";
-import { Matrix } from "./Matrix.js";
-import { Point3d } from "./Point3d.js";
-import { Plane } from "./Plane.js";
 import { elementsByIndex, zValue, log, getObjectProperty } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
-import { ClipperPaths } from "./ClipperPaths.js";
+
 import * as drawing from "./drawing.js"; // For debugging
-import { Ellipse } from "./Ellipse.js";
+
+import { Shadow, truncateWallAtElevation } from "./geometry/Shadow.js";
+import { ClipperPaths } from "./geometry/ClipperPaths.js";
+import { Matrix } from "./geometry/Matrix.js";
+import { Point3d } from "./geometry/Point3d.js";
+import { Plane } from "./geometry/Plane.js";
+import { Ellipse } from "./geometry/Ellipse.js";
 
 export class Area3d {
 

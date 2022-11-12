@@ -7,7 +7,7 @@ import {
   flatMapPoint2d,
   rotatePoint,
   translatePoint
-} from "./util.js";
+} from "../util.js";
 
 // Imports for fromDrawing
 import { CenteredPolygon } from "./CenteredPolygon.js";

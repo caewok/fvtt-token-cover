@@ -7,7 +7,7 @@ PIXI
 "use strict";
 
 import { MODULE_ID, EPSILON } from "./const.js";
-import { Point3d } from "./Point3d.js";
+import { Point3d } from "./geometry/Point3d.js";
 
 /**
  * Log message only when debug flag is enabled from DevMode module.
@@ -38,12 +38,14 @@ export flatMapPoint2d = function(ptsArr, transformFn) {
     const newArr = Array(ln);
     for ( let i = 0; i < N; i += 1 ) {
 	    const j = i * 2;
-	    const pt = testFn(ptsArr[i], i);
+	    const pt = transformFn(ptsArr[i], i);
 	    newArr[j] = pt.x;
 	    newArr[j + 1] = pt.y;
     }
 	return newArr;
 }
+
+
 
 /**
  * Rotate a point around a given angle
