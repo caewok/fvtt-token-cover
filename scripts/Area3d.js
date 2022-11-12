@@ -30,7 +30,7 @@ Area:
 - Wall shapes block and shadows block. Construct the blocked target shape and calc area.
 */
 
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, FLAGS } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
 import { elementsByIndex, zValue, log, getObjectProperty } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
@@ -191,6 +191,7 @@ export class Area3d {
     const objs = this.blockingObjects;
     objs.walls.forEach(w => w.setViewMatrix(this.viewerViewM));
     objs.tiles.forEach(t => t.setViewMatrix(this.viewerViewM));
+    objs.drawings.forEach(d => d.setViewMatrix(this.viewerViewM));
     objs.tokens.forEach(t => {
       t.setViewingPoint(this.viewerCenter);
       t.setViewMatrix(this.viewerViewM);
@@ -315,12 +316,45 @@ export class Area3d {
   _obscureSides() {
     if ( !this.viewIsSet ) this.calculateViewMatrix();
 
+    // TODO: Use ClipperPaths throughout.
+    //       Add tiles and drawings to poke holes in tiles.
+
+    let tiles = [];
+    if ( this.blockingObjects.drawings.size ) {
+      // For each tile, determine if a drawing cuts through the tile:
+      // 1. Drawing overlaps tile --- assumed for now based on prior bounds test
+      // 2. Tile elevation within range of drawing elevation.
+      for ( const tile of this.blockingObjects.tiles ) {
+        const drawingHoles = [];
+        const tileE = tile.wall.document.elevation;
+
+        for ( const drawing of this.blockingObjects.drawings ) {
+          const minE = drawing.drawing.document.getFlag("levels", "rangeTop");
+          const maxE = drawing.drawing.document.getFlag("levels", "rangeBottom");
+          if ( minE == null && maxE == null ) continue; // Intended to test null, undefined
+          else if ( minE == null && tileE !== maxE ) continue;
+          else if ( maxE == null && tileE !== minE ) continue;
+          else if ( !tileE.between(minE, maxE) ) continue;
+
+          // We know the tile is within the drawing elevation range.
+          drawing.elevation = tileE; // Temporarily change the drawing elevation to match tile.
+          drawingHoles.push(new PIXI.Polygon(drawing.perspectiveTransform()));
+        }
+
+        if ( drawingHoles.length ) {
+          // Construct a hole at the tile's elevation using the drawing.
+          // Use the current perspective
+          const drawingHolesPaths = ClipperPaths.fromPolygons(drawingHoles);
+          const tileHoled = drawingHolesPaths.diffPolygon(new PIXI.Polygon(tile.perspectiveTransform()));
+          tiles.push(tileHoled);
+        } else tiles.push(new PIXI.Polygon(tile.tPoints));
+      }
+    } else tiles = this.blockingObjects.tiles.map(t => new PIXI.Polygon(tile.perspectiveTransform()));
+
     const tTarget = this.targetPoints.perspectiveTransform();
     const walls = this.blockingObjects.walls.map(w => w.perspectiveTransform());
 
     if ( this.blockingObjects.terrainWalls.size > 1 && !this.blockingObjects.combinedTerrainWalls) {
-      console.log("_obscureSides: need to handle terrain walls!");
-
       const tws = this.blockingObjects.terrainWalls.map(w => {
         if ( !w.viewIsSet ) w.setViewMatrix(this.viewerViewM);
         return w.perspectiveTransform();
@@ -470,7 +504,10 @@ export class Area3d {
       filterTiles: tilesBlock,
       viewer: this.viewer.object });
 
-    if ( out.tiles.size ) out.tiles = out.tiles.map(t => new WallPoints3d(t));
+    if ( out.tiles.size ) {
+      out.tiles = out.tiles.map(t => new WallPoints3d(t));
+      if ( out.drawings.size ) out.drawings = out.drawings.map(d => new DrawingPoints3d(d));
+    }
 
     if ( out.tokens.size ) {
       // Check for dead tokens and either set to half height or omit, dependent on settings.
@@ -588,7 +625,7 @@ export class Area3d {
     const maxE = Math.max(viewingPoint.z ?? 0, target.topZ);
     const minE = Math.min(viewingPoint.z ?? 0, target.bottomZ);
 
-    const out = { walls: new Set(), tokens: new Set(), tiles: new Set() };
+    const out = { walls: new Set(), tokens: new Set(), tiles: new Set(), drawings: new Set() };
     if ( filterWalls ) {
       out.walls = Area3d.filterWallsByVisionTriangle(viewingPoint, visionTriangle, { type });
 
@@ -622,9 +659,39 @@ export class Area3d {
         const tZ = zValue(t.document.elevation);
         return tZ < maxE && tZ > minE;
       });
+
+      // Check drawings if there are tiles
+      if ( out.tiles.size ) out.drawings = Area3d.filterDrawingsByVisionTriangle(viewingPoint, visionTriangle);
     }
 
     return out;
+  }
+
+  /**
+   * Filter drawings in the scene if they are flagged as holes.
+   * @param {Point3d} viewingPoint
+   * @param {PIXI.Polygon} visionTriangle
+   */
+  static filterDrawingsByVisionTriangle(viewingPoint, visionTriangle) {
+    let drawings = canvas.drawings.quadtree.getObjects(visionTriangle.getBounds());
+
+    // Filter by holes
+    drawings = drawings.filter(d => d.document.getFlag(MODULE_ID, FLAGS.DRAWING.IS_HOLE)
+      && ( d.document.shape.type === CONST.DRAWING_TYPES.POLYGON
+      ||  d.document.shape.type === CONST.DRAWING_TYPES.ELLIPSE
+      ||  d.document.shape.type === CONST.DRAWING_TYPES.RECTANGLE));
+
+    if ( !drawings.size ) return drawings;
+
+    // Filter by the precise triangle cone
+    // Also convert to CenteredPolygon b/c it handles bounds better
+    drawings = drawings.map(d => CenteredPolygonBase.fromDrawing(d));
+    const edges = [...visionTriangle.iterateEdges()];
+    drawings = drawings.filter(d => {
+      const dBounds = d.getBounds();
+      return edges.some(e => dBounds.lineSegmentIntersects(e.A, e.B, { inside: true }));
+    });
+    return drawings;
   }
 
   /**
@@ -860,6 +927,9 @@ export class Area3d {
   }
 
 }
+
+// TODO: Make base class PlanePoints3d, representing a plane in 3d as a set of points.
+// TokenPoints3d is a bunch of those PlanePoints3d. Drawing, Tile, Wall all PlanePoints3d.
 
 /**
  * Represent a token as a set of 3d points, representing its corners.
@@ -1292,66 +1362,133 @@ export class DrawingPoints3d {
   viewIsSet = false;
 
   /** @type {number} */
-  elevationZ = 0;
+  _elevationZ = 0;
+
+  /** @type {CenteredPolygonBase} */
+  shape;
 
   /**
-   * @param {Drawing} drawing
+   * @param {Drawing|CenteredPolygonBase} drawing
    * @param {object} [options]
    * @param {number} [elevation]    Elevation value, in grid units.
    */
   constructor(drawing, { elevation } = {}) {
-    this.drawing = drawing;
-
-    // Set elevation for these points
-    if ( elevation ) this.elevationZ = zValue(elevation);
-    else {
-      const dElevation = drawing.document?.elevation;
-      if ( typeof dElevation !== "undefined" ) this.elevationZ = zValue(dElevation);
+    if ( drawing instanceof Drawing ) {
+      this.shape = CenteredPolygonBase.fromDrawing(drawing);
+      this.drawing = drawing;
+    } else if ( drawing instanceof CenteredPolygonBase ) {
+      this.shape = drawing;
+      this.drawing = shape._drawing;
+    } else {
+      console.error("DrawingPoints3d: drawing class not supported.");
+      return;
     }
 
-    // Determine points for this drawing
-    switch ( drawing.document.shape.type ) {
-      case CONST.DRAWING_TYPES.RECTANGLE:
-        this.points = this._rectanglePoints();
+    // Set elevation from the drawing data.
+    this.elevation = elevation ?? drawing.document?.elevation ?? 0;
+  }
+
+  /** @type {number} */
+  get elevationZ() { return this._elevationZ; }
+
+  set elevationZ(value) {
+    if ( this._elevationZ === value ) return;
+
+    this._elevationZ = value;
+
+    // Determine points for this drawing.
+    this.points = [];
+    for ( const pt of this.shape.iteratePoints() ) {
+      this.points.push(new Point3d(pt.x, pt.y, value));
     }
 
-
-
+    // Redo the transform if already set.
+    if ( this.viewIsSet ) {
+      this._transform(this.M);
+      this._truncateTransform();
+    }
   }
 
-  // ----- INTERNAL HELPER FUNCTIONS ----- //
+  get elevation() { return pixelsToGridUnits(this.elevationZ); }
+
+  set elevation(value) { this.elevationZ = zValue(value); }
 
   /**
-   * Determine points for a rectangular drawing shape.
-   * Assumes, but does not validate, that the drawing is a rectangular shape.
-   * @returns {Point3d[4]}
+   * Set the view matrix used to transform the wall and transform the wall points.
+   * @param {Matrix} M
    */
-  _rectanglePoints() {
-    const { shape, x, y, rotation } = this.drawing.document;
-    const { width, height } = shape;
-    const eZ = this.elevationZ;
-
-    const points = Array(4);
-    points[0] = new Point3d(x, y, eZ);
-    points[1] = new Point3d(x + width, y, eZ);
-    points[2] = new Point3d(x + width, y + height, eZ);
-    points[3] = new Point3d(x, y + height, eZ);
-
-    return points;
+  setViewMatrix(M) {
+    this.M = M;
+    this._transform(M);
+    this._truncateTransform();
+    this.viewIsSet = true;
   }
 
   /**
-   * Determine points for an ellipse drawing shape.
-   * Assumes, but does not validate, that the drawing is a rectangular shape.
-   * @returns {Point3d[]}
+   * Transform the point using a transformation matrix.
+   * @param {Matrix} M
    */
-  _ellipsePoints() {
-    const { shape, x, y } = this.drawing.document;
-    const { width, height } = shape;
-    const eZ = this.elevationZ;
+  _transform(M) {
+    const ln = this.points.length;
+    this.tPoints = Array(ln);
+    for ( let i = 0; i < ln; i += 1 ) {
+      this.tPoints[i] = Matrix.fromPoint3d(this.points[i]).multiply(M).toPoint3d();
+    }
 
-    // Store the underlying Ellipse shape, mostly for debugging at the moment.
-    this._ellipse = new Ellipse()
+  /**
+   * Truncate the transformed walls to keep only the below z = 0 portion
+   */
+  _truncateTransform(rep = 0) {
+    if ( rep > 1 ) return;
+
+    let needsRep = false;
+    const targetE = -1;
+    const ln = this.points.length;
+    let A = this.tPoints[ln - 1];
+    for ( let i = 0; i < ln; i += 1 ) {
+      const B = this.tPoints[i];
+      const Aabove = A.z > targetE;
+      const Babove = B.z > targetE;
+      if ( Aabove && Babove ) needsRep = true; // Cannot redo the A--B line until others points are complete.
+      if ( !(Aabove ^ Babove) ) continue;
+
+      const res = truncateWallAtElevation(A, B, targetE, -1, 0);
+      if ( res ) {
+        A.copyFrom(res.A);
+        B.copyFrom(res.B);
+      }
+      A = B;
+    }
+    rep += 1;
+    needsRep && this._truncateTransform(rep); // eslint-disable-line no-unused-expressions
   }
 
+  /**
+   * Transform the wall to a 2d perspective.
+   * @returns {Point2d[]}
+   */
+  perspectiveTransform() {
+    return this.tPoints.map(pt => Area3d.perspectiveTransform(pt));
+  }
+
+  /**
+   * Draw the shape on the 2d canvas
+   */
+  draw(options = {}) {
+    this.points.forEach(pt => drawing.drawPoint(pt, options));
+    this.drawShape(this.shape, options);
+  }
+
+  /**
+   * Draw the transformed shape.
+   */
+  drawTransformed({perspective = true, color = drawing.COLORS.gray, fillAlpha = 0.2 } = {}) {
+    if ( !this.viewIsSet ) {
+      console.warn(`DrawingPoints3d: View is not yet set for drawing ${this.drawing.id}.`);
+      return;
+    }
+    const pts = perspective ? this.perspectiveTransform() : this.tPoints;
+    const poly = new PIXI.Polygon(pts);
+    drawing.drawShape(poly, { color, fill: color, fillAlpha });
+  }
 }
