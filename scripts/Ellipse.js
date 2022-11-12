@@ -1,6 +1,5 @@
 /* globals
-PIXI,
-ClipperLib
+PIXI
 */
 "use strict";
 
@@ -25,16 +24,20 @@ function translatePoint(point, dx, dy) {
 }
 
 [d] = canvas.drawings.placeables
-leftCorner = { x: d.document.x, y: d.document.y }
-width = d.document.shape.width
-height = d.document.shape.height
+
+halfWidth = d.document.shape.width / 2;
+halfHeight = d.document.shape.height / 2;
+x = d.document.x + halfWidth;
+y = d.document.y + halfHeight
 rotation = d.document.rotation
 
-rect = new Rectangle(undefined, width, height, { rotation, leftCorner })
-pts = [...rect.iteratePoints()]
+e = new Ellipse(x, y, halfWidth, halfHeight, { rotation })
+drawing.drawShape(e)
+
+pts = [...e.toPolygon().iteratePoints()]
 pts.forEach(pt => api.drawing.drawPoint(pt))
 
-bounds = rect.getBounds()
+bounds = e.getBounds()
 drawing.drawShape(bounds)
 */
 
@@ -65,6 +68,23 @@ export class Ellipse extends PIXI.Ellipse {
     this.minor = Math.min(halfWidth, halfHeight);
     this.ratio = halfWidth / halfHeight;
     this.ratioInv = 1 / this.ratio;
+  }
+
+  /**
+   * Construct an ellipse that mirrors that of a Drawing ellipse
+   * @param {Drawing} drawing
+   * @returns {Ellipse}
+   */
+  static fromDrawing(drawing) {
+    const { x, y, rotation, shape } = drawing;
+    const { width, height } = shape;
+
+    const halfWidth = width * 0.5;
+    const halfHeight = height * 0.5;
+    const centeredX = x + halfWidth;
+    const centeredY = y + halfHeight;
+
+    return new this(centeredX, centeredY, halfWidth, halfHeight, { rotation });
   }
 
   /**
@@ -132,7 +152,7 @@ export class Ellipse extends PIXI.Ellipse {
     // Move point to Ellipse-space
     const pt = this.fromCartesianCoords({x, y});
 
-    // reject if x is outside the bounds
+    // Reject if x is outside the bounds
     if ( pt.x < -width
       || pt.x > width
       || pt.y < -height

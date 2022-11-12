@@ -3,11 +3,7 @@ PIXI
 */
 "use strict";
 
-import {
-  flatMapPoint2d,
-  rotatePoint,
-  translatePoint
-} from "./util.js";
+import { CenteredPolygonBase } from "./CenteredPolygonBase.js";
 
 /* Testing
 api = game.modules.get('tokenvisibility').api;
@@ -45,7 +41,7 @@ drawing.drawShape(bounds)
  * Comparable to RegularPolygon and PIXI.Rectangle class, where
  * the Platonic shape is stored at the origin 0, 0 and translated.
  */
-export class Rectangle extends PIXI.Polygon {
+export class CenteredRectangle extends CenteredPolygonBase {
 
   /**
    * @param {Point} origin   Center point of the rectangle. Can be left undefined if leftCorner is provided.
@@ -66,63 +62,42 @@ export class Rectangle extends PIXI.Polygon {
     // Could use Square if already imported:
     // if ( width === height ) return new Square(origin, undefined, { rotation, width });
 
-
-    // For rest, taken from RegularPolygon
-    super([]);
-
-    this.x = origin.x;
-    this.y = origin.y;
-    this.rotation = Math.normalizeDegrees(rotation);
-    this.radians = Math.toRadians(this.rotation);
+    super(origin, { rotation });
 
     this.width = width;
     this.height = height;
     this.radius = Math.hypot(width, height) / 2;
+  }
 
-    // Placeholders for getters
-    this._fixedPoints = undefined;
-    this._points = undefined;
+  /**
+   * Construct a rectangle that follows a rectangular Drawing.
+   * @param {Drawing} drawing
+   * @returns {Rectangle}
+   */
+  static fromDrawing(drawing) {
+    const { x, y, rotation, shape } = drawing.document;
+    const { width, height } = shape;
+    const leftCorner = {x, y};
 
-    // Polygon properties
-    this._isClosed = true;
-    this._isClockwise = true;
+    return new this(undefined, width, height, { rotation, leftCorner });
   }
 
   /**
    * Construct a rectangle from a PIXI.Rectangle
    * @param {PIXI.Rectangle} rect
-   * @returns {Rectangle}
+   * @returns {CenteredRectangle}
    */
-  static fromPIXI(rect) {
-    return new this(undefined, rect.width, rect.height, { leftCorner: { x: rect.x, y: rect.y }});
+  static fromPIXIRectangle(rect) {
+    const { x, y, width, height } = rect;
+
+    return new this(undefined, width, height, { leftCorner: { x, y }});
   }
-
-  get center() { return { x: this.x, y: this.y }; }
-
-  get points() { return this._points || (this._points = this._generatePoints()); }
-
-  set points(value) { }
-
-  get fixedPoints() { return this._fixedPoints || (this._fixedPoints = this._generateFixedPoints()); }
 
   /**
    * Calculate area of the rectangle.
    * @type {number}
    */
   get area() { return this.width * this.height; }
-
-  /**
-   * Shift this polygon to a new position.
-   * @param {number} dx   Change in x position
-   * @param {number} dy   Change in y position
-   * @returns {RegularPolygon}    This polygon
-   */
-  translate(dx, dy) {
-    this.x = this.x + dx;
-    this.y = this.y + dy;
-    this._points = undefined;
-    return this;
-  }
 
   /**
    * Generate the points of the square using the provided configuration.
@@ -195,7 +170,7 @@ export class Rectangle extends PIXI.Polygon {
     }
 
     // Default alternative
-    return flatMapPoint2d(fp, pt => this.toCartesianCoords(pt));
+    return super._generatePoints();
   }
 
   /**
@@ -204,7 +179,7 @@ export class Rectangle extends PIXI.Polygon {
    */
   getBounds() {
     // If an edge is on the bounding box, use it as the border
-    const { x, y, width, height, rotation, fixedPoints: fp } = this;
+    const { x, y, width, height, rotation } = this;
     const w1_2 = width * 0.5;
     const h1_2 = height * 0.5;
 
@@ -227,36 +202,6 @@ export class Rectangle extends PIXI.Polygon {
         else return new PIXI.Rectangle(x - w1_2, y - w1_2, width, width);
     }
 
-    // Find the min and max x,y points, as there are only 4
-    const pts = this.points;
-    let minX = Number.POSITIVE_INFINITY;
-    let minY = Number.POSITIVE_INFINITY;
-    let maxX = Number.NEGATIVE_INFINITY;
-    let maxY = Number.NEGATIVE_INFINITY;
-    const ln = pts.length;
-    for ( let i = 0; i < ln; i += 2 ) {
-      const x = pts[i];
-      const y = pts[i + 1];
-      minX = Math.min(minX, x);
-      maxX = Math.max(maxX, x);
-      minY = Math.min(minY, y);
-      maxY = Math.max(maxY, y);
-    }
-
-    return new PIXI.Rectangle(x + minX, y+ minY, maxX - minX, maxY - minY);
+    return super.getBounds();
   }
-
-  /**
-   * Shift from cartesian coordinates to the shape space.
-   * @param {Point} a
-   * @returns {Point}
-   */
-  fromCartesianCoords(a) { return rotatePoint(translatePoint(a, -this.x, -this.y), -this.radians); }
-
-  /**
-   * Shift to cartesian coordinates from the shape space.
-   * @param {Point} a
-   * @returns {Point}
-   */
-  toCartesianCoords(a) { return translatePoint(rotatePoint(a, this.radians), this.x, this.y); }
 }

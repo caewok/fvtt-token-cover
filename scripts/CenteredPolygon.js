@@ -1,14 +1,8 @@
 /* globals
-PIXI
 */
 "use strict";
 
-import {
-  flatMapPoint2d,
-  rotatePoint,
-  translatePoint
-} from "./util.js";
-
+import { CenteredPolygonBase } from "./CenteredPolygonBase.js";
 
 /* Testing
 api = game.modules.get('tokenvisibility').api;
@@ -59,10 +53,9 @@ drawing.drawShape(bounds)
 
 /**
  * Follows the approach of polygon Drawing and RegularPolygon class.
- * Polygon has a set of points centered around origin 0, 0.
- * Polygon is treated as closed.
+ * Holds a set of points that can be rotated.
  */
-export class CenteredPolygon extends PIXI.Polygon {
+export class CenteredPolygon extends CenteredPolygonBase {
 
   /**
    * @param {Point} origin    Center point of the polygon.
@@ -71,12 +64,7 @@ export class CenteredPolygon extends PIXI.Polygon {
    * @param {number} options.rotation  Rotation, in degrees, from a starting point due east
    */
   constructor(origin, pts, { rotation = 0} = {}) {
-    super([]);
-
-    this.x = origin.x;
-    this.y = origin.y;
-    this.rotation = Math.normalizeDegrees(rotation);
-    this.radians = Math.toRadians(this.rotation);
+    super(origin, { rotation });
 
     // Construct an array of points
     const ln = pts.length;
@@ -91,10 +79,6 @@ export class CenteredPolygon extends PIXI.Polygon {
     const lastY = pts[ln - 1];
     const lastX = pts[ln - 2];
     if ( pts[0] !== lastX || pts[1] !== lastY ) this._fixedPoints.push({ x: lastX, y: lastY });
-
-    // Polygon properties
-    this._isClosed = true;
-    this._isClockwise = true;
   }
 
   /**
@@ -121,67 +105,4 @@ export class CenteredPolygon extends PIXI.Polygon {
 
     return new this({ x: centeredX, y: centeredY }, pts, { rotation });
   }
-
-  get center() { return { x: this.x, y: this.y }; }
-
-  get points() { return this._points || (this._points = this._generatePoints()); }
-
-  set points(value) { }
-
-  get fixedPoints() { return this._fixedPoints || (this._fixedPoints = this._generateFixedPoints()); }
-
-
-  /**
-   * Placeholder for child classes.
-   * @return {Points[]}
-   */
-  _generateFixedPoints() {
-    return this._fixedPoints;
-  }
-
-  /**
-   * Generate the points that represent this shape as a polygon in Cartesian space.
-   * @return {Points[]}
-   */
-  _generatePoints() {
-    return flatMapPoint2d(this.fixedPoints, pt => this.toCartesianCoords(pt));
-  }
-
-  /**
-   * Generate the bounding box (in Cartesian coordinates)
-   * @returns {PIXI.Rectangle}
-   */
-  getBounds() {
-    // Find the min and max x,y points
-    const pts = this.points;
-    const ln = pts.length;
-    let minX = Number.POSITIVE_INFINITY;
-    let minY = Number.POSITIVE_INFINITY;
-    let maxX = Number.NEGATIVE_INFINITY;
-    let maxY = Number.NEGATIVE_INFINITY;
-    for ( let i = 0; i < ln; i += 2 ) {
-      const x = pts[i];
-      const y = pts[i + 1];
-      minX = Math.min(minX, x);
-      maxX = Math.max(maxX, x);
-      minY = Math.min(minY, y);
-      maxY = Math.max(maxY, y);
-    }
-
-    return new PIXI.Rectangle(minX, minY, maxX - minX, maxY - minY);
-  }
-
-  /**
-   * Shift from cartesian coordinates to the shape space.
-   * @param {Point} a
-   * @returns {Point}
-   */
-  fromCartesianCoords(a) { return rotatePoint(translatePoint(a, -this.x, -this.y), -this.radians); }
-
-  /**
-   * Shift to cartesian coordinates from the shape space.
-   * @param {Point} a
-   * @returns {Point}
-   */
-  toCartesianCoords(a) { return translatePoint(rotatePoint(a, this.radians), this.x, this.y); }
 }

@@ -40,6 +40,7 @@ import { elementsByIndex, zValue, log, getObjectProperty } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import { ClipperPaths } from "./ClipperPaths.js";
 import * as drawing from "./drawing.js"; // For debugging
+import { Ellipse } from "./Ellipse.js";
 
 export class Area3d {
 
@@ -1096,13 +1097,13 @@ export class WallPoints3d {
   /**
    * Wall: TopA, TopB, bottomB, bottomA
    * Tile: xy, xy + width, xy + width + height, xy + height
-   * @type {Point3d}
+   * @type {Point3d[4]}
    */
   points = Array(4);
 
   /**
    * Points when a transform is set
-   * @type {Point3d}
+   * @type {Point3d[4]}
    */
   tPoints = Array(4);
 
@@ -1264,4 +1265,91 @@ export class WallPoints3d {
 
     return finalPath;
   }
+}
+
+/**
+ * Represent a drawing as a set of 3d points.
+ * Unlike WallPoints3d, there could be many points and the elevation is pre-set manually.
+ */
+export class DrawingPoints3d {
+  /**
+   * Points of the drawing shape on the XY canvas, at a set elevation.
+   * @type {Point3d[]}
+   */
+  points = [];
+
+  /** Points when a transform is set.
+   * @type {Point3d[]}
+   */
+  tPoints = [];
+
+  /** @type {Drawing} */
+  drawing;
+
+  /** @type {boolean} */
+  viewIsSet = false;
+
+  /** @type {number} */
+  elevationZ = 0;
+
+  /**
+   * @param {Drawing} drawing
+   * @param {object} [options]
+   * @param {number} [elevation]    Elevation value, in grid units.
+   */
+  constructor(drawing, { elevation } = {}) {
+    this.drawing = drawing;
+
+    // Set elevation for these points
+    if ( elevation ) this.elevationZ = zValue(elevation);
+    else {
+      const dElevation = drawing.document?.elevation;
+      if ( typeof dElevation !== "undefined" ) this.elevationZ = zValue(dElevation);
+    }
+
+    // Determine points for this drawing
+    switch ( drawing.document.shape.type ) {
+      case CONST.DRAWING_TYPES.RECTANGLE:
+        this.points = this._rectanglePoints();
+    }
+
+
+
+  }
+
+  // ----- INTERNAL HELPER FUNCTIONS ----- //
+
+  /**
+   * Determine points for a rectangular drawing shape.
+   * Assumes, but does not validate, that the drawing is a rectangular shape.
+   * @returns {Point3d[4]}
+   */
+  _rectanglePoints() {
+    const { shape, x, y, rotation } = this.drawing.document;
+    const { width, height } = shape;
+    const eZ = this.elevationZ;
+
+    const points = Array(4);
+    points[0] = new Point3d(x, y, eZ);
+    points[1] = new Point3d(x + width, y, eZ);
+    points[2] = new Point3d(x + width, y + height, eZ);
+    points[3] = new Point3d(x, y + height, eZ);
+
+    return points;
+  }
+
+  /**
+   * Determine points for an ellipse drawing shape.
+   * Assumes, but does not validate, that the drawing is a rectangular shape.
+   * @returns {Point3d[]}
+   */
+  _ellipsePoints() {
+    const { shape, x, y } = this.drawing.document;
+    const { width, height } = shape;
+    const eZ = this.elevationZ;
+
+    // Store the underlying Ellipse shape, mostly for debugging at the moment.
+    this._ellipse = new Ellipse()
+  }
+
 }
