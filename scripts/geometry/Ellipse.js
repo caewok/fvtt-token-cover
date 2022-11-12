@@ -84,7 +84,9 @@ export class Ellipse extends PIXI.Ellipse {
     const centeredX = x + halfWidth;
     const centeredY = y + halfHeight;
 
-    return new this(centeredX, centeredY, halfWidth, halfHeight, { rotation });
+    const out = new this(centeredX, centeredY, halfWidth, halfHeight, { rotation });
+    out._drawing = drawing; // For debugging
+    return out;
   }
 
   /**

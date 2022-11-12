@@ -79,7 +79,9 @@ export class CenteredRectangle extends CenteredPolygonBase {
     const { width, height } = shape;
     const leftCorner = {x, y};
 
-    return new this(undefined, width, height, { rotation, leftCorner });
+    const out = new this(undefined, width, height, { rotation, leftCorner });
+    out._drawing = drawing; // For debugging
+    return out;
   }
 
   /**

@@ -103,6 +103,9 @@ export class CenteredPolygon extends CenteredPolygonBase {
       pts[i + 1] = points[i + 1] - halfHeight;
     }
 
-    return new this({ x: centeredX, y: centeredY }, pts, { rotation });
+    const out = new this({ x: centeredX, y: centeredY }, pts, { rotation });
+    out._drawing = drawing; // For debugging
+    return out;
+
   }
 }
