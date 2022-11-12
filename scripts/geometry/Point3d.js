@@ -3,7 +3,7 @@ PIXI
 */
 "use strict";
 
-import { EPSILON } from "./const.js";
+import { EPSILON } from "../const.js";
 
 // Add methods to PIXI.Point
 export function registerPIXIPointMethods() {

@@ -24,6 +24,6 @@ export async function renderDrawingConfigHook(app, html, data) {
   const myHTML = await renderTemplate(template, data);
   log("config rendered HTML", myHTML);
 //   html.find(".form-group").last().after(myHTML);
-  html.find("div[data-tab='position']").last().after(myHTML);
+  html.find("div[data-tab='position']").find(".form-group").last().after(myHTML);
 
 }

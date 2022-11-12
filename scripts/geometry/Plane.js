@@ -5,7 +5,7 @@
 
 import { Point3d } from "./Point3d.js";
 import { Matrix } from "./Matrix.js";
-import { lineSegment3dPlaneIntersects } from "./util.js";
+import { lineSegment3dPlaneIntersects } from "../util.js";
 
 // Class to represent a plane
 export class Plane {

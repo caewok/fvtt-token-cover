@@ -4,7 +4,7 @@ ClipperLib
 */
 "use strict";
 
-import * as drawing from "./drawing.js";
+import * as drawing from "../drawing.js";
 
 /**
  * Class to manage ClipperPaths for multiple polygons.

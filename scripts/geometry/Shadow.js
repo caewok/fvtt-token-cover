@@ -6,12 +6,12 @@ Ray
 */
 "use strict";
 
-import { zValue } from "./util.js";
-import { COLORS, drawShape } from "./drawing.js";
+import { zValue } from "../util.js";
+import { COLORS, drawShape } from "../drawing.js";
 import { Point3d } from "./Point3d.js";
 import { ClipperPaths } from "./ClipperPaths.js";
 import { Plane } from "./Plane.js";
-import { TokenPoints3d } from "./Area3d.js";
+import { TokenPoints3d } from "../Area3d.js";
 
 /* Testing
 api = game.modules.get("tokenvisibility").api

@@ -32,7 +32,7 @@ export function log(...args) {
  * @param {function} transformFn  Function to apply to each object
  * @returns {number[]} An array with [pt0.x, pt0.y, pt1.x, ...]
  */
-export flatMapPoint2d = function(ptsArr, transformFn) {
+export function flatMapPoint2d(ptsArr, transformFn) {
 	const N = ptsArr.length;
 	const ln = N * 2;
     const newArr = Array(ln);
