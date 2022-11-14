@@ -1,10 +1,11 @@
 /* globals
 PIXI,
-ClipperLib
+ClipperLib,
+canvas
 */
 "use strict";
 
-import * as drawing from "./drawing.js";
+import * as drawing from "../drawing.js";
 
 /**
  * Class to manage ClipperPaths for multiple polygons.
@@ -12,8 +13,12 @@ import * as drawing from "./drawing.js";
 export class ClipperPaths {
   scalingFactor = 1;
 
+ /**
+  * @param paths {ClipperLib.Path[]|Set<ClipperLib.Path>|Map<ClipperLib.Path>}
+  * @returns {ClipperPaths}
+  */
   constructor(paths = []) {
-    this.paths = paths;
+    this.paths = [...paths]; // Ensure these are arrays
   }
 
   /**
@@ -165,6 +170,28 @@ export class ClipperPaths {
       ClipperLib.PolyFillType.pftPositive);
 
     return combined;
+  }
+
+  /**
+   * Combine 2+ ClipperPaths objects using a union with a positive fill.
+   * @param {ClipperPaths[]} pathsArr
+   * @returns {ClipperPaths}
+   */
+  static combinePaths(pathsArr) {
+    const ln = pathsArr.length;
+    if ( !ln ) return undefined;
+
+    const firstPath = pathsArr[0];
+    if ( ln === 1 ) return firstPath;
+
+    const cPaths = new ClipperPaths(firstPath.paths);
+    cPaths.scalingFactor = firstPath.scalingFactor;
+
+    for ( let i = 1; i < ln; i += 1 ) {
+      cPaths.paths.push(...pathsArr[i].paths);
+    }
+
+    return cPaths.combine();
   }
 
   /**

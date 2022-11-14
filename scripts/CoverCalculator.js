@@ -14,8 +14,6 @@ Ray
 
 import { MODULE_ID, COVER_TYPES } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
-import { Point3d } from "./Point3d.js";
-import { ClipperPaths } from "./ClipperPaths.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d, TokenPoints3d } from "./Area3d.js";
 import * as drawing from "./drawing.js";
@@ -26,6 +24,9 @@ import {
   lineSegmentIntersectsQuadrilateral3d,
   lineIntersectionQuadrilateral3d,
   getObjectProperty } from "./util.js";
+
+import { ClipperPaths } from "./geometry/ClipperPaths.js";
+import { Point3d } from "./geometry/Point3d.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
 // Don't pass complex classes through the socket. Use token ids instead.

@@ -5,7 +5,7 @@ foundry
 */
 "use strict";
 
-import { lineSegmentCrosses } from "./util.js";
+import { lineSegmentCrosses } from "../util.js";
 
 /**
  * Iterate over the polygon's {x, y} points in order.

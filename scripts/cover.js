@@ -50,7 +50,8 @@ import { MODULE_ID, COVER_TYPES } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { log, distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
 import { CoverCalculator, SOCKETS, dialogPromise } from "./CoverCalculator.js";
-import { Point3d } from "./Point3d.js";
+
+import { Point3d } from "./geometry/Point3d.js";
 
 /**
  * Hook event that fires after targeting (AoE) is complete.
