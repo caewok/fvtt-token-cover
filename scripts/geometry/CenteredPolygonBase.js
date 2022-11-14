@@ -65,6 +65,14 @@ export class CenteredPolygonBase extends PIXI.Polygon {
   get fixedPoints() { return this._fixedPoints || (this._fixedPoints = this._generateFixedPoints()); }
 
   /**
+   * For compatibility with Ellipse.
+   * Convert this shape to a Polygon
+   */
+  toPolygon() {
+    return this;
+  }
+
+  /**
    * Shift this polygon to a new position.
    * @param {number} dx   Change in x position
    * @param {number} dy   Change in y position

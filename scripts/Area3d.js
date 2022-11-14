@@ -302,8 +302,8 @@ export class Area3d {
       const tileE = tile.wall.document.elevation;
 
       for ( const drawing of objs.drawings ) {
-        const minE = drawing.drawing.document.getFlag("levels", "rangeTop");
-        const maxE = drawing.drawing.document.getFlag("levels", "rangeBottom");
+        const minE = drawing._drawing.document.getFlag("levels", "rangeTop");
+        const maxE = drawing._drawing.document.getFlag("levels", "rangeBottom");
         if ( minE == null && maxE == null ) continue; // Intended to test null, undefined
         else if ( minE == null && tileE !== maxE ) continue;
         else if ( maxE == null && tileE !== minE ) continue;
@@ -339,7 +339,7 @@ export class Area3d {
 
     const walls = this._combineBlockingWalls();
     const tiles = this._combineBlockingTiles();
-    const terrainWalls = WallPoints3d.combineTerrainWalls([...this.blockingObjects.terrainWalls])
+    const terrainWalls = WallPoints3d.combineTerrainWalls([...this.blockingObjects.terrainWalls]);
 
     // Combine the walls and tiles to a single set of polygon paths
     let blockingPaths = [];
@@ -395,8 +395,6 @@ export class Area3d {
         obscuredSides: []
       };
     }
-
-
 
     const sidesArea = sidePolys.reduce((area, poly) => area += poly.area(), 0);
     const obscuredSidesArea = obscuredSides.reduce((area, poly) => area += poly.area(), 0);
@@ -568,7 +566,7 @@ export class Area3d {
     }
 
     if ( filterTokens ) {
-      out.tokens = Area3d.filterTokensByVisionTriangle(viewingPoint, visionTriangle, { viewer, target });
+      out.tokens = Area3d.filterTokensByVisionTriangle(visionTriangle, { viewer, target });
 
       // Filter tokens that are definitely too low or too high
       out.tokens = out.tokens.filter(t => {
@@ -577,7 +575,7 @@ export class Area3d {
     }
 
     if ( filterTiles ) {
-      out.tiles = Area3d.filterTilesByVisionTriangle(viewingPoint, visionTriangle);
+      out.tiles = Area3d.filterTilesByVisionTriangle(visionTriangle);
 
       // For Levels, "noCollision" is the "Allow Sight" config option. Drop those tiles.
       if ( game.modules.get("levels")?.active && type === "sight" ) {
@@ -593,7 +591,7 @@ export class Area3d {
       });
 
       // Check drawings if there are tiles
-      if ( out.tiles.size ) out.drawings = Area3d.filterDrawingsByVisionTriangle(viewingPoint, visionTriangle);
+      if ( out.tiles.size ) out.drawings = Area3d.filterDrawingsByVisionTriangle(visionTriangle);
     }
 
     return out;
@@ -601,10 +599,9 @@ export class Area3d {
 
   /**
    * Filter drawings in the scene if they are flagged as holes.
-   * @param {Point3d} viewingPoint
    * @param {PIXI.Polygon} visionTriangle
    */
-  static filterDrawingsByVisionTriangle(viewingPoint, visionTriangle) {
+  static filterDrawingsByVisionTriangle(visionTriangle) {
     let drawings = canvas.drawings.quadtree.getObjects(visionTriangle.getBounds());
 
     // Filter by holes
@@ -629,14 +626,13 @@ export class Area3d {
   /**
    * Filter tokens in the scene by a triangle representing the view from viewingPoint to
    * token (or other two points). Only considers 2d top-down view.
-   * @param {Point3d} viewingPoint
    * @param {PIXI.Polygon} visionTriangle
    * @param {object} [options]
    * @param {string|undefined} viewerId   Id of viewer token to exclude
    * @param {string|undefined} targetId   Id of target token to exclude
    * @return {Set<Token>}
    */
-  static filterTokensByVisionTriangle(viewingPoint, visionTriangle, { viewer, target } = {}) {
+  static filterTokensByVisionTriangle(visionTriangle, { viewer, target } = {}) {
     let tokens = canvas.tokens.quadtree.getObjects(visionTriangle.getBounds());
 
     // Filter out the viewer and target token
@@ -658,11 +654,10 @@ export class Area3d {
   /**
    * Filter tiles in the scene by a triangle representing the view from viewingPoint to
    * token (or other two points). Only considers 2d top-down view.
-   * @param {Point3d} viewingPoint
    * @param {PIXI.Polygon} visionTriangle
    * @return {Set<Tile>}
    */
-  static filterTilesByVisionTriangle(viewingPoint, visionTriangle) {
+  static filterTilesByVisionTriangle(visionTriangle) {
     let tiles = canvas.tiles.quadtree.getObjects(visionTriangle.getBounds());
     if ( !tiles.size ) return tiles;
 
