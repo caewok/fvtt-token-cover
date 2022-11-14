@@ -9,6 +9,11 @@ PIXI
 import { MODULE_ID, EPSILON } from "./const.js";
 import { Point3d } from "./geometry/Point3d.js";
 
+// For centeredPolygonFromDrawing
+import { CenteredPolygon } from "./geometry/CenteredPolygon.js";
+import { CenteredRectangle } from "./geometry/CenteredRectangle.js";
+import { Ellipse } from "./geometry/Ellipse.js";
+
 /**
  * Log message only when debug flag is enabled from DevMode module.
  * @param {Object[]} args  Arguments passed to console.log.
@@ -21,6 +26,24 @@ export function log(...args) {
     }
   } catch(e) {
     // Empty
+  }
+}
+
+/**
+ * Construct a centered polygon using the values in drawing shape.
+ * @param {Drawing} drawing
+ * @returns {CenteredPolygonBase}
+ */
+export function centeredPolygonFromDrawing(drawing) {
+  switch ( drawing.document.shape ) {
+    case CONST.DRAWING_TYPES.RECTANGLE:
+      return CenteredRectangle.fromDrawing(drawing);
+    case CONST.DRAWING_TYPES.ELLIPSE:
+      return Ellipse.fromDrawing(drawing);
+    case CONST.DRAWING_TYPES.POLYGON:
+      return CenteredPolygon.fromDrawing(drawing);
+    default:
+      console.error("fromDrawing shape type not supported");
   }
 }
 

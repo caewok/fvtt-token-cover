@@ -10,11 +10,6 @@ import {
   translatePoint
 } from "../util.js";
 
-// Imports for fromDrawing
-import { CenteredPolygon } from "./CenteredPolygon.js";
-import { CenteredRectangle } from "./CenteredRectangle.js";
-import { Ellipse } from "./Ellipse.js";
-
 /**
  * Base class to be extended by others.
  * Follows the approach of Drawing and RegularPolygon class.
@@ -59,24 +54,6 @@ export class CenteredPolygonBase extends PIXI.Polygon {
     this.y = origin.y;
     this.rotation = Math.normalizeDegrees(rotation);
     this.radians = Math.toRadians(this.rotation);
-  }
-
-  /**
-   * Construct a centered polygon using the values in drawing shape.
-   * @param {Drawing} drawing
-   * @returns {CenteredPolygonBase}
-   */
-  static fromDrawing(drawing) {
-    switch ( drawing.document.shape ) {
-      case CONST.DRAWING_TYPES.RECTANGLE:
-        return CenteredRectangle.fromDrawing(drawing);
-      case CONST.DRAWING_TYPES.ELLIPSE:
-        return Ellipse.fromDrawing(drawing);
-      case CONST.DRAWING_TYPES.POLYGON:
-        return CenteredPolygon.fromDrawing(drawing);
-      default:
-        console.error("fromDrawing shape type not supported");
-    }
   }
 
   get center() { return { x: this.x, y: this.y }; }
