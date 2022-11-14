@@ -372,6 +372,8 @@ export class Area3d {
       && !objs.tokens.size
       && objs.terrainWalls.size < 2 ) return 1;
 
+    const { obscuredSides, sidePolys } = this._obscureSides();
+
     if ( this.debug ) {
       this._drawLineOfSight();
       this.targetPoints.drawTransformed();
@@ -393,7 +395,7 @@ export class Area3d {
       };
     }
 
-    const { obscuredSides, sidePolys } = this._obscureSides();
+
 
     const sidesArea = sidePolys.reduce((area, poly) => area += poly.area(), 0);
     const obscuredSidesArea = obscuredSides.reduce((area, poly) => area += poly.area(), 0);
