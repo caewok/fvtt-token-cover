@@ -7,7 +7,7 @@ export const MODULE_ID = "tokenvisibility";
 export const EPSILON = 1e-08;
 
 export const FLAGS = {
-  DRAWING: { IS_HOLE: "is-hole" }
+  DRAWING: { IS_HOLE: "isHole" }
 };
 
 export const COVER_TYPES = {
