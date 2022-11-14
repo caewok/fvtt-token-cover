@@ -1,6 +1,7 @@
 /* globals
 PIXI,
-ClipperLib
+ClipperLib,
+canvas
 */
 "use strict";
 

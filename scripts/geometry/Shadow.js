@@ -253,13 +253,13 @@ export class Shadow extends PIXI.Polygon {
 
     if ( origin.z <= C.z ) return null; // Viewer is below the wall bottom.
 
-    const upV = Shadow.upV;
+//     const upV = Shadow.upV;
 
     // Because the surfacePlane is parallel to XY, we can infer the intersection of the wall.
     // const ixAC = surfacePlane.lineIntersection(A, upV);
     // const ixBD = surfacePlane.lineIntersection(B, upV);
-    const ixAC = new Point3d(A.x, A.y, surfacePlane.point.z)
-    const ixBD = new Point3d(B.x, B.y, surfacePlane.point.z)
+    const ixAC = new Point3d(A.x, A.y, surfacePlane.point.z);
+    const ixBD = new Point3d(B.x, B.y, surfacePlane.point.z);
 
     const ixOriginA = wallPointSurfaceIntersection(A, origin, surfacePlane);
     const ixOriginB = wallPointSurfaceIntersection(B, origin, surfacePlane);
@@ -355,7 +355,8 @@ export class Shadow extends PIXI.Polygon {
     // If the viewer elevation equals the surface elevation, no shadows to be seen.
     if ( origin.z.almostEqual(surfaceElevation) ) return null;
 
-    const { bottomZ, topZ, A, B } = wall;
+    const { A, B } = wall;
+    let { topZ, bottomZ } = wall;
 
     // Run simple tests to avoid further computation
     // Viewer and the surface elevation both above the wall, so no shadow
@@ -428,7 +429,7 @@ export class Shadow extends PIXI.Polygon {
         B: side[3],
         topZ,
         bottomZ
-      }
+      };
       const shadow = Shadow.constructFromWall(wall, origin, surfaceElevation);
       if ( shadow ) shadows.push(shadow);
     }

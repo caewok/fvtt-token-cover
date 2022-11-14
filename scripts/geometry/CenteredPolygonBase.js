@@ -1,5 +1,6 @@
 /* globals
-PIXI
+PIXI,
+CONST
 */
 "use strict";
 
@@ -73,7 +74,7 @@ export class CenteredPolygonBase extends PIXI.Polygon {
         return Ellipse.fromDrawing(drawing);
       case CONST.DRAWING_TYPES.POLYGON:
         return CenteredPolygon.fromDrawing(drawing);
-      case default:
+      default:
         console.error("fromDrawing shape type not supported");
     }
   }
