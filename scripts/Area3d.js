@@ -5,8 +5,8 @@ game,
 foundry,
 Token,
 Tile,
-ClipperLib,
-CONST
+CONST,
+Drawing
 */
 "use strict";
 
@@ -32,17 +32,16 @@ Area:
 
 import { MODULE_ID, FLAGS } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
-import { elementsByIndex, zValue, log, getObjectProperty } from "./util.js";
+import { zValue, log, getObjectProperty, pixelsToGridUnits, centeredPolygonFromDrawing } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 import * as drawing from "./drawing.js"; // For debugging
 
-import { Shadow, truncateWallAtElevation } from "./geometry/Shadow.js";
+import { truncateWallAtElevation } from "./geometry/Shadow.js";
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Matrix } from "./geometry/Matrix.js";
 import { Point3d } from "./geometry/Point3d.js";
-import { Plane } from "./geometry/Plane.js";
-import { Ellipse } from "./geometry/Ellipse.js";
+import { CenteredPolygonBase } from "./geometry/CenteredPolygonBase.js";
 
 export class Area3d {
 
@@ -152,26 +151,6 @@ export class Area3d {
     return this._blockingObjects ?? (this._blockingObjects = this._findBlockingObjects());
   }
 
-  /**
-   * Get the shadows for each wall and side.
-   * @type {Shadow[nSides][nShadows]}
-   */
-  get transformedShadows() {
-    return this._transformedShadows || (this._transformedShadows = this._projectShadowsForWalls());
-  }
-
-  get perspectiveShadows() {
-    const tShadowArr = this.transformedShadows; // Shadow[nSides][nShadows]
-    const out = [];
-    for ( const shadows of tShadowArr ) {
-      if ( !shadows.length ) out.push([]);
-      else out.push(shadows.map(shadow =>
-        new Shadow(shadow._points3d.map(pt => Area3d.perspectiveTransform(pt)))));
-    }
-
-    return out;
-  }
-
   static perspectiveTransform(pt) {
     const mult = 1000 / -pt.z;
     return new PIXI.Point(pt.x * mult, pt.y * mult);
@@ -196,6 +175,14 @@ export class Area3d {
       t.setViewingPoint(this.viewerCenter);
       t.setViewMatrix(this.viewerViewM);
     });
+
+    // Set the terrain wall view matrix and combine if necessary
+    objs.terrainWalls.forEach(w => w.setViewMatrix(this.viewerViewM));
+    this.blockingObjects.combinedTerrainWalls = undefined;
+    if ( this.blockingObjects.terrainWalls.size > 1 ) {
+      const tws = this.blockingObjects.terrainWalls(w => w.perspectiveTransform());
+      this.blockingObjects.combinedTerrainWalls = WallPoints3d.combineTerrainWalls(tws);
+    }
 
     this.viewIsSet = true;
   }
@@ -274,135 +261,101 @@ export class Area3d {
   }
 
   /**
-   * Construct wall shadows in the transformed coordinates.
-   * Shadows for where walls block vision of the token due to angle of token view --> wall edge.
-   * Each edge is considered a separate "wall".
-   * - Treat the wall as 2d, with each edge a line that can block vision.
+   * Combine provided walls using Clipper.
+   * @returns {ClipperPaths|undefined}
    */
-  _projectShadowsForWalls() {
-    // TODO: Fix
-    console.error("_projectShadowsForWalls not implemented.");
-    return;
+  _combineBlockingWalls() {
+    let walls = this.blockingObjects.walls;
 
-    if ( !this.viewIsSet ) this.calculateViewMatrix();
+    if ( !walls.size ) return undefined;
 
-    const origin = new Point3d(0, 0, 0);
-    const tTarget = this.targetPoints.tFaces;
-    const tWalls = this.blockingObjects.walls.map(w => w.tPoints);
+    walls = walls.map(w => new PIXI.Polygon(w.perspectiveTransform()));
+    walls = ClipperPaths.fromPolygons(walls);
+    walls.combine().clean();
 
-    const sides = tTarget.sides;
-    const shadowsArr = [];
-    for ( const side of sides ) {
-      const shadows = [];
-      shadowsArr.push(shadows);
-      const sidePoints = elementsByIndex(tTarget.points, side);
-      const sidePlane = Plane.fromPoints(sidePoints[0], sidePoints[1], sidePoints[2]);
+    return walls;
+  }
 
-      for ( const wall of tWalls ) {
-        const ln = wall.length;
-        // For each wall edge, construct shadow
-        let A = wall[ln - 1];
-        for ( let i = 0; i < ln; i += 1 ) {
-          const B = wall[i];
-          const shadow = Shadow.complexSurfaceOriginAbove(A, B, origin, sidePlane);
-          if ( shadow ) shadows.push(shadow);
-          A = B;
-        }
-      }
+  /**
+   * Combine all the blocking tiles using Clipper.
+   * If drawings with holes exist, construct relevant tiles with holes accordingly.
+   * @returns {ClipperPaths|undefined}
+   */
+  _combineBlockingTiles() {
+    const objs = this.blockingObjects;
+
+    if ( !objs.tiles.size ) return undefined;
+
+    let tiles = objs.tiles.map(w => new PIXI.Polygon(w.perspectiveTransform()));
+
+    if ( !objs.drawings.size ) {
+      tiles = ClipperPaths.fromPolygons(tiles);
+      tiles.combine().clean();
+      return tiles;
     }
-    return shadowsArr;
+
+    // Check if any drawings might create a hole in one or more tiles
+    const tilesUnholed = [];
+    const tilesHoled = [];
+    for ( const tile of objs.tiles ) {
+      const drawingHoles = [];
+      const tileE = tile.wall.document.elevation;
+
+      for ( const drawing of objs.drawings ) {
+        const minE = drawing.drawing.document.getFlag("levels", "rangeTop");
+        const maxE = drawing.drawing.document.getFlag("levels", "rangeBottom");
+        if ( minE == null && maxE == null ) continue; // Intended to test null, undefined
+        else if ( minE == null && tileE !== maxE ) continue;
+        else if ( maxE == null && tileE !== minE ) continue;
+        else if ( !tileE.between(minE, maxE) ) continue;
+
+        // We know the tile is within the drawing elevation range.
+        drawing.elevation = tileE; // Temporarily change the drawing elevation to match tile.
+        drawingHoles.push(new PIXI.Polygon(drawing.perspectiveTransform()));
+      }
+
+      if ( drawingHoles.length ) {
+        // Construct a hole at the tile's elevation from the drawing taking the difference.
+        const drawingHolesPaths = ClipperPaths.fromPolygons(drawingHoles);
+        const tileHoled = drawingHolesPaths.diffPolygon(new PIXI.Polygon(tile.perspectiveTransform()));
+        tilesHoled.push(tileHoled);
+      } else tilesUnholed.push(tile);
+    }
+
+    if ( tilesUnholed.length ) {
+      const unHoledPaths = ClipperPaths.fromPolygons(tilesUnholed);
+      unHoledPaths.combine().clean();
+      tilesHoled.push(...unHoledPaths);
+    }
+
+    // Combine all the tiles, holed and unholed
+    tiles = ClipperPaths.combinePaths(tilesHoled);
+    tiles.combine().clean();
+    return tiles;
   }
 
   _obscureSides() {
     if ( !this.viewIsSet ) this.calculateViewMatrix();
 
-    // TODO: Use ClipperPaths throughout.
-    //       Add tiles and drawings to poke holes in tiles.
+    const walls = this._combineBlockingWalls();
+    const tiles = this._combineBlockingTiles();
+    const terrainWalls = WallPoints3d.combineTerrainWalls([...this.blockingObjects.terrainWalls])
 
-    let tiles = [];
-    if ( this.blockingObjects.drawings.size ) {
-      // For each tile, determine if a drawing cuts through the tile:
-      // 1. Drawing overlaps tile --- assumed for now based on prior bounds test
-      // 2. Tile elevation within range of drawing elevation.
-      for ( const tile of this.blockingObjects.tiles ) {
-        const drawingHoles = [];
-        const tileE = tile.wall.document.elevation;
-
-        for ( const drawing of this.blockingObjects.drawings ) {
-          const minE = drawing.drawing.document.getFlag("levels", "rangeTop");
-          const maxE = drawing.drawing.document.getFlag("levels", "rangeBottom");
-          if ( minE == null && maxE == null ) continue; // Intended to test null, undefined
-          else if ( minE == null && tileE !== maxE ) continue;
-          else if ( maxE == null && tileE !== minE ) continue;
-          else if ( !tileE.between(minE, maxE) ) continue;
-
-          // We know the tile is within the drawing elevation range.
-          drawing.elevation = tileE; // Temporarily change the drawing elevation to match tile.
-          drawingHoles.push(new PIXI.Polygon(drawing.perspectiveTransform()));
-        }
-
-        if ( drawingHoles.length ) {
-          // Construct a hole at the tile's elevation using the drawing.
-          // Use the current perspective
-          const drawingHolesPaths = ClipperPaths.fromPolygons(drawingHoles);
-          const tileHoled = drawingHolesPaths.diffPolygon(new PIXI.Polygon(tile.perspectiveTransform()));
-          tiles.push(tileHoled);
-        } else tiles.push(new PIXI.Polygon(tile.tPoints));
-      }
-    } else tiles = this.blockingObjects.tiles.map(t => new PIXI.Polygon(tile.perspectiveTransform()));
-
-    const tTarget = this.targetPoints.perspectiveTransform();
-    const walls = this.blockingObjects.walls.map(w => w.perspectiveTransform());
-
-    if ( this.blockingObjects.terrainWalls.size > 1 && !this.blockingObjects.combinedTerrainWalls) {
-      const tws = this.blockingObjects.terrainWalls.map(w => {
-        if ( !w.viewIsSet ) w.setViewMatrix(this.viewerViewM);
-        return w.perspectiveTransform();
-      });
-      this.blockingObjects.combinedTerrainWalls = WallPoints3d.combineTerrainWalls(tws);
-    }
-
-    const combinedTerrainWalls = this.blockingObjects.combinedTerrainWalls;
-    const shadowsArr = this.config._useShadows ? this.perspectiveShadows : undefined;
-    const wallPolys = walls.map(w => new PIXI.Polygon(w));
+    // Combine the walls and tiles to a single set of polygon paths
+    let blockingPaths = [];
+    if ( walls ) blockingPaths.push(walls);
+    if ( tiles ) blockingPaths.push(tiles);
+    if ( terrainWalls ) blockingPaths.push(terrainWalls);
+    const blockingObject = ClipperPaths.combinePaths(blockingPaths);
 
     // For each side, union the blocking wall with any shadows and then take diff against the side
-    const nSides = tTarget.length;
-    const obscuredSides = [];
-    this.sidePolys = [];
-    for ( let i = 0; i < nSides; i += 1 ) {
-      const side = tTarget[i];
-      const sidePoly = new PIXI.Polygon(side);
-      this.sidePolys.push(sidePoly);
+    const tTarget = this.targetPoints.perspectiveTransform();
+    const sidePolys = tTarget.map(side => new PIXI.Polygon(side));
+    const obscuredSides = blockingObject
+      ? sidePolys.map(side => blockingObject.diffPolygon(side))
+      : sidePolys;
 
-      const blockingPolygons = [...wallPolys];
-      if ( this.config._useShadows ) blockingPolygons.push(...shadowsArr[i]);
-
-      let obscuredSide = Shadow.combinePolygonWithShadows(sidePoly, blockingPolygons);
-
-      if ( combinedTerrainWalls ) {
-        // Same underlying code used in Shadow.combinePolygonWithShadows
-        // TODO: Clean this up; don't translate back from Clipper to Polygon.
-        const c = new ClipperLib.Clipper();
-        const solution = new ClipperPaths();
-        const type = ClipperLib.ClipType.ctDifference;
-        const subjFillType = ClipperLib.PolyFillType.pftEvenOdd;
-        const clipFillType = ClipperLib.PolyFillType.pftEvenOdd;
-        solution.scalingFactor = 1;
-        if ( obscuredSide instanceof PIXI.Polygon ) obscuredSide = obscuredSide.toClipperPoints({ scalingFactor: 1 });
-
-        c.AddPath(obscuredSide, ClipperLib.PolyType.ptSubject, true);
-        c.AddPaths(combinedTerrainWalls, ClipperLib.PolyType.ptClip, true);
-        c.Execute(type, solution.paths, subjFillType, clipFillType);
-        solution.clean();
-
-        obscuredSide = solution;
-      }
-
-      obscuredSides.push(obscuredSide);
-    }
-
-    return obscuredSides;
+    return { obscuredSides, sidePolys };
   }
 
   /**
@@ -411,26 +364,24 @@ export class Area3d {
    * @returns {number}
    */
   percentAreaVisible() {
-    if ( !this.debug
-      && !this.blockingObjects.walls.size
-      && !this.blockingObjects.tiles.size
-      && !this.blockingObjects.tokens.size
-      && this.blockingObjects.terrainWalls.size < 2 ) return 1;
+    const objs = this.blockingObjects;
 
-    const obscuredSides = this.obscuredSides;
+    if ( !this.debug
+      && !objs.walls.size
+      && !objs.tiles.size
+      && !objs.tokens.size
+      && objs.terrainWalls.size < 2 ) return 1;
+
     if ( this.debug ) {
       this._drawLineOfSight();
       this.targetPoints.drawTransformed();
-      this.blockingObjects.walls.forEach(w => w.drawTransformed());
-      this.blockingObjects.tiles.forEach(w => w.drawTransformed({color: drawing.COLORS.yellow}));
-      this.blockingObjects.tokens.forEach(t => t.drawTransformed({color: drawing.COLORS.orange}));
-      this.blockingObjects.terrainWalls.forEach(w =>
+      objs.walls.forEach(w => w.drawTransformed());
+      objs.tiles.forEach(w => w.drawTransformed({color: drawing.COLORS.yellow}));
+      objs.tokens.forEach(t => t.drawTransformed({color: drawing.COLORS.orange}));
+      objs.terrainWalls.forEach(w =>
         w.drawTransformed({ color: drawing.COLORS.lightgreen, fillAlpha: 0.1 }));
 
-      if ( this.blockingObjects.combinedTerrainWalls )
-        this.blockingObjects.combinedTerrainWalls.draw({color: drawing.COLORS.green, fillAlpha: 0.3});
-
-      if (this.config._useShadows ) this._drawTransformedShadows();
+      if ( objs.combinedTerrainWalls ) objs.combinedTerrainWalls.draw({color: drawing.COLORS.green, fillAlpha: 0.3});
 
       const target = this.target;
       this.debugSideAreas = {
@@ -442,25 +393,19 @@ export class Area3d {
       };
     }
 
-    let sidesArea = 0;
-    let obscuredSidesArea = 0;
-    const nSides = obscuredSides.length;
-    for ( let i = 0; i < nSides; i += 1 ) {
-      const sideArea = this.sidePolys[i].area();
-      const obscuredSideArea = obscuredSides[i].area();
+    const { obscuredSides, sidePolys } = this._obscureSides();
 
-      sidesArea += sideArea;
-      obscuredSidesArea += obscuredSideArea;
-      if ( this.debug ) {
-        this.debugSideAreas.sides.push(sideArea);
-        this.debugSideAreas.obscuredSides.push(obscuredSideArea);
-      }
+    const sidesArea = sidePolys.reduce((area, poly) => area += poly.area(), 0);
+    const obscuredSidesArea = obscuredSides.reduce((area, poly) => area += poly.area(), 0);
+    const percentSeen = sidesArea ? obscuredSidesArea / sidesArea : 0;
+
+    if ( this.debug ) {
+      this.debugSideAreas.sides = sidePolys.map(poly => poly.area());
+      this.debugSideAreas.obscuredSides = obscuredSides.map(poly => poly.area());
+      console.log(`${this.viewer.object.name} sees ${percentSeen * 100}% of ${this.target.name} (Area3d).`);
     }
 
-    const out = sidesArea ? obscuredSidesArea / sidesArea : 0;
-    if ( this.debug ) console.log(`${this.viewer.object.name} sees ${out * 100}% of ${this.target.name} (Area3d).`);
-
-    return out;
+    return percentSeen;
   }
 
   /**
@@ -558,22 +503,6 @@ export class Area3d {
    */
   _drawLineOfSight() {
     drawing.drawSegment({A: this.viewerCenter, B: this.targetCenter});
-  }
-
-  /**
-   * For debugging.
-   */
-  _drawTransformedShadows(perspective = true) {
-    const shadowsArr = perspective ? this.perspectiveShadows : this.transformedShadows;
-    const nSides = shadowsArr.length;
-    for ( let i = 0; i < nSides; i += 1 ) {
-      this._drawTransformedShadowsForSide(i, perspective);
-    }
-  }
-
-  _drawTransformedShadowsForSide(side = 0, perspective = true) {
-    const shadowsArr = perspective ? this.perspectiveShadows : this.transformedShadows;
-    shadowsArr[side].forEach(s => s.draw());
   }
 
   /**
@@ -678,14 +607,14 @@ export class Area3d {
     // Filter by holes
     drawings = drawings.filter(d => d.document.getFlag(MODULE_ID, FLAGS.DRAWING.IS_HOLE)
       && ( d.document.shape.type === CONST.DRAWING_TYPES.POLYGON
-      ||  d.document.shape.type === CONST.DRAWING_TYPES.ELLIPSE
-      ||  d.document.shape.type === CONST.DRAWING_TYPES.RECTANGLE));
+      || d.document.shape.type === CONST.DRAWING_TYPES.ELLIPSE
+      || d.document.shape.type === CONST.DRAWING_TYPES.RECTANGLE));
 
     if ( !drawings.size ) return drawings;
 
     // Filter by the precise triangle cone
     // Also convert to CenteredPolygon b/c it handles bounds better
-    drawings = drawings.map(d => CenteredPolygonBase.fromDrawing(d));
+    drawings = drawings.map(d => centeredPolygonFromDrawing(d));
     const edges = [...visionTriangle.iterateEdges()];
     drawings = drawings.filter(d => {
       const dBounds = d.getBounds();
@@ -1011,7 +940,7 @@ export class TokenPoints3d {
     const { topZ, bottomZ } = this.token;
     return topZ === this.bottomZ ? (topZ + 2)
       : this.halfHeight ? topZ - ((topZ - bottomZ) * 0.5)
-      : topZ;
+        : topZ;
   }
 
   /**
@@ -1374,11 +1303,11 @@ export class DrawingPoints3d {
    */
   constructor(drawing, { elevation } = {}) {
     if ( drawing instanceof Drawing ) {
-      this.shape = CenteredPolygonBase.fromDrawing(drawing);
+      this.shape = centeredPolygonFromDrawing(drawing);
       this.drawing = drawing;
     } else if ( drawing instanceof CenteredPolygonBase ) {
       this.shape = drawing;
-      this.drawing = shape._drawing;
+      this.drawing = drawing._drawing;
     } else {
       console.error("DrawingPoints3d: drawing class not supported.");
       return;
@@ -1434,6 +1363,7 @@ export class DrawingPoints3d {
     for ( let i = 0; i < ln; i += 1 ) {
       this.tPoints[i] = Matrix.fromPoint3d(this.points[i]).multiply(M).toPoint3d();
     }
+  }
 
   /**
    * Truncate the transformed walls to keep only the below z = 0 portion

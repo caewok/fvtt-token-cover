@@ -35,7 +35,7 @@ export function log(...args) {
  * @returns {CenteredPolygonBase}
  */
 export function centeredPolygonFromDrawing(drawing) {
-  switch ( drawing.document.shape ) {
+  switch ( drawing.document.shape.type ) {
     case CONST.DRAWING_TYPES.RECTANGLE:
       return CenteredRectangle.fromDrawing(drawing);
     case CONST.DRAWING_TYPES.ELLIPSE:
