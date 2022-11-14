@@ -141,6 +141,48 @@ export class ClipperPaths {
   }
 
   /**
+   * Intersect this set of paths against another, taking the other as subject.
+   * @param {ClipperPaths} other
+   * @returns {ClipperPaths}
+   */
+  intersectPaths(other) {
+    const type = ClipperLib.ClipType.ctIntersection;
+    const subjFillType = ClipperLib.PolyFillType.pftEvenOdd;
+    const clipFillType = ClipperLib.PolyFillType.pftEvenOdd;
+
+    const c = new ClipperLib.Clipper();
+    const solution = new ClipperPaths();
+    solution.scalingFactor = this.scalingFactor;
+
+    c.AddPaths(other.paths, ClipperLib.PolyType.ptSubject, true);
+    c.AddPaths(this.paths, ClipperLib.PolyType.ptClip, true);
+    c.Execute(type, solution.paths, subjFillType, clipFillType);
+
+    return solution;
+  }
+
+  /**
+   * Using other as a subject, take the difference of this ClipperPaths.
+   * @param {ClipperPaths} other
+   * @returns {ClipperPaths}
+   */
+  diffPaths(other) {
+    const type = ClipperLib.ClipType.ctDifference;
+    const subjFillType = ClipperLib.PolyFillType.pftEvenOdd;
+    const clipFillType = ClipperLib.PolyFillType.pftEvenOdd;
+
+    const c = new ClipperLib.Clipper();
+    const solution = new ClipperPaths();
+    solution.scalingFactor = this.scalingFactor;
+
+    c.AddPaths(other.paths, ClipperLib.PolyType.ptSubject, true);
+    c.AddPaths(this.paths, ClipperLib.PolyType.ptClip, true);
+    c.Execute(type, solution.paths, subjFillType, clipFillType);
+
+    return solution;
+ }
+
+  /**
    * Using a polygon as a subject, take the difference of this ClipperPaths.
    * @param {PIXI.Polygon} polygon
    * @returns {ClipperPaths}

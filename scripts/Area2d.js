@@ -8,7 +8,7 @@ Token
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { getObjectProperty } from "./util.js";
+import { getObjectProperty, zValue } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";
 import * as drawing from "./drawing.js";
@@ -234,6 +234,71 @@ export class Area2d {
   }
 
   /**
+   * Create ClipperPaths that combine tiles with drawings holes.
+   * Comparable to Area3d._combineBlockingTiles
+   * @param {Set<Tile>} tiles
+   * @param {Set<CenteredPolygonBase>} drawings
+   * @returns {ClipperPaths}
+   */
+  _combineTilesWithDrawingHoles(tiles, drawings) {
+    if ( !tiles.size ) return undefined;
+
+    tiles.forEach(t => {
+      const { x, y, width, height } = t.document;
+      const pts = [
+        x, y,
+        x + width, y,
+        x + width, y + width,
+        x, y + height
+      ];
+      t._polygon = new PIXI.Polygon(pts);
+    });
+
+    if ( !drawings.size ) {
+      tiles = ClipperPaths.fromPolygons(tiles);
+      tiles.combine().clean();
+      return tiles;
+    }
+
+    // Check if any drawings might create a hole in one or more tiles
+    const tilesUnholed = [];
+    const tilesHoled = [];
+    for ( const tile of tiles ) {
+      const drawingHoles = [];
+      const tileE = tile.document.elevation;
+
+      for ( const drawing of drawings ) {
+        const minE = drawing._drawing.document.getFlag("levels", "rangeTop");
+        const maxE = drawing._drawing.document.getFlag("levels", "rangeBottom");
+        if ( minE == null && maxE == null ) continue; // Intended to test null, undefined
+        else if ( minE == null && tileE !== maxE ) continue;
+        else if ( maxE == null && tileE !== minE ) continue;
+        else if ( !tileE.between(minE, maxE) ) continue;
+
+        drawingHoles.push(drawing.toPolygon());
+      }
+
+      if ( drawingHoles.length ) {
+        // Construct a hole at the tile's elevation from the drawing taking the difference.
+        const drawingHolesPaths = ClipperPaths.fromPolygons(drawingHoles);
+        const tileHoled = drawingHolesPaths.diffPolygon(tile._polygon);
+        tilesHoled.push(tileHoled);
+      } else tilesUnholed.push(tile);
+    }
+
+    if ( tilesUnholed.length ) {
+      const unHoledPaths = ClipperPaths.fromPolygons(tilesUnholed);
+      unHoledPaths.combine().clean();
+      tilesHoled.push(...unHoledPaths);
+    }
+
+    // Combine all the tiles, holed and unholed
+    tiles = ClipperPaths.combinePaths(tilesHoled);
+    tiles.combine().clean();
+    return tiles;
+  }
+
+  /**
    * Determine the percent area visible of a token shape given a los polygon.
    * @param {PIXI.Polygon} los
    * @param {PIXI.Polygon} tokenShape
@@ -241,6 +306,31 @@ export class Area2d {
    */
   _calculatePercentSeen(los, tokenShape) {
     let visibleTokenShape = this._intersectShapeWithLOS(tokenShape, los);
+
+    if ( !(visibleTokenShape instanceof PIXI.Polygon) ) {
+      console.warn("_calculatePercentSeen: visibleTokenShape is not a polygon.");
+    }
+
+    // If Levels is enabled, consider tiles and drawings; obscure the visibile token shape.
+    if ( game.modules.get("levels")?.active ) {
+      let tiles = Area3d.filterTilesByVisionTriangle(visibleTokenShape);
+
+      // Limit to tiles between viewer and target.
+      const minEZ = Math.min(this.visionSource.elevationZ, this.target.bottomZ);
+      const maxEZ = Math.max(this.visionSource.elevationZ, this.target.topZ);
+      tiles = tiles.filter(tile => {
+        const tileEZ = zValue(tile.document.elevation);
+        return tileEZ.between(minEZ, maxEZ);
+      });
+
+      if ( tiles.size ) {
+        const drawings = Area3d.filterDrawingsByVisionTriangle(visibleTokenShape);
+        const combinedTiles = this._combineTilesWithDrawingHoles(tiles, drawings);
+        visibleTokenShape = visibleTokenShape instanceof PIXI.Polygon
+          ? combinedTiles.diffPolygon(visibleTokenShape)
+          : combinedTiles.diffPaths(visibleTokenShape);
+      }
+    }
     const seenArea = visibleTokenShape.area();
     if ( !seenArea || seenArea.almostEqual(0) ) return 0;
 
@@ -276,7 +366,6 @@ export class Area2d {
     }
 
     return percentSeen;
-
   }
 
   /**
