@@ -379,6 +379,7 @@ export class Area3d {
       this.targetPoints.drawTransformed();
       objs.walls.forEach(w => w.drawTransformed());
       objs.tiles.forEach(w => w.drawTransformed({color: drawing.COLORS.yellow}));
+      objs.drawings.forEach(d => d.drawTransformed());
       objs.tokens.forEach(t => t.drawTransformed({color: drawing.COLORS.orange}));
       objs.terrainWalls.forEach(w =>
         w.drawTransformed({ color: drawing.COLORS.lightgreen, fillAlpha: 0.1 }));
