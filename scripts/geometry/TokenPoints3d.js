@@ -5,7 +5,7 @@
 import { PlanePoints3d } from "./PlanePoints3d.js";
 import { ConstrainedTokenBorder } from "../ConstrainedTokenBorder.js";
 
-class TokenSidePoints3d extends PlanePoints3d.js {
+class TokenSidePoints3d extends PlanePoints3d {
   /** @type {object} */
   static SIDE_TYPES = {
     TOP: 1,
