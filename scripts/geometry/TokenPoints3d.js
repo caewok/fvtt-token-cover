@@ -148,6 +148,14 @@ export class TokenPoints3d {
     return sides;
   }
 
+  /*
+   * Transform the faces to a 2d perspective.
+   * @returns {PIXI.Point[][]}
+   */
+  perspectiveTransform() {
+    return this.faces.map(side => side.perspectiveTransform())
+  }
+
   /**
    * Determine which edges of the token polygon are viewable in a 2d sense.
    * Viewable if the line between center and edge points is not blocked.
