@@ -206,12 +206,6 @@ function testLOSArea(visionSource, target, test) {
   // Avoid errors when testing vision for tokens directly on top of one another
   if ( visionSource.x === target.center.x && visionSource.y === target.center.y ) return false;
 
-  // For now, test for Levels to avoid vision between levels tiles.
-  // TODO: Incorporate into 2d area test?
-  const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
-  const pt = test.point;
-  if ( !hasLOSCeilingFloorLevels(origin, pt) ) return false;
-
   const centerPointIsVisible = testLOSPoint(visionSource, target, test);
 
   const area2d = new Area2d(visionSource, target);
