@@ -181,7 +181,7 @@ export class TokenPoints3d {
     }
 
     const sideType = TokenSidePoints3d.SIDE_TYPES.SIDE;
-    return sides.map(s => new TokenPoints3d(token, s, sideType));
+    return sides.map(s => new TokenSidePoints3d(token, s, sideType));
   }
 
   /**
