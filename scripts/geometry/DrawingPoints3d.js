@@ -20,7 +20,7 @@ export class DrawingPoints3d extends PlanePoints3d {
   shape;
 
   /**
-   * @param {Drawing|CenteredPolygonBase}
+   * @param {Drawing}
    * @param {object} [options]
    * @param {number} [elevation]    Elevation of the drawing; defaults to current drawing elevation.
    */
@@ -33,17 +33,17 @@ export class DrawingPoints3d extends PlanePoints3d {
       object = object._drawing;
     } else {
       console.error("DrawingPoints3d: drawing class not supported.");
-      return super(object);
+      return super(object);  // eslint-disable-line no-constructor-return, constructor-super
     }
 
-    elevation ??= drawing.document?.elevation ?? 0;
+    elevation ??= object.document?.elevation ?? 0;
     const elevationZ = zValue(elevation);
     const points = [];
     for ( const pt of shape.iteratePoints() ) {
       points.push(new Point3d(pt.x, pt.y, elevationZ));
     }
 
-    super(object, points);
+    super(object, points);  // eslint-disable-line constructor-super
     this._elevationZ = elevationZ;
   }
 
