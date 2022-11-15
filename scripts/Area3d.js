@@ -61,19 +61,23 @@ export class Area3d {
   /** @type object */
   config = {};
 
-  /** @type {string} */
-  type = "sight";
-
   /** @type {boolean} */
   debug = false;
 
   /** @type {object}:
-   *  walls: Set<WallPoints3d>|undefined,
-   *  tiles: Set<WallPoints3d>|undefined,
-   *  tokens: Set<TokenPoints3d>|undefined}
-   *  terrainWalls: Set<WallPoints3d>|undefined
+   *  drawings: Set<DrawingPoints3d>
+   *  terrainWalls: Set<WallPoints3d>
+   *  tiles: Set<TilePoints3d>
+   *  tokens: Set<TokenPoints3d>}
+   *  walls: Set<WallPoints3d>
    */
-  _blockingObjects;
+  _blockingObjects = {
+    drawings: new Set(),
+    terrainWalls: new Set(),
+    tiles: new Set(),
+    tokens: new Set(),
+    walls: new Set()
+  };
 
   /** @type {Point3d[]} */
   _transformedTarget;
@@ -85,7 +89,10 @@ export class Area3d {
   wallShadows = [];
 
   /** @type {boolean} */
-  viewIsSet = false;
+  _viewIsSet = false;
+
+  /** @type {boolean} */
+  _blockingObjectsAreSet = false;
 
   /**
    * Vector representing the up position on the canvas.
@@ -152,7 +159,8 @@ export class Area3d {
    * @type {object{walls: Set<WallPoints3d>|undefined, tiles: Set<WallPoints3d>, tokens: Set<TokenPoints3d>}}
    */
   get blockingObjects() {
-    return this._blockingObjects ?? (this._blockingObjects = this._findBlockingObjects());
+    if ( !this._blockingObjectsAreSet ) this._findBlockingObjects();
+    return this._blockingObjects;
   }
 
   /**
@@ -183,7 +191,7 @@ export class Area3d {
       this.blockingObjects.combinedTerrainWalls = WallPoints3d.combineTerrainWalls(tws);
     }
 
-    this.viewIsSet = true;
+    this._viewIsSet = true;
   }
 
   /**
@@ -313,7 +321,7 @@ export class Area3d {
   }
 
   _obscureSides() {
-    if ( !this.viewIsSet ) this.calculateViewMatrix();
+    if ( !this._viewIsSet ) this.calculateViewMatrix();
 
     const walls = this._combineBlockingWalls();
     const tiles = this._combineBlockingTiles();
@@ -422,25 +430,31 @@ export class Area3d {
       deadTokensBlock,
       deadHalfHeight } = this.config;
 
-    const out = Area3d.filterSceneObjectsByVisionTriangle(this.viewerCenter, this.target, {
+    // Clear any prior objects from the respective sets
+    const { drawings, terrainWalls, tiles, tokens, walls } = this._blockingObjects;
+    drawings.clear();
+    terrainWalls.clear();
+    tiles.clear();
+    tokens.clear();
+    walls.clear();
+
+    const objsFound = Area3d.filterSceneObjectsByVisionTriangle(this.viewerCenter, this.target, {
       type,
       filterWalls: wallsBlock,
       filterTokens: tokensBlock,
       filterTiles: tilesBlock,
       viewer: this.viewer.object });
 
-    if ( out.tiles.size ) {
-      out.tiles = out.tiles.map(t => new TilePoints3d(t));
-      if ( out.drawings.size ) out.drawings = out.drawings.map(d => new DrawingPoints3d(d));
-    }
+    objsFound.tiles.forEach(t => tiles.add(new TilePoints3d(t)));
 
-    if ( out.tokens.size ) {
-      // Check for dead tokens and either set to half height or omit, dependent on settings.
-      const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
+    if ( objsFound.tiles.size
+      && objsFound.drawings.size ) objsFound.drawings.forEach(d => drawings.add(new DrawingPoints3d(d)));
 
+    if ( objsFound.tokens.size ) {
       // Filter live or dead tokens, depending on config.
       if ( liveTokensBlock ^ deadTokensBlock ) { // We handled tokensBlock above
-        out.tokens = out.tokens.filter(t => {
+        const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
+        objsFound.tokens = objsFound.tokens.filter(t => {
           const hp = getObjectProperty(t.actor, hpAttribute);
           if ( typeof hp !== "number" ) return true;
 
@@ -450,31 +464,24 @@ export class Area3d {
         });
       }
 
-      // Construct the TokenPoints3d for each token, using half-height if required
+      // Construct the TokenPoints3d for each token, using half-height for dead if required
       if ( deadHalfHeight ) {
-        out.tokens = out.tokens.map(t => {
+        const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
+        objsFound.tokens.forEach(t => {
           const hp = getObjectProperty(t.actor, hpAttribute);
           const halfHeight = (typeof hp === "number") && (hp <= 0);
-          return new TokenPoints3d(t, this.config.type, halfHeight);
+          tokens.add(new TokenPoints3d(t, { type, halfHeight }));
         });
-      } else {
-        out.tokens = out.tokens.map(t => new TokenPoints3d(t, this.config.type));
-      }
+      } else objsFound.tokens.forEach(t => tokens.add(new TokenPoints3d(t, { type })));
     }
 
-    // Separate the terrain walls
-    out.terrainWalls = new Set();
-    if ( out.walls.size ) {
-      out.walls = out.walls.map(w => new WallPoints3d(w));
-      out.walls.forEach(w => {
-        if ( w.wall.document[this.config.type] === CONST.WALL_SENSE_TYPES.LIMITED ) {
-          out.terrainWalls.add(w);
-          out.walls.delete(w);
-        }
-      });
-    }
+    // Separate the terrain walls and convert all walls to Points3d
+    objsFound.walls.forEach(w => {
+      const s = w.document[type] === CONST.WALL_SENSE_TYPES.LIMITED ? terrainWalls : walls;
+      s.add(new WallPoints3d(w));
+    });
 
-    return out;
+    this._blockingObjectsAreSet = true;
   }
 
   /**
@@ -592,10 +599,9 @@ export class Area3d {
 
     // Filter by the precise triangle cone
     // Also convert to CenteredPolygon b/c it handles bounds better
-    drawings = drawings.map(d => centeredPolygonFromDrawing(d));
     const edges = [...visionTriangle.iterateEdges()];
     drawings = drawings.filter(d => {
-      const dBounds = d.getBounds();
+      const dBounds = centeredPolygonFromDrawing(d).getBounds();
       return edges.some(e => dBounds.lineSegmentIntersects(e.A, e.B, { inside: true }));
     });
     return drawings;
