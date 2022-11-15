@@ -73,6 +73,12 @@ export function registerPIXIPointMethods() {
     writable: true,
     configurable: true
   });
+
+  Object.defineProperty(PIXI.Point.prototype, "projectToward", {
+    value: projectToward,
+    writable: true,
+    configurable: true
+  });
 }
 
 /**
@@ -98,7 +104,8 @@ function to3d({ x = "x", y = "y", z} = {}) {
  *   (Will create new point if none provided.)
  * @returns {PIXI.Point}
  */
-function add2d(other, outPoint = new PIXI.Point()) {
+function add2d(other, outPoint) {
+  outPoint ??= new this.constructor();
   outPoint.x = this.x + other.x;
   outPoint.y = this.y + other.y;
 
@@ -113,7 +120,8 @@ function add2d(other, outPoint = new PIXI.Point()) {
  *   (Will create new point if none provided.)
  * @returns {PIXI.Point}
  */
-function subtract2d(other, outPoint = new PIXI.Point()) {
+function subtract2d(other, outPoint) {
+  outPoint ??= new this.constructor();
   outPoint.x = this.x - other.x;
   outPoint.y = this.y - other.y;
 
@@ -128,7 +136,8 @@ function subtract2d(other, outPoint = new PIXI.Point()) {
  *   (Will create new point if none provided.)
  * @returns {PIXI.Point}
  */
-function multiply2d(other, outPoint = new PIXI.Point()) {
+function multiply2d(other, outPoint) {
+  outPoint ??= new this.constructor();
   outPoint.x = this.x * other.x;
   outPoint.y = this.y * other.y;
 
@@ -143,7 +152,8 @@ function multiply2d(other, outPoint = new PIXI.Point()) {
  *   (Will create new point if none provided.)
  * @returns {PIXI.Point}
  */
-function multiplyScalar2d(scalar, outPoint = new PIXI.Point()) {
+function multiplyScalar2d(scalar, outPoint) {
+  outPoint ??= new this.constructor();
   outPoint.x = this.x * scalar;
   outPoint.y = this.y * scalar;
 
@@ -195,9 +205,23 @@ function almostEqual2d(other, epsilon = EPSILON) {
  *   (Will create new point if none provided.)
  * @returns {PIXI.Point}
  */
-function normalize(outPoint = new PIXI.Point()) {
+function normalize(outPoint) {
+  outPoint ??= new this.constructor();
   this.multiplyScalar(1 / this.magnitude(), outPoint);
   return outPoint;
+}
+
+/**
+ * Project along a line from this point toward another point by some
+ * proportion of the distance between this and the other point.
+ * @param {Point3d|PIXI.Point} other
+ * @param {number} t  Ratio to move toward the other point.
+ * @returns {Point3d|PIXI.Point}
+ */
+function projectToward(other, t, outPoint) {
+  outPoint ??= new this.constructor();
+  const delta = other.subtract(this);
+  return this.add(delta.multiplyScalar(t));
 }
 
 /**
@@ -293,7 +317,8 @@ export class Point3d extends PIXI.Point {
    *   (Will create new point if none provided.)
    * @returns {Point3d}
    */
-  add(other, outPoint = new Point3d()) {
+  add(other, outPoint) {
+    outPoint ??= new this.constructor();
     super.add(other, outPoint);
     outPoint.z = this.z + (other.z ?? 0);
 
@@ -308,7 +333,8 @@ export class Point3d extends PIXI.Point {
    *   (Will create new point if none provided.)
    * @returns {Point3d}
    */
-  subtract(other, outPoint = new Point3d()) {
+  subtract(other, outPoint) {
+    outPoint ??= new this.constructor();
     super.subtract(other, outPoint);
     outPoint.z = this.z - (other.z ?? 0);
 
@@ -323,7 +349,8 @@ export class Point3d extends PIXI.Point {
    *   (Will create new point if none provided.)
    * @returns {Point3d}
    */
-  multiply(other, outPoint = new Point3d()) {
+  multiply(other, outPoint) {
+    outPoint ??= new this.constructor();
     super.multiply(other, outPoint);
     outPoint.z = this.z * (other.z ?? 0);
 
@@ -338,7 +365,8 @@ export class Point3d extends PIXI.Point {
    *   (Will create new point if none provided.)
    * @returns {Point3d}
    */
-  multiplyScalar(scalar, outPoint = new Point3d()) {
+  multiplyScalar(scalar, outPoint) {
+    outPoint ??= new this.constructor();
     super.multiplyScalar(scalar, outPoint);
     outPoint.z = this.z * scalar;
 
@@ -390,7 +418,8 @@ export class Point3d extends PIXI.Point {
    * @param {Point3d} [outPoint]  A point-like object in which to store the value.
    * @returns {Point3d}
    */
-  cross(other, outPoint = new Point3d()) {
+  cross(other, outPoint) {
+    outPoint ??= new this.constructor();
     outPoint.x = (this.y * other.z) - (this.z * other.y);
     outPoint.y = (this.z * other.x) - (this.x * other.z);
     outPoint.z = (this.x * other.y) - (this.y * other.x);
