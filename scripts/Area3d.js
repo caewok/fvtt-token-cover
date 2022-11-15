@@ -272,9 +272,8 @@ export class Area3d {
 
     if ( !objs.tiles.size ) return undefined;
 
-    let tiles = objs.tiles.map(w => new PIXI.Polygon(w.perspectiveTransform()));
-
     if ( !objs.drawings.size ) {
+      let tiles = objs.tiles.map(w => new PIXI.Polygon(w.perspectiveTransform()));
       tiles = ClipperPaths.fromPolygons(tiles);
       tiles.combine().clean();
       return tiles;
@@ -286,6 +285,7 @@ export class Area3d {
     for ( const tile of objs.tiles ) {
       const drawingHoles = [];
       const tileE = tile.object.document.elevation;
+      const tilePoly = new PIXI.Polygon(tile.perspectiveTransform());
 
       for ( const drawing of objs.drawings ) {
         const minE = drawing.object.document.getFlag("levels", "rangeTop");
@@ -303,19 +303,19 @@ export class Area3d {
       if ( drawingHoles.length ) {
         // Construct a hole at the tile's elevation from the drawing taking the difference.
         const drawingHolesPaths = ClipperPaths.fromPolygons(drawingHoles);
-        const tileHoled = drawingHolesPaths.diffPolygon(new PIXI.Polygon(tile.perspectiveTransform()));
+        const tileHoled = drawingHolesPaths.diffPolygon(tilePoly);
         tilesHoled.push(tileHoled);
-      } else tilesUnholed.push(tile);
+      } else tilesUnholed.push(tilePoly);
     }
 
     if ( tilesUnholed.length ) {
       const unHoledPaths = ClipperPaths.fromPolygons(tilesUnholed);
       unHoledPaths.combine().clean();
-      tilesHoled.push(...unHoledPaths);
+      tilesHoled.push(unHoledPaths);
     }
 
     // Combine all the tiles, holed and unholed
-    tiles = ClipperPaths.combinePaths(tilesHoled);
+    const tiles = ClipperPaths.combinePaths(tilesHoled);
     tiles.combine().clean();
     return tiles;
   }
@@ -483,6 +483,7 @@ export class Area3d {
     });
 
     this._blockingObjectsAreSet = true;
+    this._viewIsSet = false;
   }
 
   /**
@@ -538,7 +539,8 @@ export class Area3d {
     viewer } = {}) {
 
     const visionTriangle = Area3d.visionTriangle(viewingPoint, target, { type });
-    if ( debug ) drawing.drawShape(visionTriangle, { color: drawing.COLORS.blue, fillAlpha: 0.2, fill: drawing.COLORS.blue })
+    if ( debug ) drawing.drawShape(visionTriangle,
+      { color: drawing.COLORS.blue, fillAlpha: 0.2, fill: drawing.COLORS.blue });
 
     const maxE = Math.max(viewingPoint.z ?? 0, target.topZ);
     const minE = Math.min(viewingPoint.z ?? 0, target.bottomZ);
