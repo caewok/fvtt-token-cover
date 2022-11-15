@@ -285,11 +285,11 @@ export class Area3d {
     const tilesHoled = [];
     for ( const tile of objs.tiles ) {
       const drawingHoles = [];
-      const tileE = tile.wall.document.elevation;
+      const tileE = tile.object.document.elevation;
 
       for ( const drawing of objs.drawings ) {
-        const minE = drawing.drawing.document.getFlag("levels", "rangeTop");
-        const maxE = drawing.drawing.document.getFlag("levels", "rangeBottom");
+        const minE = drawing.object.document.getFlag("levels", "rangeTop");
+        const maxE = drawing.object.document.getFlag("levels", "rangeBottom");
         if ( minE == null && maxE == null ) continue; // Intended to test null, undefined
         else if ( minE == null && tileE !== maxE ) continue;
         else if ( maxE == null && tileE !== minE ) continue;
