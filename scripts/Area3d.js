@@ -302,8 +302,8 @@ export class Area3d {
       const tileE = tile.wall.document.elevation;
 
       for ( const drawing of objs.drawings ) {
-        const minE = drawing._drawing.document.getFlag("levels", "rangeTop");
-        const maxE = drawing._drawing.document.getFlag("levels", "rangeBottom");
+        const minE = drawing.drawing.document.getFlag("levels", "rangeTop");
+        const maxE = drawing.drawing.document.getFlag("levels", "rangeBottom");
         if ( minE == null && maxE == null ) continue; // Intended to test null, undefined
         else if ( minE == null && tileE !== maxE ) continue;
         else if ( maxE == null && tileE !== minE ) continue;

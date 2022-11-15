@@ -8,7 +8,7 @@ Dialog
 import { MODULE_ID, COVER_TYPES } from "./const.js";
 
 // Hooks and method registration
-import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook } from "./cover.js";
+import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook, addDND5eCoverFeatFlags } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./geometry/PIXIPolygon.js";
 import { registerPIXIRectangleMethods } from "./geometry/PIXIRectangle.js";
@@ -44,6 +44,7 @@ Hooks.once("init", async function() {
   registerLibWrapperMethods();
   patchHelperMethods();
   registerPIXIPolygonMethods();
+  addDND5eCoverFeatFlags();
 
   game.modules.get(MODULE_ID).api = {
     bench,

@@ -12,7 +12,7 @@ Dialog,
 Ray
 */
 
-import { MODULE_ID, COVER_TYPES } from "./const.js";
+import { MODULE_ID, COVER_TYPES, FLAGS } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d, TokenPoints3d } from "./Area3d.js";
@@ -134,6 +134,12 @@ export class CoverCalculator {
 
   /** @type {object} */
   config = {};
+
+  /** @type {Token} */
+  viewer;
+
+  /** @type {Token} */
+  target;
 
   /**
    * @param {VisionSource|Token} viewer
@@ -305,9 +311,14 @@ export class CoverCalculator {
       <br>
       `;
 
+
+      const ignoresCover = token.ignoresCover;
+      const ignoresCoverLabel = ignoresCover > 0 ? `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ignoresCover)} cover or less.)</em>` : "";
+
       htmlTable =
       `
-      ${nCover} target${nCover === 1 ? " has" : "s have"} cover from <b>${token.name}</b>
+      ${nCover} target${nCover === 1 ? " has" : "s have"} cover from <b>${token.name}</b>.
+      ${ignoresCoverLabel}
       ${htmlTable}
       `;
 
@@ -356,27 +367,53 @@ export class CoverCalculator {
    * @returns {COVER_TYPE}
    */
   targetCover(algorithm = getSetting(SETTINGS.COVER.ALGORITHM)) {
+    let coverType = COVER_TYPES.NONE;
+
+    let ignoresCover = this.viewer?.ignoresCover;
+    ignoresCover ??= COVER_TYPES.NONE;
+
+    // If viewer ignores high cover type, then target has no (applicable) cover.
+    if ( ignoresCover >= COVER_TYPES.HIGH ) {
+      console.log(`CoverCalculator: Cover for ${this.target.name} ignored by ${this.viewer.name}.`);
+      return COVER_TYPES.NONE;
+    }
+
     switch ( algorithm ) {
       case SETTINGS.COVER.TYPES.CENTER_CENTER:
-        return this.centerToCenter();
+        coverType = this.centerToCenter();
+        break;
       case SETTINGS.COVER.TYPES.CENTER_CORNERS_TARGET:
-        return this.centerToTargetCorners();
+        coverType = this.centerToTargetCorners();
+        break;
       case SETTINGS.COVER.TYPES.CORNER_CORNERS_TARGET:
-        return this.cornerToTargetCorners();
+        coverType =  this.cornerToTargetCorners();
+        break;
       case SETTINGS.COVER.TYPES.CENTER_CORNERS_GRID:
-        return this.centerToTargetGridCorners();
+        coverType =  this.centerToTargetGridCorners();
+        break;
       case SETTINGS.COVER.TYPES.CORNER_CORNERS_GRID:
-        return this.cornerToTargetGridCorners();
+        coverType =  this.cornerToTargetGridCorners();
+        break;
       case SETTINGS.COVER.TYPES.CENTER_CUBE:
-        return this.centerToCube();
+        coverType =  this.centerToCube();
+        break;
       case SETTINGS.COVER.TYPES.CUBE_CUBE:
-        return this.cubeToCube();
+        coverType =  this.cubeToCube();
+        break;
       case SETTINGS.COVER.TYPES.AREA:
-        return this.area2d();
+        coverType =  this.area2d();
+        break;
       case SETTINGS.COVER.TYPES.AREA3D:
-        return this.area3d();
+        coverType =  this.area3d();
+        break;
     }
-    return COVER_TYPES.NONE;
+
+    if ( coverType <= ignoresCover ) {
+      console.log(`CoverCalculator: ${this.target.name}'s ${CoverCalculator.coverNameForType(coverType)} cover ignored by ${this.viewer.name}.`);
+      return COVER_TYPES.NONE;
+    }
+
+    return coverType;
   }
 
   /**

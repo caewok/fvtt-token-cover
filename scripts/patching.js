@@ -17,7 +17,12 @@ import {
 } from "./visibility_range.js";
 
 import {
-  toggleActiveEffectTokenDocument
+  toggleActiveEffectTokenDocument,
+  getIgnoresCoverDND5eSimbuls,
+  getIgnoresCoverDND5e,
+  getIgnoresCover,
+  setIgnoresCoverDND5e,
+  setIgnoresCover
 } from "./cover.js";
 
 import { MODULE_ID } from "./const.js";
@@ -87,6 +92,26 @@ export function registerLibWrapperMethods() {
     writable: true,
     configurable: true
   });
+
+  if ( game.system.id === "dnd5e" && game.modules.get("simbuls-cover-calculator")?.active ) {
+    Object.defineProperty(Token.prototype, "ignoresCover", {
+      get: getIgnoresCoverDND5eSimbuls,
+      set: setIgnoresCoverDND5e,
+      enumerable: false
+    });
+  } else if ( game.system.id === "dnd5e" ) {
+    Object.defineProperty(Token.prototype, "ignoresCover", {
+      get: getIgnoresCoverDND5e,
+      set: setIgnoresCoverDND5e,
+      enumerable: false
+    });
+  } else {
+    Object.defineProperty(Token.prototype, "ignoresCover", {
+      get: getIgnoresCover,
+      set: setIgnoresCover,
+      enumerable: false
+    });
+  }
 }
 
 function updateSourceToken(wrapper, ...args) {
