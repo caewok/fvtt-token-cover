@@ -62,7 +62,7 @@ function viewablePoints(origin, { outermostOnly = true } = {}) {
 
   const pts = getViewablePoints(this, origin);
 
-  if ( !pts || !outermostOny ) return pts;
+  if ( !pts || !outermostOnly ) return pts;
 
   const ln = pts.length;
   return [pts[0], pts[ln - 1]];
