@@ -1,9 +1,12 @@
 /* globals
+PIXI
 */
 "use strict";
 
 import { PlanePoints3d } from "./PlanePoints3d.js";
+import { Point3d } from "./Point3d.js";
 import { ConstrainedTokenBorder } from "../ConstrainedTokenBorder.js";
+import * as drawing from "../drawing.js";
 
 class TokenSidePoints3d extends PlanePoints3d {
   /** @type {object} */
@@ -83,8 +86,8 @@ export class TokenPoints3d {
     const { topZ, bottomZ } = this;
 
     const nPts = points.length;
-    topPoints = Array(nPts);
-    bottomPoints = Array(nPts);
+    const topPoints = Array(nPts);
+    const bottomPoints = Array(nPts);
     for ( let i = 0; i < nPts; i += 1 ) {
       const pt = points[i];
       topPoints[i] = new Point3d(pt.x, pt.y, topZ);
@@ -189,7 +192,7 @@ export class TokenPoints3d {
    * @param {object} [options]
    * @param {boolean} [perspective]   Draw using 2d perspective.
    */
-  drawTransformed({perspective = true, color = COLORS.red, width = 1, fill = null, fillAlpha = 0.2 } = {}) {
+  drawTransformed({perspective = true, color = drawing.COLORS.red, width = 1, fill = null, fillAlpha = 0.2 } = {}) {
     if ( !this.viewIsSet ) {
       console.warn(`TokenPoints3d: View is not yet set for Token ${this.token.name}.`);
       return;
