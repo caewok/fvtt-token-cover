@@ -38,6 +38,13 @@ export function registerPIXIRectangleMethods() {
     writable: true,
     configurable: true
   });
+
+  if ( !Object.hasOwn(PIXI.Rectangle.prototype, "center") ) {
+    Object.defineProperty(PIXI.Rectangle.prototype, "center", {
+      get: center,
+      enumerable: false
+    });
+  }
 }
 
 /**
@@ -46,6 +53,14 @@ export function registerPIXIRectangleMethods() {
  */
 function area() {
   return this.width * this.height;
+}
+
+/**
+ * Calculate center of the rectangle
+ * @returns {number}
+ */
+function center() {
+  return { x: this.x + (this.width * 0.5), y: this.y + (this.height * 0.5) };
 }
 
 /**
