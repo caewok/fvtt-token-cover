@@ -102,6 +102,7 @@ export class PlanePoints3d {
    * @returns {Point2d[]}
    */
   perspectiveTransform() {
+    if ( !this.viewIsSet ) console.error("PlanePoints3d perspectiveTransform: view is not set.");
     return this.tPoints.map(pt => PlanePoints3d.perspectiveTransform(pt));
   }
 
