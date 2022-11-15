@@ -111,6 +111,7 @@ export class PlanePoints3d {
    */
   draw(drawingOptions = {}) {
     this.points.forEach(pt => drawing.drawPoint(pt, drawingOptions));
+    const poly = new PIXI.Polygon(this.points);
     drawing.drawShape(this.shape, drawingOptions);
   }
 
