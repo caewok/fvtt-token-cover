@@ -1,4 +1,5 @@
 /* globals
+PIXI
 */
 "use strict";
 
@@ -8,19 +9,20 @@
 // Can set a view matrix and transform points accordingly.
 
 import { Matrix } from "./Matrix.js";
+import * as drawing from "../drawing.js";
 
 /**
  * Represent a Foundry object as a set of 3d points
  */
 export class PlanePoints3d {
   /** @type {Point3d[]} */
-  points = [];
+  points;
 
   /**
    * Points when a transform is set.
    * @type {Point3d[]}
    */
-  tPoints = [];
+  tPoints;
 
   /**
    * Foundry object represented
@@ -100,7 +102,7 @@ export class PlanePoints3d {
    * @returns {Point2d[]}
    */
   perspectiveTransform() {
-    return this.tPoints.map(pt => Area3d.perspectiveTransform(pt));
+    return this.tPoints.map(pt => PlanePoints3d.perspectiveTransform(pt));
   }
 
   /**
@@ -114,7 +116,7 @@ export class PlanePoints3d {
   /**
    * Draw the transformed shape.
    */
-  drawTransformed({perspective = true, color = COLORS.blue, width = 1, fill = COLORS.blue, fillAlpha = 0.2 } = {}) {
+  drawTransformed({perspective = true, color = drawing.COLORS.blue, width = 1, fill = drawing.COLORS.blue, fillAlpha = 0.2 } = {}) {
     if ( !this.viewIsSet ) {
       console.warn(`PlanePoints3d: View is not yet set for this object ${this.object.id}.`);
       return;
@@ -167,13 +169,13 @@ export class PlanePoints3d {
 
       if ( distAz < 0 ) {
         if ( t.almostEqual(1) || t > 1 ) return null;
-        A = project(A, B, t);
+        A = A.projectToward(B, t);
 
         if ( A.z.almostEqual(z) ) A.z = z;
 
       } else { // Bbehind <= 0
         if ( t.almostEqual(0) || t < 0 ) return null;
-        B = project(A, B, t);
+        B = A.projectToward(B, t);
 
         if ( B.z.almostEqual(z) ) B.z = z;
       }
