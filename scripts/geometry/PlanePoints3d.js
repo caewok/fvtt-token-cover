@@ -117,7 +117,9 @@ export class PlanePoints3d {
   /**
    * Draw the transformed shape.
    */
-  drawTransformed({perspective = true, color = drawing.COLORS.blue, width = 1, fill = drawing.COLORS.blue, fillAlpha = 0.2 } = {}) {
+  drawTransformed({perspective = true, color = drawing.COLORS.blue, width = 1, fill, fillAlpha = 0.2 } = {}) {
+    if ( typeof fill === "undefined" ) fill = color;
+
     if ( !this.viewIsSet ) {
       console.warn(`PlanePoints3d: View is not yet set for this object ${this.object.id}.`);
       return;
