@@ -15,7 +15,7 @@ Ray
 import { MODULE_ID, COVER_TYPES, FLAGS } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { Area2d } from "./Area2d.js";
-import { Area3d, TokenPoints3d } from "./Area3d.js";
+import { Area3d } from "./Area3d.js";
 import * as drawing from "./drawing.js";
 import {
   distanceBetweenPoints,
@@ -27,6 +27,7 @@ import {
 
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Point3d } from "./geometry/Point3d.js";
+import { TokenPoints3d } from "./geometry/TokenPoints3d.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
 // Don't pass complex classes through the socket. Use token ids instead.
@@ -507,10 +508,10 @@ export class CoverCalculator {
       tokens = tokens.map(t => {
         const hp = getObjectProperty(t.actor, hpAttribute);
         const halfHeight = (typeof hp === "number") && (hp <= 0);
-        return new TokenPoints3d(t, this.config.type, halfHeight);
+        return new TokenPoints3d(t, { type: this.config.type, halfHeight });
       });
     } else {
-      tokens = tokens.map(t => new TokenPoints3d(t, this.config.type));
+      tokens = tokens.map(t => new TokenPoints3d(t, { type: this.config.type, halfHeight: false }));
     }
 
     // Set viewing position and test token sides for collisions
@@ -518,10 +519,10 @@ export class CoverCalculator {
       const sides = token._viewableFaces(tokenPoint);
       for ( const side of sides ) {
         if ( lineSegmentIntersectsQuadrilateral3d(tokenPoint, targetPoint,
-          side[0],
-          side[1],
-          side[2],
-          side[3]) ) return true;
+          side.points[0],
+          side.points[1],
+          side.points[2],
+          side.points[3]) ) return true;
       }
     }
 
