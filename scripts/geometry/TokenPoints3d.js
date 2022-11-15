@@ -206,6 +206,6 @@ export class TokenPoints3d {
       return;
     }
 
-    this.faces.forEach(f => f.draw({ perspective, color, width, fill, fillAlpha }));
+    this.faces.forEach(f => f.drawTransformed({ perspective, color, width, fill, fillAlpha }));
   }
 }

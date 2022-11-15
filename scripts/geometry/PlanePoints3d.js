@@ -111,7 +111,7 @@ export class PlanePoints3d {
    */
   draw(drawingOptions = {}) {
     this.points.forEach(pt => drawing.drawPoint(pt, drawingOptions));
-    this.drawShape(this.shape, drawingOptions);
+    drawing.drawShape(this.shape, drawingOptions);
   }
 
   /**
