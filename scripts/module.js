@@ -16,9 +16,6 @@ import { registerSettings, getSetting, setSetting, SETTINGS, updateConfigStatusE
 import { registerElevationAdditions } from "./elevation.js";
 import { Point3d, registerPIXIPointMethods } from "./geometry/Point3d.js";
 
-// geometry
-
-
 // Rendering configs
 import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
 
@@ -26,14 +23,20 @@ import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
 import * as bench from "./benchmark.js";
 import * as drawing from "./drawing.js";
 import * as util from "./util.js";
-import { Shadow } from "./geometry/Shadow.js";
-import { Matrix } from "./geometry/Matrix.js";
-import { Area3d, TokenPoints3d } from "./Area3d.js";
+
+import { Area3d } from "./Area3d.js";
 import { Area2d } from "./Area2d.js";
-import { Plane } from "./geometry/Plane.js";
-import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+
+import { Plane } from "./geometry/Plane.js";
+import { ClipperPaths } from "./geometry/ClipperPaths.js";
+import { Shadow } from "./geometry/Shadow.js";
+import { Matrix } from "./geometry/Matrix.js";
+import { TokenPoints3d } from "./geometry/TokenPoints3d.js";
+import { DrawingPoints3d } from "./geometry/DrawingPoints3d.js";
+import { WallPoints3d } from "./geometry/WallPoints3d.js";
+import { TilePoints3d } from "./geometry/TilePoints3d.js";
 
 import * as los from "./visibility_los.js";
 
@@ -62,6 +65,9 @@ Hooks.once("init", async function() {
     ConstrainedTokenBorder,
     los,
     TokenPoints3d,
+    DrawingPoints3d,
+    WallPoints3d,
+    TilePoints3d,
     debug: {
       range: false,
       los: false,
