@@ -366,7 +366,7 @@ export class Area3d {
       this.targetPoints.drawTransformed();
       objs.walls.forEach(w => w.drawTransformed({color: colors.blue}));
       objs.tiles.forEach(w => w.drawTransformed({color: colors.yellow}));
-      objs.drawings.forEach(d => d.drawTransformed());
+      objs.drawings.forEach(d => d.drawTransformed({color: colors.gray}));
       objs.tokens.forEach(t => t.drawTransformed({color: colors.orange}));
       objs.terrainWalls.forEach(w =>
         w.drawTransformed({ color: colors.lightgreen, fillAlpha: 0.1 }));
@@ -443,6 +443,7 @@ export class Area3d {
       filterWalls: wallsBlock,
       filterTokens: tokensBlock,
       filterTiles: tilesBlock,
+      debug: this.debug,
       viewer: this.viewer.object });
 
     objsFound.tiles.forEach(t => tiles.add(new TilePoints3d(t)));
@@ -533,9 +534,11 @@ export class Area3d {
     filterWalls = true,
     filterTokens = true,
     filterTiles = true,
+    debug = false,
     viewer } = {}) {
 
     const visionTriangle = Area3d.visionTriangle(viewingPoint, target, { type });
+    if ( debug ) drawing.drawShape(visionTriangle, { color: drawing.COLORS.blue, fillAlpha: 0.2, fill: drawing.COLORS.blue })
 
     const maxE = Math.max(viewingPoint.z ?? 0, target.topZ);
     const minE = Math.min(viewingPoint.z ?? 0, target.bottomZ);
@@ -548,6 +551,8 @@ export class Area3d {
       out.walls = out.walls.filter(w => {
         return w.topZ > minE && w.bottomZ < maxE;
       });
+
+      if ( debug ) out.walls.forEach(w => drawing.drawSegment(w, { color: drawing.COLORS.gray }));
     }
 
     if ( filterTokens ) {
@@ -557,6 +562,8 @@ export class Area3d {
       out.tokens = out.tokens.filter(t => {
         return t.topZ > minE && t.bottomZ < maxE;
       });
+
+      if ( debug ) out.tokens.forEach(t => drawing.drawShape(t.bounds, { color: drawing.COLORS.gray }));
     }
 
     if ( filterTiles ) {
@@ -577,6 +584,11 @@ export class Area3d {
 
       // Check drawings if there are tiles
       if ( out.tiles.size ) out.drawings = Area3d.filterDrawingsByVisionTriangle(visionTriangle);
+
+      if ( debug ) {
+        out.tiles.forEach(t => drawing.drawShape(t.bounds, { color: drawing.COLORS.gray }));
+        out.drawings.forEach(d => drawing.drawShape(d.bounds, { color: drawing.COLORS.gray }));
+      }
     }
 
     return out;
@@ -601,7 +613,10 @@ export class Area3d {
     // Also convert to CenteredPolygon b/c it handles bounds better
     const edges = [...visionTriangle.iterateEdges()];
     drawings = drawings.filter(d => {
-      const dBounds = centeredPolygonFromDrawing(d).getBounds();
+      const shape = centeredPolygonFromDrawing(d);
+      const center = shape.center;
+      if ( visionTriangle.contains(center.x, center.y) ) return true;
+      const dBounds = shape.getBounds();
       return edges.some(e => dBounds.lineSegmentIntersects(e.A, e.B, { inside: true }));
     });
     return drawings;
@@ -629,6 +644,8 @@ export class Area3d {
     // For speed and simplicity, consider only token rectangular bounds
     const edges = [...visionTriangle.iterateEdges()];
     tokens = tokens.filter(t => {
+      const tCenter = t.center;
+      if ( visionTriangle.contains(tCenter.x, tCenter.y) ) return true;
       const tBounds = t.bounds;
       return edges.some(e => tBounds.lineSegmentIntersects(e.A, e.B, { inside: true }));
     });
@@ -649,6 +666,8 @@ export class Area3d {
     const edges = [...visionTriangle.iterateEdges()];
     tiles = tiles.filter(t => {
       const tBounds = t.bounds;
+      const tCenter = tBounds.center;
+      if ( visionTriangle.contains(tCenter.x, tCenter.y) ) return true;
       return edges.some(e => tBounds.lineSegmentIntersects(e.A, e.B, { inside: true }));
     });
     return tiles;
