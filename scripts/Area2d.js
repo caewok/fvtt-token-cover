@@ -8,7 +8,7 @@ Token
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { getObjectProperty, zValue } from "./util.js";
+import { getObjectProperty, zValue, centeredPolygonFromDrawing } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";
 import * as drawing from "./drawing.js";
@@ -268,14 +268,15 @@ export class Area2d {
       const tileE = tile.document.elevation;
 
       for ( const drawing of drawings ) {
-        const minE = drawing._drawing.document.getFlag("levels", "rangeTop");
-        const maxE = drawing._drawing.document.getFlag("levels", "rangeBottom");
+        const minE = drawing.document.getFlag("levels", "rangeTop");
+        const maxE = drawing.document.getFlag("levels", "rangeBottom");
         if ( minE == null && maxE == null ) continue; // Intended to test null, undefined
         else if ( minE == null && tileE !== maxE ) continue;
         else if ( maxE == null && tileE !== minE ) continue;
         else if ( !tileE.between(minE, maxE) ) continue;
 
-        drawingHoles.push(drawing.toPolygon());
+        const shape = centeredPolygonFromDrawing(drawing);
+        drawingHoles.push(shape.toPolygon());
       }
 
       if ( drawingHoles.length ) {
