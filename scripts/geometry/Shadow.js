@@ -482,33 +482,6 @@ export class Shadow extends PIXI.Polygon {
 }
 
 /**
- * Project a 2d or 3d line
- * @param {Point3d|PIXI.Point} A
- * @param {Point3d|PIXI.Point} B
- * @returns {Point3d|PIXI.Point}
- */
-function project(A, B, t) {
-  const delta = B.subtract(A);
-  return A.add(delta.multiplyScalar(t));
-}
-
-/**
- * Find the 3d point on a 3d line that equals a z coordinate.
- * @param {Point3d} A
- * @param {Point3d} B
- * @param {number} z
- * @returns {object{point:{Point3d}, proportion: {number}}}
- */
-function towardZ(A, B, z) {
-  const delta = B.subtract(A);
-  const t = (z - A.z) / delta.z;
-  return {
-    point: A.add(delta.multiplyScalar(t)),
-    t
-  };
-}
-
-/**
  * Truncate a wall so that only the portion below an elevation ("z") point is seen
  * @param {Point3d} A
  * @param {Point3d} B
@@ -518,37 +491,8 @@ function towardZ(A, B, z) {
  * @return {object{ A: {Point3d}, B: {Point3d}}|null}
  */
 export function truncateWallAtElevation(A, B, z, dir = -1) {
-  let distAz = dir < 0 ? z - A.z : A.z - z;
-  let distBz = dir < 0 ? z - B.z : B.z - z;
-
-  if ( distAz.almostEqual(0) ) distAz = 0;
-  if ( distBz.almostEqual(0) ) distBz = 0;
-
-  if ( distAz > 0 && distBz > 0 ) {
-    // Do nothing
-  } else if ( distAz <= 0 && distBz <= 0 ) {
-    return null;
-  } else if ( distAz < 0 || distBz < 0 ) {
-    // Find the point on AB that is even in elevation with z
-    // Shorten the wall to somewhere just in front of z
-    const {t} = towardZ(A, B, z);
-
-    if ( distAz < 0 ) {
-      if ( t.almostEqual(1) || t > 1 ) return null;
-      A = project(A, B, t);
-
-      if ( A.z.almostEqual(z) ) A.z = z;
-
-    } else { // Bbehind <= 0
-      if ( t.almostEqual(0) || t < 0 ) return null;
-      B = project(A, B, t);
-
-      if ( B.z.almostEqual(z) ) B.z = z;
-    }
-  }
-  return { A, B, distAz, distBz };
+  return PlanePoints3d.truncate3dSegmentAtZ(A, B, z, dir);
 }
-
 
 /**
  *

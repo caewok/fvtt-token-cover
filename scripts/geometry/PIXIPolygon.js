@@ -7,6 +7,65 @@ foundry
 
 import { lineSegmentCrosses } from "../util.js";
 
+
+/**
+ * Returns the points of the polygon that make up the viewable perimeter
+ * as seen from an origin.
+ * @param {Point} origin                  Location of the viewer, in 2d.
+ * @param {object} [options]
+ * @param {boolean} [options.returnKeys]      Return index of viewable points instead of points
+ * @param {boolean} [options.outermostOnly]   Return only the outermost two points
+ * @returns {Point[]|number[]}
+ */
+function viewablePoints(origin, { returnKeys = false, outermostOnly = false } = {}) {
+  // Key point is a line from origin to the point that does not intersect the polygon
+  // the outermost key points are the most ccw and cw of the key points.
+
+  // Possible paths:
+  // 1. n   n   n   key key key
+  // 2. key key key n   n   n
+  // 3. key key n   n   key  <-- last key(s) should be shifted to beginning of array
+  // 4. n   n   key key key n
+
+  const pts = [...this.iteratePoints({ close: false })];
+  const nPts = pts.length;
+  const startKeys = [];
+  const endKeys = [];
+
+  let foundNonKeyFirst = false;
+  let foundNonKeyAfter = false;
+  let foundKey = false;
+  for ( let i = 0; i < nPts; i += 1 ) {
+    let isKey = true;
+    const pt = pts[i];
+
+    for ( const edge of this.iterateEdges() ) {
+      if ( (edge.A.x === pt.x && edge.A.y === pt.y)
+        || (edge.B.x === pt.x && edge.B.y === pt.y) ) continue;
+
+      if ( foundry.utils.lineSegmentIntersects(origin, pt, edge.A, edge.B) ) {
+        isKey = false;
+        break;
+      }
+    }
+
+    if ( isKey ) {
+      foundKey = true;
+      !foundNonKeyAfter && startKeys.push(i); // eslint-disable-line no-unused-expressions
+      foundNonKeyAfter && endKeys.push(i); // eslint-disable-line no-unused-expressions
+    } else { // !isKey
+      foundNonKeyFirst ||= !foundKey;
+      foundNonKeyAfter ||= foundKey;
+      if ( foundNonKeyFirst && foundKey ) break; // Finished the key sequence
+    }
+  }
+
+  // Keep the keys CW, same order as pts
+  let keys = [...endKeys, ...startKeys];
+  if ( outermostOnly ) keys = [keys[0], keys[keys.length - 1]];
+  return returnKeys ? keys : elementsByIndex(pts, keys);
+}
+
 /**
  * Iterate over the polygon's {x, y} points in order.
  * If the polygon is closed and close is false,
@@ -264,5 +323,10 @@ export function registerPIXIPolygonMethods() {
     configurable: true
   });
 
+  Object.defineProperty(PIXI.Polygon.prototype, "viewablePoints", {
+    value: viewablePoints,
+    writable: true,
+    configurable: true
+  });
 }
 

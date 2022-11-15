@@ -43,6 +43,10 @@ import { Matrix } from "./geometry/Matrix.js";
 import { Point3d } from "./geometry/Point3d.js";
 import { CenteredPolygonBase } from "./geometry/CenteredPolygonBase.js";
 
+import { PlanePoints3d } from "./geometry/PlanePoints3d.js";
+
+
+
 export class Area3d {
 
   /** @type {VisionSource} */
@@ -497,9 +501,8 @@ export class Area3d {
    */
   static visionTriangle(viewingPoint, target, { type = "sight"} = {}) {
     const constrainedTokenBorder = ConstrainedTokenBorder.get(target, type).constrainedBorder();
-    const keyPoints = (constrainedTokenBorder instanceof PIXI.Polygon)
-      ? Area3d.polygonKeyPointsForOrigin(constrainedTokenBorder, viewingPoint)
-      : Area3d.bboxKeyCornersForOrigin(constrainedTokenBorder, viewingPoint);
+    const keyPoints = constrainedTokenBorder.viewablePoints(viewingPoint, { outermostOnly: true });
+
     if ( !keyPoints || !keyPoints.length ) {
       log("visionTriangle: no key points found.");
       return constrainedTokenBorder.toPolygon();
@@ -749,89 +752,6 @@ export class Area3d {
     }
     return false;
   }
-
-  /**
-   * Returns the two points of the polygon that are on the edge of the viewable perimeter
-   * as seen from an origin.
-   * @param {PIXI.Polygon} poly
-   * @param {Point} origin
-   * @return {Point[]|null} Returns null if origin is inside the polygon
-   */
-  static polygonKeyPointsForOrigin(poly, origin, { returnKeys = false } = {}) {
-    // Key point is a line from origin to the point that does not intersect the polygon
-    // the outermost key points are the most ccw and cw of the key points.
-
-    // Possible paths:
-    // 1. n   n   n   key key key
-    // 2. key key key n   n   n
-    // 3. key key n   n   key  <-- last key(s) should be shifted to beginning of array
-    // 4. n   n   key key key n
-
-    const pts = [...poly.iteratePoints({ close: false })];
-    const nPts = pts.length;
-    const startKeys = [];
-    const endKeys = [];
-
-    let foundNonKeyFirst = false;
-    let foundNonKeyAfter = false;
-    let foundKey = false;
-    for ( let i = 0; i < nPts; i += 1 ) {
-      let isKey = true;
-      const pt = pts[i];
-
-
-      for ( const edge of poly.iterateEdges() ) {
-        if ( (edge.A.x === pt.x && edge.A.y === pt.y)
-          || (edge.B.x === pt.x && edge.B.y === pt.y) ) continue;
-
-        if ( foundry.utils.lineSegmentIntersects(origin, pt, edge.A, edge.B) ) {
-          isKey = false;
-          break;
-        }
-      }
-
-      if ( isKey ) {
-        foundKey = true;
-        !foundNonKeyAfter && startKeys.push(i); // eslint-disable-line no-unused-expressions
-        foundNonKeyAfter && endKeys.push(i); // eslint-disable-line no-unused-expressions
-      } else { // !isKey
-        foundNonKeyFirst ||= !foundKey;
-        foundNonKeyAfter ||= foundKey;
-        if ( foundNonKeyFirst && foundKey ) break; // Finished the key sequence
-      }
-    }
-
-    // Keep the keys CW, same order as pts
-
-    const keys = [...endKeys, ...startKeys];
-    return returnKeys ? keys : [pts[keys[0]], pts[keys[keys.length - 1]]];
-  }
-
-  /**
-   * Returns the two corners of the bounding box that are on the edge of the viewable
-   * perimeter of the bounding box, as seen from an origin.
-   * @param {PIXI.Rectangle} bbox
-   * @param {Point} origin
-   * @return {Point[]|null} Returns null if origin is inside the bounding box.
-   */
-  static bboxKeyCornersForOrigin(bbox, origin) {
-    const zones = PIXI.Rectangle.CS_ZONES;
-    switch ( bbox._getZone(origin) ) {
-      case zones.INSIDE: return null;
-      case zones.TOPLEFT: return [{ x: bbox.left, y: bbox.bottom }, { x: bbox.right, y: bbox.top }];
-      case zones.TOPRIGHT: return [{ x: bbox.left, y: bbox.top }, { x: bbox.right, y: bbox.bottom }];
-      case zones.BOTTOMLEFT: return [{ x: bbox.right, y: bbox.bottom }, { x: bbox.left, y: bbox.top }];
-      case zones.BOTTOMRIGHT: return [{ x: bbox.right, y: bbox.top }, { x: bbox.left, y: bbox.bottom }];
-
-      case zones.RIGHT: return [{ x: bbox.right, y: bbox.top }, { x: bbox.right, y: bbox.bottom }];
-      case zones.LEFT: return [{ x: bbox.left, y: bbox.bottom }, { x: bbox.left, y: bbox.top }];
-      case zones.TOP: return [{ x: bbox.left, y: bbox.top }, { x: bbox.right, y: bbox.top }];
-      case zones.BOTTOM: return [{ x: bbox.right, y: bbox.bottom }, { x: bbox.left, y: bbox.bottom }];
-    }
-
-    return undefined; // Should not happen
-  }
-
 }
 
 // TODO: Make base class PlanePoints3d, representing a plane in 3d as a set of points.
@@ -997,14 +917,6 @@ export class TokenPoints3d {
   }
 
   /**
-   * Transform the wall to a 2d perspective.
-   * @returns {Point2d[]}
-   */
-  perspectiveTransform() {
-    return this.tFaces.map(face => face.map(pt => Area3d.perspectiveTransform(pt)));
-  }
-
-  /**
    * Draw the constrained token shape and the points on the 2d canvas.
    */
   draw() {
@@ -1163,7 +1075,7 @@ export class WallPoints3d {
       if ( Aabove && Babove ) needsRep = true; // Cannot redo the A--B line until others points are complete.
       if ( !(Aabove ^ Babove) ) continue;
 
-      const res = truncateWallAtElevation(A, B, targetE, -1, 0);
+      const res = PlanePoints3d.truncate3dSegmentAtZ(A, B, targetE, -1, 0);
       if ( res ) {
         A.copyFrom(res.A);
         B.copyFrom(res.B);
