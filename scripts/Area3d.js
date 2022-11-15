@@ -231,27 +231,6 @@ export class Area3d {
   }
 
   /**
-   * Determine the inner angle between two segments.
-   * Usually the two segments should share an endpoint.
-   * @param {PIXI.Point} a    Endpoint of AB segment
-   * @param {PIXI.Point} b    Endpoint of AB segment
-   * @param {PIXI.Point} c    Endpoint of CD segment
-   * @param {PIXI.Point} d    Endpoint of CD segment
-   * @returns {number}
-   */
-  static angleBetweenSegments(a, b, c, d) {
-    // Dot product of the two vectors
-    // Divide by magnitude of the first
-    // Divide by magnitude of the second
-    const V1 = b.subtract(a);
-    const V2 = d.subtract(c);
-    const mag = (V1.magnitude() * V2.magnitude());
-    if ( !mag ) return 0;
-
-    return Math.acos(V1.dot(V2) / (V1.magnitude() * V2.magnitude()));
-  }
-
-  /**
    * Construct the transformation matrix to rotate the view around the center of the token.
    */
   _calculateViewerCameraMatrix() {
