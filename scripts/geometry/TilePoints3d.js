@@ -1,32 +1,26 @@
 /* globals
-canvas,
-PIXI
 */
 "use strict";
 
 // Represent a Wall in as a set of 4 3d points.
 
 import { PlanePoints3d } from "./PlanePoints3d.js";
+import { Point3d } from "./Point3d.js";
+import { zValue } from "../util.js";
 
 export class TilePoints3d extends PlanePoints3d {
-  /** @type {Point3d[]} */
-  points = new Array(4);
-
-  /** @type {Point3d[]} */
-  tPoints = new Array(4);
-
   constructor(object) {
-    const { x, y, width, height, elevation } = wall.document;
-    const eZ = zValue(elevation); // There is a wall.document.z value but not sure from where -- Levels?
+    const { x, y, width, height, elevation } = object.document;
+    const eZ = zValue(elevation); // There is a tile.document.z value but not sure from where -- Levels?
 
-    const top = isFinite(topZ) ? topZ : maxR;
-    const bottom = isFinite(bottomZ) ? bottomZ : -maxR;
+    const rightX = x + width;
+    const bottomY = y + height;
 
     const points = new Array(4);
-    points[0] = new Point3d(A.x, A.y, top);
-    points[1] = new Point3d(B.x, B.y, top);
-    points[2] = new Point3d(B.x, B.y, bottom);
-    points[3] = new Point3d(A.x, A.y, bottom);
+    points[0] = new Point3d(x, y, eZ);
+    points[1] = new Point3d(rightX, y, eZ);
+    points[2] = new Point3d(rightX, bottomY, eZ);
+    points[3] = new Point3d(x, bottomY, eZ);
 
     super(object, points);
   }
