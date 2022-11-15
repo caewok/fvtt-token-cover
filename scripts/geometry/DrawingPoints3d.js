@@ -1,5 +1,4 @@
 /* globals
-Drawing
 */
 "use strict";
 
@@ -8,7 +7,6 @@ Drawing
 import { PlanePoints3d } from "./PlanePoints3d.js";
 import { Point3d } from "./Point3d.js";
 import { centeredPolygonFromDrawing, zValue, pixelsToGridUnits } from "../util.js";
-import { CenteredPolygonBase } from "./CenteredPolygonBase.js";
 
 // Drawing points can be modified by setting the elevation.
 // Used by Area3d to construct holes in a tile based on a drawing at a given elevation.
@@ -25,26 +23,20 @@ export class DrawingPoints3d extends PlanePoints3d {
    * @param {number} [elevation]    Elevation of the drawing; defaults to current drawing elevation.
    */
   constructor(object, { elevation } = {}) {
-    let shape;
-    if ( object instanceof Drawing ) {
-      shape = centeredPolygonFromDrawing(object);
-    } else if ( object instanceof CenteredPolygonBase ) {
-      shape = object;
-      object = object._drawing;
-    } else {
-      console.error("DrawingPoints3d: drawing class not supported.");
-      return super(object);  // eslint-disable-line no-constructor-return, constructor-super
-    }
+    const shape = centeredPolygonFromDrawing(object);
 
     elevation ??= object.document?.elevation ?? 0;
     const elevationZ = zValue(elevation);
-    const points = [];
-    for ( const pt of shape.iteratePoints() ) {
-      points.push(new Point3d(pt.x, pt.y, elevationZ));
+    const points = [...shape.iteratePoints];
+    const ln = points.length;
+    for ( let i = 0; i < ln; i += 1 ) {
+      const pt = points[i];
+      points[i] = new Point3d(pt.x, pt.y, elevationZ);
     }
 
-    super(object, points);  // eslint-disable-line constructor-super
+    super(object, points);
     this._elevationZ = elevationZ;
+    this.shape = shape;
   }
 
   /**
