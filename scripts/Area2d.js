@@ -402,7 +402,8 @@ export class Area2d {
       filterWalls: true,
       filterTokens: tokensBlock,
       filterTiles: false,
-      viewer: visionSource.object
+      viewer: visionSource.object,
+      debug: this.debug
     };
     const viewableObjs = Area3d.filterSceneObjectsByVisionTriangle(origin, this.target, filterConfig);
 
