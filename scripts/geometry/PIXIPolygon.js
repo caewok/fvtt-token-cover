@@ -5,7 +5,7 @@ foundry
 */
 "use strict";
 
-import { lineSegmentCrosses } from "../util.js";
+import { lineSegmentCrosses, elementsByIndex } from "../util.js";
 
 
 /**
