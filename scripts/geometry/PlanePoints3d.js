@@ -191,7 +191,7 @@ export class PlanePoints3d {
    *  Used by Area3d to visualize the perspective transform
    * @returns {PIXI.Point}
    */
-  static perspectiveTransform(pt, multiplier = 1) {
+  static perspectiveTransform(pt, multiplier = 1000) {
     const mult = multiplier / -pt.z;
     return new PIXI.Point(pt.x * mult, pt.y * mult);
   }
