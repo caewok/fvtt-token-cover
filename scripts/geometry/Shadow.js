@@ -394,15 +394,18 @@ export class Shadow extends PIXI.Polygon {
    * In top-down view, construct shadows for a token on the scene.
    * @param {Token} token               Token in the scene
    * @param {Point3d} origin            Viewer location in 3d space
-   * @param {number} surfaceElevation   Elevation of the surface onto which to project shadows
+   * @param {object} options
+   * @param {number} [surfaceElevation] Elevation of the surface onto which to project shadows
+   * @param {string} [type]             Wall restriction type, for token constrained border
+   * @param {boolean} [halfHeight]      Whether to use half the token height
    * @returns {Shadow[]|null}
    */
-  static constructfromToken(token, origin, surfaceElevation = 0, type = "sight", halfHeight = false) {
+  static constructfromToken(token, origin, { surfaceElevation = 0, type = "sight", halfHeight = false } = {}) {
     // If the viewer elevation equals the surface elevation, no shadows to be seen
     if ( origin.z.almostEqual(surfaceElevation) ) return null;
 
     // Need Token3dPoints to find the sides that face the origin.
-    const token3d = new TokenPoints3d(token, type, halfHeight);
+    const token3d = new TokenPoints3d(token, { type, halfHeight });
     const { bottomZ, topZ } = token3d;
 
     // Run simple tests to avoid further computation
@@ -425,8 +428,8 @@ export class Shadow extends PIXI.Polygon {
       // Build a "wall" based on side points
       // Need bottomZ, topZ, A, B
       const wall = {
-        A: side[0],
-        B: side[3],
+        A: side.points[0],
+        B: side.points[3],
         topZ,
         bottomZ
       };

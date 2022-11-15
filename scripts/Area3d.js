@@ -4,9 +4,7 @@ canvas,
 game,
 foundry,
 Token,
-Tile,
-CONST,
-Drawing
+CONST
 */
 "use strict";
 
@@ -32,31 +30,33 @@ Area:
 
 import { MODULE_ID, FLAGS } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
-import { zValue, log, getObjectProperty, pixelsToGridUnits, centeredPolygonFromDrawing } from "./util.js";
+import { zValue, log, getObjectProperty, centeredPolygonFromDrawing } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 import * as drawing from "./drawing.js"; // For debugging
 
-import { truncateWallAtElevation } from "./geometry/Shadow.js";
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Matrix } from "./geometry/Matrix.js";
 import { Point3d } from "./geometry/Point3d.js";
-import { CenteredPolygonBase } from "./geometry/CenteredPolygonBase.js";
 
-import { PlanePoints3d } from "./geometry/PlanePoints3d.js";
-
-
+import { DrawingPoints3d } from "./geometry/DrawingPoints3d.js";
+import { TokenPoints3d } from "./geometry/TokenPoints3d.js";
+import { TilePoints3d } from "./geometry/TilePoints3d.js";
+import { WallPoints3d } from "./geometry/WallPoints3d.js";
 
 export class Area3d {
 
   /** @type {VisionSource} */
-  viewer = undefined;
+  viewer;
 
   /** @type {Point3d} */
-  _viewerCenter = undefined;
+  _viewerCenter;
 
   /** @type {Token} */
-  target = undefined;
+  target;
+
+  /** @type {TokenPoints3d} */
+  targetPoints;
 
   /** @type object */
   config = {};
@@ -68,18 +68,18 @@ export class Area3d {
   debug = false;
 
   /** @type {object}:
-   *   walls: Set<WallPoints3d>|undefined,
-   *   tiles: Set<WallPoints3d>|undefined,
+   *  walls: Set<WallPoints3d>|undefined,
+   *  tiles: Set<WallPoints3d>|undefined,
    *  tokens: Set<TokenPoints3d>|undefined}
    *  terrainWalls: Set<WallPoints3d>|undefined
    */
-  _blockingObjects = undefined;
+  _blockingObjects;
 
   /** @type {Point3d[]} */
-  _transformedTarget = undefined;
+  _transformedTarget;
 
   /** @type {object[]}  An object with A and B. */
-  _transformedWalls = undefined;
+  _transformedWalls;
 
   /** @type {Shadow[]} */
   wallShadows = [];
@@ -153,11 +153,6 @@ export class Area3d {
    */
   get blockingObjects() {
     return this._blockingObjects ?? (this._blockingObjects = this._findBlockingObjects());
-  }
-
-  static perspectiveTransform(pt) {
-    const mult = 1000 / -pt.z;
-    return new PIXI.Point(pt.x * mult, pt.y * mult);
   }
 
   /**
@@ -358,14 +353,15 @@ export class Area3d {
     const { obscuredSides, sidePolys } = this._obscureSides();
 
     if ( this.debug ) {
+      const colors = drawing.COLORS;
       this._drawLineOfSight();
       this.targetPoints.drawTransformed();
-      objs.walls.forEach(w => w.drawTransformed());
-      objs.tiles.forEach(w => w.drawTransformed({color: drawing.COLORS.yellow}));
+      objs.walls.forEach(w => w.drawTransformed({color: colors.blue}));
+      objs.tiles.forEach(w => w.drawTransformed({color: colors.yellow}));
       objs.drawings.forEach(d => d.drawTransformed());
-      objs.tokens.forEach(t => t.drawTransformed({color: drawing.COLORS.orange}));
+      objs.tokens.forEach(t => t.drawTransformed({color: colors.orange}));
       objs.terrainWalls.forEach(w =>
-        w.drawTransformed({ color: drawing.COLORS.lightgreen, fillAlpha: 0.1 }));
+        w.drawTransformed({ color: colors.lightgreen, fillAlpha: 0.1 }));
 
       if ( objs.combinedTerrainWalls ) objs.combinedTerrainWalls.draw({color: drawing.COLORS.green, fillAlpha: 0.3});
 
@@ -434,7 +430,7 @@ export class Area3d {
       viewer: this.viewer.object });
 
     if ( out.tiles.size ) {
-      out.tiles = out.tiles.map(t => new WallPoints3d(t));
+      out.tiles = out.tiles.map(t => new TilePoints3d(t));
       if ( out.drawings.size ) out.drawings = out.drawings.map(d => new DrawingPoints3d(d));
     }
 
