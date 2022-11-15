@@ -84,5 +84,14 @@
 
     "tokenvisibility.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
     "tokenvisibility.DrawingConfiguration.isHole.Name": "Drawing is Hole",
-    "tokenvisibility.DrawingConfiguration.isHole.Hint": "For area algorithms, treat the space indicated by the drawing (including elevation) as a hole for tiles. Only applicable when Levels is active."
+    "tokenvisibility.DrawingConfiguration.isHole.Hint": "For area algorithms, treat the space indicated by the drawing (including elevation) as a hole for tiles. Only applicable when Levels is active.",
+
+    "tokenvisibility.dnd5e.feats.cover.Name": "Ignore certain levels of cover",
+    "tokenvisibility.dnd5e.feats.cover.Hint": "Provided by feats and magic items.",
+    "tokenvisibility.dnd5e.feats.cover.OptionNone": "Don't ignore any cover.",
+    "tokenvisibility.dnd5e.feats.cover.OptionHalf": "Ignore half cover.",
+    "tokenvisibility.dnd5e.feats.cover.OptionThreeQuarters": "Ignore half and three-quarters cover.",
+    "tokenvisibility.dnd5e.feats.cover.OptionFull": "Ignore all cover."
+
+
 }

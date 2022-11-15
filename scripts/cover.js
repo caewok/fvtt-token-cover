@@ -1,7 +1,8 @@
 /* globals
 game,
 canvas,
-ChatMessage
+ChatMessage,
+CONFIG
 */
 "use strict";
 
@@ -46,12 +47,107 @@ dnd5e: half, 3/4, full
 
 */
 
-import { MODULE_ID, COVER_TYPES } from "./const.js";
+import { MODULE_ID, COVER_TYPES, FLAGS } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
-import { log, distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
+import { distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
 import { CoverCalculator, SOCKETS, dialogPromise } from "./CoverCalculator.js";
 
 import { Point3d } from "./geometry/Point3d.js";
+
+
+/**
+ * For DND5e, add the cover to the Token Config
+ */
+export function addDND5eCoverFeatFlags() {
+  // Leave this to Simbul's if active.
+  if ( game.system.id !== "dnd5e" || game.modules.get("simbuls-cover-calculator")?.active ) return;
+
+  CONFIG.DND5E.characterFlags.helpersIgnoreCover = {
+    name: game.i18n.localize("tokenvisibility.dnd5e.feats.cover.Name"),
+    hint: game.i18n.localize("tokenvisibility.dnd5e.feats.cover.Hint"),
+    section: "Feats",
+    choices: {
+      0: game.i18n.localize("tokenvisibility.dnd5e.feats.cover.OptionNone"),
+      1: game.i18n.localize("tokenvisibility.dnd5e.feats.cover.OptionHalf"),
+      2: game.i18n.localize("tokenvisibility.dnd5e.feats.cover.OptionThreeQuarters"),
+      3: game.i18n.localize("tokenvisibility.dnd5e.feats.cover.OptionFull")
+    },
+    type: Number
+  };
+}
+
+/**
+ * For DND5e, use a getter for the token cover
+ * @returns {COVER_TYPE}
+ */
+export function getIgnoresCoverDND5e() {
+  let flagValue = this.actor?.getFlag("dnd5e", FLAGS.COVER.IGNORE_DND5E);
+  if ( flagValue === true || flagValue === "true" ) {
+    // For backwards-compatibility, set to three quarters.
+    // Aligned with how Simbul's handles it.
+    flagValue = COVER_TYPES.MEDIUM;
+  }
+
+  flagValue ??= COVER_TYPES.NONE;
+  return flagValue;
+}
+
+/**
+ * If Simbul's cover calculator is active, use its ignoresCover method.
+ * @returns {COVER_TYPE}
+ */
+export function getIgnoresCoverDND5eSimbuls() {
+  return this.ignoresCover();
+}
+
+/**
+ * A getter for ignoring token cover for other systems.
+ * @returns {COVER_TYPE}
+ */
+export function getIgnoresCover() {
+  const flagValue = this.actor?.getFlag("dnd5e", FLAGS.COVER.IGNORE);
+  flagValue ??= COVER_TYPES.NONE;
+  return flagValue;
+}
+
+/**
+ * Set DND5e ignore cover for a token's actor.
+ * @param {COVER_TYPES} cover   Will ignore this cover or less.
+ */
+const MIN_COVER = Math.min(...Object.values(COVER_TYPES));
+const MAX_COVER = Math.max(...Object.values(COVER_TYPES));
+export function setIgnoresCoverDND5e(cover) {
+  if ( !cover.between(MIN_COVER, MAX_COVER) ) {
+    console.warn(`setIgnoresCoverDND5e requires value between ${MIN_COVER} and ${MAX_COVER}`);
+    return;
+  }
+
+  if ( !this.actor ) {
+    console.warn(`setIgnoresCoverDND5e: token ${this.name} (this.id) has no actor.`);
+  }
+
+  this.actor.update({
+    flags: {
+      dnd5e: {
+        [FLAGS.COVER.IGNORE_DND5E]: cover
+      }
+    }
+  });
+}
+
+export function setIgnoresCover(cover) {
+  if ( !cover.between(MIN_COVER, MAX_COVER) ) {
+    console.warn(`setIgnoresCover requires value between ${MIN_COVER} and ${MAX_COVER}`);
+    return;
+  }
+
+  if ( !this.actor ) {
+    console.warn(`setIgnoresCover: token ${this.name} (this.id) has no actor.`);
+    return;
+  }
+
+  this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE);
+}
 
 /**
  * Hook event that fires after targeting (AoE) is complete.
@@ -323,8 +419,8 @@ export async function combatTurnHook(combat, updateData, updateOptions) {
   for ( const token of tokens ) {
     if ( playerOwners.some(owner => token.targeted.has(owner)) ) {
         userTargetedTokens.push(token);
-      }
-      CoverCalculator.disableAllCoverStatus(token.id);
+    }
+    CoverCalculator.disableAllCoverStatus(token.id);
   }
 
 //   tokens.forEach(t => {
