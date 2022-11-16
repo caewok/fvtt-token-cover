@@ -33,6 +33,7 @@ import { Plane } from "./geometry/Plane.js";
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Shadow } from "./geometry/Shadow.js";
 import { Matrix } from "./geometry/Matrix.js";
+import { PlanePoints3d } from "./geometry/PlanePoints3d.js";
 import { TokenPoints3d } from "./geometry/TokenPoints3d.js";
 import { DrawingPoints3d } from "./geometry/DrawingPoints3d.js";
 import { WallPoints3d } from "./geometry/WallPoints3d.js";
@@ -64,6 +65,7 @@ Hooks.once("init", async function() {
     COVER_TYPES,
     ConstrainedTokenBorder,
     los,
+    PlanePoints3d,
     TokenPoints3d,
     DrawingPoints3d,
     WallPoints3d,

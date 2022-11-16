@@ -3,12 +3,66 @@ PIXI
 */
 "use strict";
 
+/* Testing
+api = game.modules.get('tokenvisibility').api;
+Point3d = api.Point3d
+PlanePoints3d = api.PlanePoints3d
+drawing = api.drawing
+
+points = [
+ new PIXI.Point(0, 0),
+ new PIXI.Point(500, 0),
+ new PIXI.Point(500, 500),
+ new PIXI.Point(0, 500)
+]
+
+points = [
+ new PIXI.Point(0, 0),
+ new PIXI.Point(500, 300),
+ new PIXI.Point(500, 700),
+ new PIXI.Point(0, 500)
+]
+
+// 3d
+points = [
+  new Point3d(0, 0, -200),
+  new Point3d(500, 0, 200),
+  new Point3d(500, 500, 200),
+  new Point3d(0, 500, -200)
+]
+
+points = [
+  new Point3d(0, 0, -200),
+  new Point3d(500, 0, 100),
+  new Point3d(500, 500, 200),
+  new Point3d(0, 500, 100)
+]
+
+points = [
+  new Point3d(0, 0, -200),
+  new Point3d(500, 300, 200),
+  new Point3d(500, 700, 200),
+  new Point3d(0, 500, -200)
+]
+
+newPt = new points[0].constructor()
+points[0].projectToAxisValue(points[1], 100, "x", newPt)
+
+newPoints = PlanePoints3d.truncatePlanePoints(points, 200, "y")
+
+newPoints = PlanePoints3d.truncatePlanePoints(points, 0, "z")
+
+points.forEach(pt => drawing.drawPoint(pt))
+newPoints.forEach(pt => drawing.drawPoint(pt, { color: drawing.COLORS.blue}))
+*/
+
 // Base class representing a plane in 3d as a set of points.
 // (As opposed to the infinite Plane class.)
 // Used for representing walls, tiles, drawings, token sides in 3d.
 // Can set a view matrix and transform points accordingly.
 
 import { Matrix } from "./Matrix.js";
+import { Point3d } from "./Point3d.js";
 import * as drawing from "../drawing.js";
 
 /**
@@ -68,36 +122,55 @@ export class PlanePoints3d {
   }
 
   /**
-   * Truncate the transformed shape to keep only the below z = 0 portion.
-   * This can take, e.g., a rectangle and construct a smaller rectangle from it.
-   * @param {number} rep    Number of iterations thus far, for recursion.
+   * Truncate a set of points representing a plane shape to keep only the points
+   * below a given coordinate value. It is assumed that the shape can be closed by
+   * getting lastPoint --> firstPoint.
+   * @param {PIXI.Point[]|Point3d[]} points   Array of points for a polygon in clockwise order.
+   * @param {number} cutoff                   Coordinate value cutoff
+   * @param {string} coordinate               "x", "y", or "z"
+   * @param {function} cmp                    Comparator. Return true to keep.
+   *   Defaults to (coord, cutoff) => coord > cutoff
+   * @returns {PIXI.Point[]|Point3d[]} The new set of points.
    */
-  _truncateTransform(rep = 0) {
-    if ( rep > 2 ) return;
+  static truncatePlanePoints(points, cutoff, coordinate, cmp) {
+    cmp ??= (a, b) => a > b;
+    coordinate ??= "x";
 
-    let needsRep = false;
-    const targetZ = -1; // Must be less than this in the z dimension to keep.
-    const ln = this.tPoints.length;
-    let A = this.tPoints[ln - 1];
+    const truncatedPoints = [];
+    const ln = points.length;
+
+    let A = points[ln - 1];
+    let keepA = cmp(A[coordinate], cutoff);
+
     for ( let i = 0; i < ln; i += 1 ) {
-      const B = this.tPoints[i];
-      const Aabove = A.z > targetZ;
-      const Babove = B.z > targetZ;
-      if ( Aabove && Babove ) needsRep = true; // Cannot redo the A--B line until others points are complete.
-      if ( !(Aabove ^ Babove) ) {
-        A = B;
-        continue;
+      const B = points[i];
+      const keepB = cmp(B[coordinate], cutoff);
+
+      if ( keepA && keepB ) truncatedPoints.push(A);
+      else if ( !(keepA || keepB) ) { } // eslint-disable-line no-empty
+      else if ( !keepA ) {
+        // Find the new point between A and B to add
+        const newA = new A.constructor();
+        const t = B.projectToAxisValue(A, cutoff, coordinate, newA);
+        if ( t !== null ) {// Can t === null this ever happen in this setup?
+          truncatedPoints.push(newA);
+        }
+
+      } else if ( !keepB ) {
+        // Find the new point between A and B to add after A
+        const newB = new B.constructor();
+        const t = A.projectToAxisValue(B, cutoff, coordinate, newB);
+        if ( t !== null ) {// Can t === null this ever happen in this setup?
+          truncatedPoints.push(A);
+          truncatedPoints.push(newB);
+        }
       }
 
-      const res = PlanePoints3d.truncate3dSegmentAtZ(A, B, targetZ, -1, 0);
-      if ( res ) {
-        A.copyFrom(res.A);
-        B.copyFrom(res.B);
-      }
       A = B;
+      keepA = keepB;
     }
-    rep += 1;
-    needsRep && this._truncateTransform(rep); // eslint-disable-line no-unused-expressions
+
+    return truncatedPoints;
   }
 
   /**
@@ -131,63 +204,6 @@ export class PlanePoints3d {
     const pts = perspective ? this.perspectiveTransform() : this.tPoints;
     const poly = new PIXI.Polygon(pts);
     drawing.drawShape(poly, { color, width, fill, fillAlpha });
-  }
-
-  /**
-   * Find the 3d point on a 3d line that equals a z coordinate.
-   * @param {Point3d} A
-   * @param {Point3d} B
-   * @param {number} z
-   * @returns {object{point:{Point3d}, proportion: {number}}}
-   */
-  static towardZ(A, B, z) {
-    const delta = B.subtract(A);
-    const t = (z - A.z) / delta.z;
-    return {
-      point: A.add(delta.multiplyScalar(t)),
-      t
-    };
-  }
-
-  /**
-   * Truncate a segment to be on only one side of the "z" plane, at a certain z value.
-   * @param {Point3d} A
-   * @param {Point3d} B
-   * @param {number} z
-   * @param {number} dir    Direction to truncate.
-   *   If negative, force segment to be below z. If positive, force segment to be above z.
-   * @return {object{ A: {Point3d}, B: {Point3d}}|null}
-   */
-  static truncate3dSegmentAtZ(A, B, z, dir = -1) {
-    let distAz = dir < 0 ? z - A.z : A.z - z;
-    let distBz = dir < 0 ? z - B.z : B.z - z;
-
-    if ( distAz.almostEqual(0) ) distAz = 0;
-    if ( distBz.almostEqual(0) ) distBz = 0;
-
-    if ( distAz > 0 && distBz > 0 ) {
-      // Do nothing
-    } else if ( distAz <= 0 && distBz <= 0 ) {
-      return null;
-    } else if ( distAz < 0 || distBz < 0 ) {
-      // Find the point on AB that is even in elevation with z
-      // Shorten the segment to somewhere just in front of z
-      const {t} = PlanePoints3d.towardZ(A, B, z);
-
-      if ( distAz < 0 ) {
-        if ( t.almostEqual(1) || t > 1 ) return null;
-        A = A.projectToward(B, t);
-
-        if ( A.z.almostEqual(z) ) A.z = z;
-
-      } else { // Bbehind <= 0
-        if ( t.almostEqual(0) || t < 0 ) return null;
-        B = A.projectToward(B, t);
-
-        if ( B.z.almostEqual(z) ) B.z = z;
-      }
-    }
-    return { A, B, distAz, distBz };
   }
 
   /**
