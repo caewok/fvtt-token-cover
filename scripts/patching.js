@@ -117,10 +117,17 @@ export function registerLibWrapperMethods() {
 function updateSourceToken(wrapper, ...args) {
   const api = game.modules.get(MODULE_ID).api;
   const debug = api.debug;
-    if ( debug.range || debug.area || debug.cover || debug.los ) {
-      console.log("Clearing drawings! (updateSourceToken)")
-      api.drawing.clearDrawings();
+  if ( debug.once || debug.range || debug.area || debug.cover || debug.los ) {
+    api.drawing.clearDrawings();
+
+    if ( debug.once ) {
+      debug.range = false;
+      debug.area = false;
+      debug.cover = false;
+      debug.los = false;
+      debug.once = false;
     }
+  }
 
   return wrapper(...args);
 }

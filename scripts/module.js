@@ -74,7 +74,8 @@ Hooks.once("init", async function() {
       range: false,
       los: false,
       cover: false,
-      area: false
+      area: false,
+      once: false
     }
   };
 
@@ -133,7 +134,7 @@ Hooks.once("devModeReady", ({ registerPackageDebugFlag }) => {
 });
 
 function registerSystemHooks() {
-  console.log(`Game system is ${game.system.id}`);
+  util.log(`Game system is ${game.system.id}`);
   if ( game.system.id !== "pf2e" ) {
     /**
      * Hook whenever a token is targeted or un-targeted.
@@ -160,19 +161,6 @@ function registerSystemHooks() {
   }
 }
 
-// Hooks.on("midi-qol.preAttackRoll", midiqolPreAttackRoll);
-
-// Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHookTest);
-
-
-// function midiqolPreambleCompleteHookTest(workflow) {
-//   console.log(`midiqolPreambleCompleteHookTest user ${game.userId}`, workflow);
-// }
-//
-// function midiqolPreAttackRoll(workflow) {
-//   console.log(`midiqolPreAttackRoll user ${game.userId}`, workflow);
-// }
-
 /**
  * A hook event that fires for every Document type after conclusion of an update workflow.
  * Substitute the Document name in the hook event to target a specific Document type, for example "updateActor".
@@ -196,9 +184,16 @@ function updateTokenHook(document, change, options, userId) { // eslint-disable-
     || Object.hasOwn(change, "elevation") ) {
 
     const debug = game.modules.get(MODULE_ID).api.debug;
-    if ( debug.range || debug.area || debug.cover || debug.los ) {
-      console.log("Clearing drawings!");
+    if ( debug.once || debug.range || debug.area || debug.cover || debug.los ) {
       drawing.clearDrawings();
+
+      if ( debug.once ) {
+        debug.range = false;
+        debug.area = false;
+        debug.cover = false;
+        debug.los = false;
+        debug.once = false;
+      }
     }
   }
 }

@@ -164,6 +164,11 @@ export class CoverCalculator {
     this.config.tokensBlock = this.config.liveTokensBlock || this.config.deadTokensBlock;
   }
 
+  /** @type {string} */
+  static get currentAlgorithm() {
+    return getSetting(SETTINGS.COVER.ALGORITHM);
+  }
+
   /**
    * Get the corresponding name for a cover type.
    * @param {COVER_TYPES} type    Cover number

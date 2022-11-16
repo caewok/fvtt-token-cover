@@ -154,7 +154,7 @@ export function setIgnoresCover(cover) {
  * Note: hook will be run by the user that executed the attack triggering this.
  */
 export async function midiqolPreambleCompleteHook(workflow) {
-  console.log(`midiqolPreambleCompleteHook user ${game.userId}`, workflow);
+//   console.log(`midiqolPreambleCompleteHook user ${game.userId}`, workflow);
 
   const token = workflow.token;
   const targets = [...workflow.targets];
@@ -296,7 +296,7 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations) {
  * @returns {boolean}                    Explicitly return false to prevent the roll from being performed.
  */
 export function dnd5ePreRollAttackHook(item, rollConfig) {
-  console.log(`dnd5ePreRollAttackHook User ${game.userId}`, item, rollConfig);
+//   console.log(`dnd5ePreRollAttackHook User ${game.userId}`, item, rollConfig);
 
   if ( game.modules.has("midi-qol") && game.modules.get("midi-qol").active ) return true;
   if ( !getSetting(SETTINGS.COVER.CHAT) ) return true;
@@ -406,7 +406,7 @@ export async function combatTurnHook(combat, updateData, updateOptions) {
 //   updateData.round
 //   updateData.turn
 
-  console.log(`combatTurnHook User ${game.userId} round ${updateData.round} turn ${updateData.turn}`);
+//   console.log(`combatTurnHook User ${game.userId} round ${updateData.round} turn ${updateData.turn}`);
 
   const c = combat.combatant;
   const playerOwners = c.players;
@@ -450,7 +450,7 @@ export async function combatTurnHook(combat, updateData, updateOptions) {
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
 export async function targetTokenHook(user, target, targeted) {
-  console.log(`targetTokenHook Hook User ${game.userId} User ${user.id} target ${target.name} targeted: ${targeted}`);
+//   console.log(`targetTokenHook Hook User ${game.userId} User ${user.id} target ${target.name} targeted: ${targeted}`);
 
   if ( !getSetting(SETTINGS.COVER.COMBAT_AUTO) ) return;
 
