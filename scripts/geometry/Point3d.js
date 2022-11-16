@@ -220,8 +220,9 @@ function normalize(outPoint) {
  */
 function projectToward(other, t, outPoint) {
   outPoint ??= new this.constructor();
-  const delta = other.subtract(this);
-  return this.add(delta.multiplyScalar(t));
+  const delta = other.subtract(this, outPoint);
+  this.add(delta.multiplyScalar(t, outPoint), outPoint);
+  return outPoint;
 }
 
 /**
