@@ -143,10 +143,20 @@ export class Shadow extends PIXI.Polygon {
       // Truncate wall to be above the surface
       // Can use the intersection point: will create a triangle shadow.
       // (Think flagpole shadow.)
-      const res = truncateWallAtElevation(A, B, ixAB.z, 1, 0);
-      if ( !res ) return null; // Wall portion completely behind the surface
-      A = res.A;
-      B = res.B;
+      if ( A.z < ixAB.z ) {
+        const newA = new Point3d();
+        const t = B.projectToAxisValue(A, 0, "z", newA);
+        if ( !t || t < 0 || t > 1 ) return null; // Wall portion completely behind surface.
+        if ( newA.almostEqual(B) ) return null;
+        A = newA;
+      } else if ( B.z < ixAB.z ) {
+        const newB = new Point3d();
+        const t = A.projectToAxisValue(B, 0, "z", newB);
+        if ( !t || t < 0 || t > 1 ) return null; // Wall portion completely behind surface.
+        if ( newB.almostEqual(A) ) return null;
+        B = newB;
+      }
+
     } else if ( A.z < surfacePlane.point.z ) return null; // Does not cross the surface. Reject if endpoint is on the wrong side.
 
     // Intersection points of origin --> wall endpoint --> surface
@@ -482,19 +492,6 @@ export class Shadow extends PIXI.Polygon {
     out.clean(cleanDelta);
     return out;
   }
-}
-
-/**
- * Truncate a wall so that only the portion below an elevation ("z") point is seen
- * @param {Point3d} A
- * @param {Point3d} B
- * @param {number} z
- * @param {number} dir    Direction to truncate.
- *   If negative, force wall to be below z. If positive, force wall to be above z.
- * @return {object{ A: {Point3d}, B: {Point3d}}|null}
- */
-export function truncateWallAtElevation(A, B, z, dir = -1) {
-  return PlanePoints3d.truncate3dSegmentAtZ(A, B, z, dir);
 }
 
 /**
