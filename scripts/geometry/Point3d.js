@@ -79,6 +79,12 @@ export function registerPIXIPointMethods() {
     writable: true,
     configurable: true
   });
+
+  Object.defineProperty(PIXI.Point.prototype, "projectToAxisValue", {
+    value: projectToAxisValue,
+    writable: true,
+    configurable: true
+  });
 }
 
 /**
@@ -223,6 +229,27 @@ function projectToward(other, t, outPoint) {
   const delta = other.subtract(this, outPoint);
   this.add(delta.multiplyScalar(t, outPoint), outPoint);
   return outPoint;
+}
+
+/**
+ * Find the point along a line from this point to another point
+ * that equals the given coordinate value for the given coordinate.
+ * @param {Point3d|PIXI.Point} other      Other point on the line
+ * @param {number} value                  Value
+ * @param {string} coordinate             "x", "y", or "z"
+ * @param {Point3d|PIXI.Point} [outPoint] A point-like object to store the result.
+ * @returns {t|null}    Null if the line is parallel to that coordinate axis.
+ *   Pass an outPoint if the actual point is desired.
+ */
+function projectToAxisValue(other, value, coordinate, outPoint) {
+  outPoint ??= new this.constructor();
+  coordinate ??= "x";
+  other.subtract(this, outPoint);
+  if ( outPoint[coordinate] === 0 ) return null; // Line is parallel to that coordinate axis.
+
+  const t = (value - this[coordinate]) / outPoint[coordinate];
+  this.add(outPoint.multiplyScalar(t, outPoint), outPoint);
+  return t;
 }
 
 /**
