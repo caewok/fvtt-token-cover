@@ -74,9 +74,10 @@ export class PlanePoints3d {
 
   /**
    * Points when a transform is set.
+   * Due to truncation, may have more or less points than the points array.
    * @type {Point3d[]}
    */
-  tPoints;
+  _tPoints = [];
 
   /**
    * Foundry object represented
@@ -87,6 +88,9 @@ export class PlanePoints3d {
   /** @type {boolean} */
   viewIsSet;
 
+  /** @type {Matrix} */
+  M;
+
   /**
    * @param {object} object       Foundry placeable object class
    * @param {Point3d[]} points    Array of points
@@ -96,7 +100,18 @@ export class PlanePoints3d {
 
     // Points must be provided by child class.
     this.points = points;
-    this.tPoints = new Array(points.length);
+  }
+
+  /**
+   * Ensure the view matrix is set before returning transformed points.
+   * @type {Point3d[]}
+   */
+  get tPoints() {
+    if ( !this.viewIsSet ) {
+      if ( this.M ) this.setViewMatrix(this.M);
+      else console.error("PlanePoints3d tPoints: view is not set.");
+    }
+    return this._tPoints;
   }
 
   /**
@@ -105,8 +120,13 @@ export class PlanePoints3d {
    */
   setViewMatrix(M) {
     this.M = M;
-    this._transform(M);
-    this._truncateTransform(M);
+    this._transform(M); // Sets _tPoints.
+
+    // Truncate the points to be strictly less than 0 in the z direction.
+    // (In front of, as opposed to behind, the viewer.)
+    // Use -0.1 instead of 0 to avoid floating point errors near 0.
+    const cmp = (a, b) => a < b;
+    this._tPoints = PlanePoints3d.truncatePlanePoints(this._tPoints, -0.1, "z", cmp);
     this.viewIsSet = true;
   }
 
@@ -117,7 +137,7 @@ export class PlanePoints3d {
   _transform(M) {
     const ln = this.points.length;
     for ( let i = 0; i < ln; i += 1 ) {
-      this.tPoints[i] = Matrix.fromPoint3d(this.points[i]).multiply(M).toPoint3d();
+      this._tPoints[i] = Matrix.fromPoint3d(this.points[i]).multiply(M).toPoint3d();
     }
   }
 
@@ -178,7 +198,6 @@ export class PlanePoints3d {
    * @returns {Point2d[]}
    */
   perspectiveTransform() {
-    if ( !this.viewIsSet ) console.error("PlanePoints3d perspectiveTransform: view is not set.");
     return this.tPoints.map(pt => PlanePoints3d.perspectiveTransform(pt));
   }
 
@@ -197,10 +216,6 @@ export class PlanePoints3d {
   drawTransformed({perspective = true, color = drawing.COLORS.blue, width = 1, fill, fillAlpha = 0.2 } = {}) {
     if ( typeof fill === "undefined" ) fill = color;
 
-    if ( !this.viewIsSet ) {
-      console.warn(`PlanePoints3d: View is not yet set for this object ${this.object.id}.`);
-      return;
-    }
     const pts = perspective ? this.perspectiveTransform() : this.tPoints;
     const poly = new PIXI.Polygon(pts);
     drawing.drawShape(poly, { color, width, fill, fillAlpha });

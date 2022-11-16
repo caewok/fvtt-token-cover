@@ -59,11 +59,8 @@ export class DrawingPoints3d extends PlanePoints3d {
       this.points[i].z = value;
     }
 
-    // Redo the transform if already set.
-    if ( this.viewIsSet ) {
-      this._transform(this.M);
-      this._truncateTransform();
-    }
+    // Trigger recalculation of the transform.
+    this.viewIsSet = false;
   }
 
   get elevation() { return pixelsToGridUnits(this.elevationZ); }
