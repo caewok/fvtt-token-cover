@@ -76,17 +76,20 @@ export class PlanePoints3d {
     if ( rep > 2 ) return;
 
     let needsRep = false;
-    const targetE = -1; // Must be less than this in the z dimension to keep.
-    const ln = this.points.length;
+    const targetZ = -1; // Must be less than this in the z dimension to keep.
+    const ln = this.tPoints.length;
     let A = this.tPoints[ln - 1];
     for ( let i = 0; i < ln; i += 1 ) {
       const B = this.tPoints[i];
-      const Aabove = A.z > targetE;
-      const Babove = B.z > targetE;
+      const Aabove = A.z > targetZ;
+      const Babove = B.z > targetZ;
       if ( Aabove && Babove ) needsRep = true; // Cannot redo the A--B line until others points are complete.
-      if ( !(Aabove ^ Babove) ) continue;
+      if ( !(Aabove ^ Babove) ) {
+        A = B;
+        continue;
+      }
 
-      const res = PlanePoints3d.truncate3dSegmentAtZ(A, B, targetE, -1, 0);
+      const res = PlanePoints3d.truncate3dSegmentAtZ(A, B, targetZ, -1, 0);
       if ( res ) {
         A.copyFrom(res.A);
         B.copyFrom(res.B);
@@ -112,7 +115,7 @@ export class PlanePoints3d {
   draw(drawingOptions = {}) {
     this.points.forEach(pt => drawing.drawPoint(pt, drawingOptions));
     const poly = new PIXI.Polygon(this.points);
-    drawing.drawShape(this.shape, drawingOptions);
+    drawing.drawShape(poly, drawingOptions);
   }
 
   /**
