@@ -83,26 +83,30 @@ function* iteratePoints({close = true} = {}) {
 
 /**
  * Iterate over the polygon's edges in order.
- * If the polygon is closed and close is false,
- * the last two points (which should equal the first two points) will be dropped and thus
- * the final edge closing the polygon will be ignored.
- * Otherwise, all edges, including the closing edge, will be returned regardless of the
- * close value.
+ * If the polygon is closed, the last two points will be ignored.
+ * (Use close = true to return the last --> first edge.)
+ * @param {object} [options]
+ * @param {boolean} [close]   If true, return last point --> first point as edge.
  * @returns Return an object { A: {x, y}, B: {x, y}} for each edge
  * Edges link, such that edge0.B === edge.1.A.
  */
 function* iterateEdges({close = true} = {}) {
-  // Very similar to iteratePoints
-  const dropped = (!this.isClosed || close) ? 0 : 2;
+  const dropped = this.isClosed ? 2 : 0;
   const ln = this.points.length;
   const iter = ln - dropped;
-  for (let i = 0; i < iter; i += 2) {
-    const j = (i + 2) % ln;
+  if ( ln < 4 ) return;
 
-    yield {
-      A: new PIXI.Point(this.points[i], this.points[i + 1]),
-      B: new PIXI.Point(this.points[j], this.points[j + 1])
-    };
+  const firstA = new PIXI.Point(this.points[0], this.points[1]);
+  let A = firstA;
+  for (let i = 2; i < ln; i += 2) {
+    const B = new PIXI.Point(this.points[i], this.points[i + 1]);
+    yield { A, B };
+    A = B;
+  }
+
+  if ( close ) {
+    const B = firstA;
+    yield { A, B };
   }
 }
 
