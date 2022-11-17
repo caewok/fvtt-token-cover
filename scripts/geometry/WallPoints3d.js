@@ -39,6 +39,8 @@ export class WallPoints3d extends PlanePoints3d {
     // Terrain walls can be represented as the union of the intersection of every two pairs
     // For each wall, union the intersection of it with every other wall.
     // Then union the set of resulting walls.
+    // This only works for walls where we know the walls are between the viewer and the
+    // target, because otherwise some walls could be behind the target and thus not count.
     const polys = [...walls2d.map(w => new PIXI.Polygon(w))];
     const nWalls = polys.length;
     if ( nWalls < 2 ) return null;
@@ -50,7 +52,8 @@ export class WallPoints3d extends PlanePoints3d {
       const ixs = new ClipperPaths();
 
 
-      // Instead of intersecting each separately, union the walls then intersect against wall i.
+      // Instead of intersecting each separately, union the i+1..nWalls walls then intersect against wall i.
+
 
 
       for ( let j = i + 1; j < nWalls; j += 1 ) {
