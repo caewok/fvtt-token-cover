@@ -414,7 +414,7 @@ export class CoverCalculator {
         break;
     }
 
-    if ( coverType <= ignoresCover ) {
+    if ( coverType && coverType <= ignoresCover ) {
       console.log(`CoverCalculator: ${this.target.name}'s ${CoverCalculator.coverNameForType(coverType)} cover ignored by ${this.viewer.name}.`);
       return COVER_TYPES.NONE;
     }
