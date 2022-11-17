@@ -12,7 +12,7 @@ import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambl
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./geometry/PIXIPolygon.js";
 import { registerPIXIRectangleMethods } from "./geometry/PIXIRectangle.js";
-import { registerSettings, getSetting, setSetting, SETTINGS, updateConfigStatusEffects } from "./settings.js";
+import { registerSettings, getSetting, setSetting, SETTINGS, updateConfigStatusEffects, settingsCache } from "./settings.js";
 import { registerElevationAdditions } from "./elevation.js";
 import { Point3d, registerPIXIPointMethods } from "./geometry/Point3d.js";
 
@@ -202,3 +202,15 @@ function updateTokenHook(document, change, options, userId) { // eslint-disable-
  * Add controls to the measured template configuration
  */
 Hooks.on("renderDrawingConfig", renderDrawingConfigHook);
+
+
+/**
+ * Wipe the settings cache on update
+ */
+Hooks.on("updateSetting", updateSettingHook);
+
+function updateSettingHook(document, change, options, userId) {
+  const [module, ...arr] = document.key.split(".");
+  const key = arr.join("."); // If the key has periods, multiple will be returned by split.
+  if ( module === MODULE_ID && settingsCache.has(key) ) settingsCache.delete(key);
+}
