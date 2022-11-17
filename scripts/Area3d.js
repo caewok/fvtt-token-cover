@@ -187,8 +187,9 @@ export class Area3d {
     objs.terrainWalls.forEach(w => w.setViewMatrix(this.viewerViewM));
     this.blockingObjects.combinedTerrainWalls = undefined;
     if ( this.blockingObjects.terrainWalls.size > 1 ) {
-      const tws = this.blockingObjects.terrainWalls(w => w.perspectiveTransform());
-      this.blockingObjects.combinedTerrainWalls = WallPoints3d.combineTerrainWalls(tws);
+      const tws = this.blockingObjects.terrainWalls.map(w => w.perspectiveTransform());
+      const combined = WallPoints3d.combineTerrainWalls(tws);
+      if ( combined && combined.paths.length ) this.blockingObjects.combinedTerrainWalls = combined;
     }
 
     this._viewIsSet = true;
@@ -326,7 +327,7 @@ export class Area3d {
 
     const walls = this._combineBlockingWalls();
     const tiles = this._combineBlockingTiles();
-    const terrainWalls = WallPoints3d.combineTerrainWalls([...this.blockingObjects.terrainWalls]);
+    const terrainWalls = this.blockingObjects.combinedTerrainWalls;
 
     // Combine the walls and tiles to a single set of polygon paths
     let blockingPaths = [];
