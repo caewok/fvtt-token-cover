@@ -31,12 +31,11 @@ export class WallPoints3d extends PlanePoints3d {
   /**
    * Given an array of terrain walls, trim the polygons by combining.
    * Viewer and target locations used to sort the walls by distance.
-   * @param {Point3d} viewerLoc         Location of the viewer
-   * @param {Point3d} targetLoc         Location of the target
    * @param {WallPoints3d[]} walls      Set, Array, or Map of terrain walls
+   * @param {Point3d} viewerLoc         Location of the viewer
    * @returns {ClipperPaths}
    */
-  static combineTerrainWalls(viewerLoc, targetLoc, walls) {
+  static combineTerrainWalls(walls, viewerLoc) {
     // TODO: Handle walls that are actually lines?
 
     walls = [...walls];
@@ -129,7 +128,7 @@ export class WallPoints3d extends PlanePoints3d {
  * @returns {-1|0|1}
  */
 function ccw(a, b, c) {
-  return Math.sign(foundry.util.orient2dFast(a, b, c));
+  return Math.sign(foundry.utils.orient2dFast(a, b, c));
 }
 
 /**
@@ -152,10 +151,10 @@ function handleTerrainWallsCross(wi, wj, ccwABV, ccwCDV) {
   }
 
   // Create 4 subset walls: A|ix, B|ix, C|ix, D|ix
-  const wiA = new WallPoints3d(wi);
-  const wiB = new WallPoints3d(wi);
-  const wjC = new WallPoints3d(wj);
-  const wjD = new WallPoints3d(wj);
+  const wiA = new WallPoints3d(wi.object);
+  const wiB = new WallPoints3d(wi.object);
+  const wjC = new WallPoints3d(wj.object);
+  const wjD = new WallPoints3d(wj.object);
 
   wiA.points[1].x = ix.x;
   wiA.points[1].y = ix.y;
