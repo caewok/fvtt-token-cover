@@ -308,6 +308,8 @@ export class Area2d {
   _calculatePercentSeen(los, tokenShape) {
     let visibleTokenShape = this._intersectShapeWithLOS(tokenShape, los);
 
+    if ( !visibleTokenShape ) return 0;
+
     if ( !(visibleTokenShape instanceof PIXI.Polygon) ) {
       console.warn("_calculatePercentSeen: visibleTokenShape is not a polygon.");
     }
@@ -372,7 +374,7 @@ export class Area2d {
   /**
    * Intersect a shape with the line-of-sight polygon.
    * @param {PIXI.Polygon|PIXI.Rectangle} constrained
-   * @param {PIXI.Polygon} los
+   * @param {PIXI.Polygon|null} los
    */
   _intersectShapeWithLOS(constrained, los) {
     // TODO: Use Weiler-Atherton
@@ -382,7 +384,14 @@ export class Area2d {
     //     }
 
     if ( constrained instanceof PIXI.Rectangle ) constrained = constrained.toPolygon();
-    return los.intersectPolygon(constrained);
+    const out = los.intersectPolygon(constrained);
+    if ( out instanceof ClipperPaths ) {
+      if ( !out.paths.length ) return null;
+      return out.simplify();
+    }
+
+    if ( !out.points.length ) return null;
+    return out;
   }
 
   /**

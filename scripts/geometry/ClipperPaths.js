@@ -148,6 +148,7 @@ export class ClipperPaths {
   add(other) {
     if ( !other.paths.length ) return this;
     this.paths.push(...other.paths);
+    return this;
   }
 
   /**

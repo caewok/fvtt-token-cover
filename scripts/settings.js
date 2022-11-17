@@ -13,7 +13,33 @@ import {
   MediumCoverEffectConfig,
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
-export function getSetting(settingName) { return game.settings.get(MODULE_ID, settingName); }
+export const settingsCache = new Map();
+
+export function getSetting(settingName) {
+  const cached = settingsCache.get(settingName);
+  if ( cached === undefined ) {
+    const value = game.settings.get(MODULE_ID, settingName);
+    settingsCache.set(settingName, value);
+    return value;
+  }
+  return cached;
+}
+
+/*
+function fnDefault(settingName) {
+  return game.settings.get(MODULE_ID, settingName);
+}
+
+N = 1000
+await api.bench.QBenchmarkLoopFn(N, getSetting, "cached", "cover-algorithm")
+await api.bench.QBenchmarkLoopFn(N, fnDefault, "default", "cover-algorithm")
+
+await api.bench.QBenchmarkLoopFn(N, getSetting, "cached","cover-token-dead")
+await api.bench.QBenchmarkLoopFn(N, fnDefault, "default","cover-token-dead")
+
+await api.bench.QBenchmarkLoopFn(N, getSetting, "cached","cover-token-live")
+await api.bench.QBenchmarkLoopFn(N, fnDefault, "default","cover-token-live")
+*/
 
 export async function setSetting(settingName, value) {
   return await game.settings.set(MODULE_ID, settingName, value);
@@ -103,12 +129,12 @@ export const SETTINGS = {
       }
     },
 
-    LIVE_TOKENS:  "cover-token-live"
+    LIVE_TOKENS: "cover-token-live"
   },
 
   WELCOME_DIALOG: {
-      v020: "welcome-dialog-v0-20"
-    }
+    v020: "welcome-dialog-v0-20"
+  }
 };
 
 
@@ -196,7 +222,7 @@ export function registerSettings() {
     config: true,
     type: Boolean,
     default: true
-   });
+  });
 
   game.settings.register(MODULE_ID, SETTINGS.RANGE.DISTANCE3D, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.DISTANCE3D}.Name`),
@@ -205,7 +231,7 @@ export function registerSettings() {
     config: !levelsActive && !pvActive,
     type: Boolean,
     default: true
-   });
+  });
 
   game.settings.register(MODULE_ID, SETTINGS.LOS.ALGORITHM, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.ALGORITHM}.Name`),
