@@ -141,6 +141,16 @@ export class ClipperPaths {
   }
 
   /**
+   * Add a set of paths to this one
+   * @param {ClipperPaths} other
+   * @returns {ClipperPaths}
+   */
+  add(other) {
+    if ( !other.paths.length ) return this;
+    this.paths.push(...other.paths);
+  }
+
+  /**
    * Intersect this set of paths against another, taking the other as subject.
    * @param {ClipperPaths} other
    * @returns {ClipperPaths}
