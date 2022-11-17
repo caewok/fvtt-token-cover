@@ -257,7 +257,8 @@ export class Area3d {
 
     walls = walls.map(w => new PIXI.Polygon(w.perspectiveTransform()));
     walls = ClipperPaths.fromPolygons(walls);
-    walls.combine().clean();
+    walls = walls.combine()
+    walls.clean();
 
     return walls;
   }
