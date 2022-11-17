@@ -194,11 +194,30 @@ export class PlanePoints3d {
   }
 
   /**
+   * For an array of 2d points, determine the area.
+   * Same as ClipperLib.Clipper.Area.
+   * @param {PIXI.Point[]} points
+   * @returns {number} For y-axis downward (like Foundry), returns greater than 0 if clockwise.
+   */
+  static pointsArea2d(points) {
+    const ln = points.length;
+    if ( ln < 3 ) return 0;
+    let a = 0;
+    for ( let i = 0, j = ln - 1; i < ln; ++i) {
+      a += (points[j].x + points[i].x) * (points[j].y - points[i].y);
+      j = i;
+    }
+    return -a * 0.5;
+  }
+
+  /**
    * Transform the shape to a 2d perspective.
    * @returns {Point2d[]}
    */
-  perspectiveTransform() {
-    return this.tPoints.map(pt => PlanePoints3d.perspectiveTransform(pt));
+  perspectiveTransform({ forceClockwise = true } = {}) {
+    const out = this.tPoints.map(pt => PlanePoints3d.perspectiveTransform(pt));
+    if ( forceClockwise && PlanePoints3d.pointsArea2d(out) < 0 ) out.reverse();
+    return out;
   }
 
   /**
