@@ -10,7 +10,6 @@ foundry
 import { PlanePoints3d } from "./PlanePoints3d.js";
 import { Point3d } from "./Point3d.js";
 import { ClipperPaths } from "./ClipperPaths.js";
-import { lineSegmentCrosses } from "../util.js";
 
 export class WallPoints3d extends PlanePoints3d {
   constructor(object) {
@@ -68,25 +67,17 @@ export class WallPoints3d extends PlanePoints3d {
 
         if ( !(ccwABC || ccwABD) ) continue; // Walls are collinear
 
-        // Do the walls strictly cross, forming an X?
-        if ( lineSegmentCrosses(A, B, C, D) ) {
-          const res = handleTerrainWallsCross(wi, wj, ccwABV, ccwCDV);
-          if ( !res ) continue;
-          if ( res.wiPath.paths.length ) combined.add(res.wiPath);
-          if ( res.wjPath.paths.length ) combined.add(res.wjPath);
-          continue;
-        }
+        const ccwCDA = ccw(C, D, A);
+        const ccwCDB = ccw(C, D, B);
 
-        // One wall must be entirely on one side of the other wall
+        // One wall may be entirely on one side of the other wall
         // Forms something like a T or V or / \
         let wFront;
         let wBack;
 
-
         if ( ccwABC === ccwABD || !ccwABD || !ccwABC ) {
           // CD is entirely on one side of AB
           const endpointCCW = ccwABC === 0 ? ccwABD : ccwABC;
-
           if ( endpointCCW === ccwABV ) {
             // Viewer is on the T side
             wFront = wj;
@@ -95,11 +86,9 @@ export class WallPoints3d extends PlanePoints3d {
             wFront = wi;
             wBack = wj;
           }
-        } else {
+        } else if ( ccwCDA === ccwCDB || !ccwCDA || !ccwCDB ) {
           // AB is entirely on one side of CD
-          const ccwCDA = ccw(C, D, A);
-          const endpointCCW = ccwCDA === 0 ? ccw(C, D, B) : ccwCDA;
-
+          const endpointCCW = ccwCDA === 0 ? ccwCDB : ccwCDA;
           if ( endpointCCW === ccwCDV ) {
             wFront = wi;
             wBack = wj;
@@ -109,10 +98,19 @@ export class WallPoints3d extends PlanePoints3d {
           }
         }
 
-        const cpFront = ClipperPaths.fromPolygons([new PIXI.Polygon(wFront.perspectiveTransform())]);
-        const cpBack = ClipperPaths.fromPolygons([new PIXI.Polygon(wBack.perspectiveTransform())]);
-        const cpIntersect = cpFront.intersectPaths(cpBack);
-        if ( cpIntersect.paths.length ) combined.add(cpIntersect);
+        if ( wFront ) {
+          const cpFront = ClipperPaths.fromPolygons([new PIXI.Polygon(wFront.perspectiveTransform())]);
+          const cpBack = ClipperPaths.fromPolygons([new PIXI.Polygon(wBack.perspectiveTransform())]);
+          const cpIntersect = cpFront.intersectPaths(cpBack);
+          if ( cpIntersect.paths.length ) combined.add(cpIntersect);
+          continue;
+        }
+
+        // Walls otherwise strictly cross, forming an X.
+        const res = handleTerrainWallsCross(wi, wj, ccwABV, ccwCDV);
+        if ( !res ) continue;
+        if ( res.wiPath.paths.length ) combined.add(res.wiPath);
+        if ( res.wjPath.paths.length ) combined.add(res.wjPath);
       }
     }
 
