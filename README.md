@@ -30,10 +30,6 @@ Add this [Manifest URL](https://github.com/caewok/fvtt-token-visibility/releases
 
 Alternative Token Visibility should also work with [Perfect Vision](https://github.com/dev7355608/perfect-vision/) and [Levels](https://github.com/theripper93/Levels). If either module is installed, measurement of range is left to those modules.
 
-## Known conflicts
-- [Perfect Vision](https://github.com/dev7355608/perfect-vision). Likely incompatible because Perfect Vision overrides `testVisibility.`
-- [Levels](https://github.com/theripper93/Levels). Likely incompatible because Levels overrides the `contains` test in `ClockwiseSweepPolygon.`
-
 ## Levels
 
 Alt Token Visibility attempts to adjust visibility based on tiles used by Levels, but edge cases may remain. For example, gaps in walls between levels can cause tokens to appear outside unexpectedly. Please feel to file an issue if you see a problem.
