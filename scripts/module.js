@@ -88,29 +88,37 @@ Hooks.once("setup", async function() {
 });
 
 Hooks.once("ready", async function() {
-  if ( !getSetting(SETTINGS.WELCOME_DIALOG.v020) ) {
+  if ( !getSetting(SETTINGS.WELCOME_DIALOG.v030) ) {
     Dialog.prompt({
-      title: "Alt Token Visibility v0.2.0 Changes!",
+      title: "Alt Token Visibility v0.3.0 Changes!",
       content: `
 <p>
-As of version 0.2.0, Alternative Token Visibility now can calculate cover! And it now has a fancy
-new 3d area option for line-of-sight and cover! Read all about the new options on the <a href="https://github.com/caewok/fvtt-token-visibility">Git page</a>.
+Version 0.3.0 of Alternative Token Visibility brings several improvements.
+You can read more about the module and report any issues on the  <a href="https://github.com/caewok/fvtt-token-visibility">Git page</a>.
 </p>
 
 <p>
-A "Measure Cover" macro is available in the Macro Compendium, allowing any user to measure cover between
-one or more tokens to one or more targets.
+Settings allow the GM to permit live or dead tokens to provide cover, or, in the case of dead tokens, half-height cover.
+You can also now have tokens ignore cover. For dnd5e, you can set the actor's special feat, just as you can
+(and compatible with) <a href="https://github.com/vtt-lair/simbuls-cover-calculator">Simbul's Cover Calculator</a>. For non-dnd5e systems, the "token.ignoresCover" property
+controls this.
 </p>
 
 <p>
-The GM can also designate a cover algorithm, define thresholds for the different cover levels, and
-set up status conditions with active effects for cover types.
+If you want more information on what the Cover algorithm is doing, try the new Macro in the compendium,
+"Cover Debug Tester." This will temporarily turn on debug visualization when running the Cover macro.
 </p>
 
 <p>
-The 3d area considers the scene, with relevant walls, from the perspective of your token viewing a target.
-(Think 1st-person shooter view for your token.) It then measures how much of the target is viewable
-from that perspective. The new 3d area option works great with the <a href="https://github.com/theripper93/wall-height">Wall Height</a> module.
+<a href="https://github.com/theripper93/Levels">Levels</a> users now get improved handling of tiles. For Points algorithms or the Area2d algorithm,
+transparent tile pixels are ignored, to align with how Levels treats holes in tiles. For the
+Area3d algorithm, you will need to use a rectangle, ellipse, or polygon drawing and set the drawing to be a hole
+in the drawing configuration.
+</p>
+
+<p>
+FYI, Area3d is probably the better algorithm choice for Levels users because it considers the 3d view of the scene
+from the perspective of the viewing token.
 </p>
 
 <p>
@@ -209,7 +217,7 @@ Hooks.on("renderDrawingConfig", renderDrawingConfigHook);
  */
 Hooks.on("updateSetting", updateSettingHook);
 
-function updateSettingHook(document, change, options, userId) {
+function updateSettingHook(document, change, options, userId) {  // eslint-disable-line no-unused-vars
   const [module, ...arr] = document.key.split(".");
   const key = arr.join("."); // If the key has periods, multiple will be returned by split.
   if ( module === MODULE_ID && settingsCache.has(key) ) settingsCache.delete(key);
