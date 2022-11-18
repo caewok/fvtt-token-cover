@@ -8,25 +8,36 @@ Dialog
 import { MODULE_ID, COVER_TYPES } from "./const.js";
 
 // Hooks and method registration
-import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook } from "./cover.js";
+import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook, addDND5eCoverFeatFlags } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
-import { registerPIXIPolygonMethods } from "./PIXIPolygon.js";
-import { registerPIXIRectangleMethods } from "./PIXIRectangle.js";
-import { registerSettings, getSetting, setSetting, SETTINGS, updateConfigStatusEffects } from "./settings.js";
+import { registerPIXIPolygonMethods } from "./geometry/PIXIPolygon.js";
+import { registerPIXIRectangleMethods } from "./geometry/PIXIRectangle.js";
+import { registerSettings, getSetting, setSetting, SETTINGS, updateConfigStatusEffects, settingsCache } from "./settings.js";
 import { registerElevationAdditions } from "./elevation.js";
-import { Point3d, registerPIXIPointMethods } from "./Point3d.js";
+import { Point3d, registerPIXIPointMethods } from "./geometry/Point3d.js";
+
+// Rendering configs
+import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
 
 // For API
 import * as bench from "./benchmark.js";
 import * as drawing from "./drawing.js";
 import * as util from "./util.js";
-import { Shadow } from "./Shadow.js";
-import { Matrix } from "./Matrix.js";
+
 import { Area3d } from "./Area3d.js";
 import { Area2d } from "./Area2d.js";
-import { Plane } from "./Plane.js";
-import { ClipperPaths } from "./ClipperPaths.js";
 import { CoverCalculator } from "./CoverCalculator.js";
+import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+
+import { Plane } from "./geometry/Plane.js";
+import { ClipperPaths } from "./geometry/ClipperPaths.js";
+import { Shadow } from "./geometry/Shadow.js";
+import { Matrix } from "./geometry/Matrix.js";
+import { PlanePoints3d } from "./geometry/PlanePoints3d.js";
+import { TokenPoints3d } from "./geometry/TokenPoints3d.js";
+import { DrawingPoints3d } from "./geometry/DrawingPoints3d.js";
+import { WallPoints3d } from "./geometry/WallPoints3d.js";
+import { TilePoints3d } from "./geometry/TilePoints3d.js";
 
 import * as los from "./visibility_los.js";
 
@@ -37,6 +48,7 @@ Hooks.once("init", async function() {
   registerLibWrapperMethods();
   patchHelperMethods();
   registerPIXIPolygonMethods();
+  addDND5eCoverFeatFlags();
 
   game.modules.get(MODULE_ID).api = {
     bench,
@@ -51,12 +63,19 @@ Hooks.once("init", async function() {
     util,
     CoverCalculator,
     COVER_TYPES,
+    ConstrainedTokenBorder,
     los,
+    PlanePoints3d,
+    TokenPoints3d,
+    DrawingPoints3d,
+    WallPoints3d,
+    TilePoints3d,
     debug: {
       range: false,
       los: false,
       cover: false,
-      area: false
+      area: false,
+      once: false
     }
   };
 
@@ -69,29 +88,37 @@ Hooks.once("setup", async function() {
 });
 
 Hooks.once("ready", async function() {
-  if ( !getSetting(SETTINGS.WELCOME_DIALOG.v020) ) {
+  if ( !getSetting(SETTINGS.WELCOME_DIALOG.v030) ) {
     Dialog.prompt({
-      title: "Alt Token Visibility v0.2.0 Changes!",
+      title: "Alt Token Visibility v0.3.0 Changes!",
       content: `
 <p>
-As of version 0.2.0, Alternative Token Visibility now can calculate cover! And it now has a fancy
-new 3d area option for line-of-sight and cover! Read all about the new options on the <a href="https://github.com/caewok/fvtt-token-visibility">Git page</a>.
+Version 0.3.0 of Alternative Token Visibility brings several improvements.
+You can read more about the module and report any issues on the  <a href="https://github.com/caewok/fvtt-token-visibility">Git page</a>.
 </p>
 
 <p>
-A "Measure Cover" macro is available in the Macro Compendium, allowing any user to measure cover between
-one or more tokens to one or more targets.
+Settings allow the GM to permit live or dead tokens to provide cover, or, in the case of dead tokens, half-height cover.
+You can also now have tokens ignore cover. For dnd5e, you can set the actor's special feat, just as you can
+(and compatible with) <a href="https://github.com/vtt-lair/simbuls-cover-calculator">Simbul's Cover Calculator</a>. For non-dnd5e systems, the "token.ignoresCover" property
+controls this.
 </p>
 
 <p>
-The GM can also designate a cover algorithm, define thresholds for the different cover levels, and
-set up status conditions with active effects for cover types.
+If you want more information on what the Cover algorithm is doing, try the new Macro in the compendium,
+"Cover Debug Tester." This will temporarily turn on debug visualization when running the Cover macro.
 </p>
 
 <p>
-The 3d area considers the scene, with relevant walls, from the perspective of your token viewing a target.
-(Think 1st-person shooter view for your token.) It then measures how much of the target is viewable
-from that perspective. The new 3d area option works great with the <a href="https://github.com/theripper93/wall-height">Wall Height</a> module.
+<a href="https://github.com/theripper93/Levels">Levels</a> users now get improved handling of tiles. For Points algorithms or the Area2d algorithm,
+transparent tile pixels are ignored, to align with how Levels treats holes in tiles. For the
+Area3d algorithm, you will need to use a rectangle, ellipse, or polygon drawing and set the drawing to be a hole
+in the drawing configuration.
+</p>
+
+<p>
+FYI, Area3d is probably the better algorithm choice for Levels users because it considers the 3d view of the scene
+from the perspective of the viewing token.
 </p>
 
 <p>
@@ -115,7 +142,7 @@ Hooks.once("devModeReady", ({ registerPackageDebugFlag }) => {
 });
 
 function registerSystemHooks() {
-  console.log(`Game system is ${game.system.id}`);
+  util.log(`Game system is ${game.system.id}`);
   if ( game.system.id !== "pf2e" ) {
     /**
      * Hook whenever a token is targeted or un-targeted.
@@ -142,19 +169,6 @@ function registerSystemHooks() {
   }
 }
 
-// Hooks.on("midi-qol.preAttackRoll", midiqolPreAttackRoll);
-
-// Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHookTest);
-
-
-// function midiqolPreambleCompleteHookTest(workflow) {
-//   console.log(`midiqolPreambleCompleteHookTest user ${game.userId}`, workflow);
-// }
-//
-// function midiqolPreAttackRoll(workflow) {
-//   console.log(`midiqolPreAttackRoll user ${game.userId}`, workflow);
-// }
-
 /**
  * A hook event that fires for every Document type after conclusion of an update workflow.
  * Substitute the Document name in the hook event to target a specific Document type, for example "updateActor".
@@ -178,10 +192,33 @@ function updateTokenHook(document, change, options, userId) { // eslint-disable-
     || Object.hasOwn(change, "elevation") ) {
 
     const debug = game.modules.get(MODULE_ID).api.debug;
-    if ( debug.range || debug.area || debug.cover || debug.los ) {
-      console.log("Clearing drawings!");
+    if ( debug.once || debug.range || debug.area || debug.cover || debug.los ) {
       drawing.clearDrawings();
+
+      if ( debug.once ) {
+        debug.range = false;
+        debug.area = false;
+        debug.cover = false;
+        debug.los = false;
+        debug.once = false;
+      }
     }
   }
 }
 
+/**
+ * Add controls to the measured template configuration
+ */
+Hooks.on("renderDrawingConfig", renderDrawingConfigHook);
+
+
+/**
+ * Wipe the settings cache on update
+ */
+Hooks.on("updateSetting", updateSettingHook);
+
+function updateSettingHook(document, change, options, userId) {  // eslint-disable-line no-unused-vars
+  const [module, ...arr] = document.key.split(".");
+  const key = arr.join("."); // If the key has periods, multiple will be returned by split.
+  if ( module === MODULE_ID && settingsCache.has(key) ) settingsCache.delete(key);
+}

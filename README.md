@@ -8,6 +8,8 @@ This module provides options to modify Foundry's default methods for measuring v
 
 As of v0.2.0, this module also optionally assists with cover calculations in a (mostly) system-agnostic manner. Various cover measurement options are provided. A macro is also provided to allow any user to calculate cover from one or more selected tokens to one or more targeted tokens. (Import from the Macro compendium.)
 
+Version v0.3.0 introduces the ability to use tokens as cover, and to designate a token with the ability to ignore cover.
+
 By measuring the precise token boundary and by considering intersecting walls, Alt Token Visibility prevents tokens from being seen in situations where they partially overlap a wall. Alt Token Visibility provides additional customizations to control when partially obscured tokens can be seen.
 
 Alt Token Visibility is particularly useful when dealing with token elevations and walls with limited heights or depth, because it focuses on approximating visibility in 3 dimensions.
@@ -28,11 +30,16 @@ Add this [Manifest URL](https://github.com/caewok/fvtt-token-visibility/releases
 
 Alternative Token Visibility should also work with [Perfect Vision](https://github.com/dev7355608/perfect-vision/) and [Levels](https://github.com/theripper93/Levels). If either module is installed, measurement of range is left to those modules.
 
-Alt Token Visibility attempts to adjust visibility based on tiles used by Levels, but edge cases may remain. For example, gaps in walls between levels can cause tokens to appear outside unexpectedly. I expect to add more sophisticated ways to deal with Levels tiles over time, but please feel to file an issue if you see a problem.
-
 ## Known conflicts
 - [Perfect Vision](https://github.com/dev7355608/perfect-vision). Likely incompatible because Perfect Vision overrides `testVisibility.`
 - [Levels](https://github.com/theripper93/Levels). Likely incompatible because Levels overrides the `contains` test in `ClockwiseSweepPolygon.`
+
+## Levels
+
+Alt Token Visibility attempts to adjust visibility based on tiles used by Levels, but edge cases may remain. For example, gaps in walls between levels can cause tokens to appear outside unexpectedly. Please feel to file an issue if you see a problem.
+
+- For Points or Area2d algorithms, transparent tile pixels are ignored. This is the same technique Levels uses to create holes.
+- For Area3d algorithm, drawings can be used to create holes in tiles. See the Drawing config to set an ellipse, polygon, or rectangle as a hole. FYI, for transparent tiles to work as holes would probably require switching to WebGPU because Area3d relies on polygons and geometry, and does not function at a per-pixel level.
 
 # TLDR: Recommended settings for different styles
 
@@ -105,6 +112,8 @@ If enabled, all range measurements will be in three dimensions. Meaning that, fo
 
 ### Line of Sight Algorithm
 
+By default, line-of-sight uses the "light" wall restriction when considering whether walls block. This is the same as default Foundry.
+
 Line of Sight Algorithm lets you select from:
 - Points on Token. If Range Points is set to 9, this would be the Foundry default.
 - Token Area
@@ -164,8 +173,17 @@ Settings allow the GM to define the precise limits for cover and the algorithm u
 
 <img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/settings-cover.jpg" width="400" alt="Cover Settings for the Alt Token Visibility Module">
 
-
 ### Cover Algorithm
+
+By default, cover algorithms uses the "move" wall restriction when considering whether walls block. This is intended to be consistent with how walls that would physically block movement are most likely to provide cover. Using the API, it is possible to change this for a given calculation. For example:
+
+```js
+api = game.modules.get('tokenvisibility').api;
+calc = new api.CoverCalculator(token, target); // token and target are both Tokens you must define.
+calc.config.type = "sound"  // "move", "light", "sound", "sight"
+calc.targetCover()
+
+```
 
 Cover algorithm choices can be split into Points and Area.
 
@@ -207,6 +225,18 @@ When enabled, this option applies cover status to targeted tokens during combat.
 
 For dnd5e, enabling this will use the dnd5e attack hook to display cover of targeted tokens in the chat, when an attack is initiated. Targeted tokens without cover are not included in the chat message, and so if no targeted tokens have cover, nothing will be output to chat.
 
+## Dead tokens grant cover
+
+The GM can choose whether dead tokens grant cover and whether to use half the height of the token or the full height. You will need to set the "Token HP Attribute" for your system.
+
+## Live tokens grant cover
+
+The GM can choose whether live tokens should be considered cover. If the "Token HP Attribute" is not set, all tokens will be considered cover if this is set.
+
+## Token HP attribute
+
+This tells Alternative Token Visibility where to find the HP value for a token in your system. The default for dnd5e is "system.attributes.hp.value." A token with 0 or less HP is considered "dead" for purposes of cover.
+
 ### Midi-qol Attack Workflow
 
 If [Midiqol](https://gitlab.com/tposney/midi-qol) is active, the GM can choose whether cover status conditions should be applied to targeted tokens. Statuses are applied after targeting occurs in the midiqol workflow. Options:
@@ -220,9 +250,11 @@ For the confirmation options, this pops up a list of targets with calculated cov
 
 # Cover Macro
 
-A compendium macro is provided to allow users to easily measure cover. Select one or more tokens and target one or more tokens. Cover will be measured for each token --> target combination and the results reported in a pop-up.
+A compendium macro, "Measure Cover" is provided to allow users to easily measure cover. Select one or more tokens and target one or more tokens. Cover will be measured for each token --> target combination and the results reported in a pop-up.
 
 <img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/settings-cover-macro.jpg" width="400" alt="Cover Macro for the Alt Token Visibility Module">
+
+A second version of this macro, "Cover Debug Tester" temporarily enables the debug visibility so you can get a better sense of what the cover algorithm is detecting.
 
 # Methodology
 Base Foundry calculates token (and other object) visibility by considering 9 points arranged around the token: the center point plus 8 points spaced out in a rectangular shape.
@@ -237,7 +269,7 @@ Depending on settings and scene layout, Alternative Token Visibility may be fast
 
 Setting area = 0 tends to be a bit faster than other area settings. When area is set to less than or equal to 50%, calculations for visible tokens tend to be faster. When area is set to greater than 50%, calculations for non-visible tokens tend to be faster. When a token partially overlaps a wall, Alt Token Visibility must re-construct the visible shape, which is slow.
 
-Area3d can be faster than Area2d, depending on
+Area3d can be faster than Area2d, depending on settings and scene layout.
 
 You can test performance on a given scene by selecting a token on the scene and running the following code in the console. This will test whether the selected token can see every other token in the scene, and will test cover, for a variety of settings.
 

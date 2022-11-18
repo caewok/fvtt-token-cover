@@ -5,7 +5,66 @@ foundry
 */
 "use strict";
 
-import { lineSegmentCrosses } from "./util.js";
+import { lineSegmentCrosses, elementsByIndex } from "../util.js";
+
+
+/**
+ * Returns the points of the polygon that make up the viewable perimeter
+ * as seen from an origin.
+ * @param {Point} origin                  Location of the viewer, in 2d.
+ * @param {object} [options]
+ * @param {boolean} [options.returnKeys]      Return index of viewable points instead of points
+ * @param {boolean} [options.outermostOnly]   Return only the outermost two points
+ * @returns {Point[]|number[]}
+ */
+function viewablePoints(origin, { returnKeys = false, outermostOnly = false } = {}) {
+  // Key point is a line from origin to the point that does not intersect the polygon
+  // the outermost key points are the most ccw and cw of the key points.
+
+  // Possible paths:
+  // 1. n   n   n   key key key
+  // 2. key key key n   n   n
+  // 3. key key n   n   key  <-- last key(s) should be shifted to beginning of array
+  // 4. n   n   key key key n
+
+  const pts = [...this.iteratePoints({ close: false })];
+  const nPts = pts.length;
+  const startKeys = [];
+  const endKeys = [];
+
+  let foundNonKeyFirst = false;
+  let foundNonKeyAfter = false;
+  let foundKey = false;
+  for ( let i = 0; i < nPts; i += 1 ) {
+    let isKey = true;
+    const pt = pts[i];
+
+    for ( const edge of this.iterateEdges() ) {
+      if ( (edge.A.x === pt.x && edge.A.y === pt.y)
+        || (edge.B.x === pt.x && edge.B.y === pt.y) ) continue;
+
+      if ( foundry.utils.lineSegmentIntersects(origin, pt, edge.A, edge.B) ) {
+        isKey = false;
+        break;
+      }
+    }
+
+    if ( isKey ) {
+      foundKey = true;
+      !foundNonKeyAfter && startKeys.push(i); // eslint-disable-line no-unused-expressions
+      foundNonKeyAfter && endKeys.push(i); // eslint-disable-line no-unused-expressions
+    } else { // !isKey
+      foundNonKeyFirst ||= !foundKey;
+      foundNonKeyAfter ||= foundKey;
+      if ( foundNonKeyFirst && foundKey ) break; // Finished the key sequence
+    }
+  }
+
+  // Keep the keys CW, same order as pts
+  let keys = [...endKeys, ...startKeys];
+  if ( outermostOnly ) keys = [keys[0], keys[keys.length - 1]];
+  return returnKeys ? keys : elementsByIndex(pts, keys);
+}
 
 /**
  * Iterate over the polygon's {x, y} points in order.
@@ -24,26 +83,30 @@ function* iteratePoints({close = true} = {}) {
 
 /**
  * Iterate over the polygon's edges in order.
- * If the polygon is closed and close is false,
- * the last two points (which should equal the first two points) will be dropped and thus
- * the final edge closing the polygon will be ignored.
- * Otherwise, all edges, including the closing edge, will be returned regardless of the
- * close value.
+ * If the polygon is closed, the last two points will be ignored.
+ * (Use close = true to return the last --> first edge.)
+ * @param {object} [options]
+ * @param {boolean} [close]   If true, return last point --> first point as edge.
  * @returns Return an object { A: {x, y}, B: {x, y}} for each edge
  * Edges link, such that edge0.B === edge.1.A.
  */
 function* iterateEdges({close = true} = {}) {
-  // Very similar to iteratePoints
-  const dropped = (!this.isClosed || close) ? 0 : 2;
+  const dropped = this.isClosed ? 2 : 0;
   const ln = this.points.length;
   const iter = ln - dropped;
-  for (let i = 0; i < iter; i += 2) {
-    const j = (i + 2) % ln;
+  if ( ln < 4 ) return;
 
-    yield {
-      A: new PIXI.Point(this.points[i], this.points[i + 1]),
-      B: new PIXI.Point(this.points[j], this.points[j + 1])
-    };
+  const firstA = new PIXI.Point(this.points[0], this.points[1]);
+  let A = firstA;
+  for (let i = 2; i < ln; i += 2) {
+    const B = new PIXI.Point(this.points[i], this.points[i + 1]);
+    yield { A, B };
+    A = B;
+  }
+
+  if ( close ) {
+    const B = firstA;
+    yield { A, B };
   }
 }
 
@@ -264,5 +327,10 @@ export function registerPIXIPolygonMethods() {
     configurable: true
   });
 
+  Object.defineProperty(PIXI.Polygon.prototype, "viewablePoints", {
+    value: viewablePoints,
+    writable: true,
+    configurable: true
+  });
 }
 

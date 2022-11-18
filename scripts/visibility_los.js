@@ -3,16 +3,16 @@ Token,
 canvas,
 game,
 ClockwiseSweepPolygon,
-foundry
+CONFIG
 */
 "use strict";
 
 import { MODULE_ID } from "./const.js";
 import { SETTINGS, getSetting } from "./settings.js";
-import { Point3d } from "./Point3d.js";
-import { CoverCalculator } from "./CoverCalculator.js";
+import { Point3d } from "./geometry/Point3d.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
+import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import * as drawing from "./drawing.js";
 
 /* Visibility algorithm
@@ -79,32 +79,35 @@ DetectionMode.prototype._testRange
 
 */
 
+
 // ***** WRAPPERS
 
 /**
- * Wrap PointSource.prototype._createPolygon
- * Add a map to temporarily store shadows
+ * Wrap VisionSource.prototype.initialize
+ * Clear the cache when initializing
  */
-export function _createPolygonPointSource(wrapped) {
-  this._losShadows ??= new Map();
-  this._losShadows.clear();
-
-  return wrapped();
+export function initializeVisionSource(wrapper, data={}) {
+  this._losCache = {};
+  return wrapper(data);
 }
 
 /**
- * Wrap Token.prototype.updateVisionSource
- * Reset the constrained token shape when updating vision for a token.
- * @param {Function} wrapper
- * @param {object} [options]        Options which affect how the vision source is updated
- * @param {boolean} [options.defer]     Defer refreshing the LightingLayer to manually call that refresh later.
- * @param {boolean} [options.deleted]   Indicate that this vision source has been deleted.
- *
+ * Override VisionSource.prototype._createPolygon()
+ * Pass an optional type; store the resulting los for that type in the token.
+ * Pass other options to affect the config.
+ * @param {string} type   light, sight, sound, move
  */
-export function tokenUpdateVisionSource(wrapped, { defer=false, deleted=false }={}) {
-  // Remove the prior constrained shape, if any
-  this._constrainedTokenShape = undefined;
-  return wrapped({ defer, deleted });
+export function _createPolygonVisionSource(config) {
+  config ??= this._getPolygonConfiguration();
+  this._losCache ??= {};
+
+  // Vision source is destroyed on token move, so we can cache for the type.
+  if ( this._losCache[config.type] ) return this._losCache[config.type];
+
+  const origin = { x: this.data.x, y: this.data.y };
+  const poly = CONFIG.Canvas.losBackend.create(origin, config);
+  this._losCache[config.type] = poly;
+  return poly;
 }
 
 /**
@@ -114,65 +117,134 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   // Only apply this test to tokens
   if ( !(target instanceof Token) ) return wrapped(visionSource, mode, target, test);
 
+  // If not constrained by walls or no walls present, line-of-sight is guaranteed.
+  if ( !this.walls || !canvas.walls.placeables.length ) return true;
+
+  // Check the cached value; return if there.
+  let hasLOS = test.los.get(visionSource);
+  if ( hasLOS === true || hasLOS === false ) return hasLOS;
+
+  const debug = game.modules.get(MODULE_ID).api.debug.los;
   const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
   const types = SETTINGS.LOS.TYPES;
-  if ( algorithm === types.POINTS ) {
-    if ( !hasLOSCeilingFloorLevels(new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ), test.point) ) {
-      drawDebugPoint(visionSource, test, false);
-      return false;
-    }
-    let hasLOS = wrapped(visionSource, mode, target, test);
-    hasLOS = testLOSPoint(visionSource, target, test, hasLOS);
-    drawDebugPoint(visionSource, test, hasLOS);
-    return hasLOS;
+  switch ( algorithm ) {
+    case types.POINTS:
+      hasLOS = testLOSPoint(visionSource, target, test);
+      debug && drawDebugPoint(visionSource, test.point, hasLOS); // eslint-disable-line no-unused-expressions
+      break;
+    case types.AREA:
+      hasLOS = testLOSArea(visionSource, target, test);
+      break;
+    case types.AREA3D:
+      hasLOS = testLOSArea3d(visionSource, target, test);
+      break;
   }
 
-  // Only need to test area once, so use the center point to do this.
-  const center = target.center;
-  const avgElevation = CoverCalculator.averageTokenElevation(target);
-  const centerPoint = new Point3d(center.x, center.y, avgElevation);
-
-  if ( !test.point.almostEqual(centerPoint) && test.centerPoint ) return test.centerPoint.hasLOSArea;
-  if ( !hasLOSCeilingFloorLevels(new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ), test.point) ) return false;
-
-  if ( algorithm === types.AREA ) {
-    const hasLOS = wrapped(visionSource, mode, target, test);
-
-    const centerPointIsVisible = testLOSPoint(visionSource, target, test, hasLOS);
-
-    const area2d = new Area2d(visionSource, target);
-    area2d.debug = game.modules.get(MODULE_ID).api.debug.los;
-
-    test.hasLOSArea = area2d.hasLOS(centerPointIsVisible);
-    return test.hasLOSArea;
-  } else { // Final: types.AREA3D
-    const area3d = new Area3d(visionSource, target);
-    area3d.debug = game.modules.get(MODULE_ID).api.debug.los;
-    test.hasLOSArea = area3d.hasLOS();
-    return test.hasLOSArea;
-  }
+  test.los.set(visionSource, hasLOS);
+  return hasLOS;
 }
 
-function drawDebugPoint(origin, test, hasLOS) {
-  const debug = game.modules.get(MODULE_ID).api.debug.los;
-  debug && drawing.drawSegment({A: origin, B: test.point}, {
+/**
+ * Draw red or green test points for debugging.
+ * @param {VisionSource} visionSource
+ * @param {Point} pt
+ * @param {boolean} hasLOS       Is there line-of-sight to the point?
+ */
+function drawDebugPoint(visionSource, pt, hasLOS) {
+  const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
+  drawing.drawSegment({A: origin, B: pt}, {
     color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red,
     alpha: 0.5
-  })
+  });
 }
 
-export function testLOSPoint(visionSource, target, test, hasLOS ) {
-  // If not in the line of sight, no need to test for wall collisions
-  // If wall height is not active, collisions will be equivalent to hasLOS
-  if ( !hasLOS || !game.modules.get("wall-height")?.active ) return hasLOS;
+/**
+ * Test a point for line-of-sight. Confirm:
+ * 1. Point is on the same level as the visionSource.
+ * 2. Point is in LOS.
+ * 3. Point is within the constrained target shape.
+ * 4. No collisions with wall height limited walls.
+ * @param {VisionSource} visionSource
+ * @param {Token} target
+ * @param {object} test       Object containing Point to test
+ * @returns {boolean} True if source has line-of-sight to point
+ */
+function testLOSPoint(visionSource, target, test) {
+  // Test for Levels to avoid vision between levels tiles
+  const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
+  const pt = test.point;
+  if ( !hasLOSCeilingFloorLevels(origin, pt) ) return false;
+
+  // If not within LOS, then we are done.
+  if ( !visionSource.los.contains(pt.x, pt.y) ) return false;
+
+  // If not within the constrained token shape, then don't test.
+  // Assume that unconstrained token shapes contain all test points.
+  const cst = ConstrainedTokenBorder.get(target);
+  if ( !cst.contains(pt.x, pt.y) ) return false;
+
+  // If wall height is not active, collisions will be equivalent to the contains test
+  // because no limited walls to screw this up. (Note that contains is true at this point.)
+  if ( !game.modules.get("wall-height")?.active ) return true;
 
   // Test all non-infinite walls for collisions
-  const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
+  if ( game.modules.get("levels")?.active ) return !CONFIG.Levels.API.testCollision(origin, pt);
+  else return !ClockwiseSweepPolygon.testCollision3d(origin, pt, { type: "sight", mode: "any", wallTypes: "limited" });
+}
 
-  if ( game.modules.get("levels")?.active ) return !CONFIG.Levels.API.testCollision(origin, test.point);
-  else return !ClockwiseSweepPolygon.testCollision3d(origin, test.point, { type: "sight", mode: "any", wallTypes: "limited" });
+/**
+ * Test a target token for line-of-sight using top/bottom token areas.
+ * @param {VisionSource} visionSource
+ * @param {Token} target
+ * @param {object} pt       Point to test
+ * @returns {boolean} True if source has line-of-sight to point for center point, false otherwise.
+ */
+function testLOSArea(visionSource, target, test) {
+  // If this is not the center point, do not test.
+  if ( !test.centerPoint ) return false;
 
-  return hasLOS;
+  // Avoid errors when testing vision for tokens directly on top of one another
+  if ( visionSource.x === target.center.x && visionSource.y === target.center.y ) return false;
+
+  const centerPointIsVisible = testLOSPoint(visionSource, target, test);
+
+  const area2d = new Area2d(visionSource, target);
+  area2d.debug = game.modules.get(MODULE_ID).api.debug.los;
+  return area2d.hasLOS(centerPointIsVisible);
+}
+
+/**
+ * Test a target token for line-of-sight using top/bottom token areas.
+ * @param {VisionSource} visionSource
+ * @param {Token} target
+ * @param {object} pt       Point to test
+ * @returns {boolean} True if source has line-of-sight for center point, false otherwise
+ */
+function testLOSArea3d(visionSource, target, test) {
+  // If this is not the center point, do not test.
+  if ( !test.centerPoint ) return false;
+
+  // Avoid errors when testing vision for tokens directly on top of one another
+  if ( visionSource.x === target.center.x && visionSource.y === target.center.y ) return false;
+
+  // TODO: Add debug to config, add a getter to check for targeted?
+  const config = {
+    type: "sight",
+    wallsBlock: true,
+    tilesBlock: game.modules.get("levels")?.active,
+    liveTokensBlock: false,
+    deadTokensBlock: false
+  };
+
+  const area3d = new Area3d(visionSource, target, config);
+
+  // Set debug only if the target is being targeted.
+  // Avoids "double-vision" from multiple targets for area3d on scene.
+  if ( game.modules.get(MODULE_ID).api.debug.los ) {
+    const targets = canvas.tokens.placeables.filter(t => t.isTargeted);
+    area3d.debug = targets.some(t => t === target);
+  }
+  return area3d.hasLOS();
 }
 
 /**
@@ -185,18 +257,18 @@ function hasLOSCeilingFloorLevels(origin, testPoint) {
   const z0 = origin.z;
   const z1 = testPoint.z;
 
-  //Check the background for collisions
-  const bgElevation = canvas?.scene?.flags?.levels?.backgroundElevation ?? 0
+  // Check the background for collisions
+  const bgElevation = canvas?.scene?.flags?.levels?.backgroundElevation ?? 0;
 
   if ( (origin.z < bgElevation && bgElevation < z1)
     || (z1 < bgElevation && bgElevation < z0) ) return false;
 
-  //Loop through all the planes and check for both ceiling and floor collision on each tile
+  // Loop through all the planes and check for both ceiling and floor collision on each tile
   for (let tile of canvas.tiles.placeables) {
-    if( tile.document.flags?.levels?.noCollision ) continue;
+    if ( tile.document.flags?.levels?.noCollision ) continue;
     const bottom = tile.document.flags?.levels?.rangeBottom ?? -Infinity;
-    if ( bottom !== -Infinity &&
-      ((z0 < bottom && bottom < z1) || (z1 < bottom && bottom < z0)) ) {
+    if ( bottom !== -Infinity
+      && ((z0 < bottom && bottom < z1) || (z1 < bottom && bottom < z0)) ) {
 
       const zIntersectionPoint = getPointForPlane(origin, testPoint, bottom);
       if ( tile.containsPixel(zIntersectionPoint.x, zIntersectionPoint.y, 0.99) ) return false;
@@ -207,72 +279,13 @@ function hasLOSCeilingFloorLevels(origin, testPoint) {
 }
 
 // From https://github.com/theripper93/Levels/blob/v9/scripts/handlers/sightHandler.js
-//Get the intersection point between the ray and the Z plane
+// Get the intersection point between the ray and the Z plane
 function getPointForPlane(a, b, z) {
   const dabz = b.z - a.z;
   if ( !dabz ) return null;
 
   const dzaz = z - a.z;
-  const x = (dzaz * (b.x - a.x) + (a.x * b.z) - (a.x * a.z)) / dabz;
-  const y = (dzaz * (b.y - a.y) + (b.z * a.y) - (a.z * a.y)) / dabz;
+  const x = ((dzaz * (b.x - a.x)) + (a.x * b.z) - (a.x * a.z)) / dabz;
+  const y = ((dzaz * (b.y - a.y)) + (b.z * a.y) - (a.z * a.y)) / dabz;
   return { x, y };
-}
-
-export function getConstrainedTokenShape() {
-  const boundsScale = 1;
-  // Construct the constrained token shape if not yet present.
-  // Store in token so it can be re-used (wrapped updateVisionSource will remove it when necessary)
-  this._constrainedTokenShape ||= calculateConstrainedTokenShape(this, { boundsScale });
-  return this._constrainedTokenShape;
-}
-
-/**
- * Intersect the token bounds against line-of-sight polygon to trim the token bounds
- * to only that portion that does not overlap a wall.
- * @param {Token} token
- * @return {PIXI.Polygon}
- */
-export function calculateConstrainedTokenShape(token, { boundsScale } = {}) {
-  boundsScale ??= 1;
-
-  let bbox = token.bounds;
-  if ( boundsScale !== 1) {
-    // BoundsScale is a percentage where less than one means make the bounds smaller,
-    // greater than one means make the bounds larger.
-    const scalar = boundsScale - 1;
-    bbox.pad(Math.ceil(bbox.width * scalar), Math.ceil(bbox.height * scalar)); // Prefer integer values; round up to avoid zeroes.
-  }
-
-  let walls = Array.from(canvas.walls.quadtree.getObjects(bbox).values());
-  if ( !walls.length ) return bbox;
-
-  // Only care about walls that strictly intersect the bbox or are inside the bbox.
-  // Many times with a grid, a wall will overlap a bbox edge.
-  walls = walls.filter(w =>
-    bbox.lineSegmentIntersects(w.A, w.B, { inside: true, intersectFn: foundry.utils.lineSegmentIntersects }));
-
-  // Don't include walls that are in line with a boundary edge
-  walls = walls.filter(w => {
-    if ( w.A.x === w.B.x && (w.A.x === bbox.left || w.A.x === bbox.right) ) return false;
-    if ( w.A.y === w.B.y && (w.A.y === bbox.top || w.A.y === bbox.bottom) ) return false;
-    return true;
-  });
-
-  if ( !walls.length ) return bbox;
-
-  // One or more walls are inside or intersect the bounding box.
-  const constrained = new ClockwiseSweepPolygon();
-  constrained.initialize(token.center, { type: "sight", source: token.vision, boundaryShapes: [bbox] });
-  constrained.compute();
-
-  // Check if we are basically still dealing with an unconstrained token shape, b/c
-  // that is faster than dealing with an arbitrary polygon.
-  if ( constrained.points.length !== 10 ) return constrained;
-
-  for ( const pt of constrained.iteratePoints({ close: false }) ) {
-    if ( !(pt.x.almostEqual(bbox.left) || pt.x.almostEqual(bbox.right)) ) return constrained;
-    if ( !(pt.x.almostEqual(bbox.top) || pt.y.almostEqual(bbox.bottom)) ) return constrained;
-  }
-
-  return bbox;
 }

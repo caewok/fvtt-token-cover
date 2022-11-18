@@ -1,8 +1,11 @@
 /* globals
 PIXI,
-ClipperLib
+ClipperLib,
+canvas
 */
 "use strict";
+
+import * as drawing from "../drawing.js";
 
 /**
  * Class to manage ClipperPaths for multiple polygons.
@@ -10,8 +13,12 @@ ClipperLib
 export class ClipperPaths {
   scalingFactor = 1;
 
+ /**
+  * @param paths {ClipperLib.Path[]|Set<ClipperLib.Path>|Map<ClipperLib.Path>}
+  * @returns {ClipperPaths}
+  */
   constructor(paths = []) {
-    this.paths = paths;
+    this.paths = [...paths]; // Ensure these are arrays
   }
 
   /**
@@ -134,6 +141,59 @@ export class ClipperPaths {
   }
 
   /**
+   * Add a set of paths to this one
+   * @param {ClipperPaths} other
+   * @returns {ClipperPaths}
+   */
+  add(other) {
+    if ( !other.paths.length ) return this;
+    this.paths.push(...other.paths);
+    return this;
+  }
+
+  /**
+   * Intersect this set of paths against another, taking the other as subject.
+   * @param {ClipperPaths} other
+   * @returns {ClipperPaths}
+   */
+  intersectPaths(other) {
+    const type = ClipperLib.ClipType.ctIntersection;
+    const subjFillType = ClipperLib.PolyFillType.pftEvenOdd;
+    const clipFillType = ClipperLib.PolyFillType.pftEvenOdd;
+
+    const c = new ClipperLib.Clipper();
+    const solution = new ClipperPaths();
+    solution.scalingFactor = this.scalingFactor;
+
+    c.AddPaths(other.paths, ClipperLib.PolyType.ptSubject, true);
+    c.AddPaths(this.paths, ClipperLib.PolyType.ptClip, true);
+    c.Execute(type, solution.paths, subjFillType, clipFillType);
+
+    return solution;
+  }
+
+  /**
+   * Using other as a subject, take the difference of this ClipperPaths.
+   * @param {ClipperPaths} other
+   * @returns {ClipperPaths}
+   */
+  diffPaths(other) {
+    const type = ClipperLib.ClipType.ctDifference;
+    const subjFillType = ClipperLib.PolyFillType.pftEvenOdd;
+    const clipFillType = ClipperLib.PolyFillType.pftEvenOdd;
+
+    const c = new ClipperLib.Clipper();
+    const solution = new ClipperPaths();
+    solution.scalingFactor = this.scalingFactor;
+
+    c.AddPaths(other.paths, ClipperLib.PolyType.ptSubject, true);
+    c.AddPaths(this.paths, ClipperLib.PolyType.ptClip, true);
+    c.Execute(type, solution.paths, subjFillType, clipFillType);
+
+    return solution;
+ }
+
+  /**
    * Using a polygon as a subject, take the difference of this ClipperPaths.
    * @param {PIXI.Polygon} polygon
    * @returns {ClipperPaths}
@@ -166,10 +226,48 @@ export class ClipperPaths {
   }
 
   /**
+   * Combine 2+ ClipperPaths objects using a union with a positive fill.
+   * @param {ClipperPaths[]} pathsArr
+   * @returns {ClipperPaths}
+   */
+  static combinePaths(pathsArr) {
+    const ln = pathsArr.length;
+    if ( !ln ) return undefined;
+
+    const firstPath = pathsArr[0];
+    if ( ln === 1 ) return firstPath;
+
+    const cPaths = new ClipperPaths(firstPath.paths);
+    cPaths.scalingFactor = firstPath.scalingFactor;
+
+    for ( let i = 1; i < ln; i += 1 ) {
+      cPaths.paths.push(...pathsArr[i].paths);
+    }
+
+    return cPaths.combine();
+  }
+
+  /**
    * Calculate the area for this set of paths
    * @returns {number}
    */
   area() {
     return ClipperLib.JS.AreaOfPolygons(this.paths);
+  }
+
+  /**
+   * Draw the clipper paths, to the extent possible
+   */
+  draw({ color = drawing.COLORS.black, width = 1, fill, fillAlpha = 1 } = {}) {
+    if ( !fill ) fill = color;
+    const polys = this.toPolygons();
+
+    canvas.controls.debug.beginFill(fill, fillAlpha);
+    for ( const poly of polys ) {
+      if ( poly.isHole ) canvas.controls.debug.beginHole();
+      canvas.controls.debug.lineStyle(width, color).drawShape(poly);
+      if ( poly.isHole ) canvas.controls.debug.endHole();
+    }
+    canvas.controls.debug.endFill();
   }
 }

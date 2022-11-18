@@ -13,7 +13,33 @@ import {
   MediumCoverEffectConfig,
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
-export function getSetting(settingName) { return game.settings.get(MODULE_ID, settingName); }
+export const settingsCache = new Map();
+
+export function getSetting(settingName) {
+  const cached = settingsCache.get(settingName);
+  if ( cached === undefined ) {
+    const value = game.settings.get(MODULE_ID, settingName);
+    settingsCache.set(settingName, value);
+    return value;
+  }
+  return cached;
+}
+
+/*
+function fnDefault(settingName) {
+  return game.settings.get(MODULE_ID, settingName);
+}
+
+N = 1000
+await api.bench.QBenchmarkLoopFn(N, getSetting, "cached", "cover-algorithm")
+await api.bench.QBenchmarkLoopFn(N, fnDefault, "default", "cover-algorithm")
+
+await api.bench.QBenchmarkLoopFn(N, getSetting, "cached","cover-token-dead")
+await api.bench.QBenchmarkLoopFn(N, fnDefault, "default","cover-token-dead")
+
+await api.bench.QBenchmarkLoopFn(N, getSetting, "cached","cover-token-live")
+await api.bench.QBenchmarkLoopFn(N, fnDefault, "default","cover-token-live")
+*/
 
 export async function setSetting(settingName, value) {
   return await game.settings.set(MODULE_ID, settingName, value);
@@ -92,11 +118,24 @@ export const SETTINGS = {
 
     COMBAT_AUTO: "cover-combat-auto",
     CHAT: "cover-chat-message",
+
+    DEAD_TOKENS: {
+      ALGORITHM: "cover-token-dead",
+      ATTRIBUTE: "cover-token-dead-attribute",
+      TYPES: {
+        NONE: "cover-token-dead-none",
+        HALF: "cover-token-dead-half",
+        FULL: "cover-token-dead-full"
+      }
+    },
+
+    LIVE_TOKENS: "cover-token-live"
   },
 
   WELCOME_DIALOG: {
-      v020: "welcome-dialog-v0-20"
-    }
+    v020: "welcome-dialog-v0-20",
+    v030: "welcome-dialog-v0-30"
+  }
 };
 
 
@@ -184,7 +223,7 @@ export function registerSettings() {
     config: true,
     type: Boolean,
     default: true
-   });
+  });
 
   game.settings.register(MODULE_ID, SETTINGS.RANGE.DISTANCE3D, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.DISTANCE3D}.Name`),
@@ -193,7 +232,7 @@ export function registerSettings() {
     config: !levelsActive && !pvActive,
     type: Boolean,
     default: true
-   });
+  });
 
   game.settings.register(MODULE_ID, SETTINGS.LOS.ALGORITHM, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.ALGORITHM}.Name`),
@@ -361,6 +400,40 @@ export function registerSettings() {
     onChange: updateCoverSetting
   });
 
+  const DEADCHOICES = SETTINGS.COVER.DEAD_TOKENS.TYPES;
+  game.settings.register(MODULE_ID, SETTINGS.COVER.DEAD_TOKENS.ALGORITHM, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ALGORITHM}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ALGORITHM}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      [DEADCHOICES.NONE]: game.i18n.localize(`${MODULE_ID}.settings.${DEADCHOICES.NONE}`),
+      [DEADCHOICES.HALF]: game.i18n.localize(`${MODULE_ID}.settings.${DEADCHOICES.HALF}`),
+      [DEADCHOICES.FULL]: game.i18n.localize(`${MODULE_ID}.settings.${DEADCHOICES.FULL}`)
+    },
+    default: DEADCHOICES.NONE,
+    onChange: updateCoverSetting
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.LIVE_TOKENS, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.LIVE_TOKENS}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.LIVE_TOKENS}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    default: "system.attributes.hp.value"
+  });
+
   // ----- HIDDEN SETTINGS ----- //
   game.settings.register(MODULE_ID, SETTINGS.COVER.EFFECTS, {
     scope: "world",
@@ -375,7 +448,7 @@ export function registerSettings() {
     default: false
   });
 
-  game.settings.register(MODULE_ID, SETTINGS.WELCOME_DIALOG.v020, {
+  game.settings.register(MODULE_ID, SETTINGS.WELCOME_DIALOG.v030, {
     scope: "world",
     config: false,
     default: false,

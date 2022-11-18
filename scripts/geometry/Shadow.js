@@ -6,11 +6,12 @@ Ray
 */
 "use strict";
 
-import { zValue } from "./util.js";
-import { COLORS, drawShape } from "./drawing.js";
+import { zValue } from "../util.js";
+import { COLORS, drawShape } from "../drawing.js";
 import { Point3d } from "./Point3d.js";
 import { ClipperPaths } from "./ClipperPaths.js";
 import { Plane } from "./Plane.js";
+import { TokenPoints3d } from "./TokenPoints3d.js";
 
 /* Testing
 api = game.modules.get("tokenvisibility").api
@@ -142,10 +143,20 @@ export class Shadow extends PIXI.Polygon {
       // Truncate wall to be above the surface
       // Can use the intersection point: will create a triangle shadow.
       // (Think flagpole shadow.)
-      const res = truncateWallAtElevation(A, B, ixAB.z, 1, 0);
-      if ( !res ) return null; // Wall portion completely behind the surface
-      A = res.A;
-      B = res.B;
+      if ( A.z < ixAB.z ) {
+        const newA = new Point3d();
+        const t = B.projectToAxisValue(A, 0, "z", newA);
+        if ( !t || t < 0 || t > 1 ) return null; // Wall portion completely behind surface.
+        if ( newA.almostEqual(B) ) return null;
+        A = newA;
+      } else if ( B.z < ixAB.z ) {
+        const newB = new Point3d();
+        const t = A.projectToAxisValue(B, 0, "z", newB);
+        if ( !t || t < 0 || t > 1 ) return null; // Wall portion completely behind surface.
+        if ( newB.almostEqual(A) ) return null;
+        B = newB;
+      }
+
     } else if ( A.z < surfacePlane.point.z ) return null; // Does not cross the surface. Reject if endpoint is on the wrong side.
 
     // Intersection points of origin --> wall endpoint --> surface
@@ -252,13 +263,13 @@ export class Shadow extends PIXI.Polygon {
 
     if ( origin.z <= C.z ) return null; // Viewer is below the wall bottom.
 
-    const upV = Shadow.upV;
+//     const upV = Shadow.upV;
 
     // Because the surfacePlane is parallel to XY, we can infer the intersection of the wall.
     // const ixAC = surfacePlane.lineIntersection(A, upV);
     // const ixBD = surfacePlane.lineIntersection(B, upV);
-    const ixAC = new Point3d(A.x, A.y, surfacePlane.point.z)
-    const ixBD = new Point3d(B.x, B.y, surfacePlane.point.z)
+    const ixAC = new Point3d(A.x, A.y, surfacePlane.point.z);
+    const ixBD = new Point3d(B.x, B.y, surfacePlane.point.z);
 
     const ixOriginA = wallPointSurfaceIntersection(A, origin, surfacePlane);
     const ixOriginB = wallPointSurfaceIntersection(B, origin, surfacePlane);
@@ -354,7 +365,8 @@ export class Shadow extends PIXI.Polygon {
     // If the viewer elevation equals the surface elevation, no shadows to be seen.
     if ( origin.z.almostEqual(surfaceElevation) ) return null;
 
-    let { bottomZ, topZ, A, B } = wall;
+    const { A, B } = wall;
+    let { topZ, bottomZ } = wall;
 
     // Run simple tests to avoid further computation
     // Viewer and the surface elevation both above the wall, so no shadow
@@ -386,6 +398,56 @@ export class Shadow extends PIXI.Polygon {
     return origin.z > surfaceElevation
       ? Shadow.simpleSurfaceOriginAbove(pointA, pointB, pointC, pointD, origin, surfacePlane)
       : Shadow.simpleSurfaceOriginBelow(pointA, pointB, pointC, pointD, origin, surfacePlane);
+  }
+
+  /**
+   * In top-down view, construct shadows for a token on the scene.
+   * @param {Token} token               Token in the scene
+   * @param {Point3d} origin            Viewer location in 3d space
+   * @param {object} options
+   * @param {number} [surfaceElevation] Elevation of the surface onto which to project shadows
+   * @param {string} [type]             Wall restriction type, for token constrained border
+   * @param {boolean} [halfHeight]      Whether to use half the token height
+   * @returns {Shadow[]|null}
+   */
+  static constructfromToken(token, origin, { surfaceElevation = 0, type = "sight", halfHeight = false } = {}) {
+    // If the viewer elevation equals the surface elevation, no shadows to be seen
+    if ( origin.z.almostEqual(surfaceElevation) ) return null;
+
+    // Need Token3dPoints to find the sides that face the origin.
+    const token3d = new TokenPoints3d(token, { type, halfHeight });
+    const { bottomZ, topZ } = token3d;
+
+    // Run simple tests to avoid further computation
+    // Viewer and the surface elevation both above the wall, so no shadow
+    if ( origin.z >= topZ && surfaceElevation >= topZ ) return null;
+
+    // Viewer and the surface elevation both below the wall, so no shadow
+    else if ( origin.z <= bottomZ && surfaceElevation <= bottomZ ) return null;
+
+    // Projecting downward from source; if below bottom of wall, no shadow.
+    else if ( origin.z >= surfaceElevation && origin.z <= bottomZ ) return null;
+
+    // Projecting upward from source; if above bottom of wall, no shadow.
+    else if ( origin.z <= surfaceElevation && origin.z >= topZ ) return null;
+
+    const sides = token3d._viewableSides(origin);
+
+    const shadows = [];
+    for ( const side of sides ) {
+      // Build a "wall" based on side points
+      // Need bottomZ, topZ, A, B
+      const wall = {
+        A: side.points[0],
+        B: side.points[3],
+        topZ,
+        bottomZ
+      };
+      const shadow = Shadow.constructFromWall(wall, origin, surfaceElevation);
+      if ( shadow ) shadows.push(shadow);
+    }
+
+    return shadows;
   }
 
   /**
@@ -431,75 +493,6 @@ export class Shadow extends PIXI.Polygon {
     return out;
   }
 }
-
-/**
- * Project a 2d or 3d line
- * @param {Point3d|PIXI.Point} A
- * @param {Point3d|PIXI.Point} B
- * @returns {Point3d|PIXI.Point}
- */
-function project(A, B, t) {
-  const delta = B.subtract(A);
-  return A.add(delta.multiplyScalar(t));
-}
-
-/**
- * Find the 3d point on a 3d line that equals a z coordinate.
- * @param {Point3d} A
- * @param {Point3d} B
- * @param {number} z
- * @returns {object{point:{Point3d}, proportion: {number}}}
- */
-function towardZ(A, B, z) {
-  const delta = B.subtract(A);
-  const t = (z - A.z) / delta.z;
-  return {
-    point: A.add(delta.multiplyScalar(t)),
-    t
-  };
-}
-
-/**
- * Truncate a wall so that only the portion below an elevation ("z") point is seen
- * @param {Point3d} A
- * @param {Point3d} B
- * @param {number} z
- * @param {number} dir    Direction to truncate.
- *   If negative, force wall to be below z. If positive, force wall to be above z.
- * @return {object{ A: {Point3d}, B: {Point3d}}|null}
- */
-export function truncateWallAtElevation(A, B, z, dir = -1) {
-  let distAz = dir < 0 ? z - A.z : A.z - z;
-  let distBz = dir < 0 ? z - B.z : B.z - z;
-
-  if ( distAz.almostEqual(0) ) distAz = 0;
-  if ( distBz.almostEqual(0) ) distBz = 0;
-
-  if ( distAz > 0 && distBz > 0 ) {
-    // Do nothing
-  } else if ( distAz <= 0 && distBz <= 0 ) {
-    return null;
-  } else if ( distAz < 0 || distBz < 0 ) {
-    // Find the point on AB that is even in elevation with z
-    // Shorten the wall to somewhere just in front of z
-    const {t} = towardZ(A, B, z);
-
-    if ( distAz < 0 ) {
-      if ( t.almostEqual(1) || t > 1 ) return null;
-      A = project(A, B, t);
-
-      if ( A.z.almostEqual(z) ) A.z = z;
-
-    } else { // Bbehind <= 0
-      if ( t.almostEqual(0) || t < 0 ) return null;
-      B = project(A, B, t);
-
-      if ( B.z.almostEqual(z) ) B.z = z;
-    }
-  }
-  return { A, B, distAz, distBz };
-}
-
 
 /**
  *

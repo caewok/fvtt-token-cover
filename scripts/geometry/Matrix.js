@@ -138,22 +138,22 @@ export class Matrix {
   static lookAt(cameraPosition, targetPosition, up = new Point3d(0, -1, 1)) {
     // NOTE: Foundry uses a left-hand coordinate system, with y reversed.
 
-    const zAxis = cameraPosition.subtract(targetPosition); // zAxis = forward
+    const zAxis = cameraPosition.subtract(targetPosition); // ZAxis = forward
     if ( zAxis.magnitudeSquared ) zAxis.normalize(zAxis); // Don't normalize if 0, 0, 0
 
     const xAxis = new Point3d(1, 0, 0);
     const yAxis = new Point3d(0, 1, 0);
     if ( zAxis.x || zAxis.y ) {
-      up.cross(zAxis, xAxis); // xAxis = right
+      up.cross(zAxis, xAxis); // XAxis = right
       if ( xAxis.magnitudeSquared() ) xAxis.normalize(xAxis); // Don't normalize if 0, 0, 0
-      zAxis.cross(xAxis, yAxis); // yAxis = up
+      zAxis.cross(xAxis, yAxis); // YAxis = up
 
     } else {
-      console.warn("lookAt zAxis.x and y are zero.")
+      console.warn("lookAt zAxis.x and y are zero.");
       // Camera either directly overhead or directly below
       // Overhead if zAxis.z is positive
-     //  xAxis = new Point3d(1, 0, 0);
-//       yAxis = new Point3d(0, 1, 0);
+      // xAxis = new Point3d(1, 0, 0);
+      // yAxis = new Point3d(0, 1, 0);
 
     }
 
@@ -399,7 +399,7 @@ export class Matrix {
    * @param {Matrix} outMatrix    Other matrix to use (newly created by default)
    * @returns Matrix
    */
-  copyTo(outMatrix = Matrix.empty(other.dim1, other.dim2)) {
+  copyTo(outMatrix = Matrix.empty(this.dim1, this.dim2)) {
     const dim1 = this.dim1;
     const dim2 = this.dim2;
     for ( let i = 0; i < dim1; i += 1 ) {
@@ -417,7 +417,7 @@ export class Matrix {
    */
   transpose(outMatrix = Matrix.empty(this.dim1, this.dim2)) {
     outMatrix.arr = Object.keys(this.arr[0]).map(function(c) {
-        return this.arr.map(function(r) { return r[c]; });
+      return this.arr.map(function(r) { return r[c]; });
     });
     return outMatrix;
   }
