@@ -1,3 +1,6 @@
+# 0.3.1
+Fix issue #7 (Welcome message).
+
 # 0.3.0
 
 *New Features*
