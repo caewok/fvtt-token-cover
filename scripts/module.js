@@ -128,7 +128,7 @@ want to keep seeing this message, please click the close button above.</em>
 </p>
 `,
       rejectClose: false,
-      callback: () => setSetting(SETTINGS.WELCOME_DIALOG.v020, true)
+      callback: () => setSetting(SETTINGS.WELCOME_DIALOG.v030, true)
     });
   }
 });
