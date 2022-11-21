@@ -46,8 +46,7 @@ import * as los from "./visibility_los.js";
 import {
   IgnoresCover,
   IgnoresCoverSimbuls,
-  IgnoresCoverDND5e,
-  createTokenHook } from "./IgnoresCover.js";
+  IgnoresCoverDND5e } from "./IgnoresCover.js";
 
 Hooks.once("init", async function() {
   registerElevationAdditions();
@@ -114,6 +113,7 @@ function setCoverIgnoreHandler(handler) {
   }
 
   game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER = handler;
+
   canvas.placeables.tokens.forEach(t => t._ignoresCover = undefined);
 }
 
@@ -123,19 +123,39 @@ Hooks.once("setup", async function() {
 });
 
 Hooks.once("canvasReady", async function() {
+  // v0.3.2: "ignoreCover" flag becomes "ignoreCoverAll"
+  migrateIgnoreCoverFlag();
+
+  setCoverIgnoreHandler(game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER);
+});
+
+
+/**
+ * Cover flag was originally "ignoreCover".
+ * As of v0.3.2, all, mwak, etc. were introduced. So migrate the "ignoreCover" to "ignoreCoverAll"
+ */
+function migrateIgnoreCoverFlag() {
+  if ( getSetting(SETTINGS.MIGRATION.v032) ) return;
+
   // Confirm that actor flags are updated to newest version
   // IGNORE: "ignoreCover" --> "ignoreCoverAll"
   game.actors.forEach(a => {
     const allCover = a.getFlag(MODULE_ID, "ignoreCover");
-    if ( allCover ) a.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.ALL, allCover);
-
+    if ( allCover ) {
+      a.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.ALL, allCover);
+      a.unsetFlag(MODULE_ID, "ignoreCover");
+    }
   });
 
-
-  console.log(`${a.name}`));
-
-  setCoverIgnoreHandler(game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER);
-});
+  // Unlinked tokens may not otherwise get updated.
+  canvas.placeables.tokens.forEach(t => {
+    const allCover = t.actor.getFlag(MODULE_ID, "ignoreCover");
+    if ( allCover ) {
+      t.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.ALL, allCover);
+      t.actor.unsetFlag(MODULE_ID, "ignoreCover");
+    }
+  }
+}
 
 Hooks.once("ready", async function() {
   if ( !getSetting(SETTINGS.WELCOME_DIALOG.v030) ) {
@@ -217,11 +237,6 @@ function registerSystemHooks() {
     Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHook);
   }
 }
-
-/**
- * A hook event that fires for every embedded Document type after conclusion of a creation workflow.
- */
-Hooks.on("createToken", createTokenHook);
 
 /**
  * A hook event that fires for every Document type after conclusion of an update workflow.

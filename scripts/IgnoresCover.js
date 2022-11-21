@@ -27,21 +27,6 @@ export function addDND5eCoverFeatFlags() {
   };
 }
 
-
-/**
- * Hook token creation to add the IgnoresCover class.
- * @param {Document} document                       The new Document instance which has been created
- * @param {DocumentModificationContext} options     Additional options which modified the creation request
- * @param {string} userId                           The ID of the User who triggered the creation workflow
- */
-export function createTokenHook(document, options, userId) { // eslint-disable-line no-unused-vars
-  if ( !document.object ) return;
-
-  const handler = game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER;
-  document.object._ignoresCover = new handler(document.object);
-}
-
-
 /* Getters/Setters for ignoring cover
 Break into five parts:
 - mwak.
@@ -53,15 +38,13 @@ Break into five parts:
 
 export class IgnoresCover {
   /**
-   * @param {Token} token
+   * @param {Token} actor
    */
   constructor(token) {
-    if ( !this.token.actor ) {
-      console.warn(`IgnoresCover: token ${token.name} (token.id) has no actor.`);
-    }
+    if ( !token.actor ) console.warn(`IgnoresCover: token ${token.name} (token.id) has no actor.`);
 
     this.token = token;
-    this.actor = this.token.actor;
+    this.actor = token.actor;
   }
 
   /**
@@ -97,7 +80,7 @@ export class IgnoresCover {
 
   set all(value) {
     if ( !this.constructor.verifyCoverValue(value) ) return;
-    this.token.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.ALL);
+    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.ALL);
   }
 
   /**
@@ -108,7 +91,7 @@ export class IgnoresCover {
 
   set mwak(value) {
     if ( !this.constructor.verifyCoverValue(value) ) return;
-    this.token.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.MWAK);
+    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.MWAK);
   }
 
   /**
@@ -119,7 +102,7 @@ export class IgnoresCover {
 
   set msak(value) {
     if ( !this.constructor.verifyCoverValue(value) ) return;
-    this.token.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.MSAK);
+    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.MSAK);
   }
 
   /**
@@ -130,7 +113,7 @@ export class IgnoresCover {
 
   set rwak(value) {
     if ( !this.constructor.verifyCoverValue(value) ) return;
-    this.token.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.RWAK);
+    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.RWAK);
   }
 
   /**
@@ -141,7 +124,7 @@ export class IgnoresCover {
 
   set rsak(value) {
     if ( !this.constructor.verifyCoverValue(value) ) return;
-    this.token.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.RSAK);
+    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.RSAK);
   }
 }
 
