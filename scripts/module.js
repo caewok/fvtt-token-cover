@@ -222,3 +222,83 @@ function updateSettingHook(document, change, options, userId) {  // eslint-disab
   const key = arr.join("."); // If the key has periods, multiple will be returned by split.
   if ( module === MODULE_ID && settingsCache.has(key) ) settingsCache.delete(key);
 }
+
+/**
+ * A hook event that fires whenever an Application is rendered. Substitute the
+ * Application name in the hook event to target a specific Application type, for example "renderMyApplication".
+ * Each Application class in the inheritance chain will also fire this hook, i.e. "renderApplication" will also fire.
+ * The hook provides the pending application HTML which will be added to the DOM.
+ * Hooked functions may modify that HTML or attach interactive listeners to it.
+ *
+ * @event renderApplication
+ * @category Application
+ * @param {Application} application     The Application instance being rendered
+ * @param {jQuery} html                 The inner HTML of the document that will be displayed and may be modified
+ * @param {object} data                 The object of data used when rendering the application
+ */
+Hooks.on("renderSettingsConfig", renderSettingsConfigHook);
+
+/**
+ * Register listeners when the settings config is opened.
+ */
+function renderSettingsConfigHook(application, html, data) {
+  util.log("SettingsConfig", application, html, data);
+
+  const tvSettings = html.find(`section[data-tab="tokenvisibility"]`);
+  if ( !tvSettings || !tvSettings.length ) return;
+
+  const losAlgorithm = getSetting(SETTINGS.LOS.ALGORITHM);
+  const coverAlgorithm = getSetting(SETTINGS.COVER.ALGORITHM);
+
+  const displayArea = losAlgorithm === SETTINGS.LOS.TYPES.POINTS ? "none" : "block";
+  const inputLOSArea = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.LOS.PERCENT_AREA}"]`);
+  const divLOSArea = inputLOSArea.parent().parent();
+  divLOSArea[0].style.display = displayArea;
+
+  const [displayCoverTriggers, displayCenterCoverTrigger] = coverAlgorithm === SETTINGS.COVER.TYPES.CENTER_CENTER
+    ? ["none", "block"] : ["block", "none"];
+
+  const inputCenter = tvSettings.find(`select[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_CENTER}"]`);
+  const inputLow = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}"]`);
+  const inputMedium = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM}"]`);
+  const inputHigh = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}"]`);
+
+  const divInputCenter = inputCenter.parent().parent();
+  const divInputLow = inputLow.parent().parent();
+  const divInputMedium = inputMedium.parent().parent();
+  const divInputHigh = inputHigh.parent().parent();
+
+  divInputCenter[0].style.display = displayCenterCoverTrigger;
+  divInputLow[0].style.display = displayCoverTriggers;
+  divInputMedium[0].style.display = displayCoverTriggers;
+  divInputHigh[0].style.display = displayCoverTriggers;
+}
+
+/*
+html.find(`input[name="tokenvisibility.los-percent-area"]`)
+
+tvSettings = html.find(`section[data-tab="tokenvisibility"]`)
+tvSettings[0].children
+
+html.find(`select[name="tokenvisibility.range-algorithm"]`)
+
+losarea = html.find(`input[name="tokenvisibility.los-percent-area"]`)
+div = losarea.parent()
+div[0].style.display
+
+<div id="client-settings"
+
+<section class="tab category" data-tab="tokenvisibility"
+
+
+<div class="form-group">
+
+ <select name="tokenvisibility.range-algorithm" data-dtype="String">
+                            <option value="range-points-center">Token center only (1 point)</option>
+                            <option value="range-points-five" selected="">Token corners and center (5 points)</option>
+                            <option value="range-points-nine">Foundry default (9 points)</option>
+                        </select>
+
+<div class="form-group">
+<input type="range" name="tokenvisibility.los-percent-area"
+*/
