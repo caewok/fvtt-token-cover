@@ -162,6 +162,9 @@ export async function midiqolPreambleCompleteHook(workflow) {
 
   if ( !nTargets || !token ) return true;
 
+  // token.actor.flags["midi-qol"].sharpShooter
+  //
+
   const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
   const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
 
@@ -240,7 +243,7 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations) {
     const target_center = new Point3d(
       target.center.x,
       target.center.y,
-      CoverCalculator.averageTokenElevation(target));
+      CoverCalculator.averageTokenElevationZ(target));
 
     const targetImage = target.document.texture.src; // Token canvas image.
     const dist = distanceBetweenPoints(token_center, target_center);
