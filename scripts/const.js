@@ -8,7 +8,19 @@ export const EPSILON = 1e-08;
 
 export const FLAGS = {
   DRAWING: { IS_HOLE: "isHole" },
-  COVER: { IGNORE: "ignoreCover", IGNORE_DND5E: "helpersIgnoreCover" }
+  COVER: {
+    IGNORE: {
+      ALL: "ignoreCoverAll",
+      MWAK: "ignoreCoverMWAK",
+      MSAK: "ignoreCoverMSAK",
+      RWAK: "ignoreCoverRWAK",
+      RSAK: "ignoreCoverRSAK"
+    },
+
+    IGNORE_DND5E: "helpersIgnoreCover",
+    SPELLSNIPER: "spellSniper",
+    SHARPSHOOTER: "sharpShooter"
+  }
 };
 
 export const COVER_TYPES = {
@@ -18,6 +30,9 @@ export const COVER_TYPES = {
   HIGH: 3,
   TOTAL: 4
 };
+
+const MIN_COVER = Math.min(...Object.values(COVER_TYPES));
+const MAX_COVER = Math.max(...Object.values(COVER_TYPES));
 
 // Default status effects for different systems.
 export const STATUS_EFFECTS = {

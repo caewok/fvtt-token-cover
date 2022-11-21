@@ -27,6 +27,8 @@ import {
   setIgnoresCover
 } from "./cover.js";
 
+
+
 import { MODULE_ID } from "./const.js";
 import {
   activateListenersSettingsConfig,
@@ -98,25 +100,17 @@ export function registerLibWrapperMethods() {
     configurable: true
   });
 
-  if ( game.system.id === "dnd5e" && game.modules.get("simbuls-cover-calculator")?.active ) {
-    Object.defineProperty(Token.prototype, "ignoresCover", {
-      get: getIgnoresCoverDND5eSimbuls,
-      set: setIgnoresCoverDND5e,
-      enumerable: false
-    });
-  } else if ( game.system.id === "dnd5e" ) {
-    Object.defineProperty(Token.prototype, "ignoresCover", {
-      get: getIgnoresCoverDND5e,
-      set: setIgnoresCoverDND5e,
-      enumerable: false
-    });
-  } else {
+  if ( !Object.hasOwn(Token.prototype, "ignoresCover") ) {
     Object.defineProperty(Token.prototype, "ignoresCover", {
       get: getIgnoresCover,
-      set: setIgnoresCover,
       enumerable: false
     });
   }
+}
+
+function getIgnoresCover() {
+  return this._ignoresCover
+    || (this._ignoresCover = new game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER(this));
 }
 
 function updateSourceToken(wrapper, ...args) {

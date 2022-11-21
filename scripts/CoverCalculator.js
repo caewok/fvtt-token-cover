@@ -375,48 +375,25 @@ export class CoverCalculator {
   targetCover(algorithm = getSetting(SETTINGS.COVER.ALGORITHM)) {
     let coverType = COVER_TYPES.NONE;
 
-    let ignoresCover = this.viewer?.ignoresCover;
-    ignoresCover ??= COVER_TYPES.NONE;
-
-    // If viewer ignores high cover type, then target has no (applicable) cover.
-    if ( ignoresCover >= COVER_TYPES.HIGH ) {
-      console.log(`CoverCalculator: Cover for ${this.target.name} ignored by ${this.viewer.name}.`);
-      return COVER_TYPES.NONE;
-    }
-
     switch ( algorithm ) {
       case SETTINGS.COVER.TYPES.CENTER_CENTER:
-        coverType = this.centerToCenter();
-        break;
+        return this.centerToCenter();
       case SETTINGS.COVER.TYPES.CENTER_CORNERS_TARGET:
-        coverType = this.centerToTargetCorners();
-        break;
+        return this.centerToTargetCorners();
       case SETTINGS.COVER.TYPES.CORNER_CORNERS_TARGET:
-        coverType =  this.cornerToTargetCorners();
-        break;
+        return this.cornerToTargetCorners();
       case SETTINGS.COVER.TYPES.CENTER_CORNERS_GRID:
-        coverType =  this.centerToTargetGridCorners();
-        break;
+        return this.centerToTargetGridCorners();
       case SETTINGS.COVER.TYPES.CORNER_CORNERS_GRID:
-        coverType =  this.cornerToTargetGridCorners();
-        break;
+        return this.cornerToTargetGridCorners();
       case SETTINGS.COVER.TYPES.CENTER_CUBE:
-        coverType =  this.centerToCube();
-        break;
+        return this.centerToCube();
       case SETTINGS.COVER.TYPES.CUBE_CUBE:
-        coverType =  this.cubeToCube();
-        break;
+        return this.cubeToCube();
       case SETTINGS.COVER.TYPES.AREA:
-        coverType =  this.area2d();
-        break;
+        return this.area2d();
       case SETTINGS.COVER.TYPES.AREA3D:
-        coverType =  this.area3d();
-        break;
-    }
-
-    if ( coverType && coverType <= ignoresCover ) {
-      console.log(`CoverCalculator: ${this.target.name}'s ${CoverCalculator.coverNameForType(coverType)} cover ignored by ${this.viewer.name}.`);
-      return COVER_TYPES.NONE;
+        return this.area3d();
     }
 
     return coverType;

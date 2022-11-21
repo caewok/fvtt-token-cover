@@ -1,7 +1,8 @@
 /* globals
 Hooks,
 game,
-Dialog
+Dialog,
+canvas
 */
 "use strict";
 
@@ -41,6 +42,13 @@ import { TilePoints3d } from "./geometry/TilePoints3d.js";
 
 import * as los from "./visibility_los.js";
 
+// Ignores Cover
+import {
+  IgnoresCover,
+  IgnoresCoverSimbuls,
+  IgnoresCoverDND5e,
+  createTokenHook } from "./IgnoresCover.js";
+
 Hooks.once("init", async function() {
   registerElevationAdditions();
   registerPIXIPointMethods();
@@ -49,6 +57,11 @@ Hooks.once("init", async function() {
   patchHelperMethods();
   registerPIXIPolygonMethods();
   addDND5eCoverFeatFlags();
+
+  // Set the ignores cover handler based on what systems and modules are active
+  const handler = game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls
+    : game.system.id === "dnd5e" ? IgnoresCoverDND5e : IgnoresCover;
+
 
   game.modules.get(MODULE_ID).api = {
     bench,
@@ -70,6 +83,15 @@ Hooks.once("init", async function() {
     DrawingPoints3d,
     WallPoints3d,
     TilePoints3d,
+    IGNORES_COVER_HANDLER: handler,
+    setCoverIgnoreHandler,
+
+    IgnoresCoverClasses: {
+      IgnoresCover,
+      IgnoresCoverDND5e,
+      IgnoresCoverSimbuls
+    },
+
     debug: {
       range: false,
       los: false,
@@ -82,9 +104,37 @@ Hooks.once("init", async function() {
   registerSystemHooks();
 });
 
+/**
+ * Helper to set the cover ignore handler and, crucially, update all tokens.
+ */
+function setCoverIgnoreHandler(handler) {
+  if ( !(handler instanceof IgnoresCover ) ) {
+    console.warn("setCoverIgnoreHandler: handler not recognized.");
+    return;
+  }
+
+  game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER = handler;
+  canvas.placeables.tokens.forEach(t => t._ignoresCover = undefined);
+}
+
 Hooks.once("setup", async function() {
   registerSettings();
   updateConfigStatusEffects();
+});
+
+Hooks.once("canvasReady", async function() {
+  // Confirm that actor flags are updated to newest version
+  // IGNORE: "ignoreCover" --> "ignoreCoverAll"
+  game.actors.forEach(a => {
+    const allCover = a.getFlag(MODULE_ID, "ignoreCover");
+    if ( allCover ) a.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.ALL, allCover);
+
+  });
+
+
+  console.log(`${a.name}`));
+
+  setCoverIgnoreHandler(game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER);
 });
 
 Hooks.once("ready", async function() {
@@ -155,7 +205,6 @@ function registerSystemHooks() {
     Hooks.on("combatTurn", combatTurnHook);
   }
 
-
   if ( game.system.id === "dnd5e" ) {
     /**
      * For dnd5e, hook the attack roll to set cover.
@@ -168,6 +217,11 @@ function registerSystemHooks() {
     Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHook);
   }
 }
+
+/**
+ * A hook event that fires for every embedded Document type after conclusion of a creation workflow.
+ */
+Hooks.on("createToken", createTokenHook);
 
 /**
  * A hook event that fires for every Document type after conclusion of an update workflow.
