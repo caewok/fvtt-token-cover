@@ -163,7 +163,9 @@ export async function midiqolPreambleCompleteHook(workflow) {
   if ( !nTargets || !token ) return true;
 
   // token.actor.flags["midi-qol"].sharpShooter
-  //
+  // workflow.item.type === "spell"
+  // MidiQOL.checkRange(workflow.item, workflow.token, workflow.targets)
+  // MidiQOL.checkRange(workflow.item, workflow.token, workflow.targets)
 
   const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
   const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
@@ -180,7 +182,7 @@ export async function midiqolPreambleCompleteHook(workflow) {
       ? await SOCKETS.socket.executeAsGM("dialogPromise", dialogData)
       : await dialogPromise(dialogData);
 
-    if ( "Closed" === res ) return false;
+    if ( "Close" === res ) return false;
 
     // Update the cover calculations with User or GM selections
     const coverSelections = res.find("[class=CoverSelect]");
