@@ -100,6 +100,7 @@ export function registerLibWrapperMethods() {
     configurable: true
   });
 
+
   if ( !Object.hasOwn(Token.prototype, "ignoresCover") ) {
     Object.defineProperty(Token.prototype, "ignoresCover", {
       get: getIgnoresCover,

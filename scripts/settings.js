@@ -135,6 +135,10 @@ export const SETTINGS = {
   WELCOME_DIALOG: {
     v020: "welcome-dialog-v0-20",
     v030: "welcome-dialog-v0-30"
+  },
+
+  MIGRATION: {
+    v032: "migration-v032",
   }
 };
 
@@ -447,6 +451,13 @@ export function registerSettings() {
   });
 
   game.settings.register(MODULE_ID, SETTINGS.WELCOME_DIALOG.v030, {
+    scope: "world",
+    config: false,
+    default: false,
+    type: Boolean
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.MIGRATION.v032), {
     scope: "world",
     config: false,
     default: false,
