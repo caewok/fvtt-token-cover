@@ -244,7 +244,7 @@ Hooks.on("renderSettingsConfig", renderSettingsConfigHook);
 function renderSettingsConfigHook(application, html, data) {
   util.log("SettingsConfig", application, html, data);
 
-  const tvSettings = html.find(`section[data-tab="tokenvisibility"]`);
+  const tvSettings = html.find(`section[data-tab="${MODULE_ID}"]`);
   if ( !tvSettings || !tvSettings.length ) return;
 
   const losAlgorithm = getSetting(SETTINGS.LOS.ALGORITHM);
@@ -273,32 +273,3 @@ function renderSettingsConfigHook(application, html, data) {
   divInputMedium[0].style.display = displayCoverTriggers;
   divInputHigh[0].style.display = displayCoverTriggers;
 }
-
-/*
-html.find(`input[name="tokenvisibility.los-percent-area"]`)
-
-tvSettings = html.find(`section[data-tab="tokenvisibility"]`)
-tvSettings[0].children
-
-html.find(`select[name="tokenvisibility.range-algorithm"]`)
-
-losarea = html.find(`input[name="tokenvisibility.los-percent-area"]`)
-div = losarea.parent()
-div[0].style.display
-
-<div id="client-settings"
-
-<section class="tab category" data-tab="tokenvisibility"
-
-
-<div class="form-group">
-
- <select name="tokenvisibility.range-algorithm" data-dtype="String">
-                            <option value="range-points-center">Token center only (1 point)</option>
-                            <option value="range-points-five" selected="">Token corners and center (5 points)</option>
-                            <option value="range-points-nine">Foundry default (9 points)</option>
-                        </select>
-
-<div class="form-group">
-<input type="range" name="tokenvisibility.los-percent-area"
-*/

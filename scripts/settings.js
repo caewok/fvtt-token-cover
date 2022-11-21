@@ -25,7 +25,7 @@ export function getSetting(settingName) {
   return cached;
 }
 
-/*
+/* Testing cached settings
 function fnDefault(settingName) {
   return game.settings.get(MODULE_ID, settingName);
 }
@@ -303,7 +303,7 @@ export function registerSettings() {
       step: 0.05
     },
     scope: "world",
-    config: true, // getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
+    config: true,
     default: .5,
     type: Number
   });
@@ -317,7 +317,7 @@ export function registerSettings() {
       step: 0.05
     },
     scope: "world",
-    config: true, // getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
+    config: true,
     default: .75,
     type: Number
   });
@@ -331,7 +331,7 @@ export function registerSettings() {
       step: 0.05
     },
     scope: "world",
-    config: true, //() => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
+    config: true,
     default: 1,
     type: Number
   });
@@ -466,17 +466,6 @@ function getCoverNames() {
   };
 }
 
-function changedLOSSetting(value, event, settingsConfig) {
-  log(`Changes LOS algorithm to ${value}`, event, settingsConfig);
-}
-
-function updateLosSetting(value) {
-  log(`Changing to ${value}`);
-  const LTYPES = SETTINGS.LOS.TYPES;
-  const visible = value === LTYPES.AREA || value === LTYPES.AREA3D;
-  setSettingVisibility(SETTINGS.LOS.PERCENT_AREA, visible);
-}
-
 function updateCoverSetting(value) {
   log(`Changing to ${value}`);
   const CTYPES = SETTINGS.COVER.TYPES;
@@ -500,16 +489,6 @@ export function activateListenersSettingsConfig(wrapper, html) {
 let ORIGINAL_LOS_ALGORITHM;
 let ORIGINAL_COVER_ALGORITHM;
 
-async function tempUpdateLosSetting(event) {
-  ORIGINAL_LOS_ALGORITHM = getSetting(SETTINGS.LOS.ALGORITHM);
-  await setSetting(SETTINGS.LOS.ALGORITHM, event.currentTarget.value);
-}
-
-async function tempUpdateCoverSetting(event) {
-  ORIGINAL_COVER_ALGORITHM = getSetting(SETTINGS.COVER.ALGORITHM);
-  await setSetting(SETTINGS.COVER.ALGORITHM, event.currentTarget.value);
-}
-
 export async function closeSettingsConfig(wrapper, options = {}) {
   const out = wrapper(options);
 
@@ -526,18 +505,11 @@ export async function closeSettingsConfig(wrapper, options = {}) {
   return out;
 }
 
-
 export async function _onSubmitSettingsConfig(wrapper, options = {}) {
   if ( ORIGINAL_LOS_ALGORITHM ) ORIGINAL_LOS_ALGORITHM = undefined;
   if ( ORIGINAL_COVER_ALGORITHM ) ORIGINAL_COVER_ALGORITHM = undefined;
 
   return wrapper(options);
-}
-
-export async function _onChangeInput(wrapper, event) {
-  log("_onChangeInput!");
-
-  return wrapper(event);
 }
 
 /* Status effects
