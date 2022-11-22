@@ -12,7 +12,7 @@ Dialog,
 Ray
 */
 
-import { MODULE_ID, COVER_TYPES, FLAGS } from "./const.js";
+import { MODULE_ID, COVER_TYPES } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
@@ -182,6 +182,23 @@ export class CoverCalculator {
     return getCoverName(key);
   }
 
+  /**
+   * Get a description for an attack type
+   * @param {string} type   all, mwak, msak, rwak, rsak
+   * @returns {string}
+   */
+  static attackNameForType(type) {
+    // TODO: localize
+    switch ( type ) {
+      case "all": return "all";
+      case "mwak": return "melee weapon";
+      case "msak": return "melee spell";
+      case "rwak": return "ranged weapon";
+      case "rsak": return "ranged spell";
+    }
+    return undefined;
+  }
+
   static disableAllCoverStatus(tokenId) {
     // Don't really need to await in order to disable all... right?
     CoverCalculator.disableCoverStatus(tokenId, COVER_TYPES.LOW);
@@ -248,7 +265,10 @@ export class CoverCalculator {
     include3dDistance = true,
     includeZeroCover = true,
     imageWidth = 50,
-    coverCalculations } = {}) {
+    coverCalculations,
+    actionType,
+    applied = false,
+    displayIgnored = true } = {}) {
 
     if ( game.modules.get(MODULE_ID).api.debug.cover ) drawing.clearDrawings();
     if ( !coverCalculations ) coverCalculations = CoverCalculator.coverCalculations(tokens, targets);
@@ -269,7 +289,7 @@ export class CoverCalculator {
       <thead>
         <tr class="character-row">
           <th colspan="2" ><b>Target</b></th>
-          <th style="text-align: left"><b>Cover</b></th>
+          <th style="text-align: left"><b>${applied ? "Applied Cover" : "Cover"}</b></th>
           ${distHeader}
         </tr>
       </thead>
@@ -317,13 +337,33 @@ export class CoverCalculator {
       <br>
       `;
 
+      // Describe the types of cover ignored by the token
+      // If actionType is defined, use that to limit the types
+      let ignoresCoverLabel = "";
 
-      const ignoresCover = token.ignoresCover;
-      const ignoresCoverLabel = ignoresCover > 0 ? `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ignoresCover)} cover or less.)</em>` : "";
+      if ( displayIgnored ) {
+        const ic = token.ignoresCover;
+        if ( ic.all > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.all)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
+        if ( actionType && ic[actionType] > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic[actionType])} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
+
+        else { // Test them all...
+          if ( ic.mwak ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.mwak)} cover (${CoverCalculator.attackNameForType("mwak")} attacks)`;
+          if ( ic.msak ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.msak)} cover (${CoverCalculator.attackNameForType("msak")} attacks)`;
+          if ( ic.rwak ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.rwak)} cover (${CoverCalculator.attackNameForType("rwak")} attacks)`;
+          if ( ic.rsak ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.rsak)} cover (${CoverCalculator.attackNameForType("rsak")} attacks)`;
+        }
+
+        if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = `<br><em>${token.name} ignores:${ignoresCoverLabel}</em>`;
+      }
+
+      const targetLabel = `${nCover} target${nCover === 1 ? "" : "s"}`;
+      const numCoverLabel = applied
+        ? nCover === 1 ? "has" : "have"
+        : "may have"
 
       htmlTable =
       `
-      ${nCover} target${nCover === 1 ? " has" : "s have"} cover from <b>${token.name}</b>.
+      ${targetLabel} ${numCoverLabel} cover from <b>${token.name}</b>.
       ${ignoresCoverLabel}
       ${htmlTable}
       `;
@@ -375,48 +415,25 @@ export class CoverCalculator {
   targetCover(algorithm = getSetting(SETTINGS.COVER.ALGORITHM)) {
     let coverType = COVER_TYPES.NONE;
 
-    let ignoresCover = this.viewer?.ignoresCover;
-    ignoresCover ??= COVER_TYPES.NONE;
-
-    // If viewer ignores high cover type, then target has no (applicable) cover.
-    if ( ignoresCover >= COVER_TYPES.HIGH ) {
-      console.log(`CoverCalculator: Cover for ${this.target.name} ignored by ${this.viewer.name}.`);
-      return COVER_TYPES.NONE;
-    }
-
     switch ( algorithm ) {
       case SETTINGS.COVER.TYPES.CENTER_CENTER:
-        coverType = this.centerToCenter();
-        break;
+        return this.centerToCenter();
       case SETTINGS.COVER.TYPES.CENTER_CORNERS_TARGET:
-        coverType = this.centerToTargetCorners();
-        break;
+        return this.centerToTargetCorners();
       case SETTINGS.COVER.TYPES.CORNER_CORNERS_TARGET:
-        coverType =  this.cornerToTargetCorners();
-        break;
+        return this.cornerToTargetCorners();
       case SETTINGS.COVER.TYPES.CENTER_CORNERS_GRID:
-        coverType =  this.centerToTargetGridCorners();
-        break;
+        return this.centerToTargetGridCorners();
       case SETTINGS.COVER.TYPES.CORNER_CORNERS_GRID:
-        coverType =  this.cornerToTargetGridCorners();
-        break;
+        return this.cornerToTargetGridCorners();
       case SETTINGS.COVER.TYPES.CENTER_CUBE:
-        coverType =  this.centerToCube();
-        break;
+        return this.centerToCube();
       case SETTINGS.COVER.TYPES.CUBE_CUBE:
-        coverType =  this.cubeToCube();
-        break;
+        return this.cubeToCube();
       case SETTINGS.COVER.TYPES.AREA:
-        coverType =  this.area2d();
-        break;
+        return this.area2d();
       case SETTINGS.COVER.TYPES.AREA3D:
-        coverType =  this.area3d();
-        break;
-    }
-
-    if ( coverType && coverType <= ignoresCover ) {
-      console.log(`CoverCalculator: ${this.target.name}'s ${CoverCalculator.coverNameForType(coverType)} cover ignored by ${this.viewer.name}.`);
-      return COVER_TYPES.NONE;
+        return this.area3d();
     }
 
     return coverType;
@@ -881,7 +898,7 @@ export class CoverCalculator {
       liveTokensBlock: getSetting(SETTINGS.COVER.LIVE_TOKENS),
       deadTokensBlock: deadTokenAlg !== deadTypes.NONE,
       deadHalfHeight: deadTokenAlg === deadTypes.HALF
-    }
+    };
 
     const area = new Area(this.viewer, this.target, config);
     if ( this.debug ) area.debug = true;

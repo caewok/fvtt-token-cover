@@ -25,7 +25,7 @@ export function getSetting(settingName) {
   return cached;
 }
 
-/*
+/* Testing cached settings
 function fnDefault(settingName) {
   return game.settings.get(MODULE_ID, settingName);
 }
@@ -64,7 +64,7 @@ export const SETTINGS = {
       NINE: "range-points-nine"
     },
     POINTS3D: "range-points-3d",
-    DISTANCE3D: "range-distance-3d",
+    DISTANCE3D: "range-distance-3d"
   },
 
   LOS: {
@@ -135,6 +135,10 @@ export const SETTINGS = {
   WELCOME_DIALOG: {
     v020: "welcome-dialog-v0-20",
     v030: "welcome-dialog-v0-30"
+  },
+
+  MIGRATION: {
+    v032: "migration-v032"
   }
 };
 
@@ -245,8 +249,7 @@ export function registerSettings() {
       [LTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.AREA}`),
       [LTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.AREA3D}`)
     },
-    default: LTYPES.POINTS,
-    onChange: updateLosSetting
+    default: LTYPES.POINTS
   });
 
   game.settings.register(MODULE_ID, SETTINGS.LOS.PERCENT_AREA, {
@@ -258,7 +261,7 @@ export function registerSettings() {
       step: 0.05
     },
     scope: "world",
-    config: () => getSetting(SETTINGS.LOS.ALGORITHM) !== LTYPES.POINTS,
+    config: true, // () => getSetting(SETTINGS.LOS.ALGORITHM) !== LTYPES.POINTS,
     default: 0,
     type: Number
   });
@@ -278,15 +281,14 @@ export function registerSettings() {
       [CTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA}`),
       [CTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA3D}`)
     },
-    default: game.system.id === "pf2e" ? CTYPES.CENTER_CENTER : CTYPES.CORNER_CORNERS_TARGET,
-    onChange: updateCoverSetting
+    default: game.system.id === "pf2e" ? CTYPES.CENTER_CENTER : CTYPES.CORNER_CORNERS_TARGET
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_CENTER, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CENTER}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CENTER}.Hint`),
     scope: "world",
-    config: () => getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.CENTER_CENTER,
+    config: true, // () => getSetting(SETTINGS.COVER.ALGORITHM) === CTYPES.CENTER_CENTER,
     default: coverNames.MEDIUM,
     type: String,
     choices: {
@@ -305,7 +307,7 @@ export function registerSettings() {
       step: 0.05
     },
     scope: "world",
-    config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
+    config: true,
     default: .5,
     type: Number
   });
@@ -319,7 +321,7 @@ export function registerSettings() {
       step: 0.05
     },
     scope: "world",
-    config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
+    config: true,
     default: .75,
     type: Number
   });
@@ -333,7 +335,7 @@ export function registerSettings() {
       step: 0.05
     },
     scope: "world",
-    config: () => getSetting(SETTINGS.COVER.ALGORITHM) !== CTYPES.CENTER_CENTER,
+    config: true,
     default: 1,
     type: Number
   });
@@ -455,6 +457,13 @@ export function registerSettings() {
     type: Boolean
   });
 
+  game.settings.register(MODULE_ID, SETTINGS.MIGRATION.v032, {
+    scope: "world",
+    config: false,
+    default: false,
+    type: Boolean
+  });
+
   log("Done registering settings.");
 }
 
@@ -466,13 +475,6 @@ function getCoverNames() {
     MEDIUM: statusEffects.MEDIUM.label,
     HIGH: statusEffects.HIGH.label
   };
-}
-
-function updateLosSetting(value) {
-  log(`Changing to ${value}`);
-  const LTYPES = SETTINGS.LOS.TYPES;
-  const visible = value === LTYPES.AREA || value === LTYPES.AREA3D;
-  setSettingVisibility(SETTINGS.LOS.PERCENT_AREA, visible);
 }
 
 function updateCoverSetting(value) {
@@ -490,23 +492,13 @@ function updateCoverSetting(value) {
 export function activateListenersSettingsConfig(wrapper, html) {
   log("activateListenersSettingsConfig", html);
 
-  html.find(`[name="tokenvisibility.los-algorithm"]`).change(tempUpdateLosSetting.bind(this));
-  html.find(`[name="tokenvisibility.cover-algorithm"]`).change(tempUpdateCoverSetting.bind(this));
+  html.find(`[name="${MODULE_ID}.${SETTINGS.LOS.ALGORITHM}"]`).change(losAlgorithmChanged.bind(this));
+  html.find(`[name="${MODULE_ID}.${SETTINGS.COVER.ALGORITHM}"]`).change(coverAlgorithmChanged.bind(this));
   wrapper(html);
 }
 
 let ORIGINAL_LOS_ALGORITHM;
 let ORIGINAL_COVER_ALGORITHM;
-
-async function tempUpdateLosSetting(event) {
-  ORIGINAL_LOS_ALGORITHM = getSetting(SETTINGS.LOS.ALGORITHM);
-  await setSetting(SETTINGS.LOS.ALGORITHM, event.currentTarget.value);
-}
-
-async function tempUpdateCoverSetting(event) {
-  ORIGINAL_COVER_ALGORITHM = getSetting(SETTINGS.COVER.ALGORITHM);
-  await setSetting(SETTINGS.COVER.ALGORITHM, event.currentTarget.value);
-}
 
 export async function closeSettingsConfig(wrapper, options = {}) {
   const out = wrapper(options);
@@ -524,18 +516,11 @@ export async function closeSettingsConfig(wrapper, options = {}) {
   return out;
 }
 
-
 export async function _onSubmitSettingsConfig(wrapper, options = {}) {
   if ( ORIGINAL_LOS_ALGORITHM ) ORIGINAL_LOS_ALGORITHM = undefined;
   if ( ORIGINAL_COVER_ALGORITHM ) ORIGINAL_COVER_ALGORITHM = undefined;
 
   return wrapper(options);
-}
-
-export async function _onChangeInput(wrapper, event) {
-  log("_onChangeInput!");
-
-  return wrapper(event);
 }
 
 /* Status effects
@@ -627,3 +612,36 @@ then use a renderSettingsConfig hook to selectively hide the elements with CSS o
 add a listener which toggles that CSS hidden state.
 
 */
+
+function losAlgorithmChanged(event) {
+  const losAlgorithm = event.target.value;
+  log(`los algorithm changed to ${losAlgorithm}`, event, this);
+
+  const displayArea = losAlgorithm === SETTINGS.LOS.TYPES.POINTS ? "none" : "block";
+  const inputLOSArea = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.PERCENT_AREA}`);
+  const divLOSArea = inputLOSArea[0].parentElement.parentElement;
+  divLOSArea.style.display = displayArea;
+}
+
+function coverAlgorithmChanged(event) {
+  const coverAlgorithm = event.target.value;
+  log(`cover algorithm changed to ${coverAlgorithm}`, event, this);
+
+  const [displayCoverTriggers, displayCenterCoverTrigger] = coverAlgorithm === SETTINGS.COVER.TYPES.CENTER_CENTER
+    ? ["none", "block"] : ["block", "none"];
+
+  const inputCenter = document.getElementsByName(`${MODULE_ID}.${SETTINGS.COVER.TRIGGER_CENTER}`);
+  const inputLow = document.getElementsByName(`${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}`);
+  const inputMedium = document.getElementsByName(`${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM}`);
+  const inputHigh = document.getElementsByName(`${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}`);
+
+  const divInputCenter = inputCenter[0].parentElement.parentElement;
+  const divInputLow = inputLow[0].parentElement.parentElement;
+  const divInputMedium = inputMedium[0].parentElement.parentElement;
+  const divInputHigh = inputHigh[0].parentElement.parentElement;
+
+  divInputCenter.style.display = displayCenterCoverTrigger;
+  divInputLow.style.display = displayCoverTriggers;
+  divInputMedium.style.display = displayCoverTriggers;
+  divInputHigh.style.display = displayCoverTriggers;
+}

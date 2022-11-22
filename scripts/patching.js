@@ -1,6 +1,8 @@
 /* globals
 libWrapper,
-Token
+Token,
+game,
+VisionSource
 */
 "use strict";
 
@@ -13,20 +15,12 @@ import {
 import {
   testVisibilityCanvasVisibility,
   testVisibilityDetectionMode,
-  _testRangeDetectionMode,
+  _testRangeDetectionMode
 } from "./visibility_range.js";
 
-import {
-  toggleActiveEffectTokenDocument,
-  getIgnoresCoverDND5eSimbuls,
-  getIgnoresCoverDND5e,
-  getIgnoresCover,
-  setIgnoresCoverDND5e,
-  setIgnoresCover
-} from "./cover.js";
+import { toggleActiveEffectTokenDocument } from "./cover.js";
 
 import { MODULE_ID } from "./const.js";
-import { log } from "./util.js";
 import {
   activateListenersSettingsConfig,
   closeSettingsConfig,
@@ -52,8 +46,12 @@ export function registerLibWrapperMethods() {
   libWrapper.register(MODULE_ID, "DetectionMode.prototype.testVisibility", testVisibilityDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
   // ----- Range Testing ----- //
-  if ( !(levelsActive || pvActive) )
-    libWrapper.register(MODULE_ID, "DetectionMode.prototype._testRange", _testRangeDetectionMode, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
+  if ( !(levelsActive || pvActive) ) libWrapper.register(
+    MODULE_ID,
+    "DetectionMode.prototype._testRange",
+    _testRangeDetectionMode,
+    libWrapper.MIXED,
+    { perf_mode: libWrapper.PERF_FAST });
 
   // ----- LOS Testing ----- //
   libWrapper.register(MODULE_ID, "DetectionMode.prototype._testLOS", _testLOSDetectionMode, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
@@ -93,25 +91,18 @@ export function registerLibWrapperMethods() {
     configurable: true
   });
 
-  if ( game.system.id === "dnd5e" && game.modules.get("simbuls-cover-calculator")?.active ) {
+
+  if ( !Object.hasOwn(Token.prototype, "ignoresCover") ) {
     Object.defineProperty(Token.prototype, "ignoresCover", {
-      get: getIgnoresCoverDND5eSimbuls,
-      set: setIgnoresCoverDND5e,
-      enumerable: false
-    });
-  } else if ( game.system.id === "dnd5e" ) {
-    Object.defineProperty(Token.prototype, "ignoresCover", {
-      get: getIgnoresCoverDND5e,
-      set: setIgnoresCoverDND5e,
-      enumerable: false
-    });
-  } else {
-    Object.defineProperty(Token.prototype, "ignoresCover", {
-      get: getIgnoresCover,
-      set: setIgnoresCover,
+      get: cachedGetterIgnoresCover,
       enumerable: false
     });
   }
+}
+
+function cachedGetterIgnoresCover() {
+  return this._ignoresCover
+    || (this._ignoresCover = new (game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER)(this));
 }
 
 function updateSourceToken(wrapper, ...args) {
@@ -132,25 +123,8 @@ function updateSourceToken(wrapper, ...args) {
   return wrapper(...args);
 }
 
-function _onToggleStatusEffectsTokenHUD(wrapper, event) {
-  const out = wrapper(event);
-  log("_onToggleStatusEffectsTokenHUD", event, out);
-}
-
-function _toggleStatusEffectsTokenHUD(wrapper, active) {
-  const out = wrapper(active);
-  log("_toggleStatusEffectsTokenHUD", active, out);
-}
-
-function _onToggleEffectTokenHUD(wrapper, event, {overlay=false}={}) {
-  const out = wrapper(event, {overlay});
-  log("_onToggleEffectTokenHUD", event, overlay, out, event.currentTarget);
-}
-
 // See also Token.prototype.toggleEffect and
 // TokenDocument.prototype.toggleActiveEffect
-
-
 
 export function patchHelperMethods() {
   function setIntersect(b) { return new Set([...this].filter(x => b.has(x))); }
