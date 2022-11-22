@@ -13,6 +13,8 @@ import { ClipperPaths } from "./ClipperPaths.js";
 
 export class WallPoints3d extends PlanePoints3d {
   constructor(object) {
+    if ( !object ) return super(object, points); // Construct the class without a wall object.
+
     const { A, B, topZ, bottomZ } = object;
     const maxR = canvas.dimensions.maxR;
 
