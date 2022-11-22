@@ -31,8 +31,8 @@ export const COVER_TYPES = {
   TOTAL: 4
 };
 
-const MIN_COVER = Math.min(...Object.values(COVER_TYPES));
-const MAX_COVER = Math.max(...Object.values(COVER_TYPES));
+export const MIN_COVER = Math.min(...Object.values(COVER_TYPES));
+export const MAX_COVER = Math.max(...Object.values(COVER_TYPES));
 
 // Default status effects for different systems.
 export const STATUS_EFFECTS = {

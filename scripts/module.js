@@ -6,10 +6,10 @@ canvas
 */
 "use strict";
 
-import { MODULE_ID, COVER_TYPES } from "./const.js";
+import { MODULE_ID, COVER_TYPES, FLAGS } from "./const.js";
 
 // Hooks and method registration
-import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook, addDND5eCoverFeatFlags } from "./cover.js";
+import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import { registerPIXIPolygonMethods } from "./geometry/PIXIPolygon.js";
 import { registerPIXIRectangleMethods } from "./geometry/PIXIRectangle.js";
@@ -46,7 +46,8 @@ import * as los from "./visibility_los.js";
 import {
   IgnoresCover,
   IgnoresCoverSimbuls,
-  IgnoresCoverDND5e } from "./IgnoresCover.js";
+  IgnoresCoverDND5e,
+  addDND5eCoverFeatFlags } from "./IgnoresCover.js";
 
 Hooks.once("init", async function() {
   registerElevationAdditions();
@@ -123,7 +124,7 @@ Hooks.once("setup", async function() {
 });
 
 Hooks.once("canvasReady", async function() {
-  // v0.3.2: "ignoreCover" flag becomes "ignoreCoverAll"
+  // Version 0.3.2: "ignoreCover" flag becomes "ignoreCoverAll"
   migrateIgnoreCoverFlag();
 
   setCoverIgnoreHandler(game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER);
@@ -148,13 +149,13 @@ function migrateIgnoreCoverFlag() {
   });
 
   // Unlinked tokens may not otherwise get updated.
-  canvas.placeables.tokens.forEach(t => {
+  canvas.tokens.placeables.forEach(t => {
     const allCover = t.actor.getFlag(MODULE_ID, "ignoreCover");
     if ( allCover ) {
       t.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.ALL, allCover);
       t.actor.unsetFlag(MODULE_ID, "ignoreCover");
     }
-  }
+  });
 }
 
 Hooks.once("ready", async function() {

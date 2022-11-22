@@ -18,16 +18,7 @@ import {
   _testRangeDetectionMode
 } from "./visibility_range.js";
 
-import {
-  toggleActiveEffectTokenDocument,
-  getIgnoresCoverDND5eSimbuls,
-  getIgnoresCoverDND5e,
-  getIgnoresCover,
-  setIgnoresCoverDND5e,
-  setIgnoresCover
-} from "./cover.js";
-
-
+import { toggleActiveEffectTokenDocument } from "./cover.js";
 
 import { MODULE_ID } from "./const.js";
 import {
@@ -103,13 +94,13 @@ export function registerLibWrapperMethods() {
 
   if ( !Object.hasOwn(Token.prototype, "ignoresCover") ) {
     Object.defineProperty(Token.prototype, "ignoresCover", {
-      get: getIgnoresCover,
+      get: cachedGetterIgnoresCover,
       enumerable: false
     });
   }
 }
 
-function getIgnoresCover() {
+function cachedGetterIgnoresCover() {
   return this._ignoresCover
     || (this._ignoresCover = new game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER(this));
 }

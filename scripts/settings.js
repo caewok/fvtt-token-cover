@@ -138,7 +138,7 @@ export const SETTINGS = {
   },
 
   MIGRATION: {
-    v032: "migration-v032",
+    v032: "migration-v032"
   }
 };
 
@@ -457,7 +457,7 @@ export function registerSettings() {
     type: Boolean
   });
 
-  game.settings.register(MODULE_ID, SETTINGS.MIGRATION.v032), {
+  game.settings.register(MODULE_ID, SETTINGS.MIGRATION.v032, {
     scope: "world",
     config: false,
     default: false,
