@@ -108,14 +108,15 @@ Hooks.once("init", async function() {
  * Helper to set the cover ignore handler and, crucially, update all tokens.
  */
 function setCoverIgnoreHandler(handler) {
-  if ( !(handler instanceof IgnoresCover ) ) {
+  if ( !(handler.prototype instanceof IgnoresCover ) ) {
     console.warn("setCoverIgnoreHandler: handler not recognized.");
     return;
   }
 
   game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER = handler;
 
-  canvas.placeables.tokens.forEach(t => t._ignoresCover = undefined);
+  // Simplest just to revert any existing.
+  canvas.tokens.placeables.forEach(t => t._ignoresCover = undefined);
 }
 
 Hooks.once("setup", async function() {
