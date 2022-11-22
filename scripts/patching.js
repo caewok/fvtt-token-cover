@@ -102,7 +102,7 @@ export function registerLibWrapperMethods() {
 
 function cachedGetterIgnoresCover() {
   return this._ignoresCover
-    || (this._ignoresCover = new game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER(this));
+    || (this._ignoresCover = new (game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER)(this));
 }
 
 function updateSourceToken(wrapper, ...args) {
