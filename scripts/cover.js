@@ -225,8 +225,11 @@ export function dnd5ePreRollAttackHook(item, rollConfig) {
   const user = game.users.get(game.userId);
   const targets = canvas.tokens.placeables.filter(t => t.isTargeted && t.targeted.has(user));
 
+  // Determine the attack type
+  const actionType = item.system?.actionType;
+
   // Determine cover and distance for each target
-  const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30 });
+  const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30, actionType });
   if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
 }
 

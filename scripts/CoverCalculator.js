@@ -12,7 +12,7 @@ Dialog,
 Ray
 */
 
-import { MODULE_ID, COVER_TYPES, FLAGS } from "./const.js";
+import { MODULE_ID, COVER_TYPES } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
@@ -182,6 +182,23 @@ export class CoverCalculator {
     return getCoverName(key);
   }
 
+  /**
+   * Get a description for an attack type
+   * @param {string} type   all, mwak, msak, rwak, rsak
+   * @returns {string}
+   */
+  static attackNameForType(type) {
+    // TODO: localize
+    switch ( type ) {
+      case "all": return "all";
+      case "mwak": return "melee weapon";
+      case "msak": return "melee spell";
+      case "rwak": return "ranged weapon";
+      case "rsak": return "ranged spell";
+    }
+    return undefined;
+  }
+
   static disableAllCoverStatus(tokenId) {
     // Don't really need to await in order to disable all... right?
     CoverCalculator.disableCoverStatus(tokenId, COVER_TYPES.LOW);
@@ -248,7 +265,8 @@ export class CoverCalculator {
     include3dDistance = true,
     includeZeroCover = true,
     imageWidth = 50,
-    coverCalculations } = {}) {
+    coverCalculations,
+    actionType } = {}) {
 
     if ( game.modules.get(MODULE_ID).api.debug.cover ) drawing.clearDrawings();
     if ( !coverCalculations ) coverCalculations = CoverCalculator.coverCalculations(tokens, targets);
@@ -317,9 +335,19 @@ export class CoverCalculator {
       <br>
       `;
 
+      // Describe the types of cover ignored by the token
+      // If actionType is defined, use that to limit the types
+      let ignoresCoverLabel = "";
+      const ic = token.ignoresCover;
+      if ( ic.all > 0 ) ignoresCoverLabel += `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ic.all)} cover or less for ${CoverCalculator.attackNameForType("all")} attacks.)</em>`;
 
-      const ignoresCover = token.ignoresCover;
-      const ignoresCoverLabel = ignoresCover > 0 ? `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ignoresCover)} cover or less.)</em>` : "";
+      if ( actionType && ic[actionType] > 0 ) ignoresCoverLabel += `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ic[actionType])} cover or less for ${CoverCalculator.attackNameForType(actionType)} attacks.)</em>`;
+      else { // Test them all...
+        if ( ic.mwak ) ignoresCoverLabel += `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ic.mwak)} cover or less for ${CoverCalculator.attackNameForType("mwak")} attacks.)</em>`;
+        if ( ic.msak ) ignoresCoverLabel += `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ic.msak)} cover or less for ${CoverCalculator.attackNameForType("msak")} attacks.)</em>`;
+        if ( ic.rwak ) ignoresCoverLabel += `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ic.rwak)} cover or less for ${CoverCalculator.attackNameForType("rwak")} attacks.)</em>`;
+        if ( ic.rsak ) ignoresCoverLabel += `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ic.rsak)} cover or less for ${CoverCalculator.attackNameForType("rsak")} attacks.)</em>`;
+      }
 
       htmlTable =
       `
@@ -858,7 +886,7 @@ export class CoverCalculator {
       liveTokensBlock: getSetting(SETTINGS.COVER.LIVE_TOKENS),
       deadTokensBlock: deadTokenAlg !== deadTypes.NONE,
       deadHalfHeight: deadTokenAlg === deadTypes.HALF
-    }
+    };
 
     const area = new Area(this.viewer, this.target, config);
     if ( this.debug ) area.debug = true;
