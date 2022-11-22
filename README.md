@@ -221,19 +221,19 @@ When enabled, this option applies cover status to targeted tokens during combat.
 
 For dnd5e, enabling this will use the dnd5e attack hook to display cover of targeted tokens in the chat, when an attack is initiated. Targeted tokens without cover are not included in the chat message, and so if no targeted tokens have cover, nothing will be output to chat.
 
-## Dead tokens grant cover
+### Dead tokens grant cover
 
 The GM can choose whether dead tokens grant cover and whether to use half the height of the token or the full height. You will need to set the "Token HP Attribute" for your system.
 
-## Live tokens grant cover
+### Live tokens grant cover
 
 The GM can choose whether live tokens should be considered cover. If the "Token HP Attribute" is not set, all tokens will be considered cover if this is set.
 
-## Token HP attribute
+### Token HP attribute
 
 This tells Alternative Token Visibility where to find the HP value for a token in your system. The default for dnd5e is "system.attributes.hp.value." A token with 0 or less HP is considered "dead" for purposes of cover.
 
-### Midi-qol Attack Workflow
+### Midiqol Attack Workflow
 
 If [Midiqol](https://gitlab.com/tposney/midi-qol) is active, the GM can choose whether cover status conditions should be applied to targeted tokens. Statuses are applied after targeting occurs in the midiqol workflow. Options:
 
@@ -244,6 +244,27 @@ If [Midiqol](https://gitlab.com/tposney/midi-qol) is active, the GM can choose w
 
 For the confirmation options, this pops up a list of targets with calculated covers. Cover types can then be changed by the user or GM, respectively.
 
+## Ignoring Cover
+
+A token can be set to ignore cover less than or equal to some amount. For example, a token set to ignore Medium cover (3/4 cover in DND5e) will also ignore Low cover (1/2 cover in DND5e). Tokens can be set to ignore cover for all attacks (all), or any of the following: melee weapon (mwak), ranged weapon (rwak), melee spell (msak), or ranged spell (rsak).
+
+To set ignoring cover on a specific token, use, for example:
+```js
+api = game.modules.get('tokenvisibility').api;
+cover_type = api.COVER_TYPES;
+
+_token.ignoresCover.all = cover_type.LOW;
+_token.ignoresCover.rwak = cover_type.MEDIUM;
+
+rangedWeaponIgnored = _token.ignoresCover.rwak;
+```
+
+For linked actors, these values will be set on the actor.
+
+In dnd5e, tokens can also be set to ignore cover for all attacks using the Special Traits token configuration menu.
+
+For Midiqol workflows, the special flags for sharpshooter and spell sniper will be checked when using `_token.ignoresCover` and during the midi workflow if cover checking is enabled in the midiqol attack workflow setting, described above.
+
 # Cover Macro
 
 A compendium macro, "Measure Cover" is provided to allow users to easily measure cover. Select one or more tokens and target one or more tokens. Cover will be measured for each token --> target combination and the results reported in a pop-up.
@@ -251,6 +272,8 @@ A compendium macro, "Measure Cover" is provided to allow users to easily measure
 <img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/settings-cover-macro.jpg" width="400" alt="Cover Macro for the Alt Token Visibility Module">
 
 A second version of this macro, "Cover Debug Tester" temporarily enables the debug visibility so you can get a better sense of what the cover algorithm is detecting.
+
+If a token is set to ignore cover, that information will be provided in the pop-up display. It is assumed the GM or user will than take that information into account as needed.
 
 # Methodology
 Base Foundry calculates token (and other object) visibility by considering 9 points arranged around the token: the center point plus 8 points spaced out in a rectangular shape.
@@ -283,6 +306,17 @@ Of interest:
 
 - Benchmarking methods, at `api.bench`.
 - Cover calculator class: `api.CoverCalculator`.
+- Class to assist with ignoring cover:
+
+```js
+IgnoresCoverClasses: {
+      IgnoresCover,
+      IgnoresCoverDND5e,
+      IgnoresCoverSimbuls
+    },`
+```
+Each class has methods to set and return cover types to be ignored for all, mwak, msak, rwak, and rsak. The parent class is `IgnoresCover`. See `IgnoresCoverDND5e` for an example extension for system-specific values.
+
 - Area2d and 3d classes: `api.Area2d` and `api.Area3d`
 - Debug toggles. `api.debug.range`, `api.debug.los`, `api.debug.cover`. This will draw various indicators on the screen to help understand what a given algorithm is doing.
 
