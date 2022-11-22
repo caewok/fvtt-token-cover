@@ -1,3 +1,12 @@
+# 0.3.2
+Use different technique to hide settings submenus when different algorithms are chosen, which should reduce weirdness in the settings menu.
+
+Fix error when getting average token elevation.
+
+Use an IgnoreCover class that can be different for different systems, and split ignoring cover into all, mwak, msak, rwak, and rsak. Allows for Spell Sniper and Sharpshooter designations using midi. Closes issue #8.
+
+Add handling of limited angle vision for Area3d algorithm (closes issue #4).
+
 # 0.3.1
 Fix issue #7 (Welcome message).
 
