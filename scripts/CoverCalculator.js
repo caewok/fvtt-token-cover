@@ -266,7 +266,9 @@ export class CoverCalculator {
     includeZeroCover = true,
     imageWidth = 50,
     coverCalculations,
-    actionType } = {}) {
+    actionType,
+    applied = false,
+    displayIgnored = true } = {}) {
 
     if ( game.modules.get(MODULE_ID).api.debug.cover ) drawing.clearDrawings();
     if ( !coverCalculations ) coverCalculations = CoverCalculator.coverCalculations(tokens, targets);
@@ -287,7 +289,7 @@ export class CoverCalculator {
       <thead>
         <tr class="character-row">
           <th colspan="2" ><b>Target</b></th>
-          <th style="text-align: left"><b>Cover</b></th>
+          <th style="text-align: left"><b>${applied ? "Applied Cover" : "Cover"}</b></th>
           ${distHeader}
         </tr>
       </thead>
@@ -338,22 +340,30 @@ export class CoverCalculator {
       // Describe the types of cover ignored by the token
       // If actionType is defined, use that to limit the types
       let ignoresCoverLabel = "";
-      const ic = token.ignoresCover;
-      if ( ic.all > 0 ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(ic.all)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
-      if ( actionType && ic[actionType] > 0 ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(ic[actionType])} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
 
-      else { // Test them all...
-        if ( ic.mwak ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(ic.mwak)} cover (${CoverCalculator.attackNameForType("mwak")} attacks)`;
-        if ( ic.msak ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(ic.msak)} cover (${CoverCalculator.attackNameForType("msak")} attacks)`;
-        if ( ic.rwak ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(ic.rwak)} cover (${CoverCalculator.attackNameForType("rwak")} attacks)`;
-        if ( ic.rsak ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(ic.rsak)} cover (${CoverCalculator.attackNameForType("rsak")} attacks)`;
+      if ( displayIgnored ) {
+        const ic = token.ignoresCover;
+        if ( ic.all > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.all)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
+        if ( actionType && ic[actionType] > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic[actionType])} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
+
+        else { // Test them all...
+          if ( ic.mwak ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.mwak)} cover (${CoverCalculator.attackNameForType("mwak")} attacks)`;
+          if ( ic.msak ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.msak)} cover (${CoverCalculator.attackNameForType("msak")} attacks)`;
+          if ( ic.rwak ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.rwak)} cover (${CoverCalculator.attackNameForType("rwak")} attacks)`;
+          if ( ic.rsak ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.rsak)} cover (${CoverCalculator.attackNameForType("rsak")} attacks)`;
+        }
+
+        if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = `<br><em>${token.name} ignores:${ignoresCoverLabel}</em>`;
       }
 
-      if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = `<br><em>${token.name} ignores:${ignoresCoverLabel}</em>`;
+      const targetLabel = `${nCover} target${nCover === 1 ? "" : "s"}`;
+      const numCoverLabel = applied
+        ? nCover === 1 ? "has" : "have"
+        : "may have"
 
       htmlTable =
       `
-      ${nCover} target${nCover === 1 ? " has" : "s have"} may have cover from <b>${token.name}</b>.
+      ${targetLabel} ${numCoverLabel} cover from <b>${token.name}</b>.
       ${ignoresCoverLabel}
       ${htmlTable}
       `;

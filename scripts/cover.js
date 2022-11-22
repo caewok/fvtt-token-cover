@@ -139,7 +139,10 @@ export async function midiqolPreambleCompleteHook(workflow) {
     const coverTable = CoverCalculator.htmlCoverTable([token], targets, {
       includeZeroCover: false,
       imageWidth: 30,
-      coverCalculations });
+      coverCalculations,
+      applied: true,
+      displayIgnored: false
+    });
     log(coverTable.html);
 
     if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
@@ -156,8 +159,8 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations, ogC
   const allCoverIgnored = ic.all;
   const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
 
-  if ( allCoverIgnored > 0 ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(allCoverIgnored)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
-  if ( typeCoverIgnored > 0 ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(typeCoverIgnored)} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
+  if ( allCoverIgnored > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(allCoverIgnored)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
+  if ( typeCoverIgnored > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(typeCoverIgnored)} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
 
   if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = ` <em>Ignores:${ignoresCoverLabel}</em>`;
 
