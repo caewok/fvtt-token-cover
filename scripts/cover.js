@@ -2,7 +2,7 @@
 game,
 canvas,
 ChatMessage,
-CONFIG
+duplicate
 */
 "use strict";
 
@@ -47,23 +47,18 @@ dnd5e: half, 3/4, full
 
 */
 
-import { MODULE_ID, COVER_TYPES, FLAGS } from "./const.js";
+import { MODULE_ID, COVER_TYPES } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
-import { distanceBetweenPoints, pixelsToGridUnits } from "./util.js";
+import { distanceBetweenPoints, pixelsToGridUnits, log } from "./util.js";
 import { CoverCalculator, SOCKETS, dialogPromise } from "./CoverCalculator.js";
 
 import { Point3d } from "./geometry/Point3d.js";
-
-
-
 
 /**
  * Hook event that fires after targeting (AoE) is complete.
  * Note: hook will be run by the user that executed the attack triggering this.
  */
 export async function midiqolPreambleCompleteHook(workflow) {
-//   console.log(`midiqolPreambleCompleteHook user ${game.userId}`, workflow);
-
   const token = workflow.token;
   const targets = [...workflow.targets];
   const nTargets = targets.length;
@@ -80,14 +75,35 @@ export async function midiqolPreambleCompleteHook(workflow) {
 
   const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
   const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
+  const actionType = workflow.item?.system?.actionType;
 
   let coverCalculations;
+  let originalCoverCalculations;
   if ( getSetting(SETTINGS.COVER.CHAT)
-    || coverCheckOption !== choices.NONE ) coverCalculations = CoverCalculator.coverCalculations([token], targets);
+    || coverCheckOption !== choices.NONE ) {
 
+    const ic = token.ignoresCover;
+    const allCoverIgnored = ic.all;
+    const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
+    const ignoresCover = Math.max(allCoverIgnored, typeCoverIgnored);
+
+    originalCoverCalculations = CoverCalculator.coverCalculations([token], targets);
+    coverCalculations = duplicate(originalCoverCalculations);
+
+    for ( const target of targets ) {
+      const cover = coverCalculations[token.id][target.id];
+      const calcCover = cover <= ignoresCover ? COVER_TYPES.NONE : cover;
+      coverCalculations[token.id][target.id] = calcCover;
+    }
+  }
 
   if ( coverCheckOption === choices.GM || coverCheckOption === choices.USER ) {
-    const dialogData = constructCoverCheckDialogContent(token, targets, coverCalculations);
+    const dialogData = constructCoverCheckDialogContent(
+      token,
+      targets,
+      coverCalculations,
+      originalCoverCalculations,
+      actionType);
 
     const res = coverCheckOption === choices.GM
       ? await SOCKETS.socket.executeAsGM("dialogPromise", dialogData)
@@ -124,14 +140,28 @@ export async function midiqolPreambleCompleteHook(workflow) {
       includeZeroCover: false,
       imageWidth: 30,
       coverCalculations });
+    log(coverTable.html);
+
     if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
   }
 
   return true;
 }
 
-function constructCoverCheckDialogContent(token, targets, coverCalculations) {
-  let html = `<b>${token.name}</b>`;
+function constructCoverCheckDialogContent(token, targets, coverCalculations, ogCoverCalculations, actionType) {
+  // Describe the types of cover ignored by the token
+  // If actionType is defined, use that to limit the types
+  let ignoresCoverLabel = "";
+  const ic = token.ignoresCover;
+  const allCoverIgnored = ic.all;
+  const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
+
+  if ( allCoverIgnored > 0 ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(allCoverIgnored)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
+  if ( typeCoverIgnored > 0 ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(typeCoverIgnored)} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
+
+  if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = ` <em>Ignores:${ignoresCoverLabel}</em>`;
+
+  let html = `<b>${token.name}</b>. ${CoverCalculator.attackNameForType(actionType)} attack. ${ignoresCoverLabel}`;
 
   const include3dDistance = true;
   const imageWidth = 50;
@@ -142,8 +172,9 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations) {
   <table id="${token.id}_table" class="table table-striped">
   <thead>
     <tr class="character-row">
-      <th colspan="2" ><b>Target</b></th>
-      <th style="text-align: left"><b>Cover</b></th>
+      <th colspan="2"><b>Target</b></th>
+      <th style="text-align: left"><b>Applied</b></th>
+      <th style="text-align: left"><b>Estimated</b></th>
       ${distHeader}
     </tr>
   </thead>
@@ -152,6 +183,7 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations) {
 
   for ( const target of targets ) {
     const cover = coverCalculations[token.id][target.id];
+    const ogCover = ogCoverCalculations[token.id][target.id];
 
     const target_center = new Point3d(
       target.center.x,
@@ -171,7 +203,6 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations) {
     `;
     const coverSelector =
     `
-    <label for="COVER.${target.id}">Cover</label>
     <select id="CoverSelect.${target.id}" class="CoverSelect">
     ${coverOptions}
     </select>
@@ -183,6 +214,7 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations) {
     <td><img src="${targetImage}" alt="${target.name} image" width="${imageWidth}" style="border:0px"></td>
     <td>${target.name}</td>
     <td>${coverSelector}</td>
+    <td><em>${CoverCalculator.coverNameForType(ogCover)}</em></td>
     ${distContent}
     </tr>
     `;
@@ -212,8 +244,6 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations) {
  * @returns {boolean}                    Explicitly return false to prevent the roll from being performed.
  */
 export function dnd5ePreRollAttackHook(item, rollConfig) {
-//   console.log(`dnd5ePreRollAttackHook User ${game.userId}`, item, rollConfig);
-
   if ( game.modules.has("midi-qol") && game.modules.get("midi-qol").active ) return true;
   if ( !getSetting(SETTINGS.COVER.CHAT) ) return true;
 
@@ -229,7 +259,12 @@ export function dnd5ePreRollAttackHook(item, rollConfig) {
   const actionType = item.system?.actionType;
 
   // Determine cover and distance for each target
-  const coverTable = CoverCalculator.htmlCoverTable([token], targets, { includeZeroCover: false, imageWidth: 30, actionType });
+  const coverTable = CoverCalculator.htmlCoverTable([token], targets, {
+    includeZeroCover: false,
+    imageWidth: 30,
+    actionType
+  });
+  log(coverTable.html);
   if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
 }
 

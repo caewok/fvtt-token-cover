@@ -339,19 +339,21 @@ export class CoverCalculator {
       // If actionType is defined, use that to limit the types
       let ignoresCoverLabel = "";
       const ic = token.ignoresCover;
-      if ( ic.all > 0 ) ignoresCoverLabel += `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ic.all)} cover or less for ${CoverCalculator.attackNameForType("all")} attacks.)</em>`;
+      if ( ic.all > 0 ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(ic.all)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
+      if ( actionType && ic[actionType] > 0 ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(ic[actionType])} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
 
-      if ( actionType && ic[actionType] > 0 ) ignoresCoverLabel += `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ic[actionType])} cover or less for ${CoverCalculator.attackNameForType(actionType)} attacks.)</em>`;
       else { // Test them all...
-        if ( ic.mwak ) ignoresCoverLabel += `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ic.mwak)} cover or less for ${CoverCalculator.attackNameForType("mwak")} attacks.)</em>`;
-        if ( ic.msak ) ignoresCoverLabel += `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ic.msak)} cover or less for ${CoverCalculator.attackNameForType("msak")} attacks.)</em>`;
-        if ( ic.rwak ) ignoresCoverLabel += `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ic.rwak)} cover or less for ${CoverCalculator.attackNameForType("rwak")} attacks.)</em>`;
-        if ( ic.rsak ) ignoresCoverLabel += `<br><em>(${token.name} ignores ${CoverCalculator.coverNameForType(ic.rsak)} cover or less for ${CoverCalculator.attackNameForType("rsak")} attacks.)</em>`;
+        if ( ic.mwak ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(ic.mwak)} cover (${CoverCalculator.attackNameForType("mwak")} attacks)`;
+        if ( ic.msak ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(ic.msak)} cover (${CoverCalculator.attackNameForType("msak")} attacks)`;
+        if ( ic.rwak ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(ic.rwak)} cover (${CoverCalculator.attackNameForType("rwak")} attacks)`;
+        if ( ic.rsak ) ignoresCoverLabel += `<br>• ≤ ${CoverCalculator.coverNameForType(ic.rsak)} cover (${CoverCalculator.attackNameForType("rsak")} attacks)`;
       }
+
+      if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = `<br><em>${token.name} ignores:${ignoresCoverLabel}</em>`;
 
       htmlTable =
       `
-      ${nCover} target${nCover === 1 ? " has" : "s have"} cover from <b>${token.name}</b>.
+      ${nCover} target${nCover === 1 ? " has" : "s have"} may have cover from <b>${token.name}</b>.
       ${ignoresCoverLabel}
       ${htmlTable}
       `;
