@@ -4,7 +4,9 @@ canvas,
 game,
 foundry,
 Token,
-CONST
+CONST,
+Ray,
+LimitedAnglePolygon
 */
 "use strict";
 
@@ -189,6 +191,9 @@ export class Area3d {
       objs.terrainWalls.forEach(w => w.setViewMatrix(this.viewerViewM));
       const combined = WallPoints3d.combineTerrainWalls(objs.terrainWalls, this.viewerCenter);
       if ( combined && combined.paths.length ) objs.combinedTerrainWalls = combined;
+    } else if ( this.debug ) {
+      // Set the view matrix so the single wall, if any, can be drawn
+      objs.terrainWalls.forEach(w => w.setViewMatrix(this.viewerViewM));
     }
 
     this._viewIsSet = true;
@@ -257,7 +262,7 @@ export class Area3d {
 
     walls = walls.map(w => new PIXI.Polygon(w.perspectiveTransform()));
     walls = ClipperPaths.fromPolygons(walls);
-    walls = walls.combine()
+    walls = walls.combine();
     walls.clean();
 
     return walls;
@@ -346,11 +351,58 @@ export class Area3d {
   }
 
   /**
+   * Test if any part of the target is within the limited angle vision of the token.
+   * @returns {boolean}
+   */
+  _targetWithinLimitedAngleVision() {
+    const angle = this.viewer.data.angle;
+    if ( angle === 360 ) return true;
+
+    // Does the target intersect the two rays from viewer center?
+    // Does the target fall between the two rays?
+    const { x, y, rotation } = this.viewer.data;
+
+    // The angle of the left (counter-clockwise) edge of the emitted cone in radians.
+    // See LimitedAnglePolygon
+    const aMin = Math.normalizeRadians(Math.toRadians(rotation + 90 - (angle / 2)));
+
+    // The angle of the right (clockwise) edge of the emitted cone in radians.
+    const aMax = aMin + Math.toRadians(angle);
+
+    const constrainedTokenBorder = ConstrainedTokenBorder.get(this.target, this.config.type).constrainedBorder();
+
+    // For each edge:
+    // If it intersects a ray, target is within.
+    // If an endpoint is within the limited angle, target is within
+    const rMin = Ray.fromAngle(x, y, aMin, canvas.dimensions.maxR);
+    const rMax = Ray.fromAngle(x, y, aMax, canvas.dimensions.maxR);
+
+    // Probably worth checking the target center first
+    const center = this.target.center;
+    if ( LimitedAnglePolygon.pointBetweenRays(center, rMin, rMax, angle) ) return true;
+    if ( LimitedAnglePolygon.pointBetweenRays(center, rMin, rMax, angle) ) return true;
+
+    // TODO: Would it be more performant to assign an angle to each target point?
+    // Or maybe just check orientation of ray to each point?
+    const edges = constrainedTokenBorder.toPolygon().iterateEdges();
+    for ( const edge of edges ) {
+      if ( foundry.utils.lineSegmentIntersects(rMin.A, rMin.B, edge.A, edge.B) ) return true;
+      if ( foundry.utils.lineSegmentIntersects(rMax.A, rMax.B, edge.A, edge.B) ) return true;
+      if ( LimitedAnglePolygon.pointBetweenRays(edge.A, rMin, rMax, angle) ) return true;
+      if ( LimitedAnglePolygon.pointBetweenRays(edge.B, rMin, rMax, angle) ) return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Determine the percentage area of the 3d token visible to the viewer.
    * Measured by projecting the 3d token to a 2d canvas representing the viewer's perspective.
    * @returns {number}
    */
   percentAreaVisible() {
+    if ( !this._targetWithinLimitedAngleVision() ) return 0;
+
     const objs = this.blockingObjects;
 
     if ( !this.debug
@@ -419,6 +471,33 @@ export class Area3d {
   }
 
   /**
+   * Construct walls based on limited angle rays
+   * Start 1 pixel behind the origin
+   * @returns {null|WallPoints3d[2]}
+   */
+  _constructLimitedAngleWallPoints3d() {
+    const angle = this.viewer.data.angle;
+    if ( angle === 360 ) return null;
+
+    const { x, y, rotation } = this.viewer.data;
+    const aMin = Math.normalizeRadians(Math.toRadians(rotation + 90 - (angle / 2)));
+    const aMax = aMin + Math.toRadians(angle);
+
+    // 0 faces south; 270 faces east
+    const aMed = (aMax + aMin) * 0.5;
+    const rMed = Ray.fromAngle(x, y, aMed, -1);
+    const rMin = Ray.fromAngle(rMed.B.x, rMed.B.y, aMin, canvas.dimensions.maxR);
+    const rMax = Ray.fromAngle(rMed.B.x, rMed.B.y, aMax, canvas.dimensions.maxR);
+
+    // Use the ray as the wall
+    rMin.topZ = canvas.dimensions.maxR;
+    rMin.bottomZ = -canvas.dimensions.maxR;
+    rMax.topZ = canvas.dimensions.maxR;
+    rMax.bottomZ = -canvas.dimensions.maxR;
+    return [new WallPoints3d(rMin), new WallPoints3d(rMax)];
+  }
+
+  /**
    * Find relevant walls—--those intersecting the boundary between token center and target.
    */
   _findBlockingObjects() {
@@ -482,6 +561,12 @@ export class Area3d {
       const s = w.document[type] === CONST.WALL_SENSE_TYPES.LIMITED ? terrainWalls : walls;
       s.add(new WallPoints3d(w));
     });
+
+    const limitedAngleWalls = this._constructLimitedAngleWallPoints3d();
+    if ( limitedAngleWalls ) {
+      walls.add(limitedAngleWalls[0]);
+      walls.add(limitedAngleWalls[1]);
+    }
 
     this._blockingObjectsAreSet = true;
     this._viewIsSet = false;
