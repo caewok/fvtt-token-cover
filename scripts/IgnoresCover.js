@@ -170,7 +170,7 @@ export class IgnoresCoverDND5e extends IgnoresCover {
    * @type {COVER_TYPE}
    */
   get rwak() {
-    const sharpShooter = this.actor.flags["midi-qol"].sharpShooter ? COVER_TYPES.MEDIUM : COVER_TYPES.NONE;
+    const sharpShooter = this.actor?.flags["midi-qol"]?.sharpShooter ? COVER_TYPES.MEDIUM : COVER_TYPES.NONE;
     return Math.max(super.rwak, sharpShooter);
   }
 
@@ -179,7 +179,7 @@ export class IgnoresCoverDND5e extends IgnoresCover {
    * @type {COVER_TYPE}
    */
   get rsak() {
-    const spellSniper = this.actor.flags.dnd5e.spellSniper ? COVER_TYPES.MEDIUM : COVER_TYPES.NONE;
+    const spellSniper = this.actor?.flags?.dnd5e?.spellSniper ? COVER_TYPES.MEDIUM : COVER_TYPES.NONE;
     return Math.max(super.rsak, spellSniper);
   }
 }
