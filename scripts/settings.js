@@ -42,6 +42,7 @@ await api.bench.QBenchmarkLoopFn(N, fnDefault, "default","cover-token-live")
 */
 
 export async function setSetting(settingName, value) {
+  settingsCache.delete(settingName);
   return await game.settings.set(MODULE_ID, settingName, value);
 }
 

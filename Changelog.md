@@ -1,3 +1,6 @@
+# 0.3.4
+Reset the settings cache when changing a setting value. Also fixes the welcome pop-up to avoid it repeating.
+
 # 0.3.3
 - Change name of property to token.ignoresCoverType to avoid naming conflict with Simbul's Cover Calculator. Fixes issue #11.
 - Check if tests exist for testing range visibility. Possible fix to issue #10.
