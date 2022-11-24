@@ -139,6 +139,10 @@ This method is probably the most accurate way to determine if a token has visibi
 
 https://user-images.githubusercontent.com/1267134/199608396-22c017fc-2c58-4f5e-ace0-898ede8aa6fd.mov
 
+Here is another example with debug drawing on, to illustrate the token's viewing perspective. The token has limited angle vision, as seen by the blue shading, and there are two terrain walls, which cross each other, of different heights. The bright green is where the terrain walls cross and thus block vision. (The light green is only a single terrain wall and would not block vision.) The target in this case is the giant ape, displayed as a red box. The token is above the ground, but not above the giant ape. So it is looking down on the smaller terrain wall in front of it. 
+
+![Area3d Limited Angle Terrain Wall](https://user-images.githubusercontent.com/1267134/203361623-75e1e29f-0c7e-41e9-81ef-01ff67698328.jpg)
+
 ### Percent Token Area
 
 For Area 2d and Area 3d, the GM can decide how much of the token must be viewable in order to be "visible." Usually, a low percentage—--say 10% or 20%—--works reasonably well.
