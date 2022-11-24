@@ -253,17 +253,17 @@ To set ignoring cover on a specific token, use, for example:
 api = game.modules.get('tokenvisibility').api;
 cover_type = api.COVER_TYPES;
 
-_token.ignoresCover.all = cover_type.LOW;
-_token.ignoresCover.rwak = cover_type.MEDIUM;
+_token.ignoresCoverType.all = cover_type.LOW;
+_token.ignoresCoverType.rwak = cover_type.MEDIUM;
 
-rangedWeaponIgnored = _token.ignoresCover.rwak;
+rangedWeaponIgnored = _token.ignoresCoverType.rwak;
 ```
 
 For linked actors, these values will be set on the actor.
 
 In dnd5e, tokens can also be set to ignore cover for all attacks using the Special Traits token configuration menu.
 
-For Midiqol workflows, the special flags for sharpshooter and spell sniper will be checked when using `_token.ignoresCover` and during the midi workflow if cover checking is enabled in the midiqol attack workflow setting, described above.
+For Midiqol workflows, the special flags for sharpshooter and spell sniper will be checked when using `_token.ignoresCoverType` and during the midi workflow if cover checking is enabled in the midiqol attack workflow setting, described above.
 
 # Cover Macro
 

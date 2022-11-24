@@ -116,7 +116,7 @@ function setCoverIgnoreHandler(handler) {
   game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER = handler;
 
   // Simplest just to revert any existing.
-  canvas.tokens.placeables.forEach(t => t._ignoresCover = undefined);
+  canvas.tokens.placeables.forEach(t => t._ignoresCoverType = undefined);
 }
 
 Hooks.once("setup", async function() {
@@ -172,7 +172,7 @@ You can read more about the module and report any issues on the  <a href="https:
 <p>
 Settings allow the GM to permit live or dead tokens to provide cover, or, in the case of dead tokens, half-height cover.
 You can also now have tokens ignore cover. For dnd5e, you can set the actor's special feat, just as you can
-(and compatible with) <a href="https://github.com/vtt-lair/simbuls-cover-calculator">Simbul's Cover Calculator</a>. For non-dnd5e systems, the "token.ignoresCover" property
+(and compatible with) <a href="https://github.com/vtt-lair/simbuls-cover-calculator">Simbul's Cover Calculator</a>. For non-dnd5e systems, the "token.ignoresCoverType" property
 controls this.
 </p>
 

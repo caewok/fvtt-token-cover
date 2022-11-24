@@ -71,7 +71,7 @@ export function testVisibilityDetectionMode(wrapped, visionSource, mode, {object
  * @returns {object[]} tests, with elevation and possibly other tests added.
  */
 function elevatePoints(tests, visionSource, object) {
-  if ( !(object instanceof Token) ) return tests;
+  if ( !(object instanceof Token) || !tests.length ) return tests;
 
   // We assume for the moment that test points are arranged as in default Foundry:
   // center, 4 corners, 4 midpoints

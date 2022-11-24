@@ -82,7 +82,7 @@ export async function midiqolPreambleCompleteHook(workflow) {
   if ( getSetting(SETTINGS.COVER.CHAT)
     || coverCheckOption !== choices.NONE ) {
 
-    const ic = token.ignoresCover;
+    const ic = token.ignoresCoverType;
     const allCoverIgnored = ic.all;
     const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
     const ignoresCover = Math.max(allCoverIgnored, typeCoverIgnored);
@@ -155,7 +155,7 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations, ogC
   // Describe the types of cover ignored by the token
   // If actionType is defined, use that to limit the types
   let ignoresCoverLabel = "";
-  const ic = token.ignoresCover;
+  const ic = token.ignoresCoverType;
   const allCoverIgnored = ic.all;
   const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
 

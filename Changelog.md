@@ -1,3 +1,8 @@
+# 0.3.3
+- Change name of property to token.ignoresCoverType to avoid naming conflict with Simbul's Cover Calculator. Fixes issue #11.
+- Check if tests exist for testing range visibility. Possible fix to issue #10.
+- Catch when spell sniper or sharpshooter flags don't exist, to avoid an error being thrown.
+
 # 0.3.2
 Use different technique to hide settings submenus when different algorithms are chosen, which should reduce weirdness in the settings menu.
 

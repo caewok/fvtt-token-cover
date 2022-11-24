@@ -92,8 +92,8 @@ export function registerLibWrapperMethods() {
   });
 
 
-  if ( !Object.hasOwn(Token.prototype, "ignoresCover") ) {
-    Object.defineProperty(Token.prototype, "ignoresCover", {
+  if ( !Object.hasOwn(Token.prototype, "ignoresCoverType") ) {
+    Object.defineProperty(Token.prototype, "ignoresCoverType", {
       get: cachedGetterIgnoresCover,
       enumerable: false
     });
@@ -101,8 +101,8 @@ export function registerLibWrapperMethods() {
 }
 
 function cachedGetterIgnoresCover() {
-  return this._ignoresCover
-    || (this._ignoresCover = new (game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER)(this));
+  return this._ignoresCoverType
+    || (this._ignoresCoverType = new (game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER)(this));
 }
 
 function updateSourceToken(wrapper, ...args) {

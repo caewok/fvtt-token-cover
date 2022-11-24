@@ -342,7 +342,7 @@ export class CoverCalculator {
       let ignoresCoverLabel = "";
 
       if ( displayIgnored ) {
-        const ic = token.ignoresCover;
+        const ic = token.ignoresCoverType;
         if ( ic.all > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.all)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
         if ( actionType && ic[actionType] > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic[actionType])} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
 
