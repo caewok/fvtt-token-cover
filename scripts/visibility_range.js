@@ -97,8 +97,9 @@ function elevatePoints(tests, object) {
   if ( rangeAlg === SETTINGS.RANGE.TYPES.FIVE ) tests = tests.splice(0, 5);
 
   // Create default elevations
-  const objectHeight = object.topZ - object.bottomZ;
-  const avgElevation = object.bottomZ + (objectHeight * 0.5);
+  const { topZ, bottomZ } = object;
+  const objectHeight = topZ - bottomZ;
+  const avgElevation = bottomZ + (objectHeight * 0.5);
   for ( const test of tests ) {
     test.point.z ??= avgElevation;
     test.centerPoint = false;
@@ -113,6 +114,8 @@ function elevatePoints(tests, object) {
   // Add points to the tests array representing top and bottom
   const tests3d = [tests[0]];
   const ln = tests.length;
+  const top = topZ;
+  const bottom = bottomZ + (objectHeight * 0.1);
   for ( let i = 1; i < ln; i += 1 ) {
     const test = tests[i];
     const { x, y } = test.point;
@@ -120,8 +123,8 @@ function elevatePoints(tests, object) {
 
     tests3d.push(
       // Use the same map so that x,y contains tests are cached and not repeated.
-      buildTestObject(x, y, object.topZ, test.los),
-      buildTestObject(x, y, object.bottomZ, test.los)
+      buildTestObject(x, y, top, test.los),
+      buildTestObject(x, y, bottom, test.los)
     );
   }
 
