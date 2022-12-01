@@ -221,7 +221,10 @@ export function _testRangeDetectionMode(wrapper, visionSource, mode, target, tes
   const debug = game.modules.get(MODULE_ID).api.debug.range;
   let inRange = false;
 
-  if ( !getSetting(SETTINGS.RANGE.DISTANCE3D)
+  if ( mode.range <= 0 ) {
+    // Empty; not in range
+    // See https://github.com/foundryvtt/foundryvtt/issues/8505
+  } if ( !getSetting(SETTINGS.RANGE.DISTANCE3D)
     || !(target instanceof Token) ) {
     inRange = wrapper(visionSource, mode, target, test);
   } else {
