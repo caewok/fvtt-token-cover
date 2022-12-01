@@ -201,7 +201,7 @@ function testLOSPoint(visionSource, target, test) {
  */
 function testLOSArea(visionSource, target, test) {
   // If this is not the center point, do not test.
-  if ( !test.centerPoint ) return false;
+  if ( !testIsCenterPoint(target, test) ) return false;
 
   // Avoid errors when testing vision for tokens directly on top of one another
   if ( visionSource.x === target.center.x && visionSource.y === target.center.y ) return false;
@@ -222,7 +222,7 @@ function testLOSArea(visionSource, target, test) {
  */
 function testLOSArea3d(visionSource, target, test) {
   // If this is not the center point, do not test.
-  if ( !test.centerPoint ) return false;
+  if ( !testIsCenterPoint(target, test) ) return false;
 
   // Avoid errors when testing vision for tokens directly on top of one another
   if ( visionSource.x === target.center.x && visionSource.y === target.center.y ) return false;
@@ -245,6 +245,23 @@ function testLOSArea3d(visionSource, target, test) {
     area3d.debug = targets.some(t => t === target);
   }
   return area3d.hasLOS();
+}
+
+/**
+ * Helper to determine whether a test point is a center point.
+ * Required b/c Levels obliterates the test object.
+ * See https://github.com/theripper93/Levels/blob/d9a48ca21e353413d2d631fa03273a5a28a1dcf7/scripts/wrappers.js#L129-L174
+ * @param {Token} target
+ * @param {object} test
+ * @returns {boolean}
+ */
+function testIsCenterPoint(target, test) {
+  if ( typeof test.centerPoint !== "undefined" ) return test.centerPoint;
+
+  const { center, topZ, bottomZ } = target;
+  const avgZ = bottomZ + ((topZ - bottomZ) * 0.5);
+  const point = test.point;
+  return center.x.almostEqual(point.x) && center.y.almostEqual(point.y) && avgZ.almostEqual(point.z);
 }
 
 /**
