@@ -15,6 +15,7 @@ import {
 import {
   testVisibilityCanvasVisibility,
   testVisibilityDetectionMode,
+  testVisibilityLightSource,
   _testRangeDetectionMode
 } from "./visibility_range.js";
 
@@ -44,6 +45,7 @@ export function registerLibWrapperMethods() {
   // ----- Token Visibility ----- //
   libWrapper.register(MODULE_ID, "CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
   libWrapper.register(MODULE_ID, "DetectionMode.prototype.testVisibility", testVisibilityDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+  libWrapper.register(MODULE_ID, "LightSource.prototype.testVisibility", testVisibilityLightSource, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
   // ----- Range Testing ----- //
   if ( !(levelsActive || pvActive) ) libWrapper.register(
