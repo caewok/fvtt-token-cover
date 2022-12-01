@@ -9,7 +9,7 @@ import { SETTINGS, getSetting } from "./settings.js";
 import { MODULE_ID } from "./const.js";
 import { Point3d } from "./geometry/Point3d.js";
 import * as drawing from "./drawing.js";
-import { log } from "./util.js";
+import { log, pixelsToGridUnits } from "./util.js";
 
 /* Range Options
 
@@ -99,7 +99,10 @@ function elevatePoints(tests, object) {
   // Create default elevations
   const objectHeight = object.topZ - object.bottomZ;
   const avgElevation = object.bottomZ + (objectHeight * 0.5);
-  for ( const test of tests ) test.point.z ??= avgElevation;
+  for ( const test of tests ) {
+    test.point.z ??= avgElevation;
+    test.centerPoint = false;
+  }
 
   // Identify the center point
   tests[0].centerPoint = true;
@@ -126,6 +129,71 @@ function elevatePoints(tests, object) {
 }
 
 /**
+ * Override Level's SightHandler.getTestPoints
+ * Levels:
+ * - not precise: returns center point only
+ * - precise, not exact: center + 4 corners at target LOS height
+ * - precise and exact: 5 precise points plus center + 4 corners at target ~ elevation
+ * (targetElevation = token.document.elevation + (targetLOSH - token.document.elevation) * 0.1)
+ */
+export function getTestPointsSightHandlerLevels(token, tol = 4) {
+  const rangeAlg = getSetting(SETTINGS.RANGE.ALGORITHM);
+
+  // Convert back to elevation units b/c that is what Levels expects.
+  const { topZ, bottomZ, center, w, h } = token;
+  const { x, y } = center;
+  const topE = pixelsToGridUnits(topZ);
+  const bottomE = pixelsToGridUnits(bottomZ);
+
+  const height = topE - bottomE;
+  const avgE = bottomE + (height * 0.5);
+  const bottom = bottomE + (height * 0.1);
+  const top = topE;
+
+  // Construct center point
+  const tests = [{ x, y, z: avgE }];
+
+  if ( rangeAlg === SETTINGS.RANGE.TYPES.FIVE || rangeAlg === SETTINGS.RANGE.TYPES.NINE ) {
+    // Construct corners, using tolerance to inset.
+    const { x: lx, y: ly } = token;
+    tests.push(
+      { x: lx + tol, y: ly + tol, z: avgE },
+      { x: lx + tol, y: ly + h - tol, z: avgE },
+      { x: lx + w - tol, y: ly + h - tol, z: avgE },
+      { x: lx + w - tol, y: ly + tol, z: avgE }
+    );
+  }
+
+  if ( rangeAlg === SETTINGS.RANGE.TYPES.NINE ) {
+    // Construct the side points, using tolerance to inset
+    const w2 = w * 0.5;
+    const h2 = h * 0.5;
+    tests.push(
+      { x: x - w2 + tol, y, z: avgE },
+      { x, y: y - h2 + tol, z: avgE },
+      { x: x + w2 - tol, y, z: avgE },
+      { x, y: y + h2 - tol, z: avgE }
+    );
+  }
+
+  if ( !(height && getSetting(SETTINGS.RANGE.POINTS3D)) ) return tests;
+
+  // Add an additional center point for testing center top/bottom
+  tests.push({ x, y, z: avgE });
+
+  // Convert the remaining tests from the middle to the top/bottom
+  // (Skip middle as mostly redundant.)
+  const ln = tests.length - 1;
+  for ( let i = 1; i < ln; i += 1 ) {
+    const test = tests[i];
+    test.z = top;
+    tests.push({ x: test.x, y: test.y, z: bottom });
+  }
+
+  return tests;
+}
+
+/**
  * Helper function to construct a test object for testVisiblity
  * @param {number} x
  * @param {number} y
@@ -134,7 +202,7 @@ function elevatePoints(tests, object) {
  *  See CanvasVisibility.prototype.testVisibility
  */
 function buildTestObject(x, y, z = 0, los = new Map()) {
-  return { point: new Point3d(x, y, z), los };
+  return { point: new Point3d(x, y, z), los, centerPoint: false };
 }
 
 /**
