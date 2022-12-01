@@ -1,6 +1,7 @@
 /* globals
 Token,
-game
+game,
+CONFIG
 */
 "use strict";
 
@@ -59,18 +60,34 @@ export function testVisibilityCanvasVisibility(wrapped, point, {tolerance=2, obj
 export function testVisibilityDetectionMode(wrapped, visionSource, mode, {object, tests}={}) {
   if ( !(object instanceof Token) ) return wrapped(visionSource, mode, { object, tests });
 
-  tests = elevatePoints(tests, visionSource, object);
+  tests = elevatePoints(tests, object);
 
   return wrapped(visionSource, mode, { object, tests });
 }
 
 /**
- * @param {object[]} tests                      Test object, containing point and los Map
- * @param {VisionSource} visionSource           The vision source being tested
- * @param {PlaceableObject} object              The target placeable
+ * Wrap LightSource.prototype.testVisibility
+ * Same as testVisibilityDetectionMode.
+ * Create extra points if necessary; modify tests so LOS area algorithms can use only center point.
+ * @param {object} config               The visibility test configuration
+ * @param {CanvasVisibilityTest[]} config.tests  The sequence of tests to perform
+ * @param {PlaceableObject} config.object        The target object being tested
+ * @returns {boolean}                   Is the target object visible to this source?
+ */
+export function testVisibilityLightSource(wrapped, {tests, object}={}) {
+  if ( !(object instanceof Token) ) return wrapped({ object, tests });
+
+  tests = elevatePoints(tests, object);
+
+  return wrapped({ object, tests });
+}
+
+/**
+ * @param {object[]} tests                    Test object, containing point and los Map
+ * @param {PlaceableObject} object            The target placeable
  * @returns {object[]} tests, with elevation and possibly other tests added.
  */
-function elevatePoints(tests, visionSource, object) {
+function elevatePoints(tests, object) {
   if ( !(object instanceof Token) || !tests.length ) return tests;
 
   // We assume for the moment that test points are arranged as in default Foundry:
