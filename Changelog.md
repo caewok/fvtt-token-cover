@@ -1,3 +1,8 @@
+# 0.3.5
+Compatibility with Levels v3.5.7 (Fixes issues #19 and 13).
+Light sources that grant visibility now respect the points algorithm setting for LOS. Fixes issue #16.
+Catch when the range is less or equal to zero for testing visibility. Fixes issue #15 and aligns with [Foundry issue #8505](https://github.com/foundryvtt/foundryvtt/issues/8505).
+
 # 0.3.4
 Reset the settings cache when changing a setting value. Also fixes the welcome pop-up to avoid it repeating.
 
