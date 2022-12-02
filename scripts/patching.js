@@ -15,6 +15,8 @@ import {
 import {
   testVisibilityCanvasVisibility,
   testVisibilityDetectionMode,
+  testVisibilityLightSource,
+  getTestPointsSightHandlerLevels,
   _testRangeDetectionMode
 } from "./visibility_range.js";
 
@@ -43,7 +45,13 @@ export function registerLibWrapperMethods() {
 
   // ----- Token Visibility ----- //
   libWrapper.register(MODULE_ID, "CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
-  libWrapper.register(MODULE_ID, "DetectionMode.prototype.testVisibility", testVisibilityDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+
+  if ( levelsActive ) {
+    libWrapper.register(MODULE_ID, "CONFIG.Levels.handlers.SightHandler.getTestPoints", getTestPointsSightHandlerLevels, libWrapper.OVERRIDE, {perf_mode: libWrapper.PERF_FAST});
+  } else {
+    libWrapper.register(MODULE_ID, "DetectionMode.prototype.testVisibility", testVisibilityDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+    libWrapper.register(MODULE_ID, "LightSource.prototype.testVisibility", testVisibilityLightSource, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+  }
 
   // ----- Range Testing ----- //
   if ( !(levelsActive || pvActive) ) libWrapper.register(
@@ -51,7 +59,8 @@ export function registerLibWrapperMethods() {
     "DetectionMode.prototype._testRange",
     _testRangeDetectionMode,
     libWrapper.MIXED,
-    { perf_mode: libWrapper.PERF_FAST });
+    { perf_mode: libWrapper.PERF_FAST }
+  );
 
   // ----- LOS Testing ----- //
   libWrapper.register(MODULE_ID, "DetectionMode.prototype._testLOS", _testLOSDetectionMode, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
