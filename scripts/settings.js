@@ -592,13 +592,18 @@ export async function setCoverEffect(type, value) {
  * @type {string} type    LOW, MEDIUM, or HIGH. If not defined, will update all three.
  */
 export function updateConfigStatusEffects(type) {
+  // Skip if using DFred's CE
+  const dfActive = game.modules.get("dfreds-convenient-effects")?.active;
+
   if ( !type ) {
     // Update all types
-    updateConfigStatusEffects("LOW");
-    updateConfigStatusEffects("MEDIUM");
+    if ( !dfActive ) updateConfigStatusEffects("LOW");
+    if ( !dfActive ) updateConfigStatusEffects("MEDIUM");
     updateConfigStatusEffects("HIGH");
     return;
   }
+
+  if ( dfActive && (type === "LOW" || type === "MEDIUM") ) return;
 
   const coverEffect = getCoverEffect(type);
   coverEffect.id = `${MODULE_ID}.cover.${type}`;
