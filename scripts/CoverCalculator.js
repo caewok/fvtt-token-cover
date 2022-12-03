@@ -207,15 +207,43 @@ export class CoverCalculator {
   }
 
   static async disableCoverStatus(tokenId, type = COVER_TYPES.LOW ) {
+    if ( (type === COVER_TYPES.LOW
+      || type === COVER_TYPES.MEDIUM)
+      && game.modules.get("dfreds-convenient-effects")?.active ) {
+      const effectName = type === COVER_TYPES.LOW ? "Cover (Half)" : "Cover (Three-Quarters)";
+      const token = canvas.tokens.get(tokenId);
+      if ( !token ) return;
+
+      return await game.dfreds.effectInterface.removeEffect({
+        effectName,
+        uuid: token.actor?.uuid
+      });
+    }
+
     // Test id is string for debugging
     if ( !(typeof tokenId === "string" || tokenId instanceof String) ) console.error("tokenId is not a string!");
     await SOCKETS.socket.executeAsGM("disableCoverStatus", tokenId, type);
   }
 
   static async enableCoverStatus(tokenId, type = COVER_TYPES.LOW ) {
+    if ( (type === COVER_TYPES.LOW
+      || type === COVER_TYPES.MEDIUM)
+      && game.modules.get("dfreds-convenient-effects")?.active ) {
+      // Params: effectName, uuid, origin, overlay, metadata
+      const effectName = type === COVER_TYPES.LOW ? "Cover (Half)" : "Cover (Three-Quarters)";
+      const token = canvas.tokens.get(tokenId);
+      if ( !token ) return;
+
+      return await game.dfreds.effectInterface.addEffect({
+        effectName,
+        uuid: token.actor?.uuid,
+        origin: MODULE_ID
+      });
+    }
+
     // Test id is string for debugging
     if ( !(typeof tokenId === "string" || tokenId instanceof String) ) console.error("tokenId is not a string!");
-    await SOCKETS.socket.executeAsGM("enableCoverStatus", tokenId, type);
+    return await SOCKETS.socket.executeAsGM("enableCoverStatus", tokenId, type);
   }
 
   static async setCoverStatus(tokenId, type = COVER_TYPES.NONE ) {
@@ -359,7 +387,7 @@ export class CoverCalculator {
       const targetLabel = `${nCover} target${nCover === 1 ? "" : "s"}`;
       const numCoverLabel = applied
         ? nCover === 1 ? "has" : "have"
-        : "may have"
+        : "may have";
 
       htmlTable =
       `

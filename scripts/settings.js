@@ -206,6 +206,7 @@ export function registerSettings() {
   const coverNames = getCoverNames();
   const levelsActive = game.modules.get("levels")?.active;
   const pvActive = game.modules.get("perfect-vision")?.active;
+  const dfredCEActive = game.modules.get("dfreds-convenient-effects")?.active;
 
   game.settings.register(MODULE_ID, SETTINGS.RANGE.ALGORITHM, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.ALGORITHM}.Name`),
@@ -341,32 +342,34 @@ export function registerSettings() {
     type: Number
   });
 
-  game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.LOW, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Hint`),
-    label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Label`),
-    icon: "fas fa-shield-halved",
-    type: LowCoverEffectConfig,
-    restricted: true
-  });
+  if ( !dfredCEActive ) {
+    game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.LOW, {
+      name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Name`),
+      hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Hint`),
+      label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Label`),
+      icon: "fas fa-shield-halved",
+      type: LowCoverEffectConfig,
+      restricted: true
+    });
 
-  game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.MEDIUM, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Hint`),
-    label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Label`),
-    icon: "fas fa-shield-heart",
-    type: MediumCoverEffectConfig,
-    restricted: true
-  });
+    game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.MEDIUM, {
+      name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Name`),
+      hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Hint`),
+      label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Label`),
+      icon: "fas fa-shield-heart",
+      type: MediumCoverEffectConfig,
+      restricted: true
+    });
 
-  game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.HIGH, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Hint`),
-    label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Label`),
-    icon: "fas fa-shield",
-    type: HighCoverEffectConfig,
-    restricted: true
-  });
+    game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.HIGH, {
+      name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Name`),
+      hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Hint`),
+      label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Label`),
+      icon: "fas fa-shield",
+      type: HighCoverEffectConfig,
+      restricted: true
+    });
+  }
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.COMBAT_AUTO, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.COMBAT_AUTO}.Name`),
@@ -589,13 +592,18 @@ export async function setCoverEffect(type, value) {
  * @type {string} type    LOW, MEDIUM, or HIGH. If not defined, will update all three.
  */
 export function updateConfigStatusEffects(type) {
+  // Skip if using DFred's CE
+  const dfActive = game.modules.get("dfreds-convenient-effects")?.active;
+
   if ( !type ) {
     // Update all types
-    updateConfigStatusEffects("LOW");
-    updateConfigStatusEffects("MEDIUM");
+    if ( !dfActive ) updateConfigStatusEffects("LOW");
+    if ( !dfActive ) updateConfigStatusEffects("MEDIUM");
     updateConfigStatusEffects("HIGH");
     return;
   }
+
+  if ( dfActive && (type === "LOW" || type === "MEDIUM") ) return;
 
   const coverEffect = getCoverEffect(type);
   coverEffect.id = `${MODULE_ID}.cover.${type}`;
