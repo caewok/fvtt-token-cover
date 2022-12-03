@@ -1,3 +1,6 @@
+# 0.3.6
+Compatibility with DFred's Convenient Effects -- uses DFred 1/2 and 3/4 cover when that module is active. (Closes issue #12.)
+
 # 0.3.5
 Compatibility with Levels v3.5.7 (Fixes issues #19 and 13).
 Light sources that grant visibility now respect the points algorithm setting for LOS. Fixes issue #16.
