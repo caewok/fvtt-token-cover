@@ -6,7 +6,6 @@
 
 import { PlanePoints3d } from "./PlanePoints3d.js";
 import { Point3d } from "../geometry/3d/Point3d.js";
-import { centeredPolygonFromDrawing } from "../util.js";
 
 // Drawing points can be modified by setting the elevation.
 // Used by Area3d to construct holes in a tile based on a drawing at a given elevation.
@@ -23,7 +22,7 @@ export class DrawingPoints3d extends PlanePoints3d {
    * @param {number} [elevation]    Elevation of the drawing; defaults to current drawing elevation.
    */
   constructor(object, { elevation } = {}) {
-    const shape = centeredPolygonFromDrawing(object);
+    const shape = CONFIG.GeometryLib.utils.centeredPolygonFromDrawing(object);
 
     elevation ??= object.document?.elevation ?? 0;
     const elevationZ = zValue(elevation);
