@@ -55,68 +55,6 @@ export function elementsByIndex(arr, indices) {
 }
 
 /**
- * Is point c counterclockwise, clockwise, or colinear w/r/t ray with endpoints A|B?
- * If the point is within ± √2 / 2 of the line, it will be considered collinear.
- * See equivalentPixel function for further discussion on the choice of √2 / 2.
- * @param {Point} a   First endpoint of the segment
- * @param {Point} b   Second endpoint of the segment
- * @param {Point} c   Point to test
- * @returns {number}   Same as foundry.utils.orient2dFast
- *                    except 0 if within √2 /2 of the ray.
- *                    Positive: c counterclockwise/left of A|B
- *                    Negative: c clockwise/right of A|B
- *                    Zero: A|B|C collinear.
- */
-// export function orient2dPixelLine(a, b, c) {
-//   const orientation = foundry.utils.orient2dFast(a, b, c);
-//   const dist2 = Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2);
-//   const orientation2 = Math.pow(orientation, 2);
-//   const cutoff = 0.5 * dist2; // 0.5 is (√2 / 2)^2.
-//
-//   return (orientation2 < cutoff) ? 0 : orientation;
-// }
-
-/**
- * Like foundry.utils.lineSegmentIntersects but requires the two segments cross.
- * In other words, sharing endpoints or an endpoint on the other segment does not count.
- * @param {Point} a                   The first endpoint of segment AB
- * @param {Point} b                   The second endpoint of segment AB
- * @param {Point} c                   The first endpoint of segment CD
- * @param {Point} d                   The second endpoint of segment CD
- * @param {object} [options]
- * @param {object} [delta]            If provided, reject if an endpoint is within this delta of the other line.
- *
- * @returns {boolean}                 Do the line segments cross?
- */
-export function lineSegmentCrosses(a, b, c, d, { delta } = {}) {
-  if ( typeof delta !== "undefined" ) {
-    // Don't test the other line b/c crossing AB in a T-shape is sufficient
-    const p3 = perpendicularPoint(c, d, a);
-    if ( distanceBetweenPoints(a, p3) <= delta ) return false;
-
-    const p4 = perpendicularPoint(c, d, b);
-    if ( distanceBetweenPoints(b, p4) <= delta ) return false;
-  }
-
-  const xa = foundry.utils.orient2dFast(a, b, c);
-  if ( !xa ) return false;
-
-  const xb = foundry.utils.orient2dFast(a, b, d);
-  if ( !xb ) return false;
-
-  const xc = foundry.utils.orient2dFast(c, d, a);
-  if ( !xc ) return false;
-
-  const xd = foundry.utils.orient2dFast(c, d, b);
-  if ( !xd ) return false;
-
-  const xab = (xa * xb) < 0; // Cannot be equal to 0.
-  const xcd = (xc * xd) < 0; // Cannot be equal to 0.
-
-  return xab && xcd;
-}
-
-/**
  * Test if an edge CD blocks a line segment AB in 2d.
  * Endpoints count, so if AB crosses C or D, it is blocked.
  * But if AB ends at C or on CD, it does not.
@@ -130,7 +68,7 @@ export function lineSegmentCrosses(a, b, c, d, { delta } = {}) {
 export function segmentBlocks(a, b, c, d) {
   if ( b.almostEqual(c) || b.almostEqual(d) ) return false;
 
-  if ( lineSegmentCrosses(a, b, c, d) ) return true;
+  if ( CONFIG.GeometryLib.utils.lineSegmentCrosses(a, b, c, d) ) return true;
 
   if ( foundry.utils.lineSegmentIntersects(a, b, c, d)
     && (!foundry.utils.orient2dFast(a, b, c) || !foundry.utils.orient2dFast(a, b, d)) ) return true;
