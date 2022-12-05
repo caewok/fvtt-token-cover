@@ -188,31 +188,6 @@ export function linePlane3dIntersection(a, b, c, d, epsilon = 1e-8) {
   return null;
 }
 
-
-/**
- * Quickly test whether the line segment AB intersects with a plane.
- * This method does not determine the point of intersection, for that use lineLineIntersection.
- * Each Point3d should have {x, y, z} coordinates.
- *
- * @param {Point3d} a   The first endpoint of segment AB
- * @param {Point3d} b   The second endpoint of segment AB
- * @param {Point3d} c   The first point defining the plane
- * @param {Point3d} d   The second point defining the plane
- * @param {Point3d} e   The third point defining the plane.
- *                      Optional. Default is for the plane to go up in the z direction.
- *
- * @returns {boolean} Does the line segment intersect the plane?
- * Note that if the segment is part of the plane, this returns false.
- */
-export function lineSegment3dPlaneIntersects(a, b, c, d, e = new Point3d(c.x, c.y, c.z + 1)) {
-  // A and b must be on opposite sides.
-  // Parallels the 2d case.
-  const xa = orient3dFast(a, c, d, e);
-  const xb = orient3dFast(b, c, d, e);
-  return xa * xb <= 0;
-}
-
-
 /**
  * Möller-Trumbore ray-triangle intersection
  * Calculate intersection of a ray and a triangle in three dimensions.
@@ -323,27 +298,6 @@ export function lineSegmentIntersectsQuadrilateral3d(A, B, r0, r1, r2, r3, { EPS
   if ( t === null ) return false;
 
   return !(t < EPSILON || t > (1 + EPSILON));
-}
-
-/**
- * Test whether a line segment AB intersects with a flat, convex polygon in 3d.
- * @param {Point3d} a   The first endpoint of segment AB
- * @param {Point3d} b   The second endpoint of segment AB
- * @param {Points3d[]} points    The polygon to test, as an array of 3d points.
- *   It is assumed, but not strictly tested, that the points form both a plane and a convex polygon.
- * @returns {boolean}
- */
-export function lineSegment3dPolygonIntersects(a, b, points) {
-  if ( points.length < 3 ) {
-    console.warn("lineSegment3dPolygonIntersects provided less than 3 points.");
-    return false;
-  }
-
-  // First test the infinite plane.
-  if ( !lineSegment3dPlaneIntersects(a, b, points[0], points[1], points[2]) ) return false;
-
-  // Flip around and test whether some of the points are to the right and left of the segment.
-
 }
 
 /**
