@@ -55,14 +55,6 @@ export function elementsByIndex(arr, indices) {
 }
 
 /**
- * Convert pixel units to grid units
- */
-export function pixelsToGridUnits(pixels) {
-  const { distance, size } = canvas.scene.dimensions;
-  return (pixels * distance) / size;
-}
-
-/**
  * Is point c counterclockwise, clockwise, or colinear w/r/t ray with endpoints A|B?
  * If the point is within ± √2 / 2 of the line, it will be considered collinear.
  * See equivalentPixel function for further discussion on the choice of √2 / 2.
