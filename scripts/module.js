@@ -26,11 +26,11 @@ import { Draw } from "./geometry/Draw.js";
 import * as bench from "./benchmark.js";
 import * as util from "./util.js";
 
-import { PlanePoints3d } from "./geometry/PlanePoints3d.js";
-import { TokenPoints3d } from "./geometry/TokenPoints3d.js";
-import { DrawingPoints3d } from "./geometry/DrawingPoints3d.js";
-import { WallPoints3d } from "./geometry/WallPoints3d.js";
-import { TilePoints3d } from "./geometry/TilePoints3d.js";
+import { PlanePoints3d } from "./PlaceablesPoints/PlanePoints3d.js";
+import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
+import { DrawingPoints3d } from "./PlaceablesPoints/DrawingPoints3d.js";
+import { WallPoints3d } from "./PlaceablesPoints/WallPoints3d.js";
+import { TilePoints3d } from "./PlaceablesPoints/TilePoints3d.js";
 
 import { Area3d } from "./Area3d.js";
 import { Area2d } from "./Area2d.js";
