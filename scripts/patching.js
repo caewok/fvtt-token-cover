@@ -118,7 +118,7 @@ function updateSourceToken(wrapper, ...args) {
   const api = game.modules.get(MODULE_ID).api;
   const debug = api.debug;
   if ( debug.once || debug.range || debug.area || debug.cover || debug.los ) {
-    api.drawing.clearDrawings();
+    CONFIG.GeometryLib.Draw.clearDrawings();
 
     if ( debug.once ) {
       debug.range = false;
