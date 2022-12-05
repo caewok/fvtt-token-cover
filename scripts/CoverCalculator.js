@@ -18,7 +18,6 @@ import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 import {
-  distanceBetweenPoints,
   lineSegmentIntersectsQuadrilateral3d,
   lineIntersectionQuadrilateral3d,
   getObjectProperty } from "./util.js";
@@ -342,7 +341,7 @@ export class CoverCalculator {
         if ( cover !== COVER_TYPES.NONE ) nCover += 1;
 
         const targetImage = target.document.texture.src; // Token canvas image.
-        const dist = distanceBetweenPoints(token_center, target_center);
+        const dist = Point3d.distanceBetween(token_center, target_center);
         const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
 
         htmlTable +=

@@ -49,7 +49,7 @@ dnd5e: half, 3/4, full
 
 import { MODULE_ID, COVER_TYPES } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
-import { distanceBetweenPoints, log } from "./util.js";
+import { log } from "./util.js";
 import { CoverCalculator, SOCKETS, dialogPromise } from "./CoverCalculator.js";
 
 import { Point3d } from "./geometry/Point3d.js";
@@ -194,7 +194,7 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations, ogC
       CoverCalculator.averageTokenElevationZ(target));
 
     const targetImage = target.document.texture.src; // Token canvas image.
-    const dist = distanceBetweenPoints(token_center, target_center);
+    const dist = Point3d.distanceBetween(token_center, target_center);
     const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
     const coverOptions =
     `

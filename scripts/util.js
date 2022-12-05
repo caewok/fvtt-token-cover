@@ -96,15 +96,6 @@ export function walkLinePercentage(a, b, percent = .5) {
   return outPoint;
 }
 
-export function distanceBetweenPoints(a, b) {
-  return b.subtract(a).magnitude();
-}
-
-export function distanceSquaredBetweenPoints(a, b) {
-  return b.subtract(a).magnitudeSquared();
-}
-
-
 /**
  * Quickly test whether the line segment AB intersects with a wall in 3d.
  * Extension of lineSegmentPlaneIntersects where the plane is not infinite.
