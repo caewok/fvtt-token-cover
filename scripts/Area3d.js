@@ -261,7 +261,7 @@ export class Area3d {
     if ( !walls.size ) return undefined;
 
     walls = walls.map(w => new PIXI.Polygon(w.perspectiveTransform()));
-    walls = ClipperPaths.fromPolygons(walls);
+    walls = ClipperPaths.fromPolygons(walls, {scalingFactor: 100});
     walls = walls.combine();
     walls.clean();
 
@@ -280,7 +280,7 @@ export class Area3d {
 
     if ( !objs.drawings.size ) {
       let tiles = objs.tiles.map(w => new PIXI.Polygon(w.perspectiveTransform()));
-      tiles = ClipperPaths.fromPolygons(tiles);
+      tiles = ClipperPaths.fromPolygons(tiles, {scalingFactor: 100});
       tiles.combine().clean();
       return tiles;
     }
@@ -308,14 +308,14 @@ export class Area3d {
 
       if ( drawingHoles.length ) {
         // Construct a hole at the tile's elevation from the drawing taking the difference.
-        const drawingHolesPaths = ClipperPaths.fromPolygons(drawingHoles);
+        const drawingHolesPaths = ClipperPaths.fromPolygons(drawingHoles, {scalingFactor: 100});
         const tileHoled = drawingHolesPaths.diffPolygon(tilePoly);
         tilesHoled.push(tileHoled);
       } else tilesUnholed.push(tilePoly);
     }
 
     if ( tilesUnholed.length ) {
-      const unHoledPaths = ClipperPaths.fromPolygons(tilesUnholed);
+      const unHoledPaths = ClipperPaths.fromPolygons(tilesUnholed, {scalingFactor: 100});
       unHoledPaths.combine().clean();
       tilesHoled.push(unHoledPaths);
     }
