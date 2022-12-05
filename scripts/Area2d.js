@@ -334,10 +334,10 @@ export class Area2d {
           : combinedTiles.diffPaths(visibleTokenShape);
       }
     }
-    const seenArea = visibleTokenShape.area();
+    const seenArea = visibleTokenShape.area;
     if ( !seenArea || seenArea.almostEqual(0) ) return 0;
 
-    const tokenArea = tokenShape.area();
+    const tokenArea = tokenShape.area;
     if ( !tokenArea || tokenArea.almostEqual(0) ) return 0;
 
     const percentSeen = seenArea / tokenArea;

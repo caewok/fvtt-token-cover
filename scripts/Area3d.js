@@ -436,13 +436,13 @@ export class Area3d {
       };
     }
 
-    const sidesArea = sidePolys.reduce((area, poly) => area += poly.area(), 0);
-    const obscuredSidesArea = obscuredSides.reduce((area, poly) => area += poly.area(), 0);
+    const sidesArea = sidePolys.reduce((area, poly) => area += poly.area, 0);
+    const obscuredSidesArea = obscuredSides.reduce((area, poly) => area += poly.area, 0);
     const percentSeen = sidesArea ? obscuredSidesArea / sidesArea : 0;
 
     if ( this.debug ) {
-      this.debugSideAreas.sides = sidePolys.map(poly => poly.area());
-      this.debugSideAreas.obscuredSides = obscuredSides.map(poly => poly.area());
+      this.debugSideAreas.sides = sidePolys.map(poly => poly.area);
+      this.debugSideAreas.obscuredSides = obscuredSides.map(poly => poly.area);
       console.log(`${this.viewer.object.name} sees ${percentSeen * 100}% of ${this.target.name} (Area3d).`);
     }
 
