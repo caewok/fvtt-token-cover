@@ -72,25 +72,6 @@ export function segmentBlocks(a, b, c, d) {
 }
 
 /**
- * Test orientation of a line to a point.
- * If the point is within √2 / 2 of the line, it is collinear
- * @param {Point} a                   The first endpoint of segment AB
- * @param {Point} b                   The second endpoint of segment AB
- * @param {Point} c                   Point to test
- * @returns {number}
- */
-export function orient2dPixel(a, b, c) {
-  a = a.to2d();
-  b = b.to2d();
-  c = c.to2d();
-
-  const p = CONFIG.GeometryLib.utils.perpendicularPoint(a, b, c);
-  if ( distanceSquaredBetweenPoints(c, p) <= 0.5 ) return 0;
-
-  return foundry.utils.orient2d(a, b, c);
-}
-
-/**
  * Version of Ray.prototype.towardsPointSquared
  * Default is to move 1 pixel along the line.
  * @param {Point} a           Starting point
