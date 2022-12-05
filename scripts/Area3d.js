@@ -104,6 +104,11 @@ export class Area3d {
   static _upVector = new Point3d(0, 0, -1);
 
   /**
+   * Scaling factor used with Clipper
+   */
+  static SCALING_FACTOR = 100;
+
+  /**
    * @param {VisionSource|TOKEN} visionSource     Token, viewing from token.topZ.
    * @param {Target} target   Target; token is looking at the target center.
    */
@@ -261,7 +266,7 @@ export class Area3d {
     if ( !walls.size ) return undefined;
 
     walls = walls.map(w => new PIXI.Polygon(w.perspectiveTransform()));
-    walls = ClipperPaths.fromPolygons(walls, {scalingFactor: 100});
+    walls = ClipperPaths.fromPolygons(walls, {scalingFactor: Area3d.SCALING_FACTOR});
     walls = walls.combine();
     walls.clean();
 
@@ -280,7 +285,7 @@ export class Area3d {
 
     if ( !objs.drawings.size ) {
       let tiles = objs.tiles.map(w => new PIXI.Polygon(w.perspectiveTransform()));
-      tiles = ClipperPaths.fromPolygons(tiles, {scalingFactor: 100});
+      tiles = ClipperPaths.fromPolygons(tiles, {scalingFactor: Area3d.SCALING_FACTOR});
       tiles.combine().clean();
       return tiles;
     }
@@ -308,14 +313,14 @@ export class Area3d {
 
       if ( drawingHoles.length ) {
         // Construct a hole at the tile's elevation from the drawing taking the difference.
-        const drawingHolesPaths = ClipperPaths.fromPolygons(drawingHoles, {scalingFactor: 100});
+        const drawingHolesPaths = ClipperPaths.fromPolygons(drawingHoles, {scalingFactor: Area3d.SCALING_FACTOR});
         const tileHoled = drawingHolesPaths.diffPolygon(tilePoly);
         tilesHoled.push(tileHoled);
       } else tilesUnholed.push(tilePoly);
     }
 
     if ( tilesUnholed.length ) {
-      const unHoledPaths = ClipperPaths.fromPolygons(tilesUnholed, {scalingFactor: 100});
+      const unHoledPaths = ClipperPaths.fromPolygons(tilesUnholed, {scalingFactor: Area3d.SCALING_FACTOR});
       unHoledPaths.combine().clean();
       tilesHoled.push(unHoledPaths);
     }
@@ -436,13 +441,13 @@ export class Area3d {
       };
     }
 
-    const sidesArea = sidePolys.reduce((area, poly) => area += poly.area, 0);
-    const obscuredSidesArea = obscuredSides.reduce((area, poly) => area += poly.area, 0);
+    const sidesArea = sidePolys.reduce((area, poly) => area += poly.scaledArea({scalingFactor: Area3d.SCALING_FACTOR}), 0);
+    const obscuredSidesArea = obscuredSides.reduce((area, poly) => area += poly.scaledArea({scalingFactor: Area3d.SCALING_FACTOR}), 0);
     const percentSeen = sidesArea ? obscuredSidesArea / sidesArea : 0;
 
     if ( this.debug ) {
-      this.debugSideAreas.sides = sidePolys.map(poly => poly.area);
-      this.debugSideAreas.obscuredSides = obscuredSides.map(poly => poly.area);
+      this.debugSideAreas.sides = sidePolys.map(poly => poly.scaledArea({scalingFactor: Area3d.SCALING_FACTOR}));
+      this.debugSideAreas.obscuredSides = obscuredSides.map(poly => poly.scaledArea({scalingFactor: Area3d.SCALING_FACTOR}));
       console.log(`${this.viewer.object.name} sees ${percentSeen * 100}% of ${this.target.name} (Area3d).`);
     }
 

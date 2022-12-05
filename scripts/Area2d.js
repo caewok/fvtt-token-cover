@@ -49,6 +49,11 @@ export class Area2d {
   config = {};
 
   /**
+   * Scaling factor used with Clipper
+   */
+  static SCALING_FACTOR = 100;
+
+  /**
    * @param {VisionSource} visionSource
    * @param {Token} target
    */
@@ -255,7 +260,7 @@ export class Area2d {
     });
 
     if ( !drawings.size ) {
-      tiles = ClipperPaths.fromPolygons(tiles);
+      tiles = ClipperPaths.fromPolygons(tiles, {scalingFactor: Area2d.SCALING_FACTOR});
       tiles.combine().clean();
       return tiles;
     }
@@ -281,14 +286,14 @@ export class Area2d {
 
       if ( drawingHoles.length ) {
         // Construct a hole at the tile's elevation from the drawing taking the difference.
-        const drawingHolesPaths = ClipperPaths.fromPolygons(drawingHoles);
+        const drawingHolesPaths = ClipperPaths.fromPolygons(drawingHoles, {scalingFactor: Area2d.SCALING_FACTOR});
         const tileHoled = drawingHolesPaths.diffPolygon(tile._polygon);
         tilesHoled.push(tileHoled);
       } else tilesUnholed.push(tile);
     }
 
     if ( tilesUnholed.length ) {
-      const unHoledPaths = ClipperPaths.fromPolygons(tilesUnholed);
+      const unHoledPaths = ClipperPaths.fromPolygons(tilesUnholed, {scalingFactor: Area2d.SCALING_FACTOR});
       unHoledPaths.combine().clean();
       tilesHoled.push(...unHoledPaths);
     }
@@ -334,10 +339,10 @@ export class Area2d {
           : combinedTiles.diffPaths(visibleTokenShape);
       }
     }
-    const seenArea = visibleTokenShape.area;
+    const seenArea = visibleTokenShape.scaledArea({scalingFactor: Area2d.SCALING_FACTOR});
     if ( !seenArea || seenArea.almostEqual(0) ) return 0;
 
-    const tokenArea = tokenShape.area;
+    const tokenArea = tokenShape.scaledArea({scalingFactor: Area2d.SCALING_FACTOR});
     if ( !tokenArea || tokenArea.almostEqual(0) ) return 0;
 
     const percentSeen = seenArea / tokenArea;
