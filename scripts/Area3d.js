@@ -35,11 +35,11 @@ import { getSetting, SETTINGS } from "./settings.js";
 import { log, getObjectProperty } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
-import { Draw } from "./Draw.js"; // For debugging
+import { Draw } from "./geometry/Draw.js"; // For debugging
 
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Matrix } from "./geometry/Matrix.js";
-import { Point3d } from "./geometry/Point3d.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
 
 import { DrawingPoints3d } from "./PlaceablesPoints/DrawingPoints3d.js";
 import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";

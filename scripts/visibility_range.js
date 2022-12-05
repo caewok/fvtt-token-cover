@@ -7,7 +7,7 @@ CONFIG
 
 import { SETTINGS, getSetting } from "./settings.js";
 import { MODULE_ID } from "./const.js";
-import { Point3d } from "./geometry/Point3d.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
 import { Draw } from "./geometry/Draw.js";
 import { log } from "./util.js";
 

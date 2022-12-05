@@ -16,8 +16,8 @@ import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 import { Shadow } from "./geometry/Shadow.js";
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
-import { Point3d } from "./geometry/Point3d.js";
-import { Draw } from "./Draw.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
+import { Draw } from "./geometry/Draw.js";
 
 /* Area 2d
 1. Center point shortcut:

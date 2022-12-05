@@ -7,7 +7,7 @@ CONFIG
 "use strict";
 
 import { MODULE_ID, EPSILON } from "./const.js";
-import { Point3d } from "./geometry/Point3d.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
 
 /**
  * Log message only when debug flag is enabled from DevMode module.

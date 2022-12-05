@@ -5,7 +5,7 @@ CONST
 */
 "use strict";
 
-import { Point3d } from "./geometry/Point3d.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
 import { lineSegment3dWallIntersection } from "./util.js";
 
 /**

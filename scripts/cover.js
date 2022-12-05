@@ -52,7 +52,7 @@ import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { log } from "./util.js";
 import { CoverCalculator, SOCKETS, dialogPromise } from "./CoverCalculator.js";
 
-import { Point3d } from "./geometry/Point3d.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
 
 /**
  * Hook event that fires after targeting (AoE) is complete.

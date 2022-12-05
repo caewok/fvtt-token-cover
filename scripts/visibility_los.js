@@ -9,7 +9,7 @@ CONFIG
 
 import { MODULE_ID } from "./const.js";
 import { SETTINGS, getSetting } from "./settings.js";
-import { Point3d } from "./geometry/Point3d.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
