@@ -30,24 +30,6 @@ export function log(...args) {
 }
 
 /**
- * Construct a centered polygon using the values in drawing shape.
- * @param {Drawing} drawing
- * @returns {CenteredPolygonBase}
- */
-export function centeredPolygonFromDrawing(drawing) {
-  switch ( drawing.document.shape.type ) {
-    case CONST.DRAWING_TYPES.RECTANGLE:
-      return CenteredRectangle.fromDrawing(drawing);
-    case CONST.DRAWING_TYPES.ELLIPSE:
-      return Ellipse.fromDrawing(drawing);
-    case CONST.DRAWING_TYPES.POLYGON:
-      return CenteredPolygon.fromDrawing(drawing);
-    default:
-      console.error("fromDrawing shape type not supported");
-  }
-}
-
-/**
  * Take an array of 2d points and flatten them to an array of numbers,
  * like what is used by PIXI.Polygon.
  * Much faster than Array.flatMap.
@@ -67,8 +49,6 @@ export function flatMapPoint2d(ptsArr, transformFn) {
     }
 	return newArr;
 }
-
-
 
 /**
  * Rotate a point around a given angle

@@ -8,7 +8,7 @@ Token
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { getObjectProperty, zValue, centeredPolygonFromDrawing } from "./util.js";
+import { getObjectProperty, zValue } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";
 import { CWSweepInfiniteWallsOnly } from "./CWSweepInfiniteWallsOnly.js";
@@ -275,7 +275,7 @@ export class Area2d {
         else if ( maxE == null && tileE !== minE ) continue;
         else if ( !tileE.between(minE, maxE) ) continue;
 
-        const shape = centeredPolygonFromDrawing(drawing);
+        const shape = CONFIG.GeometryLib.utils.centeredPolygonFromDrawing(drawing);
         drawingHoles.push(shape.toPolygon());
       }
 

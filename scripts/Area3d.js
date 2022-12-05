@@ -32,7 +32,7 @@ Area:
 
 import { MODULE_ID, FLAGS } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
-import { zValue, log, getObjectProperty, centeredPolygonFromDrawing } from "./util.js";
+import { zValue, log, getObjectProperty } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 import { Draw } from "./Draw.js"; // For debugging
@@ -701,7 +701,7 @@ export class Area3d {
     // Also convert to CenteredPolygon b/c it handles bounds better
     const edges = [...visionTriangle.iterateEdges()];
     drawings = drawings.filter(d => {
-      const shape = centeredPolygonFromDrawing(d);
+      const shape = CONFIG.GeometryLib.utils.centeredPolygonFromDrawing(d);
       const center = shape.center;
       if ( visionTriangle.contains(center.x, center.y) ) return true;
       const dBounds = shape.getBounds();
