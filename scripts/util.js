@@ -84,7 +84,7 @@ export function orient2dPixel(a, b, c) {
   b = b.to2d();
   c = c.to2d();
 
-  const p = perpendicularPoint(a, b, c);
+  const p = CONFIG.GeometryLib.utils.perpendicularPoint(a, b, c);
   if ( distanceSquaredBetweenPoints(c, p) <= 0.5 ) return 0;
 
   return foundry.utils.orient2d(a, b, c);
@@ -112,38 +112,6 @@ export function walkLinePercentage(a, b, percent = .5) {
   const delta = b.subtract(a);
   const outPoint = new PIXI.Point();
   delta.multiplyScalar(percent, outPoint).add(a, outPoint);
-  return outPoint;
-}
-
-/**
- * Get the point on a line AB that forms a perpendicular line to a point C.
- * From https://stackoverflow.com/questions/10301001/perpendicular-on-a-line-segment-from-a-given-point
- * This is basically simplified vector projection: https://en.wikipedia.org/wiki/Vector_projection
- * @param {Point} a
- * @param {Point} b
- * @param {Point} c
- * @return {Point} The point on line AB or null if a,b,c are collinear. Not
- *                 guaranteed to be within the line segment a|b.
- */
-export function perpendicularPoint(a, b, c) {
-  a = a.to2d();
-  b = b.to2d();
-  c = c.to2d();
-
-  const delta = b.subtract(a);
-  const dab = delta.magnitudeSquared();
-
-  // Same as: const u = (((c.x - a.x) * delta.x) + ((c.y - a.y) * delta.y)) / dab;
-  const outPoint = new PIXI.Point();
-  c.subtract(a, outPoint).multiply(delta, outPoint);
-
-  const t = (outPoint.x + outPoint.y) / dab;
-
-  // Same as:
-  //     x: a.x + (t * delta.x),
-  //     y: a.y + (t * delta.y)
-  // Reuse the outPoint
-  delta.multiplyScalar(t, outPoint).add(a, outPoint);
   return outPoint;
 }
 
