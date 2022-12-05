@@ -30,33 +30,6 @@ export function log(...args) {
 }
 
 /**
- * Rotate a point around a given angle
- * @param {Point} point
- * @param {number} angle  In radians
- * @returns {Point}
- */
-export function rotatePoint(point, angle) {
-  return {
-    x: (point.x * Math.cos(angle)) - (point.y * Math.sin(angle)),
-    y: (point.y * Math.cos(angle)) + (point.x * Math.sin(angle))
-  };
-}
-
-/**
- * Translate a point by a given dx, dy
- * @param {Point} point
- * @param {number} dx
- * @param {number} dy
- * @returns {Point}
- */
-export function translatePoint(point, dx, dy) {
-  return {
-    x: point.x + dx,
-    y: point.y + dy
-  };
-}
-
-/**
  * Retrieve an embedded property from an object using a string.
  * @param {object} obj
  * @param {string} str
