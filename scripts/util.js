@@ -30,27 +30,6 @@ export function log(...args) {
 }
 
 /**
- * Take an array of 2d points and flatten them to an array of numbers,
- * like what is used by PIXI.Polygon.
- * Much faster than Array.flatMap.
- * @param {Point[]} ptsArr        Array of objects with x, y values
- * @param {function} transformFn  Function to apply to each object
- * @returns {number[]} An array with [pt0.x, pt0.y, pt1.x, ...]
- */
-export function flatMapPoint2d(ptsArr, transformFn) {
-	const N = ptsArr.length;
-	const ln = N * 2;
-    const newArr = Array(ln);
-    for ( let i = 0; i < N; i += 1 ) {
-	    const j = i * 2;
-	    const pt = transformFn(ptsArr[i], i);
-	    newArr[j] = pt.x;
-	    newArr[j + 1] = pt.y;
-    }
-	return newArr;
-}
-
-/**
  * Rotate a point around a given angle
  * @param {Point} point
  * @param {number} angle  In radians
