@@ -5,7 +5,7 @@
 // Represent a Wall in as a set of 4 3d points.
 
 import { PlanePoints3d } from "./PlanePoints3d.js";
-import { Point3d } from "./Point3d.js";
+import { Point3d } from "../geometry/3d/Point3d.js";
 import { zValue } from "../util.js";
 
 export class TilePoints3d extends PlanePoints3d {

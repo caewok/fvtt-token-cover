@@ -8,8 +8,8 @@ foundry
 // Represent a Wall in as a set of 4 3d points.
 
 import { PlanePoints3d } from "./PlanePoints3d.js";
-import { Point3d } from "./Point3d.js";
-import { ClipperPaths } from "./ClipperPaths.js";
+import { Point3d } from "../geometry/3d/Point3d.js";
+import { ClipperPaths } from "../geometry/ClipperPaths.js";
 
 export class WallPoints3d extends PlanePoints3d {
   constructor(object) {

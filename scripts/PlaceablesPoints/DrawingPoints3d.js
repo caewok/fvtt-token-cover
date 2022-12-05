@@ -5,8 +5,8 @@
 // Represent a Wall in as a set of 4 3d points.
 
 import { PlanePoints3d } from "./PlanePoints3d.js";
-import { Point3d } from "./Point3d.js";
-import { centeredPolygonFromDrawing, zValue, pixelsToGridUnits } from "../util.js";
+import { Point3d } from "../geometry/3d/Point3d.js";
+import { centeredPolygonFromDrawing, pixelsToGridUnits } from "../util.js";
 
 // Drawing points can be modified by setting the elevation.
 // Used by Area3d to construct holes in a tile based on a drawing at a given elevation.

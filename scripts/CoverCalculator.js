@@ -23,7 +23,7 @@ import {
   getObjectProperty } from "./util.js";
 
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
-import { Point3d } from "./geometry/Point3d.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
 import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
