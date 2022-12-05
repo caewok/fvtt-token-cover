@@ -16,7 +16,7 @@ import { MODULE_ID, COVER_TYPES } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
-import * as drawing from "./drawing.js";
+import { Draw } from "./geometry/Draw.js"; // For debugging
 import {
   distanceBetweenPoints,
   pixelsToGridUnits,
@@ -298,7 +298,7 @@ export class CoverCalculator {
     applied = false,
     displayIgnored = true } = {}) {
 
-    if ( game.modules.get(MODULE_ID).api.debug.cover ) drawing.clearDrawings();
+    if ( game.modules.get(MODULE_ID).api.debug.cover ) Draw.clearDrawings();
     if ( !coverCalculations ) coverCalculations = CoverCalculator.coverCalculations(tokens, targets);
 
     let html = "";
@@ -614,18 +614,18 @@ export class CoverCalculator {
     const collision = (wallsBlock && this._hasWallCollision(tokenPoint, targetPoint))
       || (tilesBlock && this._hasTileCollision(tokenPoint, targetPoint));
 
-    this.debug && drawing.drawSegment(  // eslint-disable-line no-unused-expressions
+    this.debug && Draw.segment(  // eslint-disable-line no-unused-expressions
       {A: tokenPoint, B: targetPoint},
-      { color: collision ? drawing.COLORS.red : drawing.COLORS.green });
+      { color: collision ? Draw.COLORS.red : Draw.COLORS.green });
 
     if ( collision ) return COVER_TYPES[getSetting(SETTINGS.COVER.TRIGGER_CENTER)];
 
     if ( tokensBlock ) {
       const collision = this._hasTokenCollision(tokenPoint, targetPoint);
       if ( collision ) {
-        this.debug && drawing.drawSegment(  // eslint-disable-line no-unused-expressions
+        this.debug && Draw.segment(  // eslint-disable-line no-unused-expressions
           {A: tokenPoint, B: targetPoint},
-          { color: collision ? drawing.COLORS.lightred : drawing.COLORS.lightgreen });
+          { color: collision ? Draw.COLORS.lightred : Draw.COLORS.lightgreen });
         return Math.max(COVER_TYPES.NONE, COVER_TYPES[getSetting(SETTINGS.COVER.TRIGGER_CENTER)] - 1);
       }
     }
@@ -945,9 +945,9 @@ export class CoverCalculator {
       const targetPoint = targetPoints[i];
       const collision = this._hasCollision(tokenPoint, targetPoint);
 
-      drawing.drawSegment(  // eslint-disable-line no-unused-expressions
+      Draw.segment(  // eslint-disable-line no-unused-expressions
         {A: tokenPoint, B: targetPoint},
-        { alpha, width, color: collision ? drawing.COLORS.red : drawing.COLORS.green });
+        { alpha, width, color: collision ? Draw.COLORS.red : Draw.COLORS.green });
     }
   }
 }
@@ -1044,9 +1044,9 @@ function hexesUnderToken(token) {
 
   /* Test:
     polyBorder = new PIXI.Polygon(canvas.grid.grid.getBorderPolygon(token.document.width, token.document.height, 0))
-    drawing.drawShape(polyBorder, { color: drawing.COLORS.blue })
+    Draw.shape(polyBorder, { color: Draw.COLORS.blue })
     hexes = hexesUnderToken(token)
-    hexes.forEach(hex => drawing.drawShape(hex, { color: drawing.COLORS.red }))
+    hexes.forEach(hex => Draw.shape(hex, { color: Draw.COLORS.red }))
   */
 
   if ( hexes.length === 0 ) return squaresUnderToken(token);

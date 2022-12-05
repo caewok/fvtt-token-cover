@@ -8,7 +8,7 @@ CONFIG
 import { SETTINGS, getSetting } from "./settings.js";
 import { MODULE_ID } from "./const.js";
 import { Point3d } from "./geometry/Point3d.js";
-import * as drawing from "./drawing.js";
+import { Draw } from "./geometry/Draw.js";
 import { log, pixelsToGridUnits } from "./util.js";
 
 /* Range Options
@@ -234,8 +234,8 @@ export function _testRangeDetectionMode(wrapper, visionSource, mode, target, tes
     const dz = test.point.z - visionSource.elevationZ;
     inRange = ((dx * dx) + (dy * dy) + (dz * dz)) <= (radius * radius);
   }
-  debug && drawing.drawPoint(test.point,  // eslint-disable-line no-unused-expressions
-    { alpha: 1, radius: 3, color: inRange ? drawing.COLORS.green : drawing.COLORS.red });
+  debug && Draw.point(test.point,  // eslint-disable-line no-unused-expressions
+    { alpha: 1, radius: 3, color: inRange ? Draw.COLORS.green : Draw.COLORS.red });
 
   return inRange;
 }

@@ -35,7 +35,7 @@ import { getSetting, SETTINGS } from "./settings.js";
 import { zValue, log, getObjectProperty, centeredPolygonFromDrawing } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
-import * as drawing from "./drawing.js"; // For debugging
+import { Draw } from "./Draw.js"; // For debugging
 
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Matrix } from "./geometry/Matrix.js";
@@ -414,7 +414,7 @@ export class Area3d {
     const { obscuredSides, sidePolys } = this._obscureSides();
 
     if ( this.debug ) {
-      const colors = drawing.COLORS;
+      const colors = Draw.COLORS;
       this._drawLineOfSight();
       this.targetPoints.drawTransformed();
       objs.walls.forEach(w => w.drawTransformed({color: colors.blue}));
@@ -424,7 +424,7 @@ export class Area3d {
       objs.terrainWalls.forEach(w =>
         w.drawTransformed({ color: colors.lightgreen, fillAlpha: 0.1 }));
 
-      if ( objs.combinedTerrainWalls ) objs.combinedTerrainWalls.draw({color: drawing.COLORS.green, fillAlpha: 0.3});
+      if ( objs.combinedTerrainWalls ) objs.combinedTerrainWalls.draw({color: Draw.COLORS.green, fillAlpha: 0.3});
 
       const target = this.target;
       this.debugSideAreas = {
@@ -577,7 +577,7 @@ export class Area3d {
    * Draw the line of sight from token to target.
    */
   _drawLineOfSight() {
-    drawing.drawSegment({A: this.viewerCenter, B: this.targetCenter});
+    Draw.segment({A: this.viewerCenter, B: this.targetCenter});
   }
 
   /**
@@ -625,8 +625,8 @@ export class Area3d {
     viewer } = {}) {
 
     const visionTriangle = Area3d.visionTriangle(viewingPoint, target, { type });
-    if ( debug ) drawing.drawShape(visionTriangle,
-      { color: drawing.COLORS.blue, fillAlpha: 0.2, fill: drawing.COLORS.blue });
+    if ( debug ) Draw.shape(visionTriangle,
+      { color: Draw.COLORS.blue, fillAlpha: 0.2, fill: Draw.COLORS.blue });
 
     const maxE = Math.max(viewingPoint.z ?? 0, target.topZ);
     const minE = Math.min(viewingPoint.z ?? 0, target.bottomZ);
@@ -640,7 +640,7 @@ export class Area3d {
         return w.topZ > minE && w.bottomZ < maxE;
       });
 
-      if ( debug ) out.walls.forEach(w => drawing.drawSegment(w, { color: drawing.COLORS.gray }));
+      if ( debug ) out.walls.forEach(w => Draw.segment(w, { color: Draw.COLORS.gray }));
     }
 
     if ( filterTokens ) {
@@ -651,7 +651,7 @@ export class Area3d {
         return t.topZ > minE && t.bottomZ < maxE;
       });
 
-      if ( debug ) out.tokens.forEach(t => drawing.drawShape(t.bounds, { color: drawing.COLORS.gray }));
+      if ( debug ) out.tokens.forEach(t => Draw.shape(t.bounds, { color: Draw.COLORS.gray }));
     }
 
     if ( filterTiles ) {
@@ -674,8 +674,8 @@ export class Area3d {
       if ( out.tiles.size ) out.drawings = Area3d.filterDrawingsByVisionTriangle(visionTriangle);
 
       if ( debug ) {
-        out.tiles.forEach(t => drawing.drawShape(t.bounds, { color: drawing.COLORS.gray }));
-        out.drawings.forEach(d => drawing.drawShape(d.bounds, { color: drawing.COLORS.gray }));
+        out.tiles.forEach(t => Draw.shape(t.bounds, { color: Draw.COLORS.gray }));
+        out.drawings.forEach(d => Draw.shape(d.bounds, { color: Draw.COLORS.gray }));
       }
     }
 

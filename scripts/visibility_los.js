@@ -13,7 +13,7 @@ import { Point3d } from "./geometry/Point3d.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
-import * as drawing from "./drawing.js";
+import { Draw } from "./geometry/Draw.js";
 
 /* Visibility algorithm
 Three tests, increasing in difficulty and stringency. User can select between 0% and 100%
@@ -152,8 +152,8 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
  */
 function drawDebugPoint(visionSource, pt, hasLOS) {
   const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
-  drawing.drawSegment({A: origin, B: pt}, {
-    color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red,
+  Draw.segment({A: origin, B: pt}, {
+    color: hasLOS ? Draw.COLORS.green : Draw.COLORS.red,
     alpha: 0.5
   });
 }
