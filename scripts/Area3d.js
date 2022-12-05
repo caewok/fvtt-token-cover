@@ -194,7 +194,7 @@ export class Area3d {
     objs.combinedTerrainWalls = undefined;
     if ( objs.terrainWalls.size > 1 ) {
       objs.terrainWalls.forEach(w => w.setViewMatrix(this.viewerViewM));
-      const combined = WallPoints3d.combineTerrainWalls(objs.terrainWalls, this.viewerCenter);
+      const combined = WallPoints3d.combineTerrainWalls(objs.terrainWalls, this.viewerCenter, { scalingFactor: Area3d.SCALING_FACTOR });
       if ( combined && combined.paths.length ) objs.combinedTerrainWalls = combined;
     } else if ( this.debug ) {
       // Set the view matrix so the single wall, if any, can be drawn

@@ -35,12 +35,13 @@ export class WallPoints3d extends PlanePoints3d {
    * @param {Point3d} viewerLoc         Location of the viewer
    * @returns {ClipperPaths}
    */
-  static combineTerrainWalls(walls, viewerLoc) {
+  static combineTerrainWalls(walls, viewerLoc, { scalingFactor = 1} = {}) {
     // TODO: Handle walls that are actually lines?
 
     walls = [...walls];
 
     const combined = new ClipperPaths();
+    combined.scalingFactor = scalingFactor;
 
     // Examine each pair of walls once
     const nWalls = walls.length;
@@ -98,15 +99,15 @@ export class WallPoints3d extends PlanePoints3d {
         }
 
         if ( wFront ) {
-          const cpFront = ClipperPaths.fromPolygons([new PIXI.Polygon(wFront.perspectiveTransform())]);
-          const cpBack = ClipperPaths.fromPolygons([new PIXI.Polygon(wBack.perspectiveTransform())]);
+          const cpFront = ClipperPaths.fromPolygons([new PIXI.Polygon(wFront.perspectiveTransform())], { scalingFactor });
+          const cpBack = ClipperPaths.fromPolygons([new PIXI.Polygon(wBack.perspectiveTransform())], { scalingFactor });
           const cpIntersect = cpFront.intersectPaths(cpBack);
           if ( cpIntersect.paths.length ) combined.add(cpIntersect);
           continue;
         }
 
         // Walls otherwise strictly cross, forming an X.
-        const res = handleTerrainWallsCross(wi, wj, ccwABV, ccwCDV);
+        const res = handleTerrainWallsCross(wi, wj, ccwABV, ccwCDV, { scalingFactor });
         if ( !res ) continue;
         if ( res.wiPath.paths.length ) combined.add(res.wiPath);
         if ( res.wjPath.paths.length ) combined.add(res.wjPath);
@@ -140,7 +141,7 @@ function ccw(a, b, c) {
  * @param {-1|1} ccwCDV
  * @returns {null|object{wiPath: ClipperPaths, wjPath: ClipperPaths}}
  */
-function handleTerrainWallsCross(wi, wj, ccwABV, ccwCDV) {
+function handleTerrainWallsCross(wi, wj, ccwABV, ccwCDV, { scalingFactor = 1 } = {}) {
   const { A, B } = wi.object;
   const { A: C, B: D } = wj.object;
 
@@ -232,10 +233,10 @@ function handleTerrainWallsCross(wi, wj, ccwABV, ccwCDV) {
   wjFront.setViewMatrix(wj.M);
   wjBack.setViewMatrix(wj.M);
 
-  const cpWiFront = ClipperPaths.fromPolygons([new PIXI.Polygon(wiFront.perspectiveTransform())]);
-  const cpWiBack = ClipperPaths.fromPolygons([new PIXI.Polygon(wiBack.perspectiveTransform())]);
-  const cpWjFront = ClipperPaths.fromPolygons([new PIXI.Polygon(wjFront.perspectiveTransform())]);
-  const cpWjBack = ClipperPaths.fromPolygons([new PIXI.Polygon(wjBack.perspectiveTransform())]);
+  const cpWiFront = ClipperPaths.fromPolygons([new PIXI.Polygon(wiFront.perspectiveTransform())], { scalingFactor });
+  const cpWiBack = ClipperPaths.fromPolygons([new PIXI.Polygon(wiBack.perspectiveTransform())], { scalingFactor });
+  const cpWjFront = ClipperPaths.fromPolygons([new PIXI.Polygon(wjFront.perspectiveTransform())], { scalingFactor });
+  const cpWjBack = ClipperPaths.fromPolygons([new PIXI.Polygon(wjBack.perspectiveTransform())], { scalingFactor });
 
   const cpWiIntersect = cpWjFront.intersectPaths(cpWiBack);
   const cpWjIntersect = cpWiFront.intersectPaths(cpWjBack);
