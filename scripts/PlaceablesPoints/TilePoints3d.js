@@ -6,12 +6,11 @@
 
 import { PlanePoints3d } from "./PlanePoints3d.js";
 import { Point3d } from "../geometry/3d/Point3d.js";
-import { zValue } from "../util.js";
 
 export class TilePoints3d extends PlanePoints3d {
   constructor(object) {
     const { x, y, width, height, elevation } = object.document;
-    const eZ = zValue(elevation); // There is a tile.document.z value but not sure from where -- Levels?
+    const eZ = CONFIG.GeometryLib.utils.gridUnitsToPixels(elevation); // There is a tile.document.z value but not sure from where -- Levels?
 
     const rightX = x + width;
     const bottomY = y + height;
