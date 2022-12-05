@@ -1,18 +1,13 @@
 /* globals
 game,
 foundry,
-canvas,
-PIXI
+PIXI,
+CONFIG
 */
 "use strict";
 
 import { MODULE_ID, EPSILON } from "./const.js";
 import { Point3d } from "./geometry/Point3d.js";
-
-// For centeredPolygonFromDrawing
-import { CenteredPolygon } from "./geometry/CenteredPolygon.js";
-import { CenteredRectangle } from "./geometry/CenteredRectangle.js";
-import { Ellipse } from "./geometry/Ellipse.js";
 
 /**
  * Log message only when debug flag is enabled from DevMode module.
@@ -300,7 +295,7 @@ export function lineTriangleIntersectionLocation(rayVector, edge1, edge2, s, f, 
   const v = f * rayVector.dot(q);
   if ( v < 0.0 || (u + v) > 1.0 ) return null;
 
-  return f * edge2.dot(q); // t
+  return f * edge2.dot(q); // This is t
 
   // To compute the intersection location using t and outPoint = new Point3d():
   // A.add(rayVector.multiplyScalar(t, outPoint), outPoint);
