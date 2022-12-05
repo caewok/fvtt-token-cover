@@ -8,7 +8,7 @@ Token
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { getObjectProperty, zValue } from "./util.js";
+import { getObjectProperty } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";
 import { CWSweepInfiniteWallsOnly } from "./CWSweepInfiniteWallsOnly.js";
@@ -322,7 +322,7 @@ export class Area2d {
       const minEZ = Math.min(this.visionSource.elevationZ, this.target.bottomZ);
       const maxEZ = Math.max(this.visionSource.elevationZ, this.target.topZ);
       tiles = tiles.filter(tile => {
-        const tileEZ = zValue(tile.document.elevation);
+        const tileEZ = CONFIG.GeometryLib.utils.gridUnitsToPixels(tile.document.elevation);
         return tileEZ.between(minEZ, maxEZ);
       });
 

@@ -32,7 +32,7 @@ Area:
 
 import { MODULE_ID, FLAGS } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
-import { zValue, log, getObjectProperty } from "./util.js";
+import { log, getObjectProperty } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 import { Draw } from "./Draw.js"; // For debugging
@@ -666,7 +666,7 @@ export class Area3d {
 
       // Filter tiles that are definitely too low or too high
       out.tiles = out.tiles.filter(t => {
-        const tZ = zValue(t.document.elevation);
+        const tZ = CONFIG.GeometryLib.utils.gridUnitsToPixels(t.document.elevation);
         return tZ < maxE && tZ > minE;
       });
 
@@ -855,7 +855,7 @@ export class Area3d {
       if ( !tile.bounds.contains(origin.x, origin.y) ) continue;
 
       const tileE = tile.document.flags?.levels.rangeBottom ?? tile.document.elevation;
-      const tileZ = zValue(tileE);
+      const tileZ = CONFIG.GeometryLib.utils.gridUnitsToPixels(tileE);
       if ( (origin.z > tileZ && wall.topZ < tileZ)
         || (origin.z < tileZ && wall.bottomZ > tileZ) ) return true;
     }

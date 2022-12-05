@@ -55,14 +55,6 @@ export function elementsByIndex(arr, indices) {
 }
 
 /**
- * Convert a grid units value to pixel units, for equivalency with x,y values.
- */
-export function zValue(value) {
-  const { distance, size } = canvas.scene.grid;
-  return (value * size) / distance;
-}
-
-/**
  * Convert pixel units to grid units
  */
 export function pixelsToGridUnits(pixels) {

@@ -20,7 +20,6 @@ import { Draw } from "./geometry/Draw.js"; // For debugging
 import {
   distanceBetweenPoints,
   pixelsToGridUnits,
-  zValue,
   lineSegmentIntersectsQuadrilateral3d,
   lineIntersectionQuadrilateral3d,
   getObjectProperty } from "./util.js";
@@ -508,7 +507,7 @@ export class CoverCalculator {
       if ( this.config.type === "light" && tile.document.flags?.levels?.noCollision ) continue;
 
       const { x, y, width, height, elevation } = tile.document;
-      const elevationZ = zValue(elevation);
+      const elevationZ = CONFIG.GeometryLib.utils.gridUnitsToPixels(elevation);
 
       if ( elevationZ < minE || elevationZ > maxE ) continue;
 
