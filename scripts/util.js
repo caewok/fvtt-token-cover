@@ -318,34 +318,3 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
 
   return linePlane3dIntersection(a, b, c, d, epsilon);
 }
-
-/**
- * Get the intersection of a 3d line with a tile extended
-
-/**
- * Adapted from https://github.com/mourner/robust-predicates/blob/main/src/orient3d.js
- * @param {Point3d} a   Point in the plane
- * @param {Point3d} b   Point in the plane
- * @param {Point3d} c   Point in the plane
- * @param {Point3d} d   Point to test
- * @returns {boolean}
- *   - Returns a positive value if the point d lies above the plane passing through a, b, and c,
- *     meaning that a, b, and c appear in counterclockwise order when viewed from d.
- *   - Returns a negative value if d lies below the plane.
- *   - Returns zero if the points are coplanar.
- */
-export function orient3dFast(a, b, c, d) {
-  const adx = a.x - d.x;
-  const bdx = b.x - d.x;
-  const cdx = c.x - d.x;
-  const ady = a.y - d.y;
-  const bdy = b.y - d.y;
-  const cdy = c.y - d.y;
-  const adz = a.z - d.z;
-  const bdz = b.z - d.z;
-  const cdz = c.z - d.z;
-
-  return (adx * ((bdy * cdz) - (bdz * cdy)))
-    + (bdx * ((cdy * adz) - (cdz * ady)))
-    + (cdx * ((ady * bdz) - (adz * bdy)));
-}
