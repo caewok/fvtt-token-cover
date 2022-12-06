@@ -3,21 +3,22 @@ game,
 foundry,
 PIXI,
 objectsEqual,
-Token
+Token,
+CONFIG
 */
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { getObjectProperty, zValue, centeredPolygonFromDrawing } from "./util.js";
+import { getObjectProperty } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";
-import * as drawing from "./drawing.js";
 import { CWSweepInfiniteWallsOnly } from "./CWSweepInfiniteWallsOnly.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 import { Shadow } from "./geometry/Shadow.js";
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
-import { Point3d } from "./geometry/Point3d.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
+import { Draw } from "./geometry/Draw.js";
 
 /* Area 2d
 1. Center point shortcut:
@@ -47,6 +48,11 @@ export class Area2d {
 
   /** @type {object} */
   config = {};
+
+  /**
+   * Scaling factor used with Clipper
+   */
+  static SCALING_FACTOR = 100;
 
   /**
    * @param {VisionSource} visionSource
@@ -86,10 +92,10 @@ export class Area2d {
     // If less than 50% of the token area is required to be viewable, then
     // if the center point is viewable, the token is viewable from that source.
     if ( centerPointIsVisible && percentArea < 0.50 ) {
-      if ( this.debug ) drawing.drawPoint(this.target.center, {
+      if ( this.debug ) Draw.point(this.target.center, {
         alpha: 1,
         radius: 3,
-        color: drawing.COLORS.green });
+        color: Draw.COLORS.green });
 
       return true;
     }
@@ -98,10 +104,10 @@ export class Area2d {
     // the center point must be viewable for the token to be viewable from that source.
     // (necessary but not sufficient)
     if ( !centerPointIsVisible && percentArea >= 0.50 ) {
-      if ( this.debug ) drawing.drawPoint(this.target.center, {
+      if ( this.debug ) Draw.point(this.target.center, {
         alpha: 1,
         radius: 3,
-        color: drawing.COLORS.red });
+        color: Draw.COLORS.red });
       return false;
     }
 
@@ -138,8 +144,8 @@ export class Area2d {
     if ( los instanceof ClipperPaths ) return undefined;
 
     const hasLOS = this._sourceIntersectsPolygonBounds(los, tokenShape);
-    this.debug && drawing.drawShape(los, { color: drawing.COLORS.blue }); // eslint-disable-line no-unused-expressions
-    this.debug && drawing.drawShape(tokenShape, { color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red }); // eslint-disable-line no-unused-expressions
+    this.debug && Draw.drawShape(los, { color: Draw.COLORS.blue }); // eslint-disable-line no-unused-expressions
+    this.debug && Draw.drawShape(tokenShape, { color: hasLOS ? Draw.COLORS.green : Draw.COLORS.red }); // eslint-disable-line no-unused-expressions
     return hasLOS;
   }
 
@@ -255,7 +261,7 @@ export class Area2d {
     });
 
     if ( !drawings.size ) {
-      tiles = ClipperPaths.fromPolygons(tiles);
+      tiles = ClipperPaths.fromPolygons(tiles, {scalingFactor: Area2d.SCALING_FACTOR});
       tiles.combine().clean();
       return tiles;
     }
@@ -275,20 +281,20 @@ export class Area2d {
         else if ( maxE == null && tileE !== minE ) continue;
         else if ( !tileE.between(minE, maxE) ) continue;
 
-        const shape = centeredPolygonFromDrawing(drawing);
+        const shape = CONFIG.GeometryLib.utils.centeredPolygonFromDrawing(drawing);
         drawingHoles.push(shape.toPolygon());
       }
 
       if ( drawingHoles.length ) {
         // Construct a hole at the tile's elevation from the drawing taking the difference.
-        const drawingHolesPaths = ClipperPaths.fromPolygons(drawingHoles);
+        const drawingHolesPaths = ClipperPaths.fromPolygons(drawingHoles, {scalingFactor: Area2d.SCALING_FACTOR});
         const tileHoled = drawingHolesPaths.diffPolygon(tile._polygon);
         tilesHoled.push(tileHoled);
       } else tilesUnholed.push(tile);
     }
 
     if ( tilesUnholed.length ) {
-      const unHoledPaths = ClipperPaths.fromPolygons(tilesUnholed);
+      const unHoledPaths = ClipperPaths.fromPolygons(tilesUnholed, {scalingFactor: Area2d.SCALING_FACTOR});
       unHoledPaths.combine().clean();
       tilesHoled.push(...unHoledPaths);
     }
@@ -322,7 +328,7 @@ export class Area2d {
       const minEZ = Math.min(this.visionSource.elevationZ, this.target.bottomZ);
       const maxEZ = Math.max(this.visionSource.elevationZ, this.target.topZ);
       tiles = tiles.filter(tile => {
-        const tileEZ = zValue(tile.document.elevation);
+        const tileEZ = CONFIG.GeometryLib.utils.gridUnitsToPixels(tile.document.elevation);
         return tileEZ.between(minEZ, maxEZ);
       });
 
@@ -334,10 +340,10 @@ export class Area2d {
           : combinedTiles.diffPaths(visibleTokenShape);
       }
     }
-    const seenArea = visibleTokenShape.area();
+    const seenArea = visibleTokenShape.scaledArea({scalingFactor: Area2d.SCALING_FACTOR});
     if ( !seenArea || seenArea.almostEqual(0) ) return 0;
 
-    const tokenArea = tokenShape.area();
+    const tokenArea = tokenShape.scaledArea({scalingFactor: Area2d.SCALING_FACTOR});
     if ( !tokenArea || tokenArea.almostEqual(0) ) return 0;
 
     const percentSeen = seenArea / tokenArea;
@@ -352,19 +358,19 @@ export class Area2d {
       if ( los instanceof ClipperPaths ) {
         const polys = los.toPolygons();
         for ( const poly of polys ) {
-          drawing.drawShape(poly, { color: drawing.COLORS.blue, width: poly.isHole ? 1 : 2 });
+          Draw.shape(poly, { color: Draw.COLORS.blue, width: poly.isHole ? 1 : 2 });
         }
       } else {
-        drawing.drawShape(los, { color: drawing.COLORS.blue, width: 2 });
+        Draw.shape(los, { color: Draw.COLORS.blue, width: 2 });
       }
 
       if ( visibleTokenShape instanceof ClipperPaths ) {
         const polys = visibleTokenShape.toPolygons();
         for ( const poly of polys ) {
-          drawing.drawShape(poly, { color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red });
+          Draw.shape(poly, { color: hasLOS ? Draw.COLORS.green : Draw.COLORS.red });
         }
       } else {
-        drawing.drawShape(visibleTokenShape, { color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red });
+        Draw.shape(visibleTokenShape, { color: hasLOS ? Draw.COLORS.green : Draw.COLORS.red });
       }
     }
 
@@ -475,7 +481,10 @@ export class Area2d {
         halfHeight = (typeof hp === "number") && (hp <= 0);
       }
 
-      const tokenShadows = Shadow.constructfromToken(token, origin, { surfaceElevation: targetElevation, type, halfHeight });
+      const tokenShadows = Shadow.constructfromToken(token, origin, {
+        surfaceElevation: targetElevation,
+        type,
+        halfHeight });
       if ( tokenShadows && tokenShadows.length ) shadows.push(...tokenShadows);
       if ( this.debug ) tokenShadows.forEach(s => s.draw());
     }

@@ -7,9 +7,9 @@ CONFIG
 
 import { SETTINGS, getSetting } from "./settings.js";
 import { MODULE_ID } from "./const.js";
-import { Point3d } from "./geometry/Point3d.js";
-import * as drawing from "./drawing.js";
-import { log, pixelsToGridUnits } from "./util.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
+import { Draw } from "./geometry/Draw.js";
+import { log } from "./util.js";
 
 /* Range Options
 
@@ -145,8 +145,8 @@ export function getTestPointsSightHandlerLevels(token, tol = 4) {
   // Convert back to elevation units b/c that is what Levels expects.
   const { topZ, bottomZ, center, w, h } = token;
   const { x, y } = center;
-  const topE = pixelsToGridUnits(topZ);
-  const bottomE = pixelsToGridUnits(bottomZ);
+  const topE = CONFIG.GeometryLib.utils.pixelsToGridUnits(topZ);
+  const bottomE = CONFIG.GeometryLib.utils.pixelsToGridUnits(bottomZ);
 
   const height = topE - bottomE;
   const avgE = bottomE + (height * 0.5);
@@ -234,8 +234,8 @@ export function _testRangeDetectionMode(wrapper, visionSource, mode, target, tes
     const dz = test.point.z - visionSource.elevationZ;
     inRange = ((dx * dx) + (dy * dy) + (dz * dz)) <= (radius * radius);
   }
-  debug && drawing.drawPoint(test.point,  // eslint-disable-line no-unused-expressions
-    { alpha: 1, radius: 3, color: inRange ? drawing.COLORS.green : drawing.COLORS.red });
+  debug && Draw.point(test.point,  // eslint-disable-line no-unused-expressions
+    { alpha: 1, radius: 3, color: inRange ? Draw.COLORS.green : Draw.COLORS.red });
 
   return inRange;
 }

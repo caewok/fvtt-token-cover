@@ -2,7 +2,8 @@
 game,
 canvas,
 ChatMessage,
-duplicate
+duplicate,
+CONFIG
 */
 "use strict";
 
@@ -49,10 +50,10 @@ dnd5e: half, 3/4, full
 
 import { MODULE_ID, COVER_TYPES } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
-import { distanceBetweenPoints, pixelsToGridUnits, log } from "./util.js";
+import { log } from "./util.js";
 import { CoverCalculator, SOCKETS, dialogPromise } from "./CoverCalculator.js";
 
-import { Point3d } from "./geometry/Point3d.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
 
 /**
  * Hook event that fires after targeting (AoE) is complete.
@@ -64,14 +65,6 @@ export async function midiqolPreambleCompleteHook(workflow) {
   const nTargets = targets.length;
 
   if ( !nTargets || !token ) return true;
-
-  // token.actor.flags["midi-qol"].sharpShooter
-  // workflow.item.type === "spell"
-  // MidiQOL.checkRange(workflow.item, workflow.token, workflow.targets)
-  // MidiQOL.checkRange(workflow.item, workflow.token, workflow.targets)
-  // workflow.item.system.actionType // rsak, rwak, mwak, msak
-  // token.actor.flags.dnd5e.spellSniper
-  // (or workflow.actor)
 
   const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
   const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
@@ -194,8 +187,8 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations, ogC
       CoverCalculator.averageTokenElevationZ(target));
 
     const targetImage = target.document.texture.src; // Token canvas image.
-    const dist = distanceBetweenPoints(token_center, target_center);
-    const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
+    const dist = Point3d.distanceBetween(token_center, target_center);
+    const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
     const coverOptions =
     `
     <option value="NONE" ${cover === COVER_TYPES.NONE ? "selected" : ""}>None</option>
@@ -297,34 +290,6 @@ On attack:
 */
 
 /**
- * Hook token updates to adjust cover status if moving.
- *
- * A hook event that fires for every Document type after conclusion of an update workflow.
- * Substitute the Document name in the hook event to target a specific Document type, for example "updateActor".
- * This hook fires for all connected clients after the update has been processed.
- *
- * @event updateDocument
- * @category Document
- * @param {Document} document                       The existing Document which was updated
- * @param {object} change                           Differential data that was used to update the document
- * @param {DocumentModificationContext} options     Additional options which modified the update request
- * @param {string} userId                           The ID of the User who triggered the update workflow
- */
-export function updateToken(document, change, options, userId) { // eslint-disable-line no-unused-vars
-  // Only care about x, y, and elevation changes
-  if ( !Object.hasOwn(change, "x")
-    && !Object.hasOwn(change, "y")
-    && !Object.hasOwn(change, "z") ) return;
-
-  // Only track cover when in combat.
-  if ( !game.combat?.started ) return;
-
-  // If this token is targeted by an owner of the current combatant, update cover
-
-  // If in combat and this token is the current combatant, update all targets
-}
-
-/**
  * Wrap TokenDocument.prototype.toggleActiveEffect
  * If adding a cover effect, remove other cover effects
  */
@@ -359,11 +324,10 @@ export async function toggleActiveEffectTokenDocument(wrapper, effectData, { ove
 
   return state;
 }
-export async function combatTurnHook(combat, updateData, updateOptions) {
-//   updateData.round
-//   updateData.turn
-
-//   console.log(`combatTurnHook User ${game.userId} round ${updateData.round} turn ${updateData.turn}`);
+export async function combatTurnHook(combat, updateData, updateOptions) { // eslint-disable-line no-unused-vars
+  // Properties for updateData:
+  //   updateData.round
+  //   updateData.turn
 
   const c = combat.combatant;
   const playerOwners = c.players;
@@ -375,18 +339,10 @@ export async function combatTurnHook(combat, updateData, updateOptions) {
   const userTargetedTokens = [];
   for ( const token of tokens ) {
     if ( playerOwners.some(owner => token.targeted.has(owner)) ) {
-        userTargetedTokens.push(token);
+      userTargetedTokens.push(token);
     }
     CoverCalculator.disableAllCoverStatus(token.id);
   }
-
-//   tokens.forEach(t => {
-//     if ( playerOwners.some(owner => t.targeted.has(owner)) ) {
-//       userTargetedTokens.push(t);
-//     }
-//     await SOCKETS.socket.executeAsGM("disableAllCoverStatus", t.document);
-// //     CoverCalculator.disableAllCoverStatus(t.document);
-//   });
 
   // Calculate cover from combatant to any currently targeted tokens
   const combatToken = c.token.object;
@@ -407,8 +363,6 @@ export async function combatTurnHook(combat, updateData, updateOptions) {
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
 export async function targetTokenHook(user, target, targeted) {
-//   console.log(`targetTokenHook Hook User ${game.userId} User ${user.id} target ${target.name} targeted: ${targeted}`);
-
   if ( !getSetting(SETTINGS.COVER.COMBAT_AUTO) ) return;
 
   // If not in combat, do nothing because it is unclear who is targeting what...

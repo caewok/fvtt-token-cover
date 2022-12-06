@@ -16,18 +16,15 @@ import { MODULE_ID, COVER_TYPES } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
-import * as drawing from "./drawing.js";
+import { Draw } from "./geometry/Draw.js"; // For debugging
 import {
-  distanceBetweenPoints,
-  pixelsToGridUnits,
-  zValue,
   lineSegmentIntersectsQuadrilateral3d,
   lineIntersectionQuadrilateral3d,
   getObjectProperty } from "./util.js";
 
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
-import { Point3d } from "./geometry/Point3d.js";
-import { TokenPoints3d } from "./geometry/TokenPoints3d.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
+import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
 // Don't pass complex classes through the socket. Use token ids instead.
@@ -298,7 +295,7 @@ export class CoverCalculator {
     applied = false,
     displayIgnored = true } = {}) {
 
-    if ( game.modules.get(MODULE_ID).api.debug.cover ) drawing.clearDrawings();
+    if ( game.modules.get(MODULE_ID).api.debug.cover ) Draw.clearDrawings();
     if ( !coverCalculations ) coverCalculations = CoverCalculator.coverCalculations(tokens, targets);
 
     let html = "";
@@ -344,8 +341,8 @@ export class CoverCalculator {
         if ( cover !== COVER_TYPES.NONE ) nCover += 1;
 
         const targetImage = target.document.texture.src; // Token canvas image.
-        const dist = distanceBetweenPoints(token_center, target_center);
-        const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
+        const dist = Point3d.distanceBetween(token_center, target_center);
+        const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
 
         htmlTable +=
         `
@@ -508,7 +505,7 @@ export class CoverCalculator {
       if ( this.config.type === "light" && tile.document.flags?.levels?.noCollision ) continue;
 
       const { x, y, width, height, elevation } = tile.document;
-      const elevationZ = zValue(elevation);
+      const elevationZ = CONFIG.GeometryLib.utils.gridUnitsToPixels(elevation);
 
       if ( elevationZ < minE || elevationZ > maxE ) continue;
 
@@ -614,18 +611,18 @@ export class CoverCalculator {
     const collision = (wallsBlock && this._hasWallCollision(tokenPoint, targetPoint))
       || (tilesBlock && this._hasTileCollision(tokenPoint, targetPoint));
 
-    this.debug && drawing.drawSegment(  // eslint-disable-line no-unused-expressions
+    this.debug && Draw.segment(  // eslint-disable-line no-unused-expressions
       {A: tokenPoint, B: targetPoint},
-      { color: collision ? drawing.COLORS.red : drawing.COLORS.green });
+      { color: collision ? Draw.COLORS.red : Draw.COLORS.green });
 
     if ( collision ) return COVER_TYPES[getSetting(SETTINGS.COVER.TRIGGER_CENTER)];
 
     if ( tokensBlock ) {
       const collision = this._hasTokenCollision(tokenPoint, targetPoint);
       if ( collision ) {
-        this.debug && drawing.drawSegment(  // eslint-disable-line no-unused-expressions
+        this.debug && Draw.segment(  // eslint-disable-line no-unused-expressions
           {A: tokenPoint, B: targetPoint},
-          { color: collision ? drawing.COLORS.lightred : drawing.COLORS.lightgreen });
+          { color: collision ? Draw.COLORS.lightred : Draw.COLORS.lightgreen });
         return Math.max(COVER_TYPES.NONE, COVER_TYPES[getSetting(SETTINGS.COVER.TRIGGER_CENTER)] - 1);
       }
     }
@@ -945,9 +942,9 @@ export class CoverCalculator {
       const targetPoint = targetPoints[i];
       const collision = this._hasCollision(tokenPoint, targetPoint);
 
-      drawing.drawSegment(  // eslint-disable-line no-unused-expressions
+      Draw.segment(  // eslint-disable-line no-unused-expressions
         {A: tokenPoint, B: targetPoint},
-        { alpha, width, color: collision ? drawing.COLORS.red : drawing.COLORS.green });
+        { alpha, width, color: collision ? Draw.COLORS.red : Draw.COLORS.green });
     }
   }
 }
@@ -1044,9 +1041,9 @@ function hexesUnderToken(token) {
 
   /* Test:
     polyBorder = new PIXI.Polygon(canvas.grid.grid.getBorderPolygon(token.document.width, token.document.height, 0))
-    drawing.drawShape(polyBorder, { color: drawing.COLORS.blue })
+    Draw.shape(polyBorder, { color: Draw.COLORS.blue })
     hexes = hexesUnderToken(token)
-    hexes.forEach(hex => drawing.drawShape(hex, { color: drawing.COLORS.red }))
+    hexes.forEach(hex => Draw.shape(hex, { color: Draw.COLORS.red }))
   */
 
   if ( hexes.length === 0 ) return squaresUnderToken(token);

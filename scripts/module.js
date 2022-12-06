@@ -9,36 +9,33 @@ canvas
 import { MODULE_ID, COVER_TYPES, FLAGS } from "./const.js";
 
 // Hooks and method registration
+import { registerGeometry } from "./geometry/registration.js";
+
 import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
-import { registerPIXIPolygonMethods } from "./geometry/PIXIPolygon.js";
-import { registerPIXIRectangleMethods } from "./geometry/PIXIRectangle.js";
 import { registerSettings, getSetting, setSetting, SETTINGS, updateConfigStatusEffects, settingsCache } from "./settings.js";
 import { registerElevationAdditions } from "./elevation.js";
-import { Point3d, registerPIXIPointMethods } from "./geometry/Point3d.js";
 
 // Rendering configs
 import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
 
+// Debugging
+import { Draw } from "./geometry/Draw.js";
+
 // For API
 import * as bench from "./benchmark.js";
-import * as drawing from "./drawing.js";
 import * as util from "./util.js";
+
+import { PlanePoints3d } from "./PlaceablesPoints/PlanePoints3d.js";
+import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
+import { DrawingPoints3d } from "./PlaceablesPoints/DrawingPoints3d.js";
+import { WallPoints3d } from "./PlaceablesPoints/WallPoints3d.js";
+import { TilePoints3d } from "./PlaceablesPoints/TilePoints3d.js";
 
 import { Area3d } from "./Area3d.js";
 import { Area2d } from "./Area2d.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
-
-import { Plane } from "./geometry/Plane.js";
-import { ClipperPaths } from "./geometry/ClipperPaths.js";
-import { Shadow } from "./geometry/Shadow.js";
-import { Matrix } from "./geometry/Matrix.js";
-import { PlanePoints3d } from "./geometry/PlanePoints3d.js";
-import { TokenPoints3d } from "./geometry/TokenPoints3d.js";
-import { DrawingPoints3d } from "./geometry/DrawingPoints3d.js";
-import { WallPoints3d } from "./geometry/WallPoints3d.js";
-import { TilePoints3d } from "./geometry/TilePoints3d.js";
 
 import * as los from "./visibility_los.js";
 
@@ -50,12 +47,11 @@ import {
   addDND5eCoverFeatFlags } from "./IgnoresCover.js";
 
 Hooks.once("init", async function() {
+  registerGeometry();
+
   registerElevationAdditions();
-  registerPIXIPointMethods();
-  registerPIXIRectangleMethods();
   registerLibWrapperMethods();
   patchHelperMethods();
-  registerPIXIPolygonMethods();
   addDND5eCoverFeatFlags();
 
   // Set the ignores cover handler based on what systems and modules are active
@@ -65,14 +61,8 @@ Hooks.once("init", async function() {
 
   game.modules.get(MODULE_ID).api = {
     bench,
-    drawing,
-    Shadow,
-    Matrix,
-    Point3d,
     Area2d,
     Area3d,
-    Plane,
-    ClipperPaths,
     util,
     CoverCalculator,
     COVER_TYPES,
@@ -264,7 +254,7 @@ function updateTokenHook(document, change, options, userId) { // eslint-disable-
 
     const debug = game.modules.get(MODULE_ID).api.debug;
     if ( debug.once || debug.range || debug.area || debug.cover || debug.los ) {
-      drawing.clearDrawings();
+      Draw.clearDrawings();
 
       if ( debug.once ) {
         debug.range = false;

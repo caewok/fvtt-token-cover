@@ -1,18 +1,13 @@
 /* globals
 game,
 foundry,
-canvas,
-PIXI
+PIXI,
+CONFIG
 */
 "use strict";
 
 import { MODULE_ID, EPSILON } from "./const.js";
-import { Point3d } from "./geometry/Point3d.js";
-
-// For centeredPolygonFromDrawing
-import { CenteredPolygon } from "./geometry/CenteredPolygon.js";
-import { CenteredRectangle } from "./geometry/CenteredRectangle.js";
-import { Ellipse } from "./geometry/Ellipse.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
 
 /**
  * Log message only when debug flag is enabled from DevMode module.
@@ -27,74 +22,6 @@ export function log(...args) {
   } catch(e) {
     // Empty
   }
-}
-
-/**
- * Construct a centered polygon using the values in drawing shape.
- * @param {Drawing} drawing
- * @returns {CenteredPolygonBase}
- */
-export function centeredPolygonFromDrawing(drawing) {
-  switch ( drawing.document.shape.type ) {
-    case CONST.DRAWING_TYPES.RECTANGLE:
-      return CenteredRectangle.fromDrawing(drawing);
-    case CONST.DRAWING_TYPES.ELLIPSE:
-      return Ellipse.fromDrawing(drawing);
-    case CONST.DRAWING_TYPES.POLYGON:
-      return CenteredPolygon.fromDrawing(drawing);
-    default:
-      console.error("fromDrawing shape type not supported");
-  }
-}
-
-/**
- * Take an array of 2d points and flatten them to an array of numbers,
- * like what is used by PIXI.Polygon.
- * Much faster than Array.flatMap.
- * @param {Point[]} ptsArr        Array of objects with x, y values
- * @param {function} transformFn  Function to apply to each object
- * @returns {number[]} An array with [pt0.x, pt0.y, pt1.x, ...]
- */
-export function flatMapPoint2d(ptsArr, transformFn) {
-	const N = ptsArr.length;
-	const ln = N * 2;
-    const newArr = Array(ln);
-    for ( let i = 0; i < N; i += 1 ) {
-	    const j = i * 2;
-	    const pt = transformFn(ptsArr[i], i);
-	    newArr[j] = pt.x;
-	    newArr[j + 1] = pt.y;
-    }
-	return newArr;
-}
-
-
-
-/**
- * Rotate a point around a given angle
- * @param {Point} point
- * @param {number} angle  In radians
- * @returns {Point}
- */
-export function rotatePoint(point, angle) {
-  return {
-    x: (point.x * Math.cos(angle)) - (point.y * Math.sin(angle)),
-    y: (point.y * Math.cos(angle)) + (point.x * Math.sin(angle))
-  };
-}
-
-/**
- * Translate a point by a given dx, dy
- * @param {Point} point
- * @param {number} dx
- * @param {number} dy
- * @returns {Point}
- */
-export function translatePoint(point, dx, dy) {
-  return {
-    x: point.x + dx,
-    y: point.y + dy
-  };
 }
 
 /**
@@ -123,84 +50,6 @@ export function elementsByIndex(arr, indices) {
 }
 
 /**
- * Convert a grid units value to pixel units, for equivalency with x,y values.
- */
-export function zValue(value) {
-  const { distance, size } = canvas.scene.grid;
-  return (value * size) / distance;
-}
-
-/**
- * Convert pixel units to grid units
- */
-export function pixelsToGridUnits(pixels) {
-  const { distance, size } = canvas.scene.dimensions;
-  return (pixels * distance) / size;
-}
-
-/**
- * Is point c counterclockwise, clockwise, or colinear w/r/t ray with endpoints A|B?
- * If the point is within ± √2 / 2 of the line, it will be considered collinear.
- * See equivalentPixel function for further discussion on the choice of √2 / 2.
- * @param {Point} a   First endpoint of the segment
- * @param {Point} b   Second endpoint of the segment
- * @param {Point} c   Point to test
- * @returns {number}   Same as foundry.utils.orient2dFast
- *                    except 0 if within √2 /2 of the ray.
- *                    Positive: c counterclockwise/left of A|B
- *                    Negative: c clockwise/right of A|B
- *                    Zero: A|B|C collinear.
- */
-// export function orient2dPixelLine(a, b, c) {
-//   const orientation = foundry.utils.orient2dFast(a, b, c);
-//   const dist2 = Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2);
-//   const orientation2 = Math.pow(orientation, 2);
-//   const cutoff = 0.5 * dist2; // 0.5 is (√2 / 2)^2.
-//
-//   return (orientation2 < cutoff) ? 0 : orientation;
-// }
-
-/**
- * Like foundry.utils.lineSegmentIntersects but requires the two segments cross.
- * In other words, sharing endpoints or an endpoint on the other segment does not count.
- * @param {Point} a                   The first endpoint of segment AB
- * @param {Point} b                   The second endpoint of segment AB
- * @param {Point} c                   The first endpoint of segment CD
- * @param {Point} d                   The second endpoint of segment CD
- * @param {object} [options]
- * @param {object} [delta]            If provided, reject if an endpoint is within this delta of the other line.
- *
- * @returns {boolean}                 Do the line segments cross?
- */
-export function lineSegmentCrosses(a, b, c, d, { delta } = {}) {
-  if ( typeof delta !== "undefined" ) {
-    // Don't test the other line b/c crossing AB in a T-shape is sufficient
-    const p3 = perpendicularPoint(c, d, a);
-    if ( distanceBetweenPoints(a, p3) <= delta ) return false;
-
-    const p4 = perpendicularPoint(c, d, b);
-    if ( distanceBetweenPoints(b, p4) <= delta ) return false;
-  }
-
-  const xa = foundry.utils.orient2dFast(a, b, c);
-  if ( !xa ) return false;
-
-  const xb = foundry.utils.orient2dFast(a, b, d);
-  if ( !xb ) return false;
-
-  const xc = foundry.utils.orient2dFast(c, d, a);
-  if ( !xc ) return false;
-
-  const xd = foundry.utils.orient2dFast(c, d, b);
-  if ( !xd ) return false;
-
-  const xab = (xa * xb) < 0; // Cannot be equal to 0.
-  const xcd = (xc * xd) < 0; // Cannot be equal to 0.
-
-  return xab && xcd;
-}
-
-/**
  * Test if an edge CD blocks a line segment AB in 2d.
  * Endpoints count, so if AB crosses C or D, it is blocked.
  * But if AB ends at C or on CD, it does not.
@@ -214,31 +63,12 @@ export function lineSegmentCrosses(a, b, c, d, { delta } = {}) {
 export function segmentBlocks(a, b, c, d) {
   if ( b.almostEqual(c) || b.almostEqual(d) ) return false;
 
-  if ( lineSegmentCrosses(a, b, c, d) ) return true;
+  if ( CONFIG.GeometryLib.utils.lineSegmentCrosses(a, b, c, d) ) return true;
 
   if ( foundry.utils.lineSegmentIntersects(a, b, c, d)
     && (!foundry.utils.orient2dFast(a, b, c) || !foundry.utils.orient2dFast(a, b, d)) ) return true;
 
   return false;
-}
-
-/**
- * Test orientation of a line to a point.
- * If the point is within √2 / 2 of the line, it is collinear
- * @param {Point} a                   The first endpoint of segment AB
- * @param {Point} b                   The second endpoint of segment AB
- * @param {Point} c                   Point to test
- * @returns {number}
- */
-export function orient2dPixel(a, b, c) {
-  a = a.to2d();
-  b = b.to2d();
-  c = c.to2d();
-
-  const p = perpendicularPoint(a, b, c);
-  if ( distanceSquaredBetweenPoints(c, p) <= 0.5 ) return 0;
-
-  return foundry.utils.orient2d(a, b, c);
 }
 
 /**
@@ -265,47 +95,6 @@ export function walkLinePercentage(a, b, percent = .5) {
   delta.multiplyScalar(percent, outPoint).add(a, outPoint);
   return outPoint;
 }
-
-/**
- * Get the point on a line AB that forms a perpendicular line to a point C.
- * From https://stackoverflow.com/questions/10301001/perpendicular-on-a-line-segment-from-a-given-point
- * This is basically simplified vector projection: https://en.wikipedia.org/wiki/Vector_projection
- * @param {Point} a
- * @param {Point} b
- * @param {Point} c
- * @return {Point} The point on line AB or null if a,b,c are collinear. Not
- *                 guaranteed to be within the line segment a|b.
- */
-export function perpendicularPoint(a, b, c) {
-  a = a.to2d();
-  b = b.to2d();
-  c = c.to2d();
-
-  const delta = b.subtract(a);
-  const dab = delta.magnitudeSquared();
-
-  // Same as: const u = (((c.x - a.x) * delta.x) + ((c.y - a.y) * delta.y)) / dab;
-  const outPoint = new PIXI.Point();
-  c.subtract(a, outPoint).multiply(delta, outPoint);
-
-  const t = (outPoint.x + outPoint.y) / dab;
-
-  // Same as:
-  //     x: a.x + (t * delta.x),
-  //     y: a.y + (t * delta.y)
-  // Reuse the outPoint
-  delta.multiplyScalar(t, outPoint).add(a, outPoint);
-  return outPoint;
-}
-
-export function distanceBetweenPoints(a, b) {
-  return b.subtract(a).magnitude();
-}
-
-export function distanceSquaredBetweenPoints(a, b) {
-  return b.subtract(a).magnitudeSquared();
-}
-
 
 /**
  * Quickly test whether the line segment AB intersects with a wall in 3d.
@@ -338,7 +127,7 @@ export function lineSegment3dWallIntersection(a, b, wall, epsilon = 1e-8) {
   // Second test if segment intersects the wall as a plane
   const e = new Point3d(wall.A.x, wall.A.y, topZ);
 
-  if ( !lineSegment3dPlaneIntersects(a, b, c, d, e) ) { return null; }
+  if ( !CONFIG.GeometryLib.utils.lineSegment3dPlaneIntersects(a, b, c, d, e) ) { return null; }
 
   // At this point, we know the wall, if infinite, would intersect the segment
   // But the segment might pass above or below.
@@ -370,31 +159,6 @@ export function linePlane3dIntersection(a, b, c, d, epsilon = 1e-8) {
   // The segment is parallel to the plane.
   return null;
 }
-
-
-/**
- * Quickly test whether the line segment AB intersects with a plane.
- * This method does not determine the point of intersection, for that use lineLineIntersection.
- * Each Point3d should have {x, y, z} coordinates.
- *
- * @param {Point3d} a   The first endpoint of segment AB
- * @param {Point3d} b   The second endpoint of segment AB
- * @param {Point3d} c   The first point defining the plane
- * @param {Point3d} d   The second point defining the plane
- * @param {Point3d} e   The third point defining the plane.
- *                      Optional. Default is for the plane to go up in the z direction.
- *
- * @returns {boolean} Does the line segment intersect the plane?
- * Note that if the segment is part of the plane, this returns false.
- */
-export function lineSegment3dPlaneIntersects(a, b, c, d, e = new Point3d(c.x, c.y, c.z + 1)) {
-  // A and b must be on opposite sides.
-  // Parallels the 2d case.
-  const xa = orient3dFast(a, c, d, e);
-  const xb = orient3dFast(b, c, d, e);
-  return xa * xb <= 0;
-}
-
 
 /**
  * Möller-Trumbore ray-triangle intersection
@@ -446,7 +210,7 @@ export function lineTriangleIntersectionLocation(rayVector, edge1, edge2, s, f, 
   const v = f * rayVector.dot(q);
   if ( v < 0.0 || (u + v) > 1.0 ) return null;
 
-  return f * edge2.dot(q); // t
+  return f * edge2.dot(q); // This is t
 
   // To compute the intersection location using t and outPoint = new Point3d():
   // A.add(rayVector.multiplyScalar(t, outPoint), outPoint);
@@ -509,27 +273,6 @@ export function lineSegmentIntersectsQuadrilateral3d(A, B, r0, r1, r2, r3, { EPS
 }
 
 /**
- * Test whether a line segment AB intersects with a flat, convex polygon in 3d.
- * @param {Point3d} a   The first endpoint of segment AB
- * @param {Point3d} b   The second endpoint of segment AB
- * @param {Points3d[]} points    The polygon to test, as an array of 3d points.
- *   It is assumed, but not strictly tested, that the points form both a plane and a convex polygon.
- * @returns {boolean}
- */
-export function lineSegment3dPolygonIntersects(a, b, points) {
-  if ( points.length < 3 ) {
-    console.warn("lineSegment3dPolygonIntersects provided less than 3 points.");
-    return false;
-  }
-
-  // First test the infinite plane.
-  if ( !lineSegment3dPlaneIntersects(a, b, points[0], points[1], points[2]) ) return false;
-
-  // Flip around and test whether some of the points are to the right and left of the segment.
-
-}
-
-/**
  * Get the intersection of a 3d line with a wall extended as a plane.
  * See https://stackoverflow.com/questions/5666222/3d-line-plane-intersection
  * @param {Point3d} a   First point on the line
@@ -546,35 +289,4 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
   const d = new Point3d(-(wall.B.y - Ay), (wall.B.x - Ax), 0);
 
   return linePlane3dIntersection(a, b, c, d, epsilon);
-}
-
-/**
- * Get the intersection of a 3d line with a tile extended
-
-/**
- * Adapted from https://github.com/mourner/robust-predicates/blob/main/src/orient3d.js
- * @param {Point3d} a   Point in the plane
- * @param {Point3d} b   Point in the plane
- * @param {Point3d} c   Point in the plane
- * @param {Point3d} d   Point to test
- * @returns {boolean}
- *   - Returns a positive value if the point d lies above the plane passing through a, b, and c,
- *     meaning that a, b, and c appear in counterclockwise order when viewed from d.
- *   - Returns a negative value if d lies below the plane.
- *   - Returns zero if the points are coplanar.
- */
-export function orient3dFast(a, b, c, d) {
-  const adx = a.x - d.x;
-  const bdx = b.x - d.x;
-  const cdx = c.x - d.x;
-  const ady = a.y - d.y;
-  const bdy = b.y - d.y;
-  const cdy = c.y - d.y;
-  const adz = a.z - d.z;
-  const bdz = b.z - d.z;
-  const cdz = c.z - d.z;
-
-  return (adx * ((bdy * cdz) - (bdz * cdy)))
-    + (bdx * ((cdy * adz) - (cdz * ady)))
-    + (cdx * ((ady * bdz) - (adz * bdy)));
 }
