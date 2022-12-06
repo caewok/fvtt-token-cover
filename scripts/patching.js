@@ -29,6 +29,11 @@ import {
 } from "./settings.js";
 
 import {
+  testCollision3dClockwiseSweepPolygon,
+  _testCollision3dClockwiseSweepPolygon
+} from "./clockwise_sweep.js";
+
+import {
   getTokenBorder,
   getTokenShape,
   getConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
@@ -105,6 +110,18 @@ export function registerLibWrapperMethods() {
       enumerable: false
     });
   }
+
+  Object.defineProperty(ClockwiseSweepPolygon, "testCollision3d", {
+    value: testCollision3dClockwiseSweepPolygon,
+    writable: true,
+    configurable: true
+  });
+
+  Object.defineProperty(ClockwiseSweepPolygon.prototype, "_testCollision3d", {
+    value: _testCollision3dClockwiseSweepPolygon,
+    writable: true,
+    configurable: true
+  });
 }
 
 function cachedGetterIgnoresCover() {

@@ -12,10 +12,7 @@ CONFIG
 */
 "use strict";
 
-import {
-  testCollision3dClockwiseSweepPolygon,
-  _testCollision3dClockwiseSweepPolygon
-} from "./clockwise_sweep.js";
+
 
 // Patch objects to use consistent elevation values.
 // Rely on wall-height if available.
@@ -70,18 +67,6 @@ export function registerElevationAdditions() {
       get: tokenBottom
     });
   }
-
-  Object.defineProperty(ClockwiseSweepPolygon, "testCollision3d", {
-    value: testCollision3dClockwiseSweepPolygon,
-    writable: true,
-    configurable: true
-  });
-
-  Object.defineProperty(ClockwiseSweepPolygon.prototype, "_testCollision3d", {
-    value: _testCollision3dClockwiseSweepPolygon,
-    writable: true,
-    configurable: true
-  });
 }
 
 /**
