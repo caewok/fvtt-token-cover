@@ -6,7 +6,8 @@ foundry,
 Token,
 CONST,
 Ray,
-LimitedAnglePolygon
+LimitedAnglePolygon,
+CONFIG
 */
 "use strict";
 
@@ -194,7 +195,9 @@ export class Area3d {
     objs.combinedTerrainWalls = undefined;
     if ( objs.terrainWalls.size > 1 ) {
       objs.terrainWalls.forEach(w => w.setViewMatrix(this.viewerViewM));
-      const combined = WallPoints3d.combineTerrainWalls(objs.terrainWalls, this.viewerCenter, { scalingFactor: Area3d.SCALING_FACTOR });
+      const combined = WallPoints3d.combineTerrainWalls(objs.terrainWalls, this.viewerCenter, {
+        scalingFactor: Area3d.SCALING_FACTOR
+      });
       if ( combined && combined.paths.length ) objs.combinedTerrainWalls = combined;
     } else if ( this.debug ) {
       // Set the view matrix so the single wall, if any, can be drawn
@@ -441,13 +444,17 @@ export class Area3d {
       };
     }
 
-    const sidesArea = sidePolys.reduce((area, poly) => area += poly.scaledArea({scalingFactor: Area3d.SCALING_FACTOR}), 0);
-    const obscuredSidesArea = obscuredSides.reduce((area, poly) => area += poly.scaledArea({scalingFactor: Area3d.SCALING_FACTOR}), 0);
+    const sidesArea = sidePolys.reduce((area, poly) =>
+      area += poly.scaledArea({scalingFactor: Area3d.SCALING_FACTOR}), 0);
+    const obscuredSidesArea = obscuredSides.reduce((area, poly) =>
+      area += poly.scaledArea({scalingFactor: Area3d.SCALING_FACTOR}), 0);
     const percentSeen = sidesArea ? obscuredSidesArea / sidesArea : 0;
 
     if ( this.debug ) {
-      this.debugSideAreas.sides = sidePolys.map(poly => poly.scaledArea({scalingFactor: Area3d.SCALING_FACTOR}));
-      this.debugSideAreas.obscuredSides = obscuredSides.map(poly => poly.scaledArea({scalingFactor: Area3d.SCALING_FACTOR}));
+      this.debugSideAreas.sides = sidePolys.map(poly =>
+        poly.scaledArea({scalingFactor: Area3d.SCALING_FACTOR}));
+      this.debugSideAreas.obscuredSides = obscuredSides.map(poly =>
+        poly.scaledArea({scalingFactor: Area3d.SCALING_FACTOR}));
       console.log(`${this.viewer.object.name} sees ${percentSeen * 100}% of ${this.target.name} (Area3d).`);
     }
 

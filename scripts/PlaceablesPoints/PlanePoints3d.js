@@ -62,7 +62,6 @@ newPoints.forEach(pt => Draw.point(pt, { color: Draw.COLORS.blue}))
 // Can set a view matrix and transform points accordingly.
 
 import { Matrix } from "../geometry/Matrix.js";
-import { Point3d } from "../geometry/3d/Point3d.js";
 import { Draw } from "../geometry/Draw.js";
 
 /**

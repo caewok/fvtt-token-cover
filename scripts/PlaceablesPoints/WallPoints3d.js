@@ -99,8 +99,12 @@ export class WallPoints3d extends PlanePoints3d {
         }
 
         if ( wFront ) {
-          const cpFront = ClipperPaths.fromPolygons([new PIXI.Polygon(wFront.perspectiveTransform())], { scalingFactor });
-          const cpBack = ClipperPaths.fromPolygons([new PIXI.Polygon(wBack.perspectiveTransform())], { scalingFactor });
+          const cpFront = ClipperPaths.fromPolygons(
+            [new PIXI.Polygon(wFront.perspectiveTransform())],
+            { scalingFactor });
+          const cpBack = ClipperPaths.fromPolygons(
+            [new PIXI.Polygon(wBack.perspectiveTransform())],
+            { scalingFactor });
           const cpIntersect = cpFront.intersectPaths(cpBack);
           if ( cpIntersect.paths.length ) combined.add(cpIntersect);
           continue;

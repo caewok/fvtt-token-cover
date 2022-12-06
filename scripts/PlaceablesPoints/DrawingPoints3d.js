@@ -1,4 +1,5 @@
 /* globals
+CONFIG
 */
 "use strict";
 
@@ -25,7 +26,7 @@ export class DrawingPoints3d extends PlanePoints3d {
     const shape = CONFIG.GeometryLib.utils.centeredPolygonFromDrawing(object);
 
     elevation ??= object.document?.elevation ?? 0;
-    const elevationZ = zValue(elevation);
+    const elevationZ = CONFIG.GeometryLib.utils.gridUnitsToPixels(elevation);
     const shapePoints = shape.points;
     const ln = shapePoints.length;
     const newLn = ln * 0.5;
@@ -64,5 +65,5 @@ export class DrawingPoints3d extends PlanePoints3d {
 
   get elevation() { return CONFIG.GeometryLib.utils.pixelsToGridUnits(this.elevationZ); }
 
-  set elevation(value) { this.elevationZ = zValue(value); }
+  set elevation(value) { this.elevationZ = CONFIG.GeometryLib.utils.gridUnitsToPixels(value); }
 }

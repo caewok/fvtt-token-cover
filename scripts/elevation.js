@@ -1,4 +1,13 @@
 /* globals
+MovementSource,
+VisionSource,
+LightSource,
+SoundSource,
+Wall,
+Token,
+ClockwiseSweepPolygon,
+GlobalLightSource,
+CONFIG
 
 */
 "use strict";
@@ -98,7 +107,9 @@ function visionSourceElevation() {
  */
 function lightSourceElevation() {
   if ( this instanceof GlobalLightSource ) return Number.POSITIVE_INFINITY;
-  return CONFIG.GeometryLib.utils.gridUnitsToPixels(this.object.document.flags?.levels?.rangeTop ?? Number.POSITIVE_INFINITY);
+
+  const gridUnitsToPixels = CONFIG.GeometryLib.utils.gridUnitsToPixels;
+  return gridUnitsToPixels(this.object.document.flags?.levels?.rangeTop ?? Number.POSITIVE_INFINITY);
 }
 
 /**
@@ -106,7 +117,8 @@ function lightSourceElevation() {
  * @type {number} Elevation, in grid units to match x,y coordinates.
  */
 function soundSourceElevation() {
-  return CONFIG.GeometryLib.utils.gridUnitsToPixels(this.object.document.flags?.levels?.rangeTop ?? Number.POSITIVE_INFINITY);
+  const gridUnitsToPixels = CONFIG.GeometryLib.utils.gridUnitsToPixels;
+  return gridUnitsToPixels(this.object.document.flags?.levels?.rangeTop ?? Number.POSITIVE_INFINITY);
 }
 
 /**

@@ -1,7 +1,8 @@
 /* globals
 ActiveEffectConfig,
 CONST,
-game
+game,
+ActiveEffect
 */
 
 import { getCoverEffect, setCoverEffect } from "./settings.js";

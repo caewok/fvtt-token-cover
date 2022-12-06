@@ -2,7 +2,8 @@
 libWrapper,
 Token,
 game,
-VisionSource
+VisionSource,
+CONFIG
 */
 "use strict";
 

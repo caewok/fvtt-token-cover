@@ -153,7 +153,7 @@ export class TokenPoints3d {
    * @returns {PIXI.Point[][]}
    */
   perspectiveTransform() {
-    return this.faces.map(side => side.perspectiveTransform())
+    return this.faces.map(side => side.perspectiveTransform());
   }
 
   /**

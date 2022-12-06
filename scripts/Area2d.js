@@ -3,7 +3,8 @@ game,
 foundry,
 PIXI,
 objectsEqual,
-Token
+Token,
+CONFIG
 */
 "use strict";
 
@@ -480,7 +481,10 @@ export class Area2d {
         halfHeight = (typeof hp === "number") && (hp <= 0);
       }
 
-      const tokenShadows = Shadow.constructfromToken(token, origin, { surfaceElevation: targetElevation, type, halfHeight });
+      const tokenShadows = Shadow.constructfromToken(token, origin, {
+        surfaceElevation: targetElevation,
+        type,
+        halfHeight });
       if ( tokenShadows && tokenShadows.length ) shadows.push(...tokenShadows);
       if ( this.debug ) tokenShadows.forEach(s => s.draw());
     }
