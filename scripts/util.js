@@ -127,7 +127,7 @@ export function lineSegment3dWallIntersection(a, b, wall, epsilon = 1e-8) {
   // Second test if segment intersects the wall as a plane
   const e = new Point3d(wall.A.x, wall.A.y, topZ);
 
-  if ( !lineSegment3dPlaneIntersects(a, b, c, d, e) ) { return null; }
+  if ( !CONFIG.GeometryLib.utils.lineSegment3dPlaneIntersects(a, b, c, d, e) ) { return null; }
 
   // At this point, we know the wall, if infinite, would intersect the segment
   // But the segment might pass above or below.
