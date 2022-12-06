@@ -25,9 +25,7 @@ import { toggleActiveEffectTokenDocument } from "./cover.js";
 
 import { MODULE_ID } from "./const.js";
 import {
-  activateListenersSettingsConfig,
-  closeSettingsConfig,
-  _onSubmitSettingsConfig
+  activateListenersSettingsConfig
 } from "./settings.js";
 
 import {
@@ -41,8 +39,7 @@ export function registerLibWrapperMethods() {
 
   // ---- Settings manipulations to hide unneeded settings ----- //
   libWrapper.register(MODULE_ID, "SettingsConfig.prototype.activateListeners", activateListenersSettingsConfig, libWrapper.WRAPPER);
-  libWrapper.register(MODULE_ID, "SettingsConfig.prototype.close", closeSettingsConfig, libWrapper.WRAPPER);
-  libWrapper.register(MODULE_ID, "SettingsConfig.prototype._onSubmit", _onSubmitSettingsConfig, libWrapper.WRAPPER);
+
 
   // ----- Token Visibility ----- //
   libWrapper.register(MODULE_ID, "CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});

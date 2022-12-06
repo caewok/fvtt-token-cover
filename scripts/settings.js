@@ -501,31 +501,6 @@ export function activateListenersSettingsConfig(wrapper, html) {
   wrapper(html);
 }
 
-let ORIGINAL_LOS_ALGORITHM;
-let ORIGINAL_COVER_ALGORITHM;
-
-export async function closeSettingsConfig(wrapper, options = {}) {
-  const out = wrapper(options);
-
-  if ( ORIGINAL_LOS_ALGORITHM ) {
-    setSetting(SETTINGS.LOS.ALGORITHM, ORIGINAL_LOS_ALGORITHM);
-    ORIGINAL_LOS_ALGORITHM = undefined;
-  }
-
-  if ( ORIGINAL_COVER_ALGORITHM ) {
-    setSetting(SETTINGS.COVER.ALGORITHM, ORIGINAL_COVER_ALGORITHM);
-    ORIGINAL_COVER_ALGORITHM = undefined;
-  }
-
-  return out;
-}
-
-export async function _onSubmitSettingsConfig(wrapper, options = {}) {
-  if ( ORIGINAL_LOS_ALGORITHM ) ORIGINAL_LOS_ALGORITHM = undefined;
-  if ( ORIGINAL_COVER_ALGORITHM ) ORIGINAL_COVER_ALGORITHM = undefined;
-
-  return wrapper(options);
-}
 
 /* Status effects
 Stored in two places:
