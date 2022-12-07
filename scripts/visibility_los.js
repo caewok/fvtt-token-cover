@@ -185,10 +185,10 @@ function testLOSPoint(visionSource, target, test) {
 
   // If wall height is not active, collisions will be equivalent to the contains test
   // because no limited walls to screw this up. (Note that contains is true at this point.)
-  if ( !game.modules.get("wall-height")?.active ) return true;
+  if ( !MODULES_ACTIVE.WALL_HEIGHT ) return true;
 
   // Test all non-infinite walls for collisions
-  if ( game.modules.get("levels")?.active ) return !CONFIG.Levels.API.testCollision(origin, pt);
+  if ( MODULES_ACTIVE.LEVELS ) return !CONFIG.Levels.API.testCollision(origin, pt);
   else return !ClockwiseSweepPolygon.testCollision3d(origin, pt, { type: "sight", mode: "any", wallTypes: "limited" });
 }
 
@@ -231,7 +231,7 @@ function testLOSArea3d(visionSource, target, test) {
   const config = {
     type: "sight",
     wallsBlock: true,
-    tilesBlock: game.modules.get("levels")?.active,
+    tilesBlock: MODULES_ACTIVE.LEVELS,
     liveTokensBlock: false,
     deadTokensBlock: false
   };
@@ -269,7 +269,7 @@ function testIsCenterPoint(target, test) {
  * See https://github.com/theripper93/Levels/blob/v9/scripts/handlers/sightHandler.js
  */
 function hasLOSCeilingFloorLevels(origin, testPoint) {
-  if ( !game.modules.get("levels")?.active ) return true;
+  if ( !MODULES_ACTIVE.LEVELS ) return true;
 
   const z0 = origin.z;
   const z1 = testPoint.z;

@@ -35,7 +35,7 @@ Algorithms (points):
 export function testVisibilityCanvasVisibility(wrapped, point, {tolerance=2, object=null}={}) {
   if ( !(object instanceof Token) ) return wrapped(point, { tolerance, object });
 
-  if ( game.modules.get("levels")?.active ) {
+  if ( MODULES_ACTIVE.LEVELS ) {
     // Reset the tolerance
     tolerance = Math.min(object.w, object.h) / 4;
 

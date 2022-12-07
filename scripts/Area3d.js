@@ -31,7 +31,7 @@ Area:
 - Wall shapes block and shadows block. Construct the blocked target shape and calc area.
 */
 
-import { MODULE_ID, FLAGS } from "./const.js";
+import { MODULE_ID, FLAGS, MODULES_ACTIVE } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
 import { log, getObjectProperty } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
@@ -670,7 +670,7 @@ export class Area3d {
       out.tiles = Area3d.filterTilesByVisionTriangle(visionTriangle);
 
       // For Levels, "noCollision" is the "Allow Sight" config option. Drop those tiles.
-      if ( game.modules.get("levels")?.active && type === "sight" ) {
+      if ( MODULES_ACTIVE.LEVELS && type === "sight" ) {
         out.tiles = out.tiles.filter(t => {
           return !t.document?.flags?.levels?.noCollision;
         });

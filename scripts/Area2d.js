@@ -8,7 +8,7 @@ CONFIG
 */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
 import { getObjectProperty } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";
@@ -321,7 +321,7 @@ export class Area2d {
     }
 
     // If Levels is enabled, consider tiles and drawings; obscure the visibile token shape.
-    if ( game.modules.get("levels")?.active ) {
+    if ( MODULES_ACTIVE.LEVELS ) {
       let tiles = Area3d.filterTilesByVisionTriangle(visibleTokenShape);
 
       // Limit to tiles between viewer and target.

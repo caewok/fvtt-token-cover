@@ -23,7 +23,7 @@ import {
 
 import { toggleActiveEffectTokenDocument } from "./cover.js";
 
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
 import {
   activateListenersSettingsConfig
 } from "./settings.js";
@@ -39,12 +39,8 @@ import {
   getConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 export function registerLibWrapperMethods() {
-  const levelsActive = game.modules.get("levels")?.active;
-  const pvActive = game.modules.get("perfect-vision")?.active;
-
   // ---- Settings manipulations to hide unneeded settings ----- //
   libWrapper.register(MODULE_ID, "SettingsConfig.prototype.activateListeners", activateListenersSettingsConfig, libWrapper.WRAPPER);
-
 
   // ----- Token Visibility ----- //
   libWrapper.register(MODULE_ID, "CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
@@ -57,7 +53,7 @@ export function registerLibWrapperMethods() {
   }
 
   // ----- Range Testing ----- //
-  if ( !(levelsActive || pvActive) ) libWrapper.register(
+  if ( !(MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.PERFECT_VISION) ) libWrapper.register(
     MODULE_ID,
     "DetectionMode.prototype._testRange",
     _testRangeDetectionMode,

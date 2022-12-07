@@ -6,7 +6,7 @@ game
 "use strict";
 
 import { log } from "./util.js";
-import { MODULE_ID, FLAGS } from "./const.js";
+import { MODULE_ID, FLAGS, MODULES_ACTIVE } from "./const.js";
 
 /**
  * Inject html to add controls to the drawing configuration.
@@ -17,7 +17,7 @@ export async function renderDrawingConfigHook(app, html, data) {
   log(`enabled flag is ${app.object.getFlag(MODULE_ID, FLAGS.DRAWING.IS_HOLE)}`);
   log("tokenVisibilityRenderDrawingConfig data after", data);
 
-  if ( !game.modules.get("levels")?.active ) return;
+  if ( !MODULES_ACTIVE.LEVELS ) return;
 
   const template = `modules/${MODULE_ID}/templates/token-visibility-drawing-config.html`;
 

@@ -5,14 +5,13 @@ LightSource,
 SoundSource,
 Wall,
 Token,
-ClockwiseSweepPolygon,
 GlobalLightSource,
 CONFIG
 
 */
 "use strict";
 
-
+import { MODULES_ACTIVE } from "./const.js";
 
 // Patch objects to use consistent elevation values.
 // Rely on wall-height if available.
