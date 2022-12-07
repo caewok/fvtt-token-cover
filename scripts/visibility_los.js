@@ -7,7 +7,7 @@ CONFIG
 */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, DEBUG } from "./const.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Area2d } from "./Area2d.js";
@@ -124,7 +124,7 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   let hasLOS = test.los.get(visionSource);
   if ( hasLOS === true || hasLOS === false ) return hasLOS;
 
-  const debug = game.modules.get(MODULE_ID).api.debug.los;
+  const debug = DEBUG.los;
   const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
   const types = SETTINGS.LOS.TYPES;
   switch ( algorithm ) {
@@ -209,7 +209,7 @@ function testLOSArea(visionSource, target, test) {
   const centerPointIsVisible = testLOSPoint(visionSource, target, test);
 
   const area2d = new Area2d(visionSource, target);
-  area2d.debug = game.modules.get(MODULE_ID).api.debug.los;
+  area2d.debug = DEBUG.los;
   return area2d.hasLOS(centerPointIsVisible);
 }
 
@@ -240,7 +240,7 @@ function testLOSArea3d(visionSource, target, test) {
 
   // Set debug only if the target is being targeted.
   // Avoids "double-vision" from multiple targets for area3d on scene.
-  if ( game.modules.get(MODULE_ID).api.debug.los ) {
+  if ( DEBUG.los ) {
     const targets = canvas.tokens.placeables.filter(t => t.isTargeted);
     area3d.debug = targets.some(t => t === target);
   }

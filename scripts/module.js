@@ -6,7 +6,7 @@ canvas
 */
 "use strict";
 
-import { MODULE_ID, COVER_TYPES, FLAGS, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, COVER_TYPES, FLAGS, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
@@ -77,13 +77,7 @@ Hooks.once("init", async function() {
       IgnoresCoverSimbuls
     },
 
-    debug: {
-      range: false,
-      los: false,
-      cover: false,
-      area: false,
-      once: false
-    }
+    debug: DEBUG
   };
 
   registerSystemHooks();
@@ -93,8 +87,6 @@ Hooks.once("setup", async function() {
   registerSettings();
   updateConfigStatusEffects();
 });
-
-
 
 Hooks.once("ready", async function() {
   if ( !getSetting(SETTINGS.WELCOME_DIALOG.v030) ) {
@@ -199,16 +191,15 @@ function updateTokenHook(document, change, options, userId) { // eslint-disable-
     || Object.hasOwn(change, "y")
     || Object.hasOwn(change, "elevation") ) {
 
-    const debug = game.modules.get(MODULE_ID).api.debug;
-    if ( debug.once || debug.range || debug.area || debug.cover || debug.los ) {
+    if ( DEBUG.once || DEBUG.range || DEBUG.area || DEBUG.cover || DEBUG.los ) {
       Draw.clearDrawings();
 
-      if ( debug.once ) {
-        debug.range = false;
-        debug.area = false;
-        debug.cover = false;
-        debug.los = false;
-        debug.once = false;
+      if ( DEBUG.once ) {
+        DEBUG.range = false;
+        DEBUG.area = false;
+        DEBUG.cover = false;
+        DEBUG.los = false;
+        DEBUG.once = false;
       }
     }
   }

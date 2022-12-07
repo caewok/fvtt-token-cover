@@ -1,7 +1,17 @@
 /* globals
-duplicate
+duplicate,
+Hooks,
+game,
+canvas
 */
 "use strict";
+
+// Ignores Cover
+import {
+  IgnoresCover,
+  IgnoresCoverSimbuls,
+  IgnoresCoverDND5e,
+  addDND5eCoverFeatFlags } from "./IgnoresCover.js";
 
 export const MODULE_ID = "tokenvisibility";
 export const EPSILON = 1e-08;
@@ -43,6 +53,16 @@ export const MODULES_ACTIVE = {
   MIDI_QOL: false
 };
 
+export const DEBUG = {
+  range: false,
+  los: false,
+  cover: false,
+  area: false,
+  once: false
+}
+
+export let IGNORES_COVER_HANDLER = IgnoresCover;
+
 // Hook init b/c game.modules is not initialized at start.
 Hooks.once("init", function() {
   MODULES_ACTIVE.WALL_HEIGHT = game.modules.get("wall-height")?.active;
@@ -62,7 +82,7 @@ function setCoverIgnoreHandler(handler) {
     return;
   }
 
-  game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER = handler;
+  IGNORES_COVER_HANDLER = handler;
 
   // Simplest just to revert any existing.
   canvas.tokens.placeables.forEach(t => t._ignoresCoverType = undefined);

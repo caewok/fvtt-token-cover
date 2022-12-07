@@ -31,7 +31,7 @@ Area:
 - Wall shapes block and shadows block. Construct the blocked target shape and calc area.
 */
 
-import { MODULE_ID, FLAGS, MODULES_ACTIVE } from "./const.js";
+import { MODULE_ID, FLAGS, MODULES_ACTIVE, DEBUG } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
 import { log, getObjectProperty } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
@@ -139,7 +139,7 @@ export class Area3d {
 
     // Set debug only if the target is being targeted.
     // Avoids "double-vision" from multiple targets for area3d on scene.
-    if ( game.modules.get(MODULE_ID).api.debug.area ) {
+    if ( DEBUG.area ) {
       const targets = canvas.tokens.placeables.filter(t => t.isTargeted);
       this.debug = targets.some(t => t === target);
     }

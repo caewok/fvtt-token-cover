@@ -6,7 +6,7 @@ CONFIG
 "use strict";
 
 import { SETTINGS, getSetting } from "./settings.js";
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, DEBUG } from "./const.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Draw } from "./geometry/Draw.js";
 import { log } from "./util.js";
@@ -218,7 +218,7 @@ function buildTestObject(x, y, z = 0, los = new Map()) {
  * @returns {boolean}                           Is the target within range?
  */
 export function _testRangeDetectionMode(wrapper, visionSource, mode, target, test) {
-  const debug = game.modules.get(MODULE_ID).api.debug.range;
+  const debug = DEBUG.range;
   let inRange = false;
 
   if ( mode.range <= 0 ) {

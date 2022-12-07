@@ -23,7 +23,7 @@ import {
 
 import { toggleActiveEffectTokenDocument } from "./cover.js";
 
-import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, DEBUG } from "./const.js";
 import {
   activateListenersSettingsConfig
 } from "./settings.js";
@@ -126,17 +126,15 @@ function cachedGetterIgnoresCover() {
 }
 
 function updateSourceToken(wrapper, ...args) {
-  const api = game.modules.get(MODULE_ID).api;
-  const debug = api.debug;
-  if ( debug.once || debug.range || debug.area || debug.cover || debug.los ) {
+  if ( DEBUG.once || DEBUG.range || DEBUG.area || DEBUG.cover || DEBUG.los ) {
     CONFIG.GeometryLib.Draw.clearDrawings();
 
-    if ( debug.once ) {
-      debug.range = false;
-      debug.area = false;
-      debug.cover = false;
-      debug.los = false;
-      debug.once = false;
+    if ( DEBUG.once ) {
+      DEBUG.range = false;
+      DEBUG.area = false;
+      DEBUG.cover = false;
+      DEBUG.los = false;
+      DEBUG.once = false;
     }
   }
 

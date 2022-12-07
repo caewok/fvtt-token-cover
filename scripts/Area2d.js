@@ -8,7 +8,7 @@ CONFIG
 */
 "use strict";
 
-import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, DEBUG } from "./const.js";
 import { getObjectProperty } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";
@@ -77,7 +77,7 @@ export class Area2d {
       deadHalfHeight
     };
 
-    this.debug = game.modules.get(MODULE_ID).api.debug.area;
+    this.debug = DEBUG.area;
   }
 
   /**

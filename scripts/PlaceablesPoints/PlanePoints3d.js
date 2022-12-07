@@ -61,7 +61,7 @@ newPoints.forEach(pt => Draw.point(pt, { color: Draw.COLORS.blue}))
 // Used for representing walls, tiles, drawings, token sides in 3d.
 // Can set a view matrix and transform points accordingly.
 
-import { Matrix } from "../geometry/Matrix.js";
+import { Matrix } from "../geometry/3d/Matrix.js";
 import { Draw } from "../geometry/Draw.js";
 
 /**

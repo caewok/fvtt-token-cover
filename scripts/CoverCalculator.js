@@ -12,7 +12,7 @@ Dialog,
 Ray
 */
 
-import { MODULE_ID, COVER_TYPES, MODULES_ACTIVE } from "./const.js";
+import { MODULE_ID, COVER_TYPES, MODULES_ACTIVE, DEBUG } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
@@ -146,7 +146,7 @@ export class CoverCalculator {
   constructor(viewer, target) {
     this.viewer = viewer instanceof VisionSource ? viewer.object : viewer;
     this.target = target;
-    this.debug = game.modules.get(MODULE_ID).api.debug.cover;
+    this.debug = DEBUG.cover;
 
     const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
     const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
@@ -295,7 +295,7 @@ export class CoverCalculator {
     applied = false,
     displayIgnored = true } = {}) {
 
-    if ( game.modules.get(MODULE_ID).api.debug.cover ) Draw.clearDrawings();
+    if ( DEBUG.cover ) Draw.clearDrawings();
     if ( !coverCalculations ) coverCalculations = CoverCalculator.coverCalculations(tokens, targets);
 
     let html = "";
