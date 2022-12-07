@@ -76,7 +76,7 @@ Hooks.once("init", function() {
 /**
  * Helper to set the cover ignore handler and, crucially, update all tokens.
  */
-function setCoverIgnoreHandler(handler) {
+export function setCoverIgnoreHandler(handler) {
   if ( !(handler.prototype instanceof IgnoresCover ) ) {
     console.warn("setCoverIgnoreHandler: handler not recognized.");
     return;
