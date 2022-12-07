@@ -1,13 +1,12 @@
 /* globals
 Token,
 canvas,
-game,
 ClockwiseSweepPolygon,
 CONFIG
 */
 "use strict";
 
-import { MODULE_ID, DEBUG } from "./const.js";
+import { DEBUG, MODULES_ACTIVE } from "./const.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Area2d } from "./Area2d.js";

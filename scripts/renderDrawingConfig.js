@@ -1,6 +1,5 @@
 /* globals
-renderTemplate,
-game
+renderTemplate
 */
 
 "use strict";

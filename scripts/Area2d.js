@@ -1,5 +1,4 @@
 /* globals
-game,
 foundry,
 PIXI,
 objectsEqual,
@@ -8,7 +7,7 @@ CONFIG
 */
 "use strict";
 
-import { MODULE_ID, MODULES_ACTIVE, DEBUG } from "./const.js";
+import { MODULES_ACTIVE, DEBUG } from "./const.js";
 import { getObjectProperty } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";

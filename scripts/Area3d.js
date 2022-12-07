@@ -1,7 +1,6 @@
 /* globals
 PIXI,
 canvas,
-game,
 foundry,
 Token,
 CONST,

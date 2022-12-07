@@ -1,12 +1,11 @@
 /* globals
 Token,
-game,
 CONFIG
 */
 "use strict";
 
 import { SETTINGS, getSetting } from "./settings.js";
-import { MODULE_ID, DEBUG } from "./const.js";
+import { DEBUG, MODULES_ACTIVE } from "./const.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Draw } from "./geometry/Draw.js";
 import { log } from "./util.js";

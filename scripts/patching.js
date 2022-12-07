@@ -3,7 +3,8 @@ libWrapper,
 Token,
 game,
 VisionSource,
-CONFIG
+CONFIG,
+ClockwiseSweepPolygon
 */
 "use strict";
 
@@ -45,7 +46,7 @@ export function registerLibWrapperMethods() {
   // ----- Token Visibility ----- //
   libWrapper.register(MODULE_ID, "CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
 
-  if ( levelsActive ) {
+  if ( MODULES_ACTIVE.LEVELS ) {
     libWrapper.register(MODULE_ID, "CONFIG.Levels.handlers.SightHandler.getTestPoints", getTestPointsSightHandlerLevels, libWrapper.OVERRIDE, {perf_mode: libWrapper.PERF_FAST});
   } else {
     libWrapper.register(MODULE_ID, "DetectionMode.prototype.testVisibility", testVisibilityDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});

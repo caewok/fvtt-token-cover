@@ -10,8 +10,10 @@ canvas
 import {
   IgnoresCover,
   IgnoresCoverSimbuls,
-  IgnoresCoverDND5e,
-  addDND5eCoverFeatFlags } from "./IgnoresCover.js";
+  IgnoresCoverDND5e } from "./IgnoresCover.js";
+
+import { getSetting, SETTINGS } from "./settings.js";
+
 
 export const MODULE_ID = "tokenvisibility";
 export const EPSILON = 1e-08;
@@ -59,7 +61,7 @@ export const DEBUG = {
   cover: false,
   area: false,
   once: false
-}
+};
 
 export let IGNORES_COVER_HANDLER = IgnoresCover;
 

@@ -1,12 +1,11 @@
 /* globals
 Hooks,
 game,
-Dialog,
-canvas
+Dialog
 */
 "use strict";
 
-import { MODULE_ID, COVER_TYPES, FLAGS, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, COVER_TYPES, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
