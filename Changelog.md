@@ -1,5 +1,5 @@
 # 0.3.7
-Use a shared geometry submodule.
+Use a shared geometry submodule (issue #20).
 Fix conflict with Force Client Settings (issue #23).
 Fix for Dfred's cover getting applied repeatedly on the same token (issue #26).
 
