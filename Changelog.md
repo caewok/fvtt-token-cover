@@ -1,4 +1,4 @@
-# 0.4.0
+# 0.3.7
 Use a shared geometry submodule.
 Fix conflict with Force Client Settings (issue #23).
 
