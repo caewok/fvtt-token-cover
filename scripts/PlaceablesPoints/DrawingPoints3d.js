@@ -1,12 +1,12 @@
 /* globals
+CONFIG
 */
 "use strict";
 
 // Represent a Wall in as a set of 4 3d points.
 
 import { PlanePoints3d } from "./PlanePoints3d.js";
-import { Point3d } from "./Point3d.js";
-import { centeredPolygonFromDrawing, zValue, pixelsToGridUnits } from "../util.js";
+import { Point3d } from "../geometry/3d/Point3d.js";
 
 // Drawing points can be modified by setting the elevation.
 // Used by Area3d to construct holes in a tile based on a drawing at a given elevation.
@@ -23,10 +23,10 @@ export class DrawingPoints3d extends PlanePoints3d {
    * @param {number} [elevation]    Elevation of the drawing; defaults to current drawing elevation.
    */
   constructor(object, { elevation } = {}) {
-    const shape = centeredPolygonFromDrawing(object);
+    const shape = CONFIG.GeometryLib.utils.centeredPolygonFromDrawing(object);
 
     elevation ??= object.document?.elevation ?? 0;
-    const elevationZ = zValue(elevation);
+    const elevationZ = CONFIG.GeometryLib.utils.gridUnitsToPixels(elevation);
     const shapePoints = shape.points;
     const ln = shapePoints.length;
     const newLn = ln * 0.5;
@@ -63,7 +63,7 @@ export class DrawingPoints3d extends PlanePoints3d {
     this.viewIsSet = false;
   }
 
-  get elevation() { return pixelsToGridUnits(this.elevationZ); }
+  get elevation() { return CONFIG.GeometryLib.utils.pixelsToGridUnits(this.elevationZ); }
 
-  set elevation(value) { this.elevationZ = zValue(value); }
+  set elevation(value) { this.elevationZ = CONFIG.GeometryLib.utils.gridUnitsToPixels(value); }
 }

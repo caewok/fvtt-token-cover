@@ -1,15 +1,14 @@
 /* globals
 Token,
-game,
 CONFIG
 */
 "use strict";
 
 import { SETTINGS, getSetting } from "./settings.js";
-import { MODULE_ID } from "./const.js";
-import { Point3d } from "./geometry/Point3d.js";
-import * as drawing from "./drawing.js";
-import { log, pixelsToGridUnits } from "./util.js";
+import { DEBUG, MODULES_ACTIVE } from "./const.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
+import { Draw } from "./geometry/Draw.js";
+import { log } from "./util.js";
 
 /* Range Options
 
@@ -35,7 +34,7 @@ Algorithms (points):
 export function testVisibilityCanvasVisibility(wrapped, point, {tolerance=2, object=null}={}) {
   if ( !(object instanceof Token) ) return wrapped(point, { tolerance, object });
 
-  if ( game.modules.get("levels")?.active ) {
+  if ( MODULES_ACTIVE.LEVELS ) {
     // Reset the tolerance
     tolerance = Math.min(object.w, object.h) / 4;
 
@@ -145,8 +144,8 @@ export function getTestPointsSightHandlerLevels(token, tol = 4) {
   // Convert back to elevation units b/c that is what Levels expects.
   const { topZ, bottomZ, center, w, h } = token;
   const { x, y } = center;
-  const topE = pixelsToGridUnits(topZ);
-  const bottomE = pixelsToGridUnits(bottomZ);
+  const topE = CONFIG.GeometryLib.utils.pixelsToGridUnits(topZ);
+  const bottomE = CONFIG.GeometryLib.utils.pixelsToGridUnits(bottomZ);
 
   const height = topE - bottomE;
   const avgE = bottomE + (height * 0.5);
@@ -218,7 +217,7 @@ function buildTestObject(x, y, z = 0, los = new Map()) {
  * @returns {boolean}                           Is the target within range?
  */
 export function _testRangeDetectionMode(wrapper, visionSource, mode, target, test) {
-  const debug = game.modules.get(MODULE_ID).api.debug.range;
+  const debug = DEBUG.range;
   let inRange = false;
 
   if ( mode.range <= 0 ) {
@@ -234,8 +233,8 @@ export function _testRangeDetectionMode(wrapper, visionSource, mode, target, tes
     const dz = test.point.z - visionSource.elevationZ;
     inRange = ((dx * dx) + (dy * dy) + (dz * dz)) <= (radius * radius);
   }
-  debug && drawing.drawPoint(test.point,  // eslint-disable-line no-unused-expressions
-    { alpha: 1, radius: 3, color: inRange ? drawing.COLORS.green : drawing.COLORS.red });
+  debug && Draw.point(test.point,  // eslint-disable-line no-unused-expressions
+    { alpha: 1, radius: 3, color: inRange ? Draw.COLORS.green : Draw.COLORS.red });
 
   return inRange;
 }

@@ -7,7 +7,7 @@ CONFIG
 "use strict";
 
 import { log } from "./util.js";
-import { MODULE_ID, STATUS_EFFECTS } from "./const.js";
+import { MODULE_ID, STATUS_EFFECTS, MODULES_ACTIVE } from "./const.js";
 import {
   LowCoverEffectConfig,
   MediumCoverEffectConfig,
@@ -204,9 +204,6 @@ export function registerSettings() {
   const LTYPES = SETTINGS.LOS.TYPES;
   const CTYPES = SETTINGS.COVER.TYPES;
   const coverNames = getCoverNames();
-  const levelsActive = game.modules.get("levels")?.active;
-  const pvActive = game.modules.get("perfect-vision")?.active;
-  const dfredCEActive = game.modules.get("dfreds-convenient-effects")?.active;
 
   game.settings.register(MODULE_ID, SETTINGS.RANGE.ALGORITHM, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.ALGORITHM}.Name`),
@@ -235,7 +232,7 @@ export function registerSettings() {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.DISTANCE3D}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.DISTANCE3D}.Hint`),
     scope: "world",
-    config: !levelsActive && !pvActive,
+    config: !MODULES_ACTIVE.LEVELS && !MODULES_ACTIVE.PERFECT_VISION,
     type: Boolean,
     default: true
   });
@@ -342,7 +339,7 @@ export function registerSettings() {
     type: Number
   });
 
-  if ( !dfredCEActive ) {
+  if ( !MODULES_ACTIVE.DFREDS_CE ) {
     game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.LOW, {
       name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Name`),
       hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Hint`),
@@ -394,7 +391,7 @@ export function registerSettings() {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK}.Hint`),
     scope: "world",
-    config: game.modules.has("midi-qol") && game.modules.get("midi-qol").active,
+    config: MODULES_ACTIVE.MIDI_QOL,
     type: String,
     choices: {
       [MIDICHOICES.NONE]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.NONE}`),
@@ -501,31 +498,6 @@ export function activateListenersSettingsConfig(wrapper, html) {
   wrapper(html);
 }
 
-let ORIGINAL_LOS_ALGORITHM;
-let ORIGINAL_COVER_ALGORITHM;
-
-export async function closeSettingsConfig(wrapper, options = {}) {
-  const out = wrapper(options);
-
-  if ( ORIGINAL_LOS_ALGORITHM ) {
-    setSetting(SETTINGS.LOS.ALGORITHM, ORIGINAL_LOS_ALGORITHM);
-    ORIGINAL_LOS_ALGORITHM = undefined;
-  }
-
-  if ( ORIGINAL_COVER_ALGORITHM ) {
-    setSetting(SETTINGS.COVER.ALGORITHM, ORIGINAL_COVER_ALGORITHM);
-    ORIGINAL_COVER_ALGORITHM = undefined;
-  }
-
-  return out;
-}
-
-export async function _onSubmitSettingsConfig(wrapper, options = {}) {
-  if ( ORIGINAL_LOS_ALGORITHM ) ORIGINAL_LOS_ALGORITHM = undefined;
-  if ( ORIGINAL_COVER_ALGORITHM ) ORIGINAL_COVER_ALGORITHM = undefined;
-
-  return wrapper(options);
-}
 
 /* Status effects
 Stored in two places:
@@ -593,7 +565,7 @@ export async function setCoverEffect(type, value) {
  */
 export function updateConfigStatusEffects(type) {
   // Skip if using DFred's CE
-  const dfActive = game.modules.get("dfreds-convenient-effects")?.active;
+  const dfActive = MODULES_ACTIVE.DFREDS_CE;
 
   if ( !type ) {
     // Update all types

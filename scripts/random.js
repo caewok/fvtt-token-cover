@@ -1,4 +1,7 @@
 /* globals
+canvas,
+PolygonEdge,
+PIXI
 */
 "use strict";
 

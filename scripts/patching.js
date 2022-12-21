@@ -2,7 +2,9 @@
 libWrapper,
 Token,
 game,
-VisionSource
+VisionSource,
+CONFIG,
+ClockwiseSweepPolygon
 */
 "use strict";
 
@@ -22,12 +24,15 @@ import {
 
 import { toggleActiveEffectTokenDocument } from "./cover.js";
 
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, DEBUG } from "./const.js";
 import {
-  activateListenersSettingsConfig,
-  closeSettingsConfig,
-  _onSubmitSettingsConfig
+  activateListenersSettingsConfig
 } from "./settings.js";
+
+import {
+  testCollision3dClockwiseSweepPolygon,
+  _testCollision3dClockwiseSweepPolygon
+} from "./clockwise_sweep.js";
 
 import {
   getTokenBorder,
@@ -35,18 +40,13 @@ import {
   getConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 export function registerLibWrapperMethods() {
-  const levelsActive = game.modules.get("levels")?.active;
-  const pvActive = game.modules.get("perfect-vision")?.active;
-
   // ---- Settings manipulations to hide unneeded settings ----- //
   libWrapper.register(MODULE_ID, "SettingsConfig.prototype.activateListeners", activateListenersSettingsConfig, libWrapper.WRAPPER);
-  libWrapper.register(MODULE_ID, "SettingsConfig.prototype.close", closeSettingsConfig, libWrapper.WRAPPER);
-  libWrapper.register(MODULE_ID, "SettingsConfig.prototype._onSubmit", _onSubmitSettingsConfig, libWrapper.WRAPPER);
 
   // ----- Token Visibility ----- //
   libWrapper.register(MODULE_ID, "CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
 
-  if ( levelsActive ) {
+  if ( MODULES_ACTIVE.LEVELS ) {
     libWrapper.register(MODULE_ID, "CONFIG.Levels.handlers.SightHandler.getTestPoints", getTestPointsSightHandlerLevels, libWrapper.OVERRIDE, {perf_mode: libWrapper.PERF_FAST});
   } else {
     libWrapper.register(MODULE_ID, "DetectionMode.prototype.testVisibility", testVisibilityDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
@@ -54,7 +54,7 @@ export function registerLibWrapperMethods() {
   }
 
   // ----- Range Testing ----- //
-  if ( !(levelsActive || pvActive) ) libWrapper.register(
+  if ( !(MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.PERFECT_VISION) ) libWrapper.register(
     MODULE_ID,
     "DetectionMode.prototype._testRange",
     _testRangeDetectionMode,
@@ -107,6 +107,18 @@ export function registerLibWrapperMethods() {
       enumerable: false
     });
   }
+
+  Object.defineProperty(ClockwiseSweepPolygon, "testCollision3d", {
+    value: testCollision3dClockwiseSweepPolygon,
+    writable: true,
+    configurable: true
+  });
+
+  Object.defineProperty(ClockwiseSweepPolygon.prototype, "_testCollision3d", {
+    value: _testCollision3dClockwiseSweepPolygon,
+    writable: true,
+    configurable: true
+  });
 }
 
 function cachedGetterIgnoresCover() {
@@ -115,17 +127,15 @@ function cachedGetterIgnoresCover() {
 }
 
 function updateSourceToken(wrapper, ...args) {
-  const api = game.modules.get(MODULE_ID).api;
-  const debug = api.debug;
-  if ( debug.once || debug.range || debug.area || debug.cover || debug.los ) {
-    api.drawing.clearDrawings();
+  if ( DEBUG.once || DEBUG.range || DEBUG.area || DEBUG.cover || DEBUG.los ) {
+    CONFIG.GeometryLib.Draw.clearDrawings();
 
-    if ( debug.once ) {
-      debug.range = false;
-      debug.area = false;
-      debug.cover = false;
-      debug.los = false;
-      debug.once = false;
+    if ( DEBUG.once ) {
+      DEBUG.range = false;
+      DEBUG.area = false;
+      DEBUG.cover = false;
+      DEBUG.los = false;
+      DEBUG.once = false;
     }
   }
 

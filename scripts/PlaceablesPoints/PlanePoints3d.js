@@ -52,8 +52,8 @@ newPoints = PlanePoints3d.truncatePlanePoints(points, 200, "y")
 
 newPoints = PlanePoints3d.truncatePlanePoints(points, 0, "z")
 
-points.forEach(pt => drawing.drawPoint(pt))
-newPoints.forEach(pt => drawing.drawPoint(pt, { color: drawing.COLORS.blue}))
+points.forEach(pt => Draw.point(pt))
+newPoints.forEach(pt => Draw.point(pt, { color: Draw.COLORS.blue}))
 */
 
 // Base class representing a plane in 3d as a set of points.
@@ -61,9 +61,8 @@ newPoints.forEach(pt => drawing.drawPoint(pt, { color: drawing.COLORS.blue}))
 // Used for representing walls, tiles, drawings, token sides in 3d.
 // Can set a view matrix and transform points accordingly.
 
-import { Matrix } from "./Matrix.js";
-import { Point3d } from "./Point3d.js";
-import * as drawing from "../drawing.js";
+import { Matrix } from "../geometry/Matrix.js";
+import { Draw } from "../geometry/Draw.js";
 
 /**
  * Represent a Foundry object as a set of 3d points
@@ -137,7 +136,7 @@ export class PlanePoints3d {
   _transform(M) {
     const ln = this.points.length;
     for ( let i = 0; i < ln; i += 1 ) {
-      this._tPoints[i] = Matrix.fromPoint3d(this.points[i]).multiply(M).toPoint3d();
+      this._tPoints[i] = M.multiplyPoint3d(this.points[i]);
     }
   }
 
@@ -224,20 +223,20 @@ export class PlanePoints3d {
    * Draw the shape on the 2d canvas
    */
   draw(drawingOptions = {}) {
-    this.points.forEach(pt => drawing.drawPoint(pt, drawingOptions));
+    this.points.forEach(pt => Draw.point(pt, drawingOptions));
     const poly = new PIXI.Polygon(this.points);
-    drawing.drawShape(poly, drawingOptions);
+    Draw.shape(poly, drawingOptions);
   }
 
   /**
    * Draw the transformed shape.
    */
-  drawTransformed({perspective = true, color = drawing.COLORS.blue, width = 1, fill, fillAlpha = 0.2 } = {}) {
+  drawTransformed({perspective = true, color = Draw.COLORS.blue, width = 1, fill, fillAlpha = 0.2 } = {}) {
     if ( typeof fill === "undefined" ) fill = color;
 
     const pts = perspective ? this.perspectiveTransform() : this.tPoints;
     const poly = new PIXI.Polygon(pts);
-    drawing.drawShape(poly, { color, width, fill, fillAlpha });
+    Draw.shape(poly, { color, width, fill, fillAlpha });
   }
 
   /**

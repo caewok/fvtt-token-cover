@@ -4,9 +4,9 @@ PIXI
 "use strict";
 
 import { PlanePoints3d } from "./PlanePoints3d.js";
-import { Point3d } from "./Point3d.js";
+import { Point3d } from "../geometry/3d/Point3d.js";
 import { ConstrainedTokenBorder } from "../ConstrainedTokenBorder.js";
-import * as drawing from "../drawing.js";
+import { Draw } from "../geometry/Draw.js";
 
 class TokenSidePoints3d extends PlanePoints3d {
   /** @type {object} */
@@ -153,7 +153,7 @@ export class TokenPoints3d {
    * @returns {PIXI.Point[][]}
    */
   perspectiveTransform() {
-    return this.faces.map(side => side.perspectiveTransform())
+    return this.faces.map(side => side.perspectiveTransform());
   }
 
   /**
@@ -188,10 +188,10 @@ export class TokenPoints3d {
    * Draw the constrained token shape and the points on the 2d canvas.
    */
   draw(drawingOptions = {}) {
-    drawing.drawShape(this.tokenPolygon, drawingOptions);
-    if ( this.viewingPoint ) drawing.drawSegment(
+    Draw.shape(this.tokenPolygon, drawingOptions);
+    if ( this.viewingPoint ) Draw.segment(
       { A: this.viewingPoint, B: this.token.center },
-      { color: drawing.COLORS.blue, alpha: 0.5 });
+      { color: Draw.COLORS.blue, alpha: 0.5 });
     this.topSide.draw(drawingOptions);
   }
 
@@ -200,7 +200,7 @@ export class TokenPoints3d {
    * @param {object} [options]
    * @param {boolean} [perspective]   Draw using 2d perspective.
    */
-  drawTransformed({perspective = true, color = drawing.COLORS.red, width = 1, fill = null, fillAlpha = 0.2 } = {}) {
+  drawTransformed({perspective = true, color = Draw.COLORS.red, width = 1, fill = null, fillAlpha = 0.2 } = {}) {
     if ( !this.viewIsSet ) {
       console.warn(`TokenPoints3d: View is not yet set for Token ${this.token.name}.`);
       return;

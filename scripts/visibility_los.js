@@ -1,19 +1,18 @@
 /* globals
 Token,
 canvas,
-game,
 ClockwiseSweepPolygon,
 CONFIG
 */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
+import { DEBUG, MODULES_ACTIVE } from "./const.js";
 import { SETTINGS, getSetting } from "./settings.js";
-import { Point3d } from "./geometry/Point3d.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
-import * as drawing from "./drawing.js";
+import { Draw } from "./geometry/Draw.js";
 
 /* Visibility algorithm
 Three tests, increasing in difficulty and stringency. User can select between 0% and 100%
@@ -124,7 +123,7 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
   let hasLOS = test.los.get(visionSource);
   if ( hasLOS === true || hasLOS === false ) return hasLOS;
 
-  const debug = game.modules.get(MODULE_ID).api.debug.los;
+  const debug = DEBUG.los;
   const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
   const types = SETTINGS.LOS.TYPES;
   switch ( algorithm ) {
@@ -152,8 +151,8 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
  */
 function drawDebugPoint(visionSource, pt, hasLOS) {
   const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
-  drawing.drawSegment({A: origin, B: pt}, {
-    color: hasLOS ? drawing.COLORS.green : drawing.COLORS.red,
+  Draw.segment({A: origin, B: pt}, {
+    color: hasLOS ? Draw.COLORS.green : Draw.COLORS.red,
     alpha: 0.5
   });
 }
@@ -185,10 +184,10 @@ function testLOSPoint(visionSource, target, test) {
 
   // If wall height is not active, collisions will be equivalent to the contains test
   // because no limited walls to screw this up. (Note that contains is true at this point.)
-  if ( !game.modules.get("wall-height")?.active ) return true;
+  if ( !MODULES_ACTIVE.WALL_HEIGHT ) return true;
 
   // Test all non-infinite walls for collisions
-  if ( game.modules.get("levels")?.active ) return !CONFIG.Levels.API.testCollision(origin, pt);
+  if ( MODULES_ACTIVE.LEVELS ) return !CONFIG.Levels.API.testCollision(origin, pt);
   else return !ClockwiseSweepPolygon.testCollision3d(origin, pt, { type: "sight", mode: "any", wallTypes: "limited" });
 }
 
@@ -209,7 +208,7 @@ function testLOSArea(visionSource, target, test) {
   const centerPointIsVisible = testLOSPoint(visionSource, target, test);
 
   const area2d = new Area2d(visionSource, target);
-  area2d.debug = game.modules.get(MODULE_ID).api.debug.los;
+  area2d.debug = DEBUG.los;
   return area2d.hasLOS(centerPointIsVisible);
 }
 
@@ -231,7 +230,7 @@ function testLOSArea3d(visionSource, target, test) {
   const config = {
     type: "sight",
     wallsBlock: true,
-    tilesBlock: game.modules.get("levels")?.active,
+    tilesBlock: MODULES_ACTIVE.LEVELS,
     liveTokensBlock: false,
     deadTokensBlock: false
   };
@@ -240,7 +239,7 @@ function testLOSArea3d(visionSource, target, test) {
 
   // Set debug only if the target is being targeted.
   // Avoids "double-vision" from multiple targets for area3d on scene.
-  if ( game.modules.get(MODULE_ID).api.debug.los ) {
+  if ( DEBUG.los ) {
     const targets = canvas.tokens.placeables.filter(t => t.isTargeted);
     area3d.debug = targets.some(t => t === target);
   }
@@ -269,7 +268,7 @@ function testIsCenterPoint(target, test) {
  * See https://github.com/theripper93/Levels/blob/v9/scripts/handlers/sightHandler.js
  */
 function hasLOSCeilingFloorLevels(origin, testPoint) {
-  if ( !game.modules.get("levels")?.active ) return true;
+  if ( !MODULES_ACTIVE.LEVELS ) return true;
 
   const z0 = origin.z;
   const z1 = testPoint.z;

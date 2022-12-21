@@ -107,7 +107,7 @@ export async function benchTokenRange(n = 100) {
   // Set to default LOS for test
   await setSetting(SETTINGS.LOS.ALGORITHM, SETTINGS.LOS.TYPES.POINTS);
 
-  console.log(`\n2D range measurements`);
+  console.log("\n2D range measurements");
   await setSetting(SETTINGS.RANGE.DISTANCE3D, false);
   await setSetting(SETTINGS.RANGE.POINTS3D, false);
 
@@ -123,7 +123,7 @@ export async function benchTokenRange(n = 100) {
   await setSetting(SETTINGS.RANGE.ALGORITHM, SETTINGS.RANGE.TYPES.FIVE);
   await QBenchmarkLoopFn(n, visibilityTestFn, "Range 5-point", tokens);
 
-  console.log(`\n3D range measurements`);
+  console.log("\n3D range measurements");
   await setSetting(SETTINGS.RANGE.DISTANCE3D, true);
   await setSetting(SETTINGS.RANGE.POINTS3D, true);
 
@@ -419,7 +419,7 @@ export async function QBenchmarkLoopWithSetupFn(iterations, setupFn, fn, name, .
  * @param {Function}  fn          Function to test
  * @param ...args                 Arguments passed to fn.
  */
-async function benchmarkLoopFn(iterations, fn, name, ...args) {
+export async function benchmarkLoopFn(iterations, fn, name, ...args) {
   const f = () => fn(...args);
   Object.defineProperty(f, "name", {value: `${name}`, configurable: true});
   await foundry.utils.benchmark(f, iterations, ...args);
@@ -435,7 +435,7 @@ async function benchmarkLoopFn(iterations, fn, name, ...args) {
  * @param {Function}  fn          Function to test
  * @param ...args                 Arguments passed to fn.
  */
-async function benchmarkLoop(iterations, thisArg, fn, ...args) {
+export async function benchmarkLoop(iterations, thisArg, fn, ...args) {
   const f = () => thisArg[fn](...args);
   Object.defineProperty(f, "name", {value: `${thisArg.name || thisArg.constructor.name}.${fn}`, configurable: true});
   await foundry.utils.benchmark(f, iterations, ...args);

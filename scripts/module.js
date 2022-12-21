@@ -1,44 +1,40 @@
 /* globals
 Hooks,
 game,
-Dialog,
-canvas
+Dialog
 */
 "use strict";
 
-import { MODULE_ID, COVER_TYPES, FLAGS } from "./const.js";
+import { MODULE_ID, COVER_TYPES, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
+import { registerGeometry } from "./geometry/registration.js";
+
 import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
-import { registerPIXIPolygonMethods } from "./geometry/PIXIPolygon.js";
-import { registerPIXIRectangleMethods } from "./geometry/PIXIRectangle.js";
 import { registerSettings, getSetting, setSetting, SETTINGS, updateConfigStatusEffects, settingsCache } from "./settings.js";
 import { registerElevationAdditions } from "./elevation.js";
-import { Point3d, registerPIXIPointMethods } from "./geometry/Point3d.js";
 
 // Rendering configs
 import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
 
+// Debugging
+import { Draw } from "./geometry/Draw.js";
+
 // For API
 import * as bench from "./benchmark.js";
-import * as drawing from "./drawing.js";
 import * as util from "./util.js";
+
+import { PlanePoints3d } from "./PlaceablesPoints/PlanePoints3d.js";
+import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
+import { DrawingPoints3d } from "./PlaceablesPoints/DrawingPoints3d.js";
+import { WallPoints3d } from "./PlaceablesPoints/WallPoints3d.js";
+import { TilePoints3d } from "./PlaceablesPoints/TilePoints3d.js";
 
 import { Area3d } from "./Area3d.js";
 import { Area2d } from "./Area2d.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
-
-import { Plane } from "./geometry/Plane.js";
-import { ClipperPaths } from "./geometry/ClipperPaths.js";
-import { Shadow } from "./geometry/Shadow.js";
-import { Matrix } from "./geometry/Matrix.js";
-import { PlanePoints3d } from "./geometry/PlanePoints3d.js";
-import { TokenPoints3d } from "./geometry/TokenPoints3d.js";
-import { DrawingPoints3d } from "./geometry/DrawingPoints3d.js";
-import { WallPoints3d } from "./geometry/WallPoints3d.js";
-import { TilePoints3d } from "./geometry/TilePoints3d.js";
 
 import * as los from "./visibility_los.js";
 
@@ -50,29 +46,17 @@ import {
   addDND5eCoverFeatFlags } from "./IgnoresCover.js";
 
 Hooks.once("init", async function() {
+  registerGeometry();
+
   registerElevationAdditions();
-  registerPIXIPointMethods();
-  registerPIXIRectangleMethods();
   registerLibWrapperMethods();
   patchHelperMethods();
-  registerPIXIPolygonMethods();
   addDND5eCoverFeatFlags();
-
-  // Set the ignores cover handler based on what systems and modules are active
-  const handler = game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls
-    : game.system.id === "dnd5e" ? IgnoresCoverDND5e : IgnoresCover;
-
 
   game.modules.get(MODULE_ID).api = {
     bench,
-    drawing,
-    Shadow,
-    Matrix,
-    Point3d,
     Area2d,
     Area3d,
-    Plane,
-    ClipperPaths,
     util,
     CoverCalculator,
     COVER_TYPES,
@@ -83,7 +67,7 @@ Hooks.once("init", async function() {
     DrawingPoints3d,
     WallPoints3d,
     TilePoints3d,
-    IGNORES_COVER_HANDLER: handler,
+    IGNORES_COVER_HANDLER,
     setCoverIgnoreHandler,
 
     IgnoresCoverClasses: {
@@ -92,72 +76,16 @@ Hooks.once("init", async function() {
       IgnoresCoverSimbuls
     },
 
-    debug: {
-      range: false,
-      los: false,
-      cover: false,
-      area: false,
-      once: false
-    }
+    debug: DEBUG
   };
 
   registerSystemHooks();
 });
 
-/**
- * Helper to set the cover ignore handler and, crucially, update all tokens.
- */
-function setCoverIgnoreHandler(handler) {
-  if ( !(handler.prototype instanceof IgnoresCover ) ) {
-    console.warn("setCoverIgnoreHandler: handler not recognized.");
-    return;
-  }
-
-  game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER = handler;
-
-  // Simplest just to revert any existing.
-  canvas.tokens.placeables.forEach(t => t._ignoresCoverType = undefined);
-}
-
 Hooks.once("setup", async function() {
   registerSettings();
   updateConfigStatusEffects();
 });
-
-Hooks.once("canvasReady", async function() {
-  // Version 0.3.2: "ignoreCover" flag becomes "ignoreCoverAll"
-  migrateIgnoreCoverFlag();
-
-  setCoverIgnoreHandler(game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER);
-});
-
-
-/**
- * Cover flag was originally "ignoreCover".
- * As of v0.3.2, all, mwak, etc. were introduced. So migrate the "ignoreCover" to "ignoreCoverAll"
- */
-function migrateIgnoreCoverFlag() {
-  if ( getSetting(SETTINGS.MIGRATION.v032) ) return;
-
-  // Confirm that actor flags are updated to newest version
-  // IGNORE: "ignoreCover" --> "ignoreCoverAll"
-  game.actors.forEach(a => {
-    const allCover = a.getFlag(MODULE_ID, "ignoreCover");
-    if ( allCover ) {
-      a.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.ALL, allCover);
-      a.unsetFlag(MODULE_ID, "ignoreCover");
-    }
-  });
-
-  // Unlinked tokens may not otherwise get updated.
-  canvas.tokens.placeables.forEach(t => {
-    const allCover = t.actor.getFlag(MODULE_ID, "ignoreCover");
-    if ( allCover ) {
-      t.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.ALL, allCover);
-      t.actor.unsetFlag(MODULE_ID, "ignoreCover");
-    }
-  });
-}
 
 Hooks.once("ready", async function() {
   if ( !getSetting(SETTINGS.WELCOME_DIALOG.v030) ) {
@@ -262,16 +190,15 @@ function updateTokenHook(document, change, options, userId) { // eslint-disable-
     || Object.hasOwn(change, "y")
     || Object.hasOwn(change, "elevation") ) {
 
-    const debug = game.modules.get(MODULE_ID).api.debug;
-    if ( debug.once || debug.range || debug.area || debug.cover || debug.los ) {
-      drawing.clearDrawings();
+    if ( DEBUG.once || DEBUG.range || DEBUG.area || DEBUG.cover || DEBUG.los ) {
+      Draw.clearDrawings();
 
-      if ( debug.once ) {
-        debug.range = false;
-        debug.area = false;
-        debug.cover = false;
-        debug.los = false;
-        debug.once = false;
+      if ( DEBUG.once ) {
+        DEBUG.range = false;
+        DEBUG.area = false;
+        DEBUG.cover = false;
+        DEBUG.los = false;
+        DEBUG.once = false;
       }
     }
   }
