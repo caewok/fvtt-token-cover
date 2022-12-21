@@ -231,6 +231,9 @@ export class CoverCalculator {
       const token = canvas.tokens.get(tokenId);
       if ( !token ) return;
 
+      // Do not enable if already enabled. (issue #26)
+      if ( game.dfreds.effectInterface.hasEffectApplied(effectName, token.actor?.uuid) ) return;
+
       return await game.dfreds.effectInterface.addEffect({
         effectName,
         uuid: token.actor?.uuid,
