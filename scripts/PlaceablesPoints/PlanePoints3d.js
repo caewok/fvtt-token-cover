@@ -136,7 +136,7 @@ export class PlanePoints3d {
   _transform(M) {
     const ln = this.points.length;
     for ( let i = 0; i < ln; i += 1 ) {
-      this._tPoints[i] = Matrix.fromPoint3d(this.points[i]).multiply(M).toPoint3d();
+      this._tPoints[i] = M.multiplyPoint3d(this.points[i]);
     }
   }
 

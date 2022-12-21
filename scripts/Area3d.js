@@ -1,7 +1,6 @@
 /* globals
 PIXI,
 canvas,
-game,
 foundry,
 Token,
 CONST,
@@ -31,7 +30,7 @@ Area:
 - Wall shapes block and shadows block. Construct the blocked target shape and calc area.
 */
 
-import { MODULE_ID, FLAGS } from "./const.js";
+import { MODULE_ID, FLAGS, MODULES_ACTIVE, DEBUG } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
 import { log, getObjectProperty } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
@@ -139,7 +138,7 @@ export class Area3d {
 
     // Set debug only if the target is being targeted.
     // Avoids "double-vision" from multiple targets for area3d on scene.
-    if ( game.modules.get(MODULE_ID).api.debug.area ) {
+    if ( DEBUG.area ) {
       const targets = canvas.tokens.placeables.filter(t => t.isTargeted);
       this.debug = targets.some(t => t === target);
     }
@@ -670,7 +669,7 @@ export class Area3d {
       out.tiles = Area3d.filterTilesByVisionTriangle(visionTriangle);
 
       // For Levels, "noCollision" is the "Allow Sight" config option. Drop those tiles.
-      if ( game.modules.get("levels")?.active && type === "sight" ) {
+      if ( MODULES_ACTIVE.LEVELS && type === "sight" ) {
         out.tiles = out.tiles.filter(t => {
           return !t.document?.flags?.levels?.noCollision;
         });

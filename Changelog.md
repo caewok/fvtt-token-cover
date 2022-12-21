@@ -1,3 +1,7 @@
+# 0.4.0
+Use a shared geometry submodule.
+Fix conflict with Force Client Settings (issue #23).
+
 # 0.3.6
 Compatibility with DFred's Convenient Effects -- uses DFred 1/2 and 3/4 cover when that module is active. (Closes issue #12.)
 

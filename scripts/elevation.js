@@ -1,156 +1,129 @@
 /* globals
-MovementSource,
-VisionSource,
-LightSource,
-SoundSource,
 Wall,
 Token,
-ClockwiseSweepPolygon,
-GlobalLightSource,
 CONFIG
 
 */
 "use strict";
 
-import {
-  testCollision3dClockwiseSweepPolygon,
-  _testCollision3dClockwiseSweepPolygon
-} from "./clockwise_sweep.js";
+import { MODULES_ACTIVE } from "./const.js";
 
-// Patch objects to use consistent elevation values.
-// Rely on wall-height if available.
-// Same as Elevated Vision
+/* Elevation properties for Placeable Objects
+Generally:
+- elevation and elevationZ properties
+- topE/bottomE and topZ/bottomZ for walls, tokens
+
+1. Walls.
+- topE/bottomE and topZ/bottomZ: When Wall Height is active, non-infinite are possible.
+Use Wall Height flag
+
+2. Tokens.
+- topE/bottomE. topE === bottomE unless Wall Height is active.
+- bottomE === elevation
+
+*/
 
 export function registerElevationAdditions() {
 
-  if ( !Object.hasOwn(MovementSource.prototype, "elevationZ") ) {
-    Object.defineProperty(MovementSource.prototype, "elevationZ", {
-      get: movementSourceElevation
+  // ----- TOKENS ----- //
+  if ( !Object.hasOwn(Token.prototype, "topE") ) {
+    Object.defineProperty(Token.prototype, "topE", {
+      get: tokenTopElevation
     });
   }
 
-  if ( !Object.hasOwn(VisionSource.prototype, "elevationZ") ) {
-    Object.defineProperty(VisionSource.prototype, "elevationZ", {
-      get: visionSourceElevation
-    });
-  }
-
-  if ( !Object.hasOwn(LightSource.prototype, "elevationZ") ) {
-    Object.defineProperty(LightSource.prototype, "elevationZ", {
-      get: lightSourceElevation
-    });
-  }
-
-  if ( !Object.hasOwn(SoundSource.prototype, "elevationZ") ) {
-    Object.defineProperty(SoundSource.prototype, "elevationZ", {
-      get: soundSourceElevation
-    });
-  }
-
-  if ( !Object.hasOwn(Wall.prototype, "topZ") ) {
-    Object.defineProperty(Wall.prototype, "topZ", {
-      get: wallTop
-    });
-  }
-
-  if ( !Object.hasOwn(Wall.prototype, "bottomZ") ) {
-    Object.defineProperty(Wall.prototype, "bottomZ", {
-      get: wallBottom
+  if ( !Object.hasOwn(Token.prototype, "bottomE") ) {
+    Object.defineProperty(Token.prototype, "bottomE", {
+      get: tokenBottomElevation
     });
   }
 
   if ( !Object.hasOwn(Token.prototype, "topZ") ) {
     Object.defineProperty(Token.prototype, "topZ", {
-      get: tokenTop
+      get: zTop
     });
   }
 
   if ( !Object.hasOwn(Token.prototype, "bottomZ") ) {
     Object.defineProperty(Token.prototype, "bottomZ", {
-      get: tokenBottom
+      get: zBottom
     });
   }
 
-  Object.defineProperty(ClockwiseSweepPolygon, "testCollision3d", {
-    value: testCollision3dClockwiseSweepPolygon,
-    writable: true,
-    configurable: true
-  });
+  // ----- WALLS ----- //
+  if ( !Object.hasOwn(Wall.prototype, "topE") ) {
+    Object.defineProperty(Wall.prototype, "topE", {
+      get: wallTopElevation
+    });
+  }
 
-  Object.defineProperty(ClockwiseSweepPolygon.prototype, "_testCollision3d", {
-    value: _testCollision3dClockwiseSweepPolygon,
-    writable: true,
-    configurable: true
-  });
+  if ( !Object.hasOwn(Wall.prototype, "bottomE") ) {
+    Object.defineProperty(Wall.prototype, "bottomE", {
+      get: wallBottomElevation
+    });
+  }
+
+  if ( !Object.hasOwn(Wall.prototype, "topZ") ) {
+    Object.defineProperty(Wall.prototype, "topZ", {
+      get: zTop
+    });
+  }
+
+  if ( !Object.hasOwn(Wall.prototype, "bottomZ") ) {
+    Object.defineProperty(Wall.prototype, "bottomZ", {
+      get: zBottom
+    });
+  }
 }
 
 /**
- * For MovementSource objects, use the token's elevation
- * @type {number} Elevation, in grid units to match x,y coordinates.
+ * Helper to convert to Z value for a top elevation.
  */
-function movementSourceElevation() {
-  return this.object.topZ;
+function zTop() {
+  return CONFIG.GeometryLib.utils.gridUnitsToPixels(this.topE);
 }
 
 /**
- * For VisionSource objects, use the token's elevation.
- * @type {number} Elevation, in grid units to match x,y coordinates.
+ * Helper to convert to Z value for a bottom elevation.
  */
-function visionSourceElevation() {
-  return this.object.topZ;
+function zBottom() {
+  return CONFIG.GeometryLib.utils.gridUnitsToPixels(this.bottomE);
 }
 
 /**
- * For LightSource objects, default to infinite elevation.
- * This is to identify lights that should be treated like in default Foundry.
- * @type {number} Elevation, in grid units to match x,y coordinates.
+ * Bottom elevation of a token. Equivalent to token.document.elevation.
+ * @returns {number} Grid units.
  */
-function lightSourceElevation() {
-  if ( this instanceof GlobalLightSource ) return Number.POSITIVE_INFINITY;
-
-  const gridUnitsToPixels = CONFIG.GeometryLib.utils.gridUnitsToPixels;
-  return gridUnitsToPixels(this.object.document.flags?.levels?.rangeTop ?? Number.POSITIVE_INFINITY);
+function tokenBottomElevation() {
+  return this.document.elevation ?? 0;
 }
 
 /**
- * For SoundSource objects, default to 0 elevation.
- * @type {number} Elevation, in grid units to match x,y coordinates.
+ * Top elevation of a token.
+ * @returns {number} In grid units.
+ * If Wall Height is active, use the losHeight. Otherwise, use bottomE.
  */
-function soundSourceElevation() {
-  const gridUnitsToPixels = CONFIG.GeometryLib.utils.gridUnitsToPixels;
-  return gridUnitsToPixels(this.object.document.flags?.levels?.rangeTop ?? Number.POSITIVE_INFINITY);
+function tokenTopElevation() {
+  if ( MODULES_ACTIVE.WALL_HEIGHT ) return this.losHeight ?? this.bottomE;
+  return this.bottomE;
 }
 
 /**
- * For Token objects, default to 0 elevation.
- * @type {number} Elevation, in grid units to match x,y coordinates.
+ * Bottom elevation of a wall
+ * @returns {number} Grid units
+ *   If Wall Height is inactive, returns negative infinity.
  */
-function tokenTop() {
-  // From Wall Height but skip the extra test b/c we know it is a token.
-  return CONFIG.GeometryLib.utils.gridUnitsToPixels(this.losHeight ?? this.document.elevation ?? 0);
+function wallBottomElevation() {
+  const e = MODULES_ACTIVE.WALL_HEIGHT ? this.document.flags?.["wall-height"]?.bottom : undefined;
+  return e ?? Number.NEGATIVE_INFINITY;
 }
 
 /**
- * For Token objects, default to 0 elevation.
- * @type {number} Elevation, in grid units to match x,y coordinates.
+ * Top elevation of a wall
+ * @returns {number} Grid units
+ * If Wall Height is inactive, returns positive infinity.
  */
-function tokenBottom() {
-  // From Wall Height but skip the extra test b/c we know it is a token.
-  return CONFIG.GeometryLib.utils.gridUnitsToPixels(this.document.elevation ?? 0);
-}
-
-/**
- * For Wall objects, default to infinite top/bottom elevation.
- * @type {number} Elevation, in grid units to match x,y coordinates.
- */
-function wallTop() {
-  return CONFIG.GeometryLib.utils.gridUnitsToPixels(this.document.flags?.["wall-height"]?.top ?? Number.POSITIVE_INFINITY);
-}
-
-/**
- * For Wall objects, default to infinite top/bottom elevation.
- * @type {number} Elevation, in grid units to match x,y coordinates.
- */
-function wallBottom() {
-  return CONFIG.GeometryLib.utils.gridUnitsToPixels(this.document.flags?.["wall-height"]?.bottom ?? Number.NEGATIVE_INFINITY);
+function wallTopElevation() {
+  const e = MODULES_ACTIVE.WALL_HEIGHT ? this.document.flags?.["wall-height"]?.top : undefined;
+  return e ?? Number.POSITIVE_INFINITY;
 }

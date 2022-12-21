@@ -1,12 +1,11 @@
 /* globals
 Token,
-game,
 CONFIG
 */
 "use strict";
 
 import { SETTINGS, getSetting } from "./settings.js";
-import { MODULE_ID } from "./const.js";
+import { DEBUG, MODULES_ACTIVE } from "./const.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Draw } from "./geometry/Draw.js";
 import { log } from "./util.js";
@@ -35,7 +34,7 @@ Algorithms (points):
 export function testVisibilityCanvasVisibility(wrapped, point, {tolerance=2, object=null}={}) {
   if ( !(object instanceof Token) ) return wrapped(point, { tolerance, object });
 
-  if ( game.modules.get("levels")?.active ) {
+  if ( MODULES_ACTIVE.LEVELS ) {
     // Reset the tolerance
     tolerance = Math.min(object.w, object.h) / 4;
 
@@ -218,7 +217,7 @@ function buildTestObject(x, y, z = 0, los = new Map()) {
  * @returns {boolean}                           Is the target within range?
  */
 export function _testRangeDetectionMode(wrapper, visionSource, mode, target, test) {
-  const debug = game.modules.get(MODULE_ID).api.debug.range;
+  const debug = DEBUG.range;
   let inRange = false;
 
   if ( mode.range <= 0 ) {

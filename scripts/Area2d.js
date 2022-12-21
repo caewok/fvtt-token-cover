@@ -1,5 +1,4 @@
 /* globals
-game,
 foundry,
 PIXI,
 objectsEqual,
@@ -8,7 +7,7 @@ CONFIG
 */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
+import { MODULES_ACTIVE, DEBUG } from "./const.js";
 import { getObjectProperty } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";
@@ -77,7 +76,7 @@ export class Area2d {
       deadHalfHeight
     };
 
-    this.debug = game.modules.get(MODULE_ID).api.debug.area;
+    this.debug = DEBUG.area;
   }
 
   /**
@@ -321,7 +320,7 @@ export class Area2d {
     }
 
     // If Levels is enabled, consider tiles and drawings; obscure the visibile token shape.
-    if ( game.modules.get("levels")?.active ) {
+    if ( MODULES_ACTIVE.LEVELS ) {
       let tiles = Area3d.filterTilesByVisionTriangle(visibleTokenShape);
 
       // Limit to tiles between viewer and target.
