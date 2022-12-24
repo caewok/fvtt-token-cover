@@ -6,6 +6,7 @@ CONST
 "use strict";
 
 import { Point3d } from "./geometry/3d/Point3d.js";
+import { Plane } from "./geometry/3d/Plane.js";
 import { lineSegment3dWallIntersection } from "./util.js";
 
 /**
@@ -57,36 +58,59 @@ export function _testCollision3dClockwiseSweepPolygon(ray, mode, wallTypes = "al
   return testWallsForIntersections(ray.A, ray.B, walls, mode, this.config.type);
 }
 
+/**
+ * Helper function to test walls for intersections in 3d.
+ * Walls assumed to be vertical, but may have top and bottom elevations.
+ * Top A and B elevations must match; bottom A and B elevations must match
+ * @param {Point3d} origin          Origin of the ray that may intersect walls
+ * @param {Point3d} destination     Destination/endpoint of the ray that may intersect walls
+ * @param {Wall[]|Set<Wall>} walls  Walls to test for intersections
+ * @param {string} mode             "any": return true if collision, false otherwise
+ *                                  "all": return all collisions as an array
+ *                                  "closest": return the closest collision
+ *                                  "sorted": return the collisions sorted by distance,
+ *                                    with initial terrain wall collision removed, if any
+ * @param {string} type             The wall type (light, move, sight, sound).
+ *                                  If undefined, all walls will be treated as NORMAL restriction.
+ * @returns {boolean|object[]|object}
+ */
 function testWallsForIntersections(origin, destination, walls, mode, type) {
   origin = new Point3d(origin.x, origin.y, origin.z);
   destination = new Point3d(destination.x, destination.y, destination.z);
+  const direction = destination.subtract(origin);
 
   const collisions = [];
   for ( let wall of walls ) {
-    const x = lineSegment3dWallIntersection(origin, destination, wall);
-    if ( x ) {
-      if ( mode === "any" ) {   // We may be done already
-        if ( (type && wall.document[type] === CONST.WALL_SENSE_TYPES.NORMAL) || (walls.length > 1) ) return true;
-      }
-      if ( type ) x.type = wall.document[type];
-      x.wall = wall;
-      collisions.push(x);
-    }
+    // Check the 2d overhead first.
+    if ( !foundry.utils.lineSegmentIntersects(origin, destination, wall.A, wall.B) ) continue;
+
+    const wallPoints = Point3d.fromWall(wall, { finite: true });
+    const t = Plane.rayIntersectionQuad3dLD(
+      origin,
+      direction,
+      wallPoints.A.top,
+      wallPoints.A.bottom,
+      wallPoints.B.bottom,
+      wallPoints.B.top)
+
+    if ( t === null || t < 0 || t > 1 ) continue;
+
+    const ix = origin.add(direction.multiplyScalar(t))
+    ix.type = wall.document[type] ?? CONST.WALL_SENSE_TYPES.NORMAL;
+    ix.t = t;
+    ix.wall = wall;
+
+    if ( mode === "any" && (ix.type === CONST.WALL_SENSE_TYPES.NORMAL || collisions.length) ) return true;
+    collisions.push(ix);
   }
+
   if ( mode === "any" ) return false;
 
   // Return all collisions
   if ( mode === "all" ) return collisions;
 
-  // Calculate distance to return the closest collision
-  collisions.forEach(p => {
-    p.distance2 = Math.pow(p.x - origin.x, 2)
-      + Math.pow(p.y - origin.y, 2)
-      + Math.pow(p.z - origin.z, 2);
-  });
-
   // Return the closest collision
-  collisions.sort((a, b) => a.distance2 - b.distance2);
+  collisions.sort((a, b) => a.t - b.t);
   if ( collisions[0]?.type === CONST.WALL_SENSE_TYPES.LIMITED ) collisions.shift();
 
   if ( mode === "sorted" ) return collisions;
