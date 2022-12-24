@@ -266,8 +266,8 @@ function renderSettingsConfigHook(application, html, data) {
   const divInputMedium = inputMedium.parent().parent();
   const divInputHigh = inputHigh.parent().parent();
 
-  divInputCenter[0].style.display = displayCenterCoverTrigger;
-  divInputLow[0].style.display = displayCoverTriggers;
-  divInputMedium[0].style.display = displayCoverTriggers;
-  divInputHigh[0].style.display = displayCoverTriggers;
+  if ( divInputCenter.length ) divInputCenter[0].style.display = displayCenterCoverTrigger;
+  if ( divInputLow.length ) divInputLow[0].style.display = displayCoverTriggers;
+  if ( divInputMedium.length ) divInputMedium[0].style.display = displayCoverTriggers;
+  if ( divInputHigh.length ) divInputHigh[0].style.display = displayCoverTriggers;
 }
