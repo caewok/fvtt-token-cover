@@ -74,6 +74,19 @@ export function registerElevationAdditions() {
       get: zBottom
     });
   }
+
+  // ----- VisionSource ----- //
+  if ( !Object.hasOwn(VisionSource.prototype, "elevationE") ) {
+    Object.defineProperty(VisionSource.prototype, "elevationE", {
+      get: visionSourceElevation
+    });
+  }
+
+  if ( !Object.hasOwn(VisionSource.prototype, "elevationZ") ) {
+    Object.defineProperty(VisionSource.prototype, "elevationZ", {
+      get: zElevation
+    });
+  }
 }
 
 /**
@@ -88,6 +101,13 @@ function zTop() {
  */
 function zBottom() {
   return CONFIG.GeometryLib.utils.gridUnitsToPixels(this.bottomE);
+}
+
+/**
+ * Helper to convert to Z value for an elevationE.
+ */
+function zElevation() {
+  return CONFIG.GeometryLib.utils.gridUnitsToPixels(this.elevationE);
 }
 
 /**
@@ -126,4 +146,13 @@ function wallBottomElevation() {
 function wallTopElevation() {
   const e = MODULES_ACTIVE.WALL_HEIGHT ? this.document.flags?.["wall-height"]?.top : undefined;
   return e ?? Number.POSITIVE_INFINITY;
+}
+
+/**
+ * Elevation of a VisionSource.
+ * Equal to the token losHeight, if available.
+ * @returns {number} Grid units
+ */
+function visionSourceElevation() {
+  return this.object.topE;
 }

@@ -13,6 +13,7 @@ import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";
 import { CWSweepInfiniteWallsOnly } from "./CWSweepInfiniteWallsOnly.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
 
 import { Shadow } from "./geometry/Shadow.js";
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
@@ -480,10 +481,8 @@ export class Area2d {
         halfHeight = (typeof hp === "number") && (hp <= 0);
       }
 
-      const tokenShadows = Shadow.constructfromToken(token, origin, {
-        surfaceElevation: targetElevation,
-        type,
-        halfHeight });
+      const token3d = new TokenPoints3d(token, { type, halfHeight });
+      const tokenShadows = Shadow.constructfromTokenPoints3d(token3d, origin, { surfaceElevation: targetElevation });
       if ( tokenShadows && tokenShadows.length ) shadows.push(...tokenShadows);
       if ( this.debug ) tokenShadows.forEach(s => s.draw());
     }
