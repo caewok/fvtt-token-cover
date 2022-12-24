@@ -1,3 +1,7 @@
+# 0.3.8
+Add token shapes to the 3d area calculation (issue #27)
+
+
 # 0.3.7
 Use a shared geometry submodule (issue #20).
 Fix conflict with Force Client Settings (issue #23).
