@@ -268,11 +268,33 @@ export class Area3d {
     if ( !walls.size ) return undefined;
 
     walls = walls.map(w => new PIXI.Polygon(w.perspectiveTransform()));
-    walls = ClipperPaths.fromPolygons(walls, {scalingFactor: Area3d.SCALING_FACTOR});
+    walls = ClipperPaths.fromPolygons(walls, { scalingFactor: Area3d.SCALING_FACTOR });
     walls = walls.combine();
     walls.clean();
 
     return walls;
+  }
+
+  /**
+   * Combine all the blocking tokens using Clipper
+   * @returns {ClipperPaths|undefined}
+   */
+  _combineBlockingTokens() {
+    const tokens = this.blockingObjects.tokens;
+
+    if ( !tokens.size ) return undefined;
+
+    let faces = [];
+    tokens.forEach(t => {
+      const facesTransformed = t.perspectiveTransform();
+      facesTransformed.forEach(f => faces.push(new PIXI.Polygon(f)));
+    });
+
+    faces = ClipperPaths.fromPolygons(faces, { scalingFactor: Area3d.SCALING_FACTOR });
+    faces = faces.combine();
+    faces.clean();
+
+    return faces;
   }
 
   /**
@@ -339,12 +361,14 @@ export class Area3d {
     const walls = this._combineBlockingWalls();
     const tiles = this._combineBlockingTiles();
     const terrainWalls = this.blockingObjects.combinedTerrainWalls;
+    const tokens = this._combineBlockingTokens();
 
     // Combine the walls and tiles to a single set of polygon paths
     let blockingPaths = [];
     if ( walls ) blockingPaths.push(walls);
     if ( tiles ) blockingPaths.push(tiles);
     if ( terrainWalls ) blockingPaths.push(terrainWalls);
+    if ( tokens ) blockingPaths.push(tokens);
     const blockingObject = ClipperPaths.combinePaths(blockingPaths);
 
     // For each side, union the blocking wall with any shadows and then take diff against the side
