@@ -1,6 +1,6 @@
 # 0.3.8
 Add token shapes to the 3d area calculation (issue #27)
-
+Fixes for measuring cover using the 2d area calculation when tokens block.
 
 # 0.3.7
 Use a shared geometry submodule (issue #20).
