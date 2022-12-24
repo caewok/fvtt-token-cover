@@ -82,7 +82,7 @@ export class TokenPoints3d {
    * Create the 3d top and bottom points for this token.
    */
   _setTopBottomPoints() {
-    const points = [...this.borderPolygon.iteratePoints()];
+    const points = [...this.borderPolygon.iteratePoints({close: false})];
     const { topZ, bottomZ } = this;
 
     const nPts = points.length;
@@ -107,9 +107,9 @@ export class TokenPoints3d {
   /** @type {number} */
   get topZ() {
     const { topZ, bottomZ } = this.token;
-    return topZ === this.bottomZ ? (topZ + 2)
-      : this.config.halfHeight ? topZ - ((topZ - bottomZ) * 0.5)
-        : topZ;
+    return topZ === this.bottomZ
+      ? (topZ + 2) : this.config.halfHeight
+        ? topZ - ((topZ - bottomZ) * 0.5) : topZ;
   }
 
   /**
@@ -154,6 +154,31 @@ export class TokenPoints3d {
    */
   perspectiveTransform() {
     return this.faces.map(side => side.perspectiveTransform());
+  }
+
+  /**
+   * Calculate all the vertical sides of the token
+   * @returns {Point3d[][]} Array of sides, each containing 4 points.
+   */
+  _allSides() {
+    const { topSide, bottomSide, token } = this;
+    const topPoints = topSide.points;
+    const bottomPoints = bottomSide.points;
+    const nSides = topPoints.length;
+    const sides = Array(nSides);
+
+    let t0 = topPoints[nSides - 1];
+    let b0 = bottomPoints[nSides - 1];
+    for ( let i = 0; i < nSides; i += 1 ) {
+      const t1 = topPoints[i];
+      const b1 = bottomPoints[i];
+      sides[i] = [t0, b0, b1, t1];
+      t0 = t1;
+      b0 = b1;
+    }
+
+    const sideType = TokenSidePoints3d.SIDE_TYPES.SIDE;
+    return sides.map(s => new TokenSidePoints3d(token, s, sideType));
   }
 
   /**
