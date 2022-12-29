@@ -456,10 +456,39 @@ export class Area2d {
       || (elevationZ > bottomZ && targetElevation < bottomZ);
     });
 
-
-    const losConfig = visionSource._getPolygonConfiguration();
-    losConfig.type = this.config.type;
-    if ( !redoLOS ) return visionSource._createPolygon(losConfig);
+    let losConfig;
+    if ( MODULES_ACTIVE.PERFECT_VISION ) {
+      function isConstrained(los) {
+        const boundaryShapes = los.config.boundaryShapes;
+        if ( boundaryShapes.length === 0 ) {
+            return false;
+        }
+        if ( boundaryShapes.length >= 2 ) {
+            return true;
+        }
+        const boundaryShape = boundaryShapes[0];
+        if ( !(boundaryShape instanceof LimitedAnglePolygon) ) {
+            return true;
+        }
+        return boundaryShape.radius < canvas.dimensions.maxR;
+      }
+      redoLOS ||= this.config.type !== visionSource.los.config.type || isConstrained(visionSource.los);
+      if ( !redoLOS ) {
+        return visionSource.los;
+      }
+      losConfig = {
+        source: visionSource,
+        type: this.config.type,
+        angle: visionSource.data.angle,
+        rotation: visionSource.data.rotation,
+        externalRadius: visionSource.data.externalRadius
+      };
+    } else {
+      losConfig = visionSource._getPolygonConfiguration();
+      if ( !redoLOS ) {
+        return visionSource._createPolygon(losConfig);
+      }
+    }
 
     // Rerun the LOS with infinite walls only
     const los = CWSweepInfiniteWallsOnly.create(origin, losConfig);

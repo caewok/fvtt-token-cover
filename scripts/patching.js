@@ -69,9 +69,10 @@ export function registerLibWrapperMethods() {
   libWrapper.register(MODULE_ID, "TokenDocument.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument, libWrapper.WRAPPER);
   libWrapper.register(MODULE_ID, "Token.prototype.updateSource", updateSourceToken, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
-  // ----- Constrained token shape ----- //
-  libWrapper.register(MODULE_ID, "VisionSource.prototype.initialize", initializeVisionSource, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
-
+  if ( !MODULES_ACTIVE.PERFECT_VISION ) {
+    libWrapper.register(MODULE_ID, "VisionSource.prototype.initialize", initializeVisionSource, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+    libWrapper.register(MODULE_ID, "VisionSource.prototype._createPolygon", _createPolygonVisionSource, libWrapper.OVERRIDE, {perf_mode: libWrapper.PERF_FAST});
+  }
 
   if ( !Object.hasOwn(Token.prototype, "tokenShape") ) {
     Object.defineProperty(Token.prototype, "tokenShape", {
@@ -93,13 +94,6 @@ export function registerLibWrapperMethods() {
       enumerable: false
     });
   }
-
-  Object.defineProperty(VisionSource.prototype, "_createPolygon", {
-    value: _createPolygonVisionSource,
-    writable: true,
-    configurable: true
-  });
-
 
   if ( !Object.hasOwn(Token.prototype, "ignoresCoverType") ) {
     Object.defineProperty(Token.prototype, "ignoresCoverType", {
