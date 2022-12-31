@@ -6,7 +6,8 @@ Token,
 CONST,
 Ray,
 LimitedAnglePolygon,
-CONFIG
+CONFIG,
+duplicate
 */
 "use strict";
 
@@ -183,6 +184,7 @@ export class Area3d {
 
     const objs = this.blockingObjects;
     objs.walls.forEach(w => w.setViewMatrix(this.viewerViewM));
+    objs.terrainWalls.forEach(w => w.setViewMatrix(this.viewerViewM));
     objs.tiles.forEach(t => t.setViewMatrix(this.viewerViewM));
     objs.drawings.forEach(d => d.setViewMatrix(this.viewerViewM));
     objs.tokens.forEach(t => {
@@ -247,6 +249,102 @@ export class Area3d {
     const { center, bottomZ, topZ } = token;
     const e = bottomZ + ((topZ - bottomZ) * 0.5);
     return new Point3d(center.x, center.y, e);
+  }
+
+  /**
+   * Split a wall that intersects a token shape
+   * Consider 3d aspects of wall, and return a array of wall points representing
+   * portions of the wall not intersecting the 3d token cube
+   * @param {Wall} wall           Wall to split
+   * @param {Token} token         Token to test for wall intersection
+   * @param {object} [options]    Options that affect which walls are returned
+   * @param {boolean} [options.keepTop]     Keep the portion of the wall directly above the token.
+   * @param {boolean} [optinos.keepBottom]  Keep the portion of the wall directly below the token.
+   * @returns {WallPoints3d[]}
+   */
+  static splitWallAtTokenIntersections(wall, token, { keepTop = true, keepBottom = true } = {}) {
+    const constrainedTokenBorder = ConstrainedTokenBorder.get(token).constrainedBorder();
+    if ( !constrainedTokenBorder.lineSegmentIntersects(wall.A, wall.B, { inside: true }) ) return [new WallPoints3d(wall)];
+    const splitWallPoints = [];
+
+    // First, split top and bottom.
+    const wallPoints = Point3d.fromWall(wall, { finite: true });
+    const pTop = duplicate(wallPoints);
+    const pBottom = duplicate(pTop);
+    pTop.A.bottom.z = token.topZ;
+    pTop.B.bottom.z = token.topZ;
+    pBottom.A.top.z = token.bottomZ;
+    pBottom.B.top.z = token.bottomZ;
+
+    // Test whether A and B are inside the token border
+    const Acontained = constrainedTokenBorder.contains(wall.A.x, wall.A.y);
+    const Bcontained = constrainedTokenBorder.contains(wall.B.x, wall.B.y);
+
+    // Find where the wall intersects the token border, if at all
+    const ixs = !Acontained || !Bcontained ? constrainedTokenBorder.segmentIntersections(wall.A, wall.B) : null;
+
+    if ( !Acontained ) {
+      // A endpoint is outside token. Cut wall at the A --> ix point.
+      const pA = duplicate(wallPoints);
+
+      pA.B.top.x = ixs[0].x;
+      pA.B.top.y = ixs[0].y;
+      pA.B.bottom.x = ixs[0].x;
+      pA.B.bottom.y = ixs[0].y;
+
+      pTop.A.top.x = ixs[0].x;
+      pTop.A.top.y = ixs[0].y;
+      pTop.A.bottom.x = ixs[0].x;
+      pTop.A.bottom.y = ixs[0].y;
+
+      pBottom.A.top.x = ixs[0].x;
+      pBottom.A.top.y = ixs[0].y;
+      pBottom.A.bottom.x = ixs[0].x;
+      pBottom.A.bottom.y = ixs[0].y;
+
+      if ( PIXI.Point.distanceSquaredBetween(pA.A.top, pA.B.top) > (0 + 1e-08)
+        && pA.A.top.z > (pA.A.bottom.z + 1e-08) ) {
+        splitWallPoints.push(WallPoints3d.fromWallPoints(pA, wall));
+      }
+
+    } // Otherwise ignore pA
+
+    if ( !Bcontained ) {
+      // B endpoint outside token. Cut wall at the B --> ix point
+      const pB = duplicate(wallPoints);
+
+      const i = ixs.length - 1;
+      pB.A.top.x = ixs[i].x;
+      pB.A.top.y = ixs[i].y;
+      pB.A.bottom.x = ixs[i].x;
+      pB.A.bottom.y = ixs[i].y;
+
+      pTop.B.top.x = ixs[i].x;
+      pTop.B.top.y = ixs[i].y;
+      pTop.B.bottom.x = ixs[i].x;
+      pTop.B.bottom.y = ixs[i].y;
+
+      pBottom.B.top.x = ixs[i].x;
+      pBottom.B.top.y = ixs[i].y;
+      pBottom.B.bottom.x = ixs[i].x;
+      pBottom.B.bottom.y = ixs[i].y;
+
+      if ( PIXI.Point.distanceSquaredBetween(pB.A.bottom, pB.B.bottom) > (0 + 1e-08)
+        && pB.A.top.z > (pB.A.bottom.z + 1e-08) ) {
+        splitWallPoints.push(WallPoints3d.fromWallPoints(pB, wall));
+      }
+
+    } // Otherwise ignore pB
+
+    if ( keepTop && pTop.A.top.z > (pTop.A.bottom.z + 1e-08) ) {
+      splitWallPoints.push(WallPoints3d.fromWallPoints(pTop, wall));
+    }
+
+    if ( keepBottom && pBottom.A.top.z > (pBottom.A.bottom.z + 1e-08) ) {
+      splitWallPoints.push(WallPoints3d.fromWallPoints(pBottom, wall));
+    }
+
+    return splitWallPoints;
   }
 
   /**
@@ -400,7 +498,7 @@ export class Area3d {
     // The angle of the right (clockwise) edge of the emitted cone in radians.
     const aMax = aMin + Math.toRadians(angle);
 
-    const constrainedTokenBorder = ConstrainedTokenBorder.get(this.target, this.config.type).constrainedBorder();
+    const constrainedTokenBorder = ConstrainedTokenBorder.get(this.target).constrainedBorder();
 
     // For each edge:
     // If it intersects a ray, target is within.
@@ -591,10 +689,10 @@ export class Area3d {
       } else objsFound.tokens.forEach(t => tokens.add(new TokenPoints3d(t, { type })));
     }
 
-    // Separate the terrain walls and convert all walls to Points3d
-    objsFound.walls.forEach(w => {
-      const s = w.document[type] === CONST.WALL_SENSE_TYPES.LIMITED ? terrainWalls : walls;
-      s.add(new WallPoints3d(w));
+    // Separate the terrain walls. Note: all walls should be WallPoints3d.
+    objsFound.wallPoints3d.forEach(w => {
+      const s = w.object.document[type] === CONST.WALL_SENSE_TYPES.LIMITED ? terrainWalls : walls;
+      s.add(w);
     });
 
     const limitedAngleWalls = this._constructLimitedAngleWallPoints3d();
@@ -675,7 +773,36 @@ export class Area3d {
         return w.topZ > minE && w.bottomZ < maxE;
       });
 
-      if ( debug ) out.walls.forEach(w => Draw.segment(w, { color: Draw.COLORS.gray }));
+      if ( debug ) out.walls.forEach(w => Draw.segment(w, { color: Draw.COLORS.gray, alpha: 0.2 }));
+
+      // For walls that intersect the target token, remove the portion within the token cube.
+      // Filter the resulting points by the vision triangle
+      // As a result, all walls must be stored as WallPoints3d
+      // We can check the token constrained border against each wall b/c walls all vertical.
+      const constrainedTokenBorder = ConstrainedTokenBorder.get(target).constrainedBorder();
+      out.wallPoints3d = [];
+      const splitWallPoints = [];
+
+      // If we are looking down on the target, keep the top walls only.
+      // If we are looking up at the target, keep bottom walls only.
+      let keepBottom = true;
+      let keepTop = true;
+      if ( viewingPoint.z > target.topZ ) keepBottom = false;
+      if ( viewingPoint.z < target.bottomZ ) keepTop = false;
+
+      for ( const wall of out.walls ) splitWallPoints.push(...Area3d.splitWallAtTokenIntersections(wall, target, { keepBottom, keepTop }));
+
+      // Test the new wall portions against the vision triangle; several are likely behind and can be dropped.
+      const edges = [...visionTriangle.iterateEdges()];
+      const filteredWallPoints = splitWallPoints.filter(w => {
+        const { topA, topB } = w;
+        if ( visionTriangle.contains(topA.x, topA.y) || visionTriangle.contains(topB.x, topB.y) ) return true;
+        return edges.some(e => foundry.utils.lineSegmentIntersects(topA, topB, e.A, e.B));
+      });
+
+      out.wallPoints3d.push(...filteredWallPoints);
+
+      if ( debug ) out.wallPoints3d.forEach(pts => pts.draw({ color: Draw.COLORS.gray }));
     }
 
     if ( filterTokens ) {
