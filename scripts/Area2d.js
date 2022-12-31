@@ -496,10 +496,7 @@ export class Area2d {
     const shadows = [];
     for ( const wall of viewableObjs.walls ) {
       const shadow = Shadow.constructFromWall(wall, origin, targetElevation);
-      if ( shadow ) {
-        shadows.push(shadow);
-        if ( this.debug ) shadow.draw();
-      }
+      if ( shadow ) shadows.push(shadow);
     }
 
     // Add token borders as shadows if tokens block
@@ -510,11 +507,25 @@ export class Area2d {
         halfHeight = (typeof hp === "number") && (hp <= 0);
       }
 
+      // Use each vertical side of the token to shadow
+      // This allows the back walls to shadow if viewer is above/below.
       const token3d = new TokenPoints3d(token, { type, halfHeight });
-      const tokenShadows = Shadow.constructfromTokenPoints3d(token3d, origin, { surfaceElevation: targetElevation });
-      if ( tokenShadows && tokenShadows.length ) shadows.push(...tokenShadows);
-      if ( this.debug ) tokenShadows.forEach(s => s.draw());
+      const sidePoints = token3d._allSides();
+      sidePoints.forEach(pts => {
+        pts = pts.points; // [topA, bottomA, bottomB, topB]
+        const shadow = Shadow.constructFromPoints3d(
+          pts[0], // TopA
+          pts[3], // TopB
+          pts[1], // BottomA
+          pts[2],  // BottomB
+          origin,
+          targetElevation
+        );
+        if ( shadow ) shadows.push(shadow);
+      });
     }
+
+    if ( this.debug ) shadows.forEach(shadow => shadow.draw());
 
     const combined = Shadow.combinePolygonWithShadows(los, shadows);
     // TODO: Caching visionSource._losShadows.set(targetElevation, combined);

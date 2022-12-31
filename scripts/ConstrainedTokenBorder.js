@@ -59,30 +59,29 @@ function calculateTokenShape(token) {
   return shape || new PIXI.Rectangle(0, 0, token.w, token.h);
 }
 
-// Generate a polygon of the token bounds with portions intersected by walls stripped out.
-// Use line-of-sight from the center point to determine the resulting token shape.
+
+/**
+ * Generate a polygon of the token bounds with portions intersected by walls stripped out.
+ * Use line-of-sight from the center point to determine the resulting token shape.
+ * This border represents the physical bounds of the token, so the move restriction is
+ * used for walls (which thus don't have limited restriction walls).
+ */
 export class ConstrainedTokenBorder extends ClockwiseSweepPolygon {
   /**
-   * Cache shape by token and type.
+   * Cache shape by token.
    */
-  static _cache = {
-    light: new WeakMap(),
-    sight: new WeakMap(),
-    move: new WeakMap(),
-    sound: new WeakMap()
-  };
+  static _cache = new WeakMap();
 
   /**
    * Retrieve the constrained token shape for the given wall restriction type.
    * @param {Token} token
    * @param {string} type   Corresponds to wall restriction: sight, sound, light, move
    */
-  static get(token, type = "sight") {
-    let polygon = this._cache[type].get(token);
-    if ( !polygon ) this._cache[type].set(token, polygon = new this(token, type));
+  static get(token) {
+    let polygon = this._cache.get(token);
+    if ( !polygon ) this._cache.set(token, polygon = new this(token));
     polygon.initialize();
     polygon.compute();
-
     return polygon;
   }
 
@@ -118,13 +117,9 @@ export class ConstrainedTokenBorder extends ClockwiseSweepPolygon {
   /** @type {boolean} */
   _dirty = true;
 
-  /** @type {string} */
-  _type = "sight";
-
-  constructor(token, type = "sight") {
+  constructor(token) {
     super();
     this._token = token;
-    this._type = type;
   }
 
   /** @override */
@@ -152,7 +147,7 @@ export class ConstrainedTokenBorder extends ClockwiseSweepPolygon {
       const border = this._token.tokenBorder;
       const config = {
         source: this._token.vision,
-        type: this._type,
+        type: "move",
         boundaryShapes: [border] };
 
       const center = this._token.center;

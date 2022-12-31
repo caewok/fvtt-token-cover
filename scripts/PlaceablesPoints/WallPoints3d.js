@@ -12,21 +12,49 @@ import { Point3d } from "../geometry/3d/Point3d.js";
 import { ClipperPaths } from "../geometry/ClipperPaths.js";
 
 export class WallPoints3d extends PlanePoints3d {
-  constructor(object) {
-    const { A, B, topZ, bottomZ } = object;
-    const maxR = canvas.dimensions.maxR;
 
-    const top = isFinite(topZ) ? topZ : maxR;
-    const bottom = isFinite(bottomZ) ? bottomZ : -maxR;
-
-    const points = new Array(4);
-    points[0] = new Point3d(A.x, A.y, top);
-    points[1] = new Point3d(B.x, B.y, top);
-    points[2] = new Point3d(B.x, B.y, bottom);
-    points[3] = new Point3d(A.x, A.y, bottom);
+  /**
+   * @param {Wall} object
+   */
+  constructor(object, points) {
+    if ( !points ) {
+      const pts3d = Point3d.fromWall(object, { finite: true });
+      points = new Array(4);
+      points[0] = pts3d.A.top;
+      points[1] = pts3d.B.top;
+      points[2] = pts3d.B.bottom;
+      points[3] = pts3d.A.bottom;
+    }
 
     super(object, points);
   }
+
+  /**
+   * @param {object} wallPoints   From Point3d.fromWall(). Must use { finite: true }.
+   * @param {Wall} wall
+   * @returns {WallPoints3d}
+   */
+  static fromWallPoints(wallPoints, wall) {
+    const points = new Array(4);
+    points[0] = wallPoints.A.top;
+    points[1] = wallPoints.B.top;
+    points[2] = wallPoints.B.bottom;
+    points[3] = wallPoints.A.bottom;
+
+    return new WallPoints3d(wall, points);
+  }
+
+  /** @type {Point3d} */
+  get topA() { return this.points[0]; }
+
+  /** @type {Point3d} */
+  get topB() { return this.points[1]; }
+
+  /** @type {Point3d} */
+  get bottomA() { return this.points[3]; }
+
+  /** @type {Point3d} */
+  get bottomB() { return this.points[2]; }
 
   /**
    * Given an array of terrain walls, trim the polygons by combining.
