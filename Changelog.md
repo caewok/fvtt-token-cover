@@ -1,7 +1,9 @@
 # 0.3.9
-Additional fixes for measuring cover using 2d area calculation when tokens block.
-Improvements to the 3d wall-intersection test (closes issues #24 and #25).
-Handle terrain walls (issues #24, #25).
+Additional fixes for measuring cover using 2d area calculation when tokens block (#27).
+Improvements to the 3d wall-intersection test (issues #24 and #25).
+Better handling of terrain walls when they intersect a token shape for area3d.
+Incorporate changes to improve Perfect Vision compatibility (thanks @dev7355608!) (issues #9, #17, #18).
+Potential fix for `constrainedTokenBorder.toPolygon` error (issues #4 and #28).
 
 # 0.3.8
 Add token shapes to the 3d area calculation (issue #27)
