@@ -256,35 +256,45 @@ export class Area3d {
    * Consider 3d aspects of wall, and return a array of wall points representing
    * portions of the wall not intersecting the 3d token cube
    * @param {Wall} wall             Wall to split
-   * @param {Point3d} viewingPoint  Viewer location
    * @param {Token} target          Token to test for intersecting walls
    * @param {object} [options]      Options that affect which walls are returned
    * @param {boolean} [options.keepTop]     Keep the portion of the wall directly above the token.
    * @param {boolean} [optinos.keepBottom]  Keep the portion of the wall directly below the token.
-   * @returns {WallPoints3d[]}
+   * @returns {object} Object with WallPoints3d|null for top, bottom, left, right, middle
    */
-  static splitWallAtTokenIntersections(wall, viewingPoint, target, { keepTop = true, keepBottom = true } = {}) {
+  static splitWallAtTokenIntersections(wall, target) {
     // For speed, we can rely on the rectangular token border.
     // Will be slightly off when using hexagons, so revert to constrained token there.
+    const splitWallPoints = {
+      top: null,
+      middle: null,
+      bottom: null,
+      sideA: null,
+      sideB: null,
+      full: null
+    };
+
     const isHex = canvas.scene.grid.type > 1;
     const targetBorder = isHex ? ConstrainedTokenBorder.get(target).constrainedBorder() : target.bounds;
-    if ( !targetBorder.lineSegmentIntersects(wall.A, wall.B, { inside: true }) ) return [new WallPoints3d(wall)];
-
-    // If the wall blocks the viewer from the center, then leave it be
-    const oViewer = foundry.utils.orient2dFast(wall.A, wall.B, viewingPoint);
-    const oTarget = foundry.utils.orient2dFast(wall.A, wall.B, target.center);
-    if ( oViewer * oTarget < 0 ) return [new WallPoints3d(wall)];
-
-    const splitWallPoints = [];
+    if ( !targetBorder.lineSegmentIntersects(wall.A, wall.B, { inside: true }) ) {
+      splitWallPoints.full = new WallPoints3d(wall);
+      return splitWallPoints;
+    }
 
     // First, split top and bottom.
     const wallPoints = Point3d.fromWall(wall, { finite: true });
     const pTop = duplicate(wallPoints);
     const pBottom = duplicate(pTop);
+    const pMiddle = duplicate(pTop);
     pTop.A.bottom.z = target.topZ;
     pTop.B.bottom.z = target.topZ;
     pBottom.A.top.z = target.bottomZ;
     pBottom.B.top.z = target.bottomZ;
+
+    pMiddle.A.top.z = target.topZ;
+    pMiddle.A.bottom.z = target.bottomZ;
+    pMiddle.B.top.z = target.topZ;
+    pMiddle.B.bottom.z = target.bottomZ;
 
     // Test whether A and B are inside the token border
     const Acontained = targetBorder.contains(wall.A.x, wall.A.y);
@@ -312,9 +322,15 @@ export class Area3d {
       pBottom.A.bottom.x = ixs[0].x;
       pBottom.A.bottom.y = ixs[0].y;
 
+      pMiddle.A.top.x = ixs[0].x;
+      pMiddle.A.top.y = ixs[0].y;
+      pMiddle.A.bottom.x = ixs[0].x;
+      pMiddle.A.bottom.y = ixs[0].y;
+
       if ( PIXI.Point.distanceSquaredBetween(pA.A.top, pA.B.top) > (0 + 1e-08)
         && pA.A.top.z > (pA.A.bottom.z + 1e-08) ) {
-        splitWallPoints.push(WallPoints3d.fromWallPoints(pA, wall));
+
+        splitWallPoints.sideA = WallPoints3d.fromWallPoints(pA, wall);
       }
 
     } // Otherwise ignore pA
@@ -339,19 +355,28 @@ export class Area3d {
       pBottom.B.bottom.x = ixs[i].x;
       pBottom.B.bottom.y = ixs[i].y;
 
+      pMiddle.B.top.x = ixs[i].x;
+      pMiddle.B.top.y = ixs[i].y;
+      pMiddle.B.bottom.x = ixs[i].x;
+      pMiddle.B.bottom.y = ixs[i].y;
+
       if ( PIXI.Point.distanceSquaredBetween(pB.A.bottom, pB.B.bottom) > (0 + 1e-08)
         && pB.A.top.z > (pB.A.bottom.z + 1e-08) ) {
-        splitWallPoints.push(WallPoints3d.fromWallPoints(pB, wall));
+        splitWallPoints.sideB = WallPoints3d.fromWallPoints(pB, wall);
       }
 
     } // Otherwise ignore pB
 
-    if ( keepTop && pTop.A.top.z > (pTop.A.bottom.z + 1e-08) ) {
-      splitWallPoints.push(WallPoints3d.fromWallPoints(pTop, wall));
+    if ( pTop.A.top.z > (pTop.A.bottom.z + 1e-08) ) {
+      splitWallPoints.top = WallPoints3d.fromWallPoints(pTop, wall);
     }
 
-    if ( keepBottom && pBottom.A.top.z > (pBottom.A.bottom.z + 1e-08) ) {
-      splitWallPoints.push(WallPoints3d.fromWallPoints(pBottom, wall));
+    if ( pBottom.A.top.z > (pBottom.A.bottom.z + 1e-08) ) {
+      splitWallPoints.bottom = WallPoints3d.fromWallPoints(pBottom, wall);
+    }
+
+    if ( pMiddle.A.top.z > (pMiddle.A.bottom.z + 1e-08) ) {
+      splitWallPoints.middle = WallPoints3d.fromWallPoints(pMiddle, wall);
     }
 
     return splitWallPoints;
@@ -801,9 +826,22 @@ export class Area3d {
       if ( viewingPoint.z < target.bottomZ ) keepTop = false;
 
       for ( const wall of out.walls ) {
-//         if ( wall.document[type] === CONST.WALL_SENSE_TYPES.LIMITED )
-          splitWallPoints.push(...Area3d.splitWallAtTokenIntersections(wall, viewingPoint, target, { keepBottom, keepTop }));
-//         else splitWallPoints.push(new WallPoints3d(wall));
+        const splitWalls = Area3d.splitWallAtTokenIntersections(wall, target);
+        if ( splitWalls.full ) {
+          splitWallPoints.push(splitWalls.full);
+          continue;
+        }
+
+        if ( keepBottom && splitWalls.bottom) splitWallPoints.push(splitWalls.bottom);
+        if ( keepTop && splitWalls.top ) splitWallPoints.push(splitWalls.top);
+
+        // Keep sides and middle if they potentially block viewer --> token center.
+        [splitWalls.sideA, splitWalls.sideB, splitWalls.middle].forEach(pts => {
+          if ( !pts ) return;
+          const oViewer = foundry.utils.orient2dFast(pts.topA, pts.topB, viewingPoint);
+          const oTarget = foundry.utils.orient2dFast(pts.topA, pts.topB, target.center);
+          if ( oViewer * oTarget < 0 ) splitWallPoints.push(pts);
+        })
       }
 
       // Test the new wall portions against the vision triangle; several are likely behind and can be dropped.
