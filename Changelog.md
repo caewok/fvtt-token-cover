@@ -1,3 +1,8 @@
+# 0.3.9
+Additional fixes for measuring cover using 2d area calculation when tokens block.
+Improvements to the 3d wall-intersection test (closes issues #24 and #25).
+Handle terrain walls (issues #24, #25).
+
 # 0.3.8
 Add token shapes to the 3d area calculation (issue #27)
 Fixes for measuring cover using the 2d area calculation when tokens block.
