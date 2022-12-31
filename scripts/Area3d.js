@@ -255,33 +255,43 @@ export class Area3d {
    * Split a wall that intersects a token shape
    * Consider 3d aspects of wall, and return a array of wall points representing
    * portions of the wall not intersecting the 3d token cube
-   * @param {Wall} wall           Wall to split
-   * @param {Token} token         Token to test for wall intersection
-   * @param {object} [options]    Options that affect which walls are returned
+   * @param {Wall} wall             Wall to split
+   * @param {Point3d} viewingPoint  Viewer location
+   * @param {Token} target          Token to test for intersecting walls
+   * @param {object} [options]      Options that affect which walls are returned
    * @param {boolean} [options.keepTop]     Keep the portion of the wall directly above the token.
    * @param {boolean} [optinos.keepBottom]  Keep the portion of the wall directly below the token.
    * @returns {WallPoints3d[]}
    */
-  static splitWallAtTokenIntersections(wall, token, { keepTop = true, keepBottom = true } = {}) {
-    const constrainedTokenBorder = ConstrainedTokenBorder.get(token).constrainedBorder();
-    if ( !constrainedTokenBorder.lineSegmentIntersects(wall.A, wall.B, { inside: true }) ) return [new WallPoints3d(wall)];
+  static splitWallAtTokenIntersections(wall, viewingPoint, target, { keepTop = true, keepBottom = true } = {}) {
+    // For speed, we can rely on the rectangular token border.
+    // Will be slightly off when using hexagons, so revert to constrained token there.
+    const isHex = canvas.scene.grid.type > 1;
+    const targetBorder = isHex ? ConstrainedTokenBorder.get(target).constrainedBorder() : target.bounds;
+    if ( !targetBorder.lineSegmentIntersects(wall.A, wall.B, { inside: true }) ) return [new WallPoints3d(wall)];
+
+    // If the wall blocks the viewer from the center, then leave it be
+    const oViewer = foundry.utils.orient2dFast(wall.A, wall.B, viewingPoint);
+    const oTarget = foundry.utils.orient2dFast(wall.A, wall.B, target.center);
+    if ( oViewer * oTarget < 0 ) return [new WallPoints3d(wall)];
+
     const splitWallPoints = [];
 
     // First, split top and bottom.
     const wallPoints = Point3d.fromWall(wall, { finite: true });
     const pTop = duplicate(wallPoints);
     const pBottom = duplicate(pTop);
-    pTop.A.bottom.z = token.topZ;
-    pTop.B.bottom.z = token.topZ;
-    pBottom.A.top.z = token.bottomZ;
-    pBottom.B.top.z = token.bottomZ;
+    pTop.A.bottom.z = target.topZ;
+    pTop.B.bottom.z = target.topZ;
+    pBottom.A.top.z = target.bottomZ;
+    pBottom.B.top.z = target.bottomZ;
 
     // Test whether A and B are inside the token border
-    const Acontained = constrainedTokenBorder.contains(wall.A.x, wall.A.y);
-    const Bcontained = constrainedTokenBorder.contains(wall.B.x, wall.B.y);
+    const Acontained = targetBorder.contains(wall.A.x, wall.A.y);
+    const Bcontained = targetBorder.contains(wall.B.x, wall.B.y);
 
     // Find where the wall intersects the token border, if at all
-    const ixs = !Acontained || !Bcontained ? constrainedTokenBorder.segmentIntersections(wall.A, wall.B) : null;
+    const ixs = !Acontained || !Bcontained ? targetBorder.segmentIntersections(wall.A, wall.B) : null;
 
     if ( !Acontained ) {
       // A endpoint is outside token. Cut wall at the A --> ix point.
@@ -790,7 +800,11 @@ export class Area3d {
       if ( viewingPoint.z > target.topZ ) keepBottom = false;
       if ( viewingPoint.z < target.bottomZ ) keepTop = false;
 
-      for ( const wall of out.walls ) splitWallPoints.push(...Area3d.splitWallAtTokenIntersections(wall, target, { keepBottom, keepTop }));
+      for ( const wall of out.walls ) {
+//         if ( wall.document[type] === CONST.WALL_SENSE_TYPES.LIMITED )
+          splitWallPoints.push(...Area3d.splitWallAtTokenIntersections(wall, viewingPoint, target, { keepBottom, keepTop }));
+//         else splitWallPoints.push(new WallPoints3d(wall));
+      }
 
       // Test the new wall portions against the vision triangle; several are likely behind and can be dropped.
       const edges = [...visionTriangle.iterateEdges()];
