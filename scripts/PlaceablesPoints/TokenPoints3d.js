@@ -3,27 +3,13 @@ PIXI
 */
 "use strict";
 
-import { PlanePoints3d } from "./PlanePoints3d.js";
+import { VerticalPoints3d } from "./VerticalPoints3d.js";
+import { HorizontalPoints3d } from "./HorizontalPoints3d.js";
+
 import { Point3d } from "../geometry/3d/Point3d.js";
 import { ConstrainedTokenBorder } from "../ConstrainedTokenBorder.js";
 import { Draw } from "../geometry/Draw.js";
 
-class TokenSidePoints3d extends PlanePoints3d {
-  /** @type {object} */
-  static SIDE_TYPES = {
-    TOP: 1,
-    BOTTOM: 2,
-    SIDE: 3
-  };
-
-  /** @type {SIDE_TYPES} */
-  type;
-
-  constructor(object, points, type) {
-    super(object, points);
-    this.type = type; // Tracking and debugging
-  }
-}
 
 export class TokenPoints3d {
   /** @type {Token} */
@@ -41,13 +27,13 @@ export class TokenPoints3d {
   /* @type {PIXI.Polygon} */
   borderPolygon;
 
-  /** @type {TokenSidePoints3d} */
+  /** @type {HorizontalPoints3d} */
   bottomSide;
 
-  /** @type {TokenSidePoints3d} */
+  /** @type {HorizontalPoints3d} */
   topSide;
 
-  /** @type {TokenSidePoints3d[]} */
+  /** @type {VerticalPoints3d|HorizontalPoints3d[]} */
   faces = [];
 
   /** @type {Point3d} */
@@ -82,21 +68,21 @@ export class TokenPoints3d {
    * Create the 3d top and bottom points for this token.
    */
   _setTopBottomPoints() {
-    const points = [...this.borderPolygon.iteratePoints({close: false})];
+    const points = this.borderPolygon.points;
     const { topZ, bottomZ } = this;
 
-    const nPts = points.length;
+    const nPts = points.length * 0.5;
     const topPoints = Array(nPts);
     const bottomPoints = Array(nPts);
-    for ( let i = 0; i < nPts; i += 1 ) {
-      const pt = points[i];
-      topPoints[i] = new Point3d(pt.x, pt.y, topZ);
-      bottomPoints[i] = new Point3d(pt.x, pt.y, bottomZ);
+    for ( let i = 0, j = 0; i < nPts; i += 1, j += 2 ) {
+      const x = points[j];
+      const y = points[j + 1];
+      topPoints[i] = new Point3d(x, y, topZ);
+      bottomPoints[i] = new Point3d(x, y, bottomZ);
     }
 
-    const types = TokenSidePoints3d.SIDE_TYPES;
-    this.topSide = new TokenSidePoints3d(this.token, topPoints, types.TOP);
-    this.bottomSide = new TokenSidePoints3d(this.token, bottomPoints, types.BOTTOM);
+    this.topSide = new HorizontalPoints3d(this.token, topPoints);
+    this.bottomSide = new HorizontalPoints3d(this.token, bottomPoints);
   }
 
   /** @type {number} */
@@ -142,10 +128,21 @@ export class TokenPoints3d {
   _viewableFaces(viewingPoint) {
     const sides = this._viewableSides(viewingPoint);
 
-    if ( viewingPoint.z > this.topZ ) sides.push(this.topSide);
-    else if ( viewingPoint.z < this.bottomZ ) sides.push(this.bottomSide);
+    const topBottom = this._viewableTopBottom(viewingPoint)
+    if ( topBottom ) sides.push(topBottom);
 
     return sides;
+  }
+
+  /**
+   * Return top or bottom face or null, depending on given 3d position in space
+   * @param {Point3d} viewingPoint
+   * @return {Points3d|null}
+   */
+  _viewableTopBottom(viewingPoint) {
+    if ( viewingPoint.z > this.topZ ) return this.topSide;
+    else if ( viewingPoint.z < this.bottomZ ) return this.bottomSide;
+    return null;
   }
 
   /*
@@ -177,8 +174,7 @@ export class TokenPoints3d {
       b0 = b1;
     }
 
-    const sideType = TokenSidePoints3d.SIDE_TYPES.SIDE;
-    return sides.map(s => new TokenSidePoints3d(token, s, sideType));
+    return sides.map(s => new VerticalPoints3d(token, s));
   }
 
   /**
@@ -205,8 +201,7 @@ export class TokenPoints3d {
       sides[i] = [t0, b0, b1, t1];
     }
 
-    const sideType = TokenSidePoints3d.SIDE_TYPES.SIDE;
-    return sides.map(s => new TokenSidePoints3d(token, s, sideType));
+    return sides.map(s => new VerticalPoints3d(token, s));
   }
 
   /**

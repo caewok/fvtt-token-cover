@@ -5,10 +5,10 @@ CONFIG
 
 // Represent a Wall in as a set of 4 3d points.
 
-import { PlanePoints3d } from "./PlanePoints3d.js";
+import { HorizontalPoints3d } from "./HorizontalPoints3d.js";
 import { Point3d } from "../geometry/3d/Point3d.js";
 
-export class TilePoints3d extends PlanePoints3d {
+export class TilePoints3d extends HorizontalPoints3d {
   constructor(object) {
     const { x, y, width, height, elevation } = object.document;
     const eZ = CONFIG.GeometryLib.utils.gridUnitsToPixels(elevation); // There is a tile.document.z value but not sure from where -- Levels?

@@ -19,11 +19,10 @@ function updateTokenHook(document, change, options, userId) { // eslint-disable-
 
 /**
  * Determine the constrained border shape for this token.
- * @type {string} type    light, sight, sound, move
  * @returns {ConstrainedTokenShape|PIXI.Rectangle}
  */
 export function getConstrainedTokenBorder() {
-  return ConstrainedTokenBorder.get(this, "sight").constrainedBorder();
+  return ConstrainedTokenBorder.get(this).constrainedBorder();
 }
 
 /**
