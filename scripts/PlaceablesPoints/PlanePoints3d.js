@@ -63,6 +63,7 @@ newPoints.forEach(pt => Draw.point(pt, { color: Draw.COLORS.blue}))
 
 import { Matrix } from "../geometry/Matrix.js";
 import { Draw } from "../geometry/Draw.js";
+import { Point3d } from "../geometry/3d/Point3d.js";
 
 /**
  * Represent a Foundry object as a set of 3d points
@@ -96,9 +97,14 @@ export class PlanePoints3d {
    */
   constructor(object, points = []) {
     this.object = object;
-
-    // Points must be provided by child class.
     this.points = points;
+
+    // Ensure the points are Points3d
+    const nPoints = points.length;
+    for ( let i = 0; i < nPoints; i += 1 ) {
+      const pt = points[i];
+      if ( !(pt instanceof Point3d) ) points[i] = new Point3d(pt.x, pt.y, pt.z);
+    }
   }
 
   /**
@@ -111,6 +117,21 @@ export class PlanePoints3d {
       else console.error("PlanePoints3d tPoints: view is not set.");
     }
     return this._tPoints;
+  }
+
+  /**
+   * Iterate over the plane's edges in order.
+   * @returns {{ A: Point3d, B: Point3d}} Return a segment for each edge
+   * Edges link, such that edge0.B === edge.1.A.
+   */
+  *iterateEdges() {
+    const points = this.points;
+    const nPoints = points.length;
+    let A = points[nPoints - 1];
+    for ( const B of points ) {
+      yield { A, B };
+      A = B;
+    }
   }
 
   /**

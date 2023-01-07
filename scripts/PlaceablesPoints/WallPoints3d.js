@@ -1,5 +1,4 @@
 /* globals
-canvas,
 PIXI,
 foundry
 */
@@ -7,54 +6,32 @@ foundry
 
 // Represent a Wall in as a set of 4 3d points.
 
-import { PlanePoints3d } from "./PlanePoints3d.js";
-import { Point3d } from "../geometry/3d/Point3d.js";
 import { ClipperPaths } from "../geometry/ClipperPaths.js";
+import { VerticalPoints3d } from "./VerticalPoints3d.js";
+import { Point3d } from "../geometry/3d/Point3d.js";
 
-export class WallPoints3d extends PlanePoints3d {
-
+export class WallPoints3d extends VerticalPoints3d {
   /**
-   * @param {Wall} object
+   * @param {Wall} wall           Wall object
+   * @param {Point3d[]} points    4 coordinates for a vertical wall
    */
-  constructor(object, points) {
-    if ( !points ) {
-      const pts3d = Point3d.fromWall(object, { finite: true });
-      points = new Array(4);
-      points[0] = pts3d.A.top;
-      points[1] = pts3d.B.top;
-      points[2] = pts3d.B.bottom;
-      points[3] = pts3d.A.bottom;
+  constructor(wall, points) {
+    if ( typeof points === "undefined" ) {
+       const pts = Point3d.fromWall(wall, { finite: true });
+       points = [pts.A.top, pts.B.top, pts.B.bottom, pts.A.bottom];
     }
-
-    super(object, points);
+    super(wall, points);
   }
 
   /**
-   * @param {object} wallPoints   From Point3d.fromWall(). Must use { finite: true }.
-   * @param {Wall} wall
+   * Construct this object from a set of existing wall points.
+   * @param {Point3dWall} pts   Object representing 3d points of a wall
+   * @param {Wall} wall         Optional wall reference
    * @returns {WallPoints3d}
    */
-  static fromWallPoints(wallPoints, wall) {
-    const points = new Array(4);
-    points[0] = wallPoints.A.top;
-    points[1] = wallPoints.B.top;
-    points[2] = wallPoints.B.bottom;
-    points[3] = wallPoints.A.bottom;
-
-    return new WallPoints3d(wall, points);
+  static fromWallPoints(pts, wall) {
+    return new this(wall, [pts.A.top, pts.B.top, pts.B.bottom, pts.A.bottom]);
   }
-
-  /** @type {Point3d} */
-  get topA() { return this.points[0]; }
-
-  /** @type {Point3d} */
-  get topB() { return this.points[1]; }
-
-  /** @type {Point3d} */
-  get bottomA() { return this.points[3]; }
-
-  /** @type {Point3d} */
-  get bottomB() { return this.points[2]; }
 
   /**
    * Given an array of terrain walls, trim the polygons by combining.

@@ -19,11 +19,10 @@ function updateTokenHook(document, change, options, userId) { // eslint-disable-
 
 /**
  * Determine the constrained border shape for this token.
- * @type {string} type    light, sight, sound, move
  * @returns {ConstrainedTokenShape|PIXI.Rectangle}
  */
 export function getConstrainedTokenBorder() {
-  return ConstrainedTokenBorder.get(this, "sight").constrainedBorder();
+  return ConstrainedTokenBorder.get(this).constrainedBorder();
 }
 
 /**
@@ -190,11 +189,24 @@ export class ConstrainedTokenBorder extends ClockwiseSweepPolygon {
   _identifyEdges() {
     const walls = this._getWalls();
     const type = this.config.type;
+    const bounds = this._token.bounds;
+    for ( const wall of walls ) {
+      // If only walls on a token bounds, then we can stop and return the unrestricted token shape.
+      // Token borders are either square or hex.
+      // Too hard to properly reject walls on the hex border, so just use bounds to omit some.
+      const dx = wall.B.x - wall.A.x;
+      const dy = wall.B.y - wall.A.y;
+      if ( !dx && (wall.A.x.almostEqual(bounds.left) || wall.A.x.almostEqual(bounds.right)) ) continue;
+      if ( !dy && (wall.A.y.almostEqual(bounds.top) || wall.A.y.almostEqual(bounds.bottom)) ) continue;
 
-    for ( const wall of walls ) this.edges.add(PolygonEdge.fromWall(wall, type));
+      // Otherwise, use this wall in constructing the constrained border
+      this.edges.add(PolygonEdge.fromWall(wall, type));
+    }
 
+    // If no edges, we return early and ultimately use the token border instead of sweep.
     if ( this.edges.size === 0 ) return false;
 
+    // Add in the canvas boundaries as in the original _identifyEdges.
     for ( const boundary of canvas.walls.outerBounds ) {
       const edge = PolygonEdge.fromWall(boundary, type);
       edge._isBoundary = true;
