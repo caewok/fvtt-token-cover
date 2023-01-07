@@ -1,3 +1,12 @@
+# 0.4.0
+Partial re-write of how the Area3d algorithm works, to better handle objects adjacent to the target. Might be a bit faster in some situations, as it devotes more effort to removing unneeded walls earlier.
+
+Additional fixes for measuring cover using 2d area calculation when tokens block (#27).
+Improvements to the 3d wall-intersection test (issues #24 and #25).
+Better handling of terrain walls when they intersect a token shape for area3d.
+Incorporate changes to improve Perfect Vision compatibility (thanks @dev7355608!) (issues #9, #17, #18).
+Potential fix for `constrainedTokenBorder.toPolygon` error (issues #4 and #28).
+
 # 0.3.8
 Add token shapes to the 3d area calculation (issue #27)
 Fixes for measuring cover using the 2d area calculation when tokens block.

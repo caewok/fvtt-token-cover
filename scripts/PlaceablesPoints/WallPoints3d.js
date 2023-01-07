@@ -1,5 +1,4 @@
 /* globals
-canvas,
 PIXI,
 foundry
 */
@@ -7,25 +6,31 @@ foundry
 
 // Represent a Wall in as a set of 4 3d points.
 
-import { PlanePoints3d } from "./PlanePoints3d.js";
-import { Point3d } from "../geometry/3d/Point3d.js";
 import { ClipperPaths } from "../geometry/ClipperPaths.js";
+import { VerticalPoints3d } from "./VerticalPoints3d.js";
+import { Point3d } from "../geometry/3d/Point3d.js";
 
-export class WallPoints3d extends PlanePoints3d {
-  constructor(object) {
-    const { A, B, topZ, bottomZ } = object;
-    const maxR = canvas.dimensions.maxR;
+export class WallPoints3d extends VerticalPoints3d {
+  /**
+   * @param {Wall} wall           Wall object
+   * @param {Point3d[]} points    4 coordinates for a vertical wall
+   */
+  constructor(wall, points) {
+    if ( typeof points === "undefined" ) {
+       const pts = Point3d.fromWall(wall, { finite: true });
+       points = [pts.A.top, pts.B.top, pts.B.bottom, pts.A.bottom];
+    }
+    super(wall, points);
+  }
 
-    const top = isFinite(topZ) ? topZ : maxR;
-    const bottom = isFinite(bottomZ) ? bottomZ : -maxR;
-
-    const points = new Array(4);
-    points[0] = new Point3d(A.x, A.y, top);
-    points[1] = new Point3d(B.x, B.y, top);
-    points[2] = new Point3d(B.x, B.y, bottom);
-    points[3] = new Point3d(A.x, A.y, bottom);
-
-    super(object, points);
+  /**
+   * Construct this object from a set of existing wall points.
+   * @param {Point3dWall} pts   Object representing 3d points of a wall
+   * @param {Wall} wall         Optional wall reference
+   * @returns {WallPoints3d}
+   */
+  static fromWallPoints(pts, wall) {
+    return new this(wall, [pts.A.top, pts.B.top, pts.B.bottom, pts.A.bottom]);
   }
 
   /**

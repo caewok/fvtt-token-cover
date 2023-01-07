@@ -175,7 +175,45 @@ function testLOSPoint(visionSource, target, test) {
   if ( !hasLOSCeilingFloorLevels(origin, pt) ) return false;
 
   // If not within LOS, then we are done.
-  if ( !visionSource.los.contains(pt.x, pt.y) ) return false;
+  if ( MODULES_ACTIVE.PERFECT_VISION ) {
+    function isConstrained(los) {
+      const boundaryShapes = los.config.boundaryShapes;
+      if ( boundaryShapes.length === 0 ) {
+          return false;
+      }
+      if ( boundaryShapes.length >= 2 ) {
+          return true;
+      }
+      const boundaryShape = boundaryShapes[0];
+      if ( !(boundaryShape instanceof LimitedAnglePolygon) ) {
+          return true;
+      }
+      return boundaryShape.radius < canvas.dimensions.maxR;
+    }
+    if ( !isConstrained(visionSource.los) ) {
+      if ( !visionSource.los.contains(pt.x, pt.y) ) return false;
+    } else {
+      const { angle, rotation, externalRadius } = visionSource.data;
+      if ( angle !== 360 ) {
+        const dx = pt.x - visionSource.x;
+        const dy = pt.y - visionSource.y;
+        if ( dx * dx + dy * dy > externalRadius * externalRadius ) {
+          const aMin = rotation + 90 - angle / 2;
+          const a = Math.toDegrees(Math.atan2(dy, dx));
+          if ( ((a - aMin) % 360 + 360) % 360 > angle ) {
+              return false;
+          }
+        }
+      }
+      const origin = { x: visionSource.x, y: visionSource.y };
+      const type = visionSource.los.config.type;
+      if ( CONFIG.Canvas.losBackend.testCollision(origin, pt, { source: visionSource, type, mode: "any" }) ) {
+        return false;
+      }
+    }
+  } else {
+    if ( !visionSource.los.contains(pt.x, pt.y) ) return false;
+  }
 
   // If not within the constrained token shape, then don't test.
   // Assume that unconstrained token shapes contain all test points.
@@ -234,6 +272,9 @@ function testLOSArea3d(visionSource, target, test) {
     liveTokensBlock: false,
     deadTokensBlock: false
   };
+
+  if ( DEBUG.forceLiveTokensBlock ) config.liveTokensBlock = true;
+  if ( DEBUG.forceDeadTokensBlock ) config.deadTokensBlock = true;
 
   const area3d = new Area3d(visionSource, target, config);
 

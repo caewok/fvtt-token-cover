@@ -30,6 +30,8 @@ import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
 import { DrawingPoints3d } from "./PlaceablesPoints/DrawingPoints3d.js";
 import { WallPoints3d } from "./PlaceablesPoints/WallPoints3d.js";
 import { TilePoints3d } from "./PlaceablesPoints/TilePoints3d.js";
+import { VerticalPoints3d } from "./PlaceablesPoints/VerticalPoints3d.js";
+import { HorizontalPoints3d } from "./PlaceablesPoints/HorizontalPoints3d.js";
 
 import { Area3d } from "./Area3d.js";
 import { Area2d } from "./Area2d.js";
@@ -67,6 +69,8 @@ Hooks.once("init", async function() {
     DrawingPoints3d,
     WallPoints3d,
     TilePoints3d,
+    VerticalPoints3d,
+    HorizontalPoints3d,
     IGNORES_COVER_HANDLER,
     setCoverIgnoreHandler,
 

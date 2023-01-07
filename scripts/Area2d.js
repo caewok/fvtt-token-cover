@@ -322,7 +322,7 @@ export class Area2d {
 
     // If Levels is enabled, consider tiles and drawings; obscure the visibile token shape.
     if ( MODULES_ACTIVE.LEVELS ) {
-      let tiles = Area3d.filterTilesByVisionTriangle(visibleTokenShape);
+      let tiles = Area3d.filterTilesByVisionPolygon(visibleTokenShape);
 
       // Limit to tiles between viewer and target.
       const minEZ = Math.min(this.visionSource.elevationZ, this.target.bottomZ);
@@ -333,7 +333,7 @@ export class Area2d {
       });
 
       if ( tiles.size ) {
-        const drawings = Area3d.filterDrawingsByVisionTriangle(visibleTokenShape);
+        const drawings = Area3d.filterDrawingsByVisionPolygon(visibleTokenShape);
         const combinedTiles = this._combineTilesWithDrawingHoles(tiles, drawings);
         visibleTokenShape = visibleTokenShape instanceof PIXI.Polygon
           ? combinedTiles.diffPolygon(visibleTokenShape)
@@ -420,7 +420,7 @@ export class Area2d {
       viewer: visionSource.object,
       debug: this.debug
     };
-    const viewableObjs = Area3d.filterSceneObjectsByVisionTriangle(origin, this.target, filterConfig);
+    const viewableObjs = Area3d.filterSceneObjectsByVisionPolygon(origin, this.target, filterConfig);
 
     if ( viewableObjs.tokens.size ) {
       // Filter live or dead tokens, depending on config.
@@ -456,10 +456,39 @@ export class Area2d {
       || (elevationZ > bottomZ && targetElevation < bottomZ);
     });
 
-
-    const losConfig = visionSource._getPolygonConfiguration();
-    losConfig.type = this.config.type;
-    if ( !redoLOS ) return visionSource._createPolygon(losConfig);
+    let losConfig;
+    if ( MODULES_ACTIVE.PERFECT_VISION ) {
+      function isConstrained(los) {
+        const boundaryShapes = los.config.boundaryShapes;
+        if ( boundaryShapes.length === 0 ) {
+            return false;
+        }
+        if ( boundaryShapes.length >= 2 ) {
+            return true;
+        }
+        const boundaryShape = boundaryShapes[0];
+        if ( !(boundaryShape instanceof LimitedAnglePolygon) ) {
+            return true;
+        }
+        return boundaryShape.radius < canvas.dimensions.maxR;
+      }
+      redoLOS ||= this.config.type !== visionSource.los.config.type || isConstrained(visionSource.los);
+      if ( !redoLOS ) {
+        return visionSource.los;
+      }
+      losConfig = {
+        source: visionSource,
+        type: this.config.type,
+        angle: visionSource.data.angle,
+        rotation: visionSource.data.rotation,
+        externalRadius: visionSource.data.externalRadius
+      };
+    } else {
+      losConfig = visionSource._getPolygonConfiguration();
+      if ( !redoLOS ) {
+        return visionSource._createPolygon(losConfig);
+      }
+    }
 
     // Rerun the LOS with infinite walls only
     const los = CWSweepInfiniteWallsOnly.create(origin, losConfig);
@@ -467,10 +496,7 @@ export class Area2d {
     const shadows = [];
     for ( const wall of viewableObjs.walls ) {
       const shadow = Shadow.constructFromWall(wall, origin, targetElevation);
-      if ( shadow ) {
-        shadows.push(shadow);
-        if ( this.debug ) shadow.draw();
-      }
+      if ( shadow ) shadows.push(shadow);
     }
 
     // Add token borders as shadows if tokens block
@@ -481,11 +507,25 @@ export class Area2d {
         halfHeight = (typeof hp === "number") && (hp <= 0);
       }
 
+      // Use each vertical side of the token to shadow
+      // This allows the back walls to shadow if viewer is above/below.
       const token3d = new TokenPoints3d(token, { type, halfHeight });
-      const tokenShadows = Shadow.constructfromTokenPoints3d(token3d, origin, { surfaceElevation: targetElevation });
-      if ( tokenShadows && tokenShadows.length ) shadows.push(...tokenShadows);
-      if ( this.debug ) tokenShadows.forEach(s => s.draw());
+      const sidePoints = token3d._allSides();
+      sidePoints.forEach(pts => {
+        pts = pts.points; // [topA, bottomA, bottomB, topB]
+        const shadow = Shadow.constructFromPoints3d(
+          pts[0], // TopA
+          pts[3], // TopB
+          pts[1], // BottomA
+          pts[2],  // BottomB
+          origin,
+          targetElevation
+        );
+        if ( shadow ) shadows.push(shadow);
+      });
     }
+
+    if ( this.debug ) shadows.forEach(shadow => shadow.draw());
 
     const combined = Shadow.combinePolygonWithShadows(los, shadows);
     // TODO: Caching visionSource._losShadows.set(targetElevation, combined);

@@ -19,11 +19,10 @@ function updateTokenHook(document, change, options, userId) { // eslint-disable-
 
 /**
  * Determine the constrained border shape for this token.
- * @type {string} type    light, sight, sound, move
  * @returns {ConstrainedTokenShape|PIXI.Rectangle}
  */
 export function getConstrainedTokenBorder() {
-  return ConstrainedTokenBorder.get(this, "sight").constrainedBorder();
+  return ConstrainedTokenBorder.get(this).constrainedBorder();
 }
 
 /**
@@ -59,30 +58,29 @@ function calculateTokenShape(token) {
   return shape || new PIXI.Rectangle(0, 0, token.w, token.h);
 }
 
-// Generate a polygon of the token bounds with portions intersected by walls stripped out.
-// Use line-of-sight from the center point to determine the resulting token shape.
+
+/**
+ * Generate a polygon of the token bounds with portions intersected by walls stripped out.
+ * Use line-of-sight from the center point to determine the resulting token shape.
+ * This border represents the physical bounds of the token, so the move restriction is
+ * used for walls (which thus don't have limited restriction walls).
+ */
 export class ConstrainedTokenBorder extends ClockwiseSweepPolygon {
   /**
-   * Cache shape by token and type.
+   * Cache shape by token.
    */
-  static _cache = {
-    light: new WeakMap(),
-    sight: new WeakMap(),
-    move: new WeakMap(),
-    sound: new WeakMap()
-  };
+  static _cache = new WeakMap();
 
   /**
    * Retrieve the constrained token shape for the given wall restriction type.
    * @param {Token} token
    * @param {string} type   Corresponds to wall restriction: sight, sound, light, move
    */
-  static get(token, type = "sight") {
-    let polygon = this._cache[type].get(token);
-    if ( !polygon ) this._cache[type].set(token, polygon = new this(token, type));
+  static get(token) {
+    let polygon = this._cache.get(token);
+    if ( !polygon ) this._cache.set(token, polygon = new this(token));
     polygon.initialize();
     polygon.compute();
-
     return polygon;
   }
 
@@ -118,13 +116,9 @@ export class ConstrainedTokenBorder extends ClockwiseSweepPolygon {
   /** @type {boolean} */
   _dirty = true;
 
-  /** @type {string} */
-  _type = "sight";
-
-  constructor(token, type = "sight") {
+  constructor(token) {
     super();
     this._token = token;
-    this._type = type;
   }
 
   /** @override */
@@ -152,7 +146,7 @@ export class ConstrainedTokenBorder extends ClockwiseSweepPolygon {
       const border = this._token.tokenBorder;
       const config = {
         source: this._token.vision,
-        type: this._type,
+        type: "move",
         boundaryShapes: [border] };
 
       const center = this._token.center;
@@ -195,11 +189,24 @@ export class ConstrainedTokenBorder extends ClockwiseSweepPolygon {
   _identifyEdges() {
     const walls = this._getWalls();
     const type = this.config.type;
+    const bounds = this._token.bounds;
+    for ( const wall of walls ) {
+      // If only walls on a token bounds, then we can stop and return the unrestricted token shape.
+      // Token borders are either square or hex.
+      // Too hard to properly reject walls on the hex border, so just use bounds to omit some.
+      const dx = wall.B.x - wall.A.x;
+      const dy = wall.B.y - wall.A.y;
+      if ( !dx && (wall.A.x.almostEqual(bounds.left) || wall.A.x.almostEqual(bounds.right)) ) continue;
+      if ( !dy && (wall.A.y.almostEqual(bounds.top) || wall.A.y.almostEqual(bounds.bottom)) ) continue;
 
-    for ( const wall of walls ) this.edges.add(PolygonEdge.fromWall(wall, type));
+      // Otherwise, use this wall in constructing the constrained border
+      this.edges.add(PolygonEdge.fromWall(wall, type));
+    }
 
+    // If no edges, we return early and ultimately use the token border instead of sweep.
     if ( this.edges.size === 0 ) return false;
 
+    // Add in the canvas boundaries as in the original _identifyEdges.
     for ( const boundary of canvas.walls.outerBounds ) {
       const edge = PolygonEdge.fromWall(boundary, type);
       edge._isBoundary = true;
