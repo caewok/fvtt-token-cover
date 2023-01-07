@@ -1,4 +1,6 @@
-# 0.3.9
+# 0.4.0
+Partial re-write of how the Area3d algorithm works, to better handle objects adjacent to the target. Might be a bit faster in some situations, as it devotes more effort to removing unneeded walls earlier.
+
 Additional fixes for measuring cover using 2d area calculation when tokens block (#27).
 Improvements to the 3d wall-intersection test (issues #24 and #25).
 Better handling of terrain walls when they intersect a token shape for area3d.
