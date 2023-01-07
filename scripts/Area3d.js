@@ -130,8 +130,13 @@ export class Area3d {
     walls: new Set()
   };
 
-  /** @type {PIXI.Polygon} */
-  _viewableTriangle;
+  /**
+   * The viewable area between viewer and target.
+   * Typically, this is a triangle, but if viewed head-on, it will be a triangle
+   * with the portion of the target between viewer and target center added on.
+   * @type {PIXI.Polygon}
+   */
+  _visionPolygon;
 
   /** @type {Point3d[]} */
   _transformedTarget;
@@ -351,8 +356,8 @@ export class Area3d {
       || (this._viewerCenter = new Point3d(this.viewer.x, this.viewer.y, this.viewer.elevationZ));
   }
 
-  get visionTriangle() {
-    return this._visionTriangle || (this._visionTriangle = Area3d.visionTriangle(this.viewerCenter, this.target));
+  get visionPolygon() {
+    return this._visionPolygon || (this._visionPolygon = Area3d.visionPolygon(this.viewerCenter, this.target));
   }
 
   get targetTop() {
@@ -380,8 +385,8 @@ export class Area3d {
   }
 
   /** @type {PIXI.Polygon} */
-  get viewableTriangle() {
-    return this._viewableTriangle || (this._viewableTriangle = Area3d.visionTriangle(this.viewerCenter, this.target))
+  get visionPolygon() {
+    return this._visionPolygon || (this._visionPolygon = Area3d.visionPolygon(this.viewerCenter, this.target))
   }
 
   // NOTE ----- STATIC METHODS ----- //
@@ -518,22 +523,47 @@ export class Area3d {
 //   }
 
   /**
-   * Vision Triangle for the view point --> target.
+   * Vision Polygon for the view point --> target.
    * From the given token location, get the edge-most viewable points of the target.
    * Construct a triangle between the two target points and the token center.
+   * If viewing head-on (only two key points), the portion of the target between
+   * viewer and target center (typically, a rectangle) is added on to the triangle.
    * @param {PIXI.Point|Point3d} viewingPoint
    * @param {Token} target
    * @returns {PIXI.Polygon} Triangle between view point and target. Will be clockwise.
    */
-  static visionTriangle(viewingPoint, target) {
-    const constrainedTokenBorder = target.constrainedTokenBorder;
-    const keyPoints = constrainedTokenBorder.viewablePoints(viewingPoint, { outermostOnly: true });
+  static visionPolygon(viewingPoint, target) {
+    const border = target.constrainedTokenBorder;
+    const keyPoints = border.viewablePoints(viewingPoint, { outermostOnly: false });
 
     let out;
-    if ( !keyPoints || !keyPoints.length ) {
-      log("visionTriangle: no key points found.");
-      out = constrainedTokenBorder.toPolygon();
-    } else out = new PIXI.Polygon([viewingPoint, ...keyPoints]);
+    switch ( keyPoints.length ) {
+      case 0:
+      case 1:
+        log(`visionPolygon: only ${keyPoints.length} key points found.`);
+        out = border.toPolygon();
+        break;
+      case 2: {
+        const k0 = keyPoints[0];
+        const k1 = keyPoints[1];
+        const center = target.center;
+
+        // Build a rectangle between center and key points.
+        // Intersect against the border
+        const X = Math.minMax(k0.x, k1.x, center.x);
+        const Y = Math.minMax(k0.y, k1.y, center.y);
+        const rect = new PIXI.Rectangle(X.min, Y.min, X.max - X.min, Y.max - Y.min);
+        const intersect = border instanceof PIXI.Rectangle ? rect : rect.intersectPolygon(border);
+
+        // Union the triangle with this border
+        const triangle = new PIXI.Polygon([viewingPoint, k0, k1]);
+        // TODO: WA should be able to union two shapes that share a single edge.
+        out = intersect.intersectPolygon(triangle , { clipType: ClipperLib.ClipType.ctUnion, disableWA: true });
+        break;
+      }
+      default:
+        out = new PIXI.Polygon([viewingPoint, keyPoints[0], keyPoints[keyPoints.length - 1]]);
+    }
 
     if ( !out.isClockwise ) out.reverseOrientation();
     return out;
@@ -553,8 +583,8 @@ export class Area3d {
    * @param {Token} [options.viewer]          Viewer token to exclude from filtered token results
    * @return {object} Object with walls, tokens, tiles, drawings as distinct sets or undefined.
    */
-  static filterSceneObjectsByVisionTriangle(viewingPoint, target, {
-    visionTriangle,
+  static filterSceneObjectsByVisionPolygon(viewingPoint, target, {
+    visionPolygon,
     type = "sight",
     filterWalls = true,
     filterTokens = true,
@@ -562,8 +592,8 @@ export class Area3d {
     debug = false,
     viewer } = {}) {
 
-    visionTriangle ??= Area3d.visionTriangle(viewingPoint, target);
-    if ( debug ) Draw.shape(visionTriangle,
+    visionPolygon ??= Area3d.visionPolygon(viewingPoint, target);
+    if ( debug ) Draw.shape(visionPolygon,
       { color: Draw.COLORS.blue, fillAlpha: 0.2, fill: Draw.COLORS.blue });
 
     const maxE = Math.max(viewingPoint.z ?? 0, target.topZ);
@@ -571,7 +601,7 @@ export class Area3d {
 
     const out = { walls: new Set(), tokens: new Set(), tiles: new Set(), drawings: new Set() };
     if ( filterWalls ) {
-      out.walls = Area3d.filterWallsByVisionTriangle(viewingPoint, visionTriangle, { type });
+      out.walls = Area3d.filterWallsByVisionPolygon(viewingPoint, visionPolygon, { type });
 
       // Filter walls that are definitely too low or too high
       out.walls = out.walls.filter(w => {
@@ -615,10 +645,10 @@ export class Area3d {
 //       }
 //
 //       // Test the new wall portions against the vision triangle; several are likely behind and can be dropped.
-//       const edges = [...visionTriangle.iterateEdges()];
+//       const edges = [...visionPolygon.iterateEdges()];
 //       const filteredWallPoints = splitWallPoints.filter(w => {
 //         const { topA, topB } = w;
-//         if ( visionTriangle.contains(topA.x, topA.y) || visionTriangle.contains(topB.x, topB.y) ) return true;
+//         if ( visionPolygon.contains(topA.x, topA.y) || visionPolygon.contains(topB.x, topB.y) ) return true;
 //         return edges.some(e => foundry.utils.lineSegmentIntersects(topA, topB, e.A, e.B));
 //       });
 //
@@ -628,7 +658,7 @@ export class Area3d {
     }
 
     if ( filterTokens ) {
-      out.tokens = Area3d.filterTokensByVisionTriangle(visionTriangle, { viewer, target });
+      out.tokens = Area3d.filterTokensByVisionPolygon(visionPolygon, { viewer, target });
 
       // Filter tokens that are definitely too low or too high
       out.tokens = out.tokens.filter(t => {
@@ -639,7 +669,7 @@ export class Area3d {
     }
 
     if ( filterTiles ) {
-      out.tiles = Area3d.filterTilesByVisionTriangle(visionTriangle);
+      out.tiles = Area3d.filterTilesByVisionPolygon(visionPolygon);
 
       // For Levels, "noCollision" is the "Allow Sight" config option. Drop those tiles.
       if ( MODULES_ACTIVE.LEVELS && type === "sight" ) {
@@ -655,7 +685,7 @@ export class Area3d {
       });
 
       // Check drawings if there are tiles
-      if ( out.tiles.size ) out.drawings = Area3d.filterDrawingsByVisionTriangle(visionTriangle);
+      if ( out.tiles.size ) out.drawings = Area3d.filterDrawingsByVisionPolygon(visionPolygon);
 
       if ( debug ) {
         out.tiles.forEach(t => Draw.shape(t.bounds, { color: Draw.COLORS.gray }));
@@ -668,10 +698,10 @@ export class Area3d {
 
   /**
    * Filter drawings in the scene if they are flagged as holes.
-   * @param {PIXI.Polygon} visionTriangle
+   * @param {PIXI.Polygon} visionPolygon
    */
-  static filterDrawingsByVisionTriangle(visionTriangle) {
-    let drawings = canvas.drawings.quadtree.getObjects(visionTriangle.getBounds());
+  static filterDrawingsByVisionPolygon(visionPolygon) {
+    let drawings = canvas.drawings.quadtree.getObjects(visionPolygon.getBounds());
 
     // Filter by holes
     drawings = drawings.filter(d => d.document.getFlag(MODULE_ID, FLAGS.DRAWING.IS_HOLE)
@@ -683,11 +713,11 @@ export class Area3d {
 
     // Filter by the precise triangle cone
     // Also convert to CenteredPolygon b/c it handles bounds better
-    const edges = [...visionTriangle.iterateEdges()];
+    const edges = [...visionPolygon.iterateEdges()];
     drawings = drawings.filter(d => {
       const shape = CONFIG.GeometryLib.utils.centeredPolygonFromDrawing(d);
       const center = shape.center;
-      if ( visionTriangle.contains(center.x, center.y) ) return true;
+      if ( visionPolygon.contains(center.x, center.y) ) return true;
       const dBounds = shape.getBounds();
       return edges.some(e => dBounds.lineSegmentIntersects(e.A, e.B, { inside: true }));
     });
@@ -697,14 +727,14 @@ export class Area3d {
   /**
    * Filter tokens in the scene by a triangle representing the view from viewingPoint to
    * token (or other two points). Only considers 2d top-down view.
-   * @param {PIXI.Polygon} visionTriangle
+   * @param {PIXI.Polygon} visionPolygon
    * @param {object} [options]
    * @param {string|undefined} viewerId   Id of viewer token to exclude
    * @param {string|undefined} targetId   Id of target token to exclude
    * @return {Set<Token>}
    */
-  static filterTokensByVisionTriangle(visionTriangle, { viewer, target } = {}) {
-    let tokens = canvas.tokens.quadtree.getObjects(visionTriangle.getBounds());
+  static filterTokensByVisionPolygon(visionPolygon, { viewer, target } = {}) {
+    let tokens = canvas.tokens.quadtree.getObjects(visionPolygon.getBounds());
 
     // Filter out the viewer and target token
     tokens.delete(viewer);
@@ -714,10 +744,10 @@ export class Area3d {
 
     // Filter by the precise triangle cone
     // For speed and simplicity, consider only token rectangular bounds
-    const edges = [...visionTriangle.iterateEdges()];
+    const edges = [...visionPolygon.iterateEdges()];
     tokens = tokens.filter(t => {
       const tCenter = t.center;
-      if ( visionTriangle.contains(tCenter.x, tCenter.y) ) return true;
+      if ( visionPolygon.contains(tCenter.x, tCenter.y) ) return true;
       const tBounds = t.bounds;
       return edges.some(e => tBounds.lineSegmentIntersects(e.A, e.B, { inside: true }));
     });
@@ -727,19 +757,19 @@ export class Area3d {
   /**
    * Filter tiles in the scene by a triangle representing the view from viewingPoint to
    * token (or other two points). Only considers 2d top-down view.
-   * @param {PIXI.Polygon} visionTriangle
+   * @param {PIXI.Polygon} visionPolygon
    * @return {Set<Tile>}
    */
-  static filterTilesByVisionTriangle(visionTriangle) {
-    let tiles = canvas.tiles.quadtree.getObjects(visionTriangle.getBounds());
+  static filterTilesByVisionPolygon(visionPolygon) {
+    let tiles = canvas.tiles.quadtree.getObjects(visionPolygon.getBounds());
     if ( !tiles.size ) return tiles;
 
     // Filter by the precise triangle shape
-    const edges = [...visionTriangle.iterateEdges()];
+    const edges = [...visionPolygon.iterateEdges()];
     tiles = tiles.filter(t => {
       const tBounds = t.bounds;
       const tCenter = tBounds.center;
-      if ( visionTriangle.contains(tCenter.x, tCenter.y) ) return true;
+      if ( visionPolygon.contains(tCenter.x, tCenter.y) ) return true;
       return edges.some(e => tBounds.lineSegmentIntersects(e.A, e.B, { inside: true }));
     });
     return tiles;
@@ -750,21 +780,21 @@ export class Area3d {
    * Filter walls in the scene by a triangle representing the view from viewingPoint to some
    * token (or other two points). Only considers 2d top-down view.
    * @param {Point3d} viewingPoint
-   * @param {PIXI.Polygon} visionTriangle
+   * @param {PIXI.Polygon} visionPolygon
    * @param {object} [options]
    * @param {string} [type]     Wall restriction type: sight, light, move, sound
    * @return {Set<Wall>}
    */
-  static filterWallsByVisionTriangle(viewingPoint, visionTriangle, { type = "sight" } = {}) {
-    let walls = canvas.walls.quadtree.getObjects(visionTriangle.getBounds());
+  static filterWallsByVisionPolygon(viewingPoint, visionPolygon, { type = "sight" } = {}) {
+    let walls = canvas.walls.quadtree.getObjects(visionPolygon.getBounds());
     walls = walls.filter(w => Area3d._testWallInclusion(w, viewingPoint, { type }));
 
     if ( !walls.size ) return walls;
 
     // Filter by the precise triangle cone.
-    const edges = [...visionTriangle.iterateEdges()];
+    const edges = [...visionPolygon.iterateEdges()];
     walls = walls.filter(w => {
-      if ( visionTriangle.contains(w.A.x, w.A.y) || visionTriangle.contains(w.B.x, w.B.y) ) return true;
+      if ( visionPolygon.contains(w.A.x, w.A.y) || visionPolygon.contains(w.B.x, w.B.y) ) return true;
       return edges.some(e => foundry.utils.lineSegmentIntersects(w.A, w.B, e.A, e.B));
     });
     return walls;
@@ -954,7 +984,7 @@ export class Area3d {
     terrainWalls.clear();
     walls.clear();
 
-    const objsFound = Area3d.filterSceneObjectsByVisionTriangle(this.viewerCenter, this.target, {
+    const objsFound = Area3d.filterSceneObjectsByVisionPolygon(this.viewerCenter, this.target, {
       type,
       filterWalls: wallsBlock,
       filterTokens: tokensBlock,
@@ -1058,12 +1088,12 @@ export class Area3d {
   _constructBlockingPointsArray() {
     const blockingObjectsPoints = this.blockingObjectsPoints;
     const { drawings, terrainWalls, tiles, tokens, walls } = this._blockingPoints;
-    const { viewableTriangle, target } = this;
-    const edges = [...viewableTriangle.iterateEdges()];
+    const { visionPolygon, target } = this;
+    const edges = [...visionPolygon.iterateEdges()];
     const blockingPoints = this._blockingPoints;
     const viewerLoc = this.viewerCenter;
 
-    if ( this.debug ) Draw.shape(viewableTriangle, { fill: Draw.COLORS.lightblue, fillAlpha: 0.2 });
+    if ( this.debug ) Draw.shape(visionPolygon, { fill: Draw.COLORS.lightblue, fillAlpha: 0.2 });
 
     // Clear the existing arrays.
     tiles.length = 0;
@@ -1074,37 +1104,37 @@ export class Area3d {
 
     // Vertical points
     blockingObjectsPoints.walls.forEach(pts => {
-      const res = pts._getVisibleSplits(target, viewableTriangle, { edges, viewerLoc });
+      const res = pts._getVisibleSplits(target, visionPolygon, { edges, viewerLoc });
       if ( res.length ) blockingPoints.walls.push(...res);
     });
 
     blockingObjectsPoints.terrainWalls.forEach(pts => {
-      const res = pts._getVisibleSplits(target, viewableTriangle, { edges, viewerLoc });
+      const res = pts._getVisibleSplits(target, visionPolygon, { edges, viewerLoc });
       if ( res.length ) blockingPoints.terrainWalls.push(...res);
     });
 
     // Horizontal points
     blockingObjectsPoints.tiles.forEach(pts => {
-      const res = pts._getVisibleSplits(target, viewableTriangle, { edges, viewerLoc });
+      const res = pts._getVisibleSplits(target, visionPolygon, { edges, viewerLoc });
       if ( res.length ) blockingPoints.tiles.push(...res);
     });
 
     blockingObjectsPoints.drawings.forEach(pts => {
-      const res = pts._getVisibleSplits(target, viewableTriangle, { edges, viewerLoc });
+      const res = pts._getVisibleSplits(target, visionPolygon, { edges, viewerLoc });
       if ( res.length ) blockingPoints.drawings.push(...res);
     });
 
     // Tokens have both horizontal and vertical.
     blockingObjectsPoints.tokens.forEach(token => {
-      const topBottom = token._viewableTopBottom(viewerCenter);
+      const topBottom = token._viewableTopBottom(viewerLoc);
       if ( topBottom ) {
-        const res = topBottom._getVisibileSplits(target, viewableTriangle, { edges, viewerLoc });
+        const res = topBottom._getVisibleSplits(target, visionPolygon, { edges, viewerLoc });
         if ( res.length ) blockingPoints.tokens.push(...res);
       }
 
-      const sides = token._viewableSides(viewerCenter);
+      const sides = token._viewableSides(viewerLoc);
       sides.forEach(pts => {
-        const res = pts._getVisibleSplits(target, viewableTriangle, { edges, viewerLoc });
+        const res = pts._getVisibleSplits(target, visionPolygon, { edges, viewerLoc });
         if ( res.length ) blockingPoints.tokens.push(...res);
       });
     });

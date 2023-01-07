@@ -1,7 +1,6 @@
 /* globals
 PIXI,
 foundry,
-ClipperPaths,
 CONFIG
 */
 "use strict";
@@ -9,6 +8,7 @@ CONFIG
 import { PlanePoints3d } from "./PlanePoints3d.js";
 import { Point3d } from "../geometry/3d/Point3d.js";
 import { Draw } from "../geometry/Draw.js";
+import { ClipperPaths } from "../geometry/ClipperPaths.js";
 
 /**
  * Points oriented horizontally on the canvas.
@@ -43,6 +43,24 @@ export class HorizontalPoints3d extends PlanePoints3d {
     const border = constrained ? token.constrained : token.bounds;
     if ( border instanceof PIXI.Rectangle ) return this.fromPIXIRectangle(border, { elevation, object: token});
     return new this(token, [...border.iteratePoints({close: false})]);
+  }
+
+  /**
+   * Construct horizontal points from a polygon
+   * @param {PIXI.Polygon} poly   Polygon to convert to points
+   * @param {object} [options]    Options that affect what part of token is used
+   * @param {string} [options.elevation]  Elevation to use. Defaults to 0.
+   * @param {object} [options.object]     Object to pass to constructor, if not polygon.
+   */
+  static fromPolygon(poly, { elevation = 0, object = poly } = {}) {
+    const pts = [...poly.iteratePoints({close: false})];
+    const nPts = pts.length;
+    const points3d = new Array(nPts);
+    for ( let i = 0; i < nPts; i += 1 ) {
+      const pt = pts[i];
+      points3d[i] = new Point3d(pt.x, pt.y, elevation);
+    }
+    return new this(object, points3d);
   }
 
   /**
@@ -93,49 +111,68 @@ export class HorizontalPoints3d extends PlanePoints3d {
    * @returns {boolean}
    */
   isWithin2dConvexPolygon(poly, { edges } = {}) {
-    edges ??= [...poly.iterateEdges({ close: true })];
+    const { lineSegmentCrosses, isOnSegment } = CONFIG.GeometryLib.utils;
+
+    // Need to walk around the edges in clockwise order.
+    if ( !poly.isClockwise ) {
+      poly.reverseOrientation();
+      edges = poly.iterateEdges({ close: true });
+    } else edges ??= poly.iterateEdges({ close: true });
+
     const thisEdges = this.iterateEdges();
 
     for ( const thisEdge of thisEdges ) {
       const A = thisEdge.A;
       const B = thisEdge.B;
 
-      let Acontained = true;
-      let Bcontained = true;
-      let AisEndpoint = false;
-      let BisEndpoint = false;
+      let aCW = true;
+      let bCW = true;
+      let aOnSegment = false;
+      let bOnSegment = false;
+      let aEndpoint = false;
+      let bEndpoint = false;
       for ( const edge of edges ) {
-        // For a point to be contained in a convex polygon, it must be clockwise to every edge.
-        // (orientation of 0 means the point is on the edge.)
-        const oA = foundry.utils.orient2dFast(edge.A, edge.B, A);
-        const oB = foundry.utils.orient2dFast(edge.A, edge.B, B);
+        // If A|B crosses the edge, we are done
+        if ( lineSegmentCrosses(edge.A, edge.B, A, B) ) return true;
 
-        if ( oA && oB ) {
-          // Test for possible intersection. On line doesn't count here.
-          // See foundry.utils.lineSegmentIntersects
-          const xab = (oA * oB) < 0;
-          const oC = foundry.utils.orient2dFast(A, B, edge.A);
-          const oD = foundry.utils.orient2dFast(A, B, edge.B);
-          const xcd = (oC * oD) < 0;
+        // If A and B are on separate segments and are not both endpoints,
+        // A|B cuts the polygon in two.
+        if ( !aOnSegment || !bOnSegment ) {
+          const aIsOn = isOnSegment(edge.A, edge.B, A, 1e-08);  // Epsilon default 1e-08
+          const bIsOn = isOnSegment(edge.A, edge.B, B, 1e-08);
 
-          // If an intersection is found, we are done.
-          if ( xab && xcd ) return true;
+          if ( aIsOn ^ bIsOn ) {
+            if ( aIsOn ) aOnSegment = true;
+            if ( bIsOn ) bOnSegment = true;
+          }
         }
 
-        Acontained &&= oA > 0;
-        Bcontained &&= oB > 0;
+        // For a point to be contained in a convex polygon, it must be strictly clockwise to every edge.
+        let oA = foundry.utils.orient2dFast(edge.A, edge.B, A);
+        if ( oA.almostEqual(0) ) oA = 0;
+        aCW &&= oA < 0;
+
+        let oB = foundry.utils.orient2dFast(edge.A, edge.B, B);
+        if ( oB.almostEqual(0) ) oB = 0;
+        bCW &&= oB < 0;
+
+        // If A and B are collinear to this edge, not within a *convex* polygon (part of the same edge)
+        if ( !oA && !oB ) {
+          // Collinear, so either A|B and edge overlap or they are one after the other.
+          if ( !aOnSegment && !bOnSegment && !isOnSegment(A, B, edge.A, 1e-08) && !isOnSegment(A, B, edge.B) ) continue;
+          return true; // They overlap.
+        }
 
         // Track whether A or b are near equivalent to endpoints of the polygon.
-        AisEndpoint ||= edge.A.almostEqual(A);
-        BisEndpoint ||= edge.B.almostEqual(B);
+        aEndpoint ||= edge.A.almostEqual(A);
+        bEndpoint ||= edge.B.almostEqual(B);
       }
 
-      if ( Acontained ^ Bcontained ) {
-        if ( !Acontained && BisEndpoint ) continue;
-        if ( !Bcontained && AisEndpoint ) continue;
-      }
+      // If both are on separate segments and not both endpoints, A|B cuts the polygon in half
+      if ( aOnSegment && bOnSegment && !(aEndpoint && bEndpoint) ) return true;
 
-      if ( Acontained || Bcontained ) return true;
+      // If either or both are within the polygon, A|B is within
+      if ( (aCW && bCW) || (aCW ^ bCW) ) return true;
     }
     return false;
   }
@@ -178,8 +215,14 @@ export class HorizontalPoints3d extends PlanePoints3d {
 
   /**
    * Split the horizontal points if they intersect a token shape.
+   * The split is as follows:
+   * - intersect of the token shape and horizontal points is one split
+   * - outside the token shape, the horizontal points are divided by
+   *   drawing a line from each point to the nearest token shape vertex inside the horizontal shape.
+   *   These form triangles or trapezoids, each of which is a single split.
+   * (Similar to DeLauney triangulation, but simpler.)
    * @param {Token} target          Token to test for intersecting walls
-   * @returns {}
+   * @returns {object}
    */
   splitAtTokenIntersections(target) {
     const splits = {
@@ -187,37 +230,43 @@ export class HorizontalPoints3d extends PlanePoints3d {
       outside: [],
       full: null
     };
+    const elevation = this.z;
 
-    if ( target.topZ < this.z
-      || target.bottomZ > this.z ) {
+    if ( target.topZ < elevation
+      || target.bottomZ > elevation ) {
       splits.full = this;
       return splits;
     }
 
     // Use intersect to get portions of this plane that are inside the target
     const thisShape = this.toPIXIShape();
-    const targetShape = target.constrained;
+    const targetShape = target.constrainedTokenBorder;
 
     // We can shortcut the calculation if both are PIXI.Rectangles
-    let intersect;
-    let diff;
     if ( thisShape instanceof PIXI.Rectangle && targetShape instanceof PIXI.Rectangle ) {
-      intersect = thisShape.intersection(targetShape);
-      if ( !intersect.width || !intersect.height ) {
+      splits.inside = thisShape.intersection(targetShape);
+      splits.inside = splits.inside.toPolygon();
+      if ( !splits.inside.width || !splits.inside.height ) {
         splits.outside = [this];
+        splits.inside = null;
         return splits;
       }
-      diff = thisShape.difference(targetShape).thisDiff;
+      splits.outside = thisShape.difference(targetShape).thisDiff;
+      splits.outside = splits.outside.map(rect => rect.toPolygon());
 
     } else {
-      intersect = thisShape.intersectPolygon(targetShape);
-      const paths = ClipperPaths.fromPolygons([thisShape.toPolygon()]);
-      const diffPaths = paths.diffPolygon(targetShape.toPolygon());
-      diff = diffPaths.toPolygons();
+      // Determine which token vertices are inside the horizontal shape.
+      const res = triangulatePolygonAgainstOther(thisShape.toPolygon(), targetShape.toPolygon());
+      splits.outside = res.diff ?? [];
+      splits.inside = res.intersect;
     }
 
-    splits.inside = intersect.toPolygon();
-    splits.outside = [...diff];
+    if ( splits.inside && splits.inside.points.length > 6 ) {
+      splits.inside = HorizontalPoints3d.fromPolygon(splits.inside, { elevation });
+    } else splits.inside = null;
+
+    splits.outside = splits.outside.filter(poly => poly.points.length >= 6);
+    splits.outside = splits.outside.map(poly => HorizontalPoints3d.fromPolygon(poly, { elevation }));
     return splits;
   }
 
@@ -231,22 +280,25 @@ export class HorizontalPoints3d extends PlanePoints3d {
     * @param {Point3d} [options.viewerLoc]    Coordinates of viewer
    * @param {}
    */
-  _getVisibleSplits(target, viewableTriangle, { triEdges, viewerLoc } = {}) {
-    triEdges ??= [...viewableTriangle.iterateEdges()];
+  _getVisibleSplits(target, viewableTriangle, { edges, viewerLoc } = {}) {
+    // Triangle must be clockwise so we pass edges in the correct orientation to isWithin2dConvexPolygon.
+    if ( !viewableTriangle.isClockwise ) {
+      viewableTriangle.reverseOrientation();
+      edges = [...viewableTriangle.iterateEdges()];
+    } else edges ??= [...viewableTriangle.iterateEdges()];
 
     // If the shape intersects the target token, break shape into parts.
     const splits = this.splitAtTokenIntersections(target);
-    if ( splits.full ) return splits.full;
+    if ( splits.full ) return [splits.full];
 
     // Drop any outside splits that are not within the 2d triangle
-    splits.outside = splits.outside.filter(pts => pts.isWithin2dConvexPolygon(viewableTriangle, triEdges));
+    splits.outside = splits.outside.filter(pts => pts.isWithin2dConvexPolygon(viewableTriangle, { edges }));
 
     // If the inside split is blocking, keep it
     const out = [];
-    if ( splits.inside && viewerLoc
-      && splits.inside.potentiallyBlocksToken(viewerLoc, target) ) out.push(splits.inside);
+    if ( splits.inside && splits.inside.isWithin2dConvexPolygon(viewableTriangle, { edges }) ) out.push(splits.inside);
 
-    if ( splits.outside.length ) out.push(...splits.outside);
+    out.push(...splits.outside);
 
     return out;
   }
@@ -257,10 +309,35 @@ export class HorizontalPoints3d extends PlanePoints3d {
   draw(drawingOptions = {}) {
     const convert = CONFIG.GeometryLib.utils.pixelsToGridUnits;
     Draw.shape(this.toPolygon());
-    this.points.forEach(pt => Draw.point(pt, drawingOptions));
-    Draw.labelPoint(this.A, `${convert(this.A.z)}`);
-    Draw.labelPoint(this.B, `${convert(this.B.z)}`);
-    Draw.labelPoint(this.C, `${convert(this.C.z)}`);
-    Draw.labelPoint(this.D, `${convert(this.D.z)}`);
+    this.points.forEach(pt => {
+      Draw.point(pt, drawingOptions);
+      Draw.labelPoint(pt, `${convert(pt.z)}`);
+    });
   }
+}
+
+/**
+ * Triangulate a polygon based on how a second polygon overlaps it.
+ * Leave the intersect of the two alone.
+ * Using the difference between the first and second polygon, divide the first's difference
+ * into triangles connected to the second.
+ * @param {PIXI.Polygon} primary
+ * @param {PIXI.Polygon} other
+ * @returns {object} Object with {intersect: {PIXI.Polygon|null}, diff: {PIXI.Polygon[]|null}}
+ */
+function triangulatePolygonAgainstOther(primary, other) {
+  const out = { intersect: null, diff: null };
+
+  // If no intersect, then no division required.
+  const intersect = primary.intersectPolygon(other);
+  if ( !intersect.points.length ) return out;
+  out.intersect = intersect;
+
+  const primaryPath = ClipperPaths.fromPolygons([primary]);
+  const diffPaths = primaryPath.diffPolygon(other);
+  if ( diffPaths.paths.length === 0 ) return out;
+
+  // Triangulate the difference polygon
+  out.diff = diffPaths.earcut().toPolygons();
+  return out;
 }

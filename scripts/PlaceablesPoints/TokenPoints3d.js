@@ -169,7 +169,7 @@ export class TokenPoints3d {
     for ( let i = 0; i < nSides; i += 1 ) {
       const t1 = topPoints[i];
       const b1 = bottomPoints[i];
-      sides[i] = [t0, b0, b1, t1];
+      sides[i] = [t0, t1, b1, b0];
       t0 = t1;
       b0 = b1;
     }
@@ -198,7 +198,7 @@ export class TokenPoints3d {
       const t1 = topPoints[keys[i+1]];
       const b0 = bottomPoints[keys[i]];
       const b1 = bottomPoints[keys[i+1]];
-      sides[i] = [t0, b0, b1, t1];
+      sides[i] = [t0, t1, b1, b0];
     }
 
     return sides.map(s => new VerticalPoints3d(token, s));
@@ -208,7 +208,7 @@ export class TokenPoints3d {
    * Draw the constrained token shape and the points on the 2d canvas.
    */
   draw(drawingOptions = {}) {
-    Draw.shape(this.tokenPolygon, drawingOptions);
+    Draw.shape(this.borderPolygon, drawingOptions);
     if ( this.viewingPoint ) Draw.segment(
       { A: this.viewingPoint, B: this.token.center },
       { color: Draw.COLORS.blue, alpha: 0.5 });

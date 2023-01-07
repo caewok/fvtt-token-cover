@@ -29,7 +29,8 @@ export class VerticalPoints3d extends PlanePoints3d {
 
   /**
    * Are the top points within a horizontal 2d convex polygon?
-   * Points on the edge do not count as within.
+   * Points merely on the edge do not count as within.
+   * If it shares a full edge, that counts.
    * @param {PIXI.Polygon} poly   Polygon to test
    * @param {object} [options]    Options that affect the calculation
    * @param {object[]} [options.edges]            Optional array of edges for the triangle
@@ -86,7 +87,12 @@ export class VerticalPoints3d extends PlanePoints3d {
       bCW &&= oB < 0;
 
       // If A and B are collinear to this edge, not within a *convex* polygon (part of the same edge)
-      if ( !oA && !oB ) return false;
+      if ( !oA && !oB ) {
+        // Collinear, so either A|B and edge overlap or they are one after the other.
+        // if ( !aOnSegment && !bOnSegment && !isOnSegment(A, B, edge.A, 1e-08) && !isOnSegment(A, B, edge.B) ) return false;
+        // return true; // They overlap.
+        return false;
+      }
 
       // Track whether A or b are near equivalent to endpoints of the polygon.
       aEndpoint ||= edge.A.almostEqual(A);
@@ -167,7 +173,7 @@ export class VerticalPoints3d extends PlanePoints3d {
     const Bcontained = targetBorder.contains(topB.x, topB.y);
 
     // Find where the wall intersects the token border, if at all
-    const ixs = !Acontained || !Bcontained ? targetBorder.segmentIntersections(topA, topB) : null;
+    const ixs = !Acontained || !Bcontained ? targetBorder.segmentIntersections(topA, topB) : [];
     const numIxs = ixs.length;
 
     let ixsA;
@@ -259,16 +265,18 @@ export class VerticalPoints3d extends PlanePoints3d {
 
     // If the shape intersects the target token, break shape into parts.
     const splits = this.splitAtTokenIntersections(target, { viewerLoc });
-    if ( splits.full ) return splits.full;
+    if ( splits.full ) {
+      return splits.full.isWithin2dConvexPolygon(viewableTriangle, { edges }) ? [splits.full] : [];
+    }
 
-    // Drop any outside splits that are not within the 2d triangle
-    if ( splits.top && !splits.top.isWithin2dConvexPolygon(viewableTriangle, { edges }) ) splits.top = null;
-    if ( splits.bottom && !splits.bottom.isWithin2dConvexPolygon(viewableTriangle, { edges }) ) splits.bottom = null;
-    if ( splits.sideA && !splits.sideA.isWithin2dConvexPolygon(viewableTriangle, { edges }) ) splits.sideA = null;
-    if ( splits.sideB && !splits.sideB.isWithin2dConvexPolygon(viewableTriangle, { edges }) ) splits.sideB = null;
-
-    if ( splits.middle && viewerLoc
-      && !splits.middle.potentiallyBlocksToken(viewerLoc, target) ) splits.middle = null;
+    // Add only splits within the 2d triangle
+    // Potentially blocks is faster, so test that first
+    const targetPts = Point3d.fromToken(target);
+    for ( const position of ["top", "bottom", "sideA", "sideB", "middle"] ) {
+      if ( !splits[position] ) continue;
+      if ( !splits[position].potentiallyBlocksToken(viewerLoc, target, targetPts)
+        && !splits[position].isWithin2dConvexPolygon(viewableTriangle, { edges }) ) splits[position] = null;
+    }
 
     return this._joinSplits(splits);
   }

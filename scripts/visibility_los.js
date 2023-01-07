@@ -273,6 +273,9 @@ function testLOSArea3d(visionSource, target, test) {
     deadTokensBlock: false
   };
 
+  if ( DEBUG.forceLiveTokensBlock ) config.liveTokensBlock = true;
+  if ( DEBUG.forceDeadTokensBlock ) config.deadTokensBlock = true;
+
   const area3d = new Area3d(visionSource, target, config);
 
   // Set debug only if the target is being targeted.

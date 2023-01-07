@@ -322,7 +322,7 @@ export class Area2d {
 
     // If Levels is enabled, consider tiles and drawings; obscure the visibile token shape.
     if ( MODULES_ACTIVE.LEVELS ) {
-      let tiles = Area3d.filterTilesByVisionTriangle(visibleTokenShape);
+      let tiles = Area3d.filterTilesByVisionPolygon(visibleTokenShape);
 
       // Limit to tiles between viewer and target.
       const minEZ = Math.min(this.visionSource.elevationZ, this.target.bottomZ);
@@ -333,7 +333,7 @@ export class Area2d {
       });
 
       if ( tiles.size ) {
-        const drawings = Area3d.filterDrawingsByVisionTriangle(visibleTokenShape);
+        const drawings = Area3d.filterDrawingsByVisionPolygon(visibleTokenShape);
         const combinedTiles = this._combineTilesWithDrawingHoles(tiles, drawings);
         visibleTokenShape = visibleTokenShape instanceof PIXI.Polygon
           ? combinedTiles.diffPolygon(visibleTokenShape)
@@ -420,7 +420,7 @@ export class Area2d {
       viewer: visionSource.object,
       debug: this.debug
     };
-    const viewableObjs = Area3d.filterSceneObjectsByVisionTriangle(origin, this.target, filterConfig);
+    const viewableObjs = Area3d.filterSceneObjectsByVisionPolygon(origin, this.target, filterConfig);
 
     if ( viewableObjs.tokens.size ) {
       // Filter live or dead tokens, depending on config.

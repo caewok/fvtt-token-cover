@@ -60,7 +60,9 @@ export const DEBUG = {
   los: false,
   cover: false,
   area: false,
-  once: false
+  once: false,
+  forceLiveTokensBlock: false,
+  forceDeadTokensBlock: false
 };
 
 export let IGNORES_COVER_HANDLER = IgnoresCover;
