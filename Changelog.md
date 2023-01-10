@@ -1,3 +1,11 @@
+# 0.4.1
+Area2d algorithm improvements:
+- Fix area calculation when token shape is split in half by a wall
+
+Area3d algorithm improvements:
+- Fix some errors in `constructFromWall` thrown when using Levels.
+- Possible fix for issue #33 (getting length from null object in `Area3d.visionPolygon`).
+
 # 0.4.0
 Partial re-write of how the Area3d algorithm works, to better handle objects adjacent to the target. Might be a bit faster in some situations, as it devotes more effort to removing unneeded walls earlier.
 
