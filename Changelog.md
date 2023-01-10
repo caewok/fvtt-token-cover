@@ -1,6 +1,7 @@
 # 0.4.1
 Area2d algorithm improvements:
 - Fix area calculation when token shape is split in half by a wall
+- Handle holes in the area calculation
 
 Area3d algorithm improvements:
 - Fix some errors in `constructFromWall` thrown when using Levels.

@@ -323,12 +323,11 @@ export class Area2d {
 
     let seenArea = 0;
     for ( const poly of visibleTokenShape ) {
-      if ( poly.isHole ) continue;
-      seenArea += this._calculateSeenAreaForPolygon(poly) ?? 0;
+      if ( poly.isHole ) seenArea -= this._calculateSeenAreaForPolygon(poly) ?? 0;
+      else seenArea += this._calculateSeenAreaForPolygon(poly) ?? 0;
     }
 
-    if ( !seenArea || seenArea.almostEqual(0) ) return 0;
-
+    if ( !seenArea || seenArea < 0 || seenArea.almostEqual(0)  ) return 0;
 
     const percentSeen = seenArea / tokenArea;
 
