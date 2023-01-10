@@ -535,6 +535,10 @@ export class Area3d {
   static visionPolygon(viewingPoint, target) {
     const border = target.constrainedTokenBorder;
     const keyPoints = border.viewablePoints(viewingPoint, { outermostOnly: false });
+    if ( !keyPoints ) {
+      log(`visionPolygon: key points are null.`);
+      return border.toPolygon();
+    }
 
     let out;
     switch ( keyPoints.length ) {
