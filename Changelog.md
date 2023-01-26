@@ -1,3 +1,6 @@
+# 0.4.2
+Update to lib geometry v0.1.3.
+
 # 0.4.1
 Area2d algorithm improvements:
 - Fix area calculation when token shape is split in half by a wall
