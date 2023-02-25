@@ -1,3 +1,6 @@
+# 0.4.3
+Update to lib geometry v0.1.4.
+
 # 0.4.2
 Update to lib geometry v0.1.3.
 
