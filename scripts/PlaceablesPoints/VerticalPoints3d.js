@@ -185,7 +185,7 @@ export class VerticalPoints3d extends PlanePoints3d {
     // Intersect of viewerLoc --> keyPoint and wall becomes the new intersection
     if ( viewerLoc && numIxs ) {
       const keyPoints = targetBorder.viewablePoints(viewerLoc, { outermostOnly: true });
-      if ( keyPoints.length === 2 ) {
+      if ( keyPoints && keyPoints.length === 2 ) {
         const ix0 = foundry.utils.lineLineIntersection(topA, topB, viewerLoc, keyPoints[0]);
         const ix1 = foundry.utils.lineLineIntersection(topA, topB, viewerLoc, keyPoints[1]);
 
