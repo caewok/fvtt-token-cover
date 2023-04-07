@@ -1,3 +1,9 @@
+# 0.4.4
+Update to lib geometry v0.1.5.
+Possible fix for issue #33 (null error reading "length").
+Keep the high cover setting even when using DFred's (closes issue #31).
+
+
 # 0.4.3
 Update to lib geometry v0.1.4.
 

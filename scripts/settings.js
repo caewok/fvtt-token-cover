@@ -357,16 +357,16 @@ export function registerSettings() {
       type: MediumCoverEffectConfig,
       restricted: true
     });
-
-    game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.HIGH, {
-      name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Name`),
-      hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Hint`),
-      label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Label`),
-      icon: "fas fa-shield",
-      type: HighCoverEffectConfig,
-      restricted: true
-    });
   }
+
+  game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.HIGH, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Hint`),
+    label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Label`),
+    icon: "fas fa-shield",
+    type: HighCoverEffectConfig,
+    restricted: true
+  });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.COMBAT_AUTO, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.COMBAT_AUTO}.Name`),
