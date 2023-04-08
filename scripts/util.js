@@ -308,6 +308,8 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
 export function buildTokenPoints(tokens, config) {
   if ( !tokens.length && !tokens.size ) return tokens;
   const { type, liveTokensBlock, deadTokensBlock, deadHalfHeight, liveHalfHeight } = config;
+  const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
+  const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
 
   // Filter live or dead tokens
   if ( liveTokensBlock ^ deadTokensBlock ) {
@@ -322,7 +324,6 @@ export function buildTokenPoints(tokens, config) {
   }
 
   // Construct the TokenPoints3d for each token, using half-height if required
-  const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
   if ( deadHalfHeight || liveHalfHeight ) {
     tokens = tokens.map(t => {
       const hp = getObjectProperty(t.actor, hpAttribute);

@@ -25,7 +25,7 @@ import {
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
-import { buildTokenPoints } from "./utils.js";
+import { buildTokenPoints } from "./util.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
 // Don't pass complex classes through the socket. Use token ids instead.
@@ -540,7 +540,6 @@ export class CoverCalculator {
     const { liveTokensBlock, deadTokensBlock, deadHalfHeight, liveHalfHeight } = this.config;
     const ray = new Ray(tokenPoint, targetPoint);
     let tokens = canvas.tokens.quadtree.getObjects(ray.bounds);
-    const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
 
     // Filter out the viewer and target token
     tokens.delete(this.viewer);

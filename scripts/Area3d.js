@@ -32,7 +32,7 @@ Area:
 
 import { MODULE_ID, FLAGS, MODULES_ACTIVE, DEBUG } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
-import { log, getObjectProperty, buildTokenPoints } from "./util.js";
+import { log, buildTokenPoints } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 import { Draw } from "./geometry/Draw.js"; // For debugging
@@ -204,7 +204,7 @@ export class Area3d {
 
     config.type ??= "sight";
     config.percentAreaForLOS ??= getSetting(SETTINGS.LOS.PERCENT_AREA);
-    config.useShadows: getSetting(SETTINGS.AREA3D_USE_SHADOWS);
+    config.useShadows ??= getSetting(SETTINGS.AREA3D_USE_SHADOWS);
     config.wallsBlock ??= true;
     config.tilesBlock ??= MODULES_ACTIVE.LEVELS;
     config.deadTokensBlock ??= deadTokenAlg !== deadTypes.NONE;
@@ -219,7 +219,7 @@ export class Area3d {
     // Internal setting.
     // If true, draws the _blockingObjectsPoints.
     // If false, draws the _blockingPoints
-    this.config.debugDrawObjects ??f= false;
+    this.config.debugDrawObjects ??= false;
 
     this.config = config;
   }
