@@ -327,7 +327,7 @@ export function buildTokenPoints(tokens, config) {
   if ( deadHalfHeight || liveHalfHeight ) {
     tokens = tokens.map(t => {
       const hp = getObjectProperty(t.actor, hpAttribute);
-      const isProne = t.actor ? t.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
+      const isProne = (proneStatusId !== "" && t.actor) ? t.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
       const halfHeight = (deadHalfHeight && (typeof hp === "number") && (hp <= 0))
         || (liveHalfHeight && hp > 0 && isProne);
       return new TokenPoints3d(t, { type, halfHeight });

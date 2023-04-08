@@ -9,7 +9,8 @@ socketlib,
 VisionSource,
 CONFIG,
 Dialog,
-Ray
+Ray,
+duplicate
 */
 
 import { MODULE_ID, COVER_TYPES, MODULES_ACTIVE, DEBUG } from "./const.js";
@@ -142,27 +143,36 @@ export class CoverCalculator {
    * @param {VisionSource|Token} viewer
    * @param {Token} target
    */
-  constructor(viewer, target) {
+  constructor(viewer, target, config = {}) {
     this.viewer = viewer instanceof VisionSource ? viewer.object : viewer;
     this.target = target;
+    this.#configure(config);
     this.debug = DEBUG.cover;
+  }
 
+  /**
+   * Initialize the configuration for this constructor.
+   * @param {object} config   Settings intended to override defaults.
+   */
+  #configure(config = {}) {
     const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
     const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
     const liveTokenAlg = getSetting(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
     const liveTypes = SETTINGS.COVER.LIVE_TOKENS.TYPES;
-    this.config = {
-      type: "move",
-      wallsBlock: true,
-      tilesBlock: MODULES_ACTIVE.LEVELS,
-      deadTokensBlock: deadTokenAlg !== deadTypes.NONE,
-      deadHalfHeight: deadTokenAlg === deadTypes.HALF,
-      liveTokensBlock: liveTokenAlg !== liveTypes.NONE,
-      liveHalfHeight: getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE) && liveTokenAlg !== liveTypes.NONE,
-      liveForceHalfCover: liveTokenAlg === liveTypes.HALF
-    };
-    this.config.tokensBlock = this.config.liveTokensBlock || this.config.deadTokensBlock;
+
+    config.type ??= "move";
+    config.wallsBlock ??= true;
+    config.tilesBlock ??= MODULES_ACTIVE.LEVELS;
+    config.deadTokensBlock ??= deadTokenAlg !== deadTypes.NONE;
+    config.deadHalfHeight ??= deadTokenAlg === deadTypes.HALF;
+    config.liveTokensBlock ??= liveTokenAlg !== liveTypes.NONE;
+    config.liveHalfHeight ??= getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE) !== ""
+      && liveTokenAlg !== liveTypes.NONE;
+    config.liveForceHalfCover ??= liveTokenAlg === liveTypes.HALF;
+
+    this.config = config;
   }
+
 
   /** @type {string} */
   static get currentAlgorithm() {
@@ -576,7 +586,7 @@ export class CoverCalculator {
     const tokenPoint = this.viewerCenter;
     const targetPoint = new Point3d(this.target.center.x, this.target.center.y, this.targetAvgElevationZ);
 
-    const { wallsBlock, tokensBlock, tilesBlock } = this.config;
+    const { wallsBlock, liveTokensBlock, deadTokensBlock, tilesBlock } = this.config;
 
     const collision = (wallsBlock && this._hasWallCollision(tokenPoint, targetPoint))
       || (tilesBlock && this._hasTileCollision(tokenPoint, targetPoint));
@@ -587,7 +597,7 @@ export class CoverCalculator {
 
     if ( collision ) return COVER_TYPES[getSetting(SETTINGS.COVER.TRIGGER_CENTER)];
 
-    if ( tokensBlock ) {
+    if ( liveTokensBlock || deadTokensBlock ) {
       const collision = this._hasTokenCollision(tokenPoint, targetPoint);
       if ( collision ) {
         this.debug && Draw.segment(  // eslint-disable-line no-unused-expressions
@@ -709,10 +719,40 @@ export class CoverCalculator {
   area2d() {
     this.debug && console.log("Cover algorithm: Area"); // eslint-disable-line no-unused-expressions
 
+    // dnd5e rule
+    if ( this.config.liveForceHalfCover ) return this._forceLowCover(Area2d);
+
     const percentCover = 1 - this._percentVisible(Area2d);
     this.debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
 
     return CoverCalculator.typeForPercentage(percentCover);
+  }
+
+  /**
+   * Dnd5e rule: tokens provide half cover but do not otherwise contribute to cover.
+   * Compare percent visible w/o tokens and w/ tokens only.
+   * @param {Area2d|Area3d} Area    Class to use to calculate percent visibility
+   * @returns {COVER_TYPE}
+   */
+  _forceLowCover(Area) {
+    const config = duplicate(this.config);
+    config.deadTokensBlock = false;
+    config.liveTokensBlock = false;
+
+    // If low (1/2) cover is exceeded even without tokens, we can use that cover.
+    const percentCoverNoTokens = 1 - this._percentVisible(Area, config);
+    const coverTypeNoTokens = CoverCalculator.typeForPercentage(percentCoverNoTokens);
+    if ( coverTypeNoTokens >= COVER_TYPES.LOW ) return coverTypeNoTokens;
+
+    // If tokens provide at least low cover on their own, cover is low; otherwise no cover
+    config.deadTokensBlock = this.config.deadTokensBlock;
+    config.liveTokensBlock = true;
+    config.wallsBlock = false;
+    config.tilesBlock = false;
+
+    const percentCoverTokensOnly = 1 - this._percentVisible(Area, config);
+    const coverTypeTokensOnly = CoverCalculator.typeForPercentage(percentCoverTokensOnly);
+    return coverTypeTokensOnly >= COVER_TYPES.LOW ? COVER_TYPES.LOW : COVER_TYPES.NONE;
   }
 
   /**
@@ -724,10 +764,24 @@ export class CoverCalculator {
   area3d() {
     this.debug && console.log("Cover algorithm: Area 3d"); // eslint-disable-line no-unused-expressions
 
+    // dnd5e rule
+    if ( this.config.liveForceHalfCover ) return this._forceLowCover(Area3d);
+
     const percentCover = 1 - this._percentVisible(Area3d);
     this.debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
 
     return CoverCalculator.typeForPercentage(percentCover);
+  }
+
+  /**
+   * Determine the percent of the target top or bottom visible to the viewer.
+   * @param {Area2d|Area3d} Area    Class to use to calculate percent visibility
+   * @returns {number} Percentage seen, of the total target top or bottom area.
+   */
+  _percentVisible(Area, config = this.config) {
+    const area = new Area(this.viewer, this.target, config);
+    if ( this.debug ) area.debug = true;
+    return area.percentAreaVisible();
   }
 
   // ----- HELPER METHODS ----- //
@@ -889,17 +943,6 @@ export class CoverCalculator {
     return ( liveForceHalfCover && tokenBlocks )
       ? Math.max(coverType, SETTINGS.COVER.TRIGGER_PERCENT.LOW)
       : coverType;
-  }
-
-  /**
-   * Determine the percent of the target top or bottom visible to the viewer.
-   * @param {Area2d|Area3d} Area    Class to use to calculate percent visibility
-   * @returns {number} Percentage seen, of the total target top or bottom area.
-   */
-  _percentVisible(Area) {
-    const area = new Area(this.viewer, this.target, this.config);
-    if ( this.debug ) area.debug = true;
-    return area.percentAreaVisible();
   }
 
   /**

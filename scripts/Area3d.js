@@ -198,24 +198,15 @@ export class Area3d {
    * @param {object} config   Settings intended to override defaults.
    */
   #configure(config = {}) {
-    const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
-    const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
-    const liveTokenAlg = getSetting(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
-    const liveTypes = SETTINGS.COVER.LIVE_TOKENS.TYPES;
-
     config.type ??= "sight";
     config.percentAreaForLOS ??= getSetting(SETTINGS.LOS.PERCENT_AREA);
     config.useShadows ??= getSetting(SETTINGS.AREA3D_USE_SHADOWS);
     config.wallsBlock ??= true;
     config.tilesBlock ??= MODULES_ACTIVE.LEVELS;
-    config.deadTokensBlock ??= deadTokenAlg !== deadTypes.NONE;
-    config.deadHalfHeight ??= deadTokenAlg === deadTypes.HALF;
-    config.liveTokensBlock ??= liveTokenAlg !== liveTypes.NONE;
-    config.liveHalfHeight ??= getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE)
-      && liveTokenAlg !== liveTypes.NONE;
-    config.liveForceHalfCover ??= liveTokenAlg === liveTypes.HALF;
-
-    config.tokensBlock = config.deadTokensBlock || config.liveTokensBlock;
+    config.deadTokensBlock ??= false;
+    config.deadHalfHeight ??= false;
+    config.liveTokensBlock ??= false;
+    config.liveHalfHeight ??= getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE) !== "";
 
     // Internal setting.
     // If true, draws the _blockingObjectsPoints.
@@ -749,7 +740,8 @@ export class Area3d {
     const {
       type,
       wallsBlock,
-      tokensBlock,
+      liveTokensBlock,
+      deadTokensBlock,
       tilesBlock } = this.config;
 
     // Clear any prior objects from the respective sets
@@ -760,7 +752,7 @@ export class Area3d {
     const objsFound = Area3d.filterSceneObjectsByVisionPolygon(this.viewerCenter, this.target, {
       type,
       filterWalls: wallsBlock,
-      filterTokens: tokensBlock,
+      filterTokens: liveTokensBlock || deadTokensBlock,
       filterTiles: tilesBlock,
       debug: this.debug,
       viewer: this.viewer.object });

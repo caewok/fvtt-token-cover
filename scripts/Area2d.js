@@ -74,23 +74,14 @@ export class Area2d {
    * @param {object} config   Settings intended to override defaults.
    */
   #configure(config = {}) {
-    const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
-    const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
-    const liveTokenAlg = getSetting(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
-    const liveTypes = SETTINGS.COVER.LIVE_TOKENS.TYPES;
-
     config.type ??= "sight";
     config.percentAreaForLOS ??= getSetting(SETTINGS.LOS.PERCENT_AREA);
     config.wallsBlock ??= true;
     config.tilesBlock ??= MODULES_ACTIVE.LEVELS;
-    config.deadTokensBlock ??= deadTokenAlg !== deadTypes.NONE;
-    config.deadHalfHeight ??= deadTokenAlg === deadTypes.HALF;
-    config.liveTokensBlock ??= liveTokenAlg !== liveTypes.NONE;
-    config.liveHalfHeight ??= getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE)
-      && liveTokenAlg !== liveTypes.NONE;
-    config.liveForceHalfCover ??= liveTokenAlg === liveTypes.HALF;
-
-    config.tokensBlock = config.deadTokensBlock || config.liveTokensBlock;
+    config.deadTokensBlock ??= false;
+    config.deadHalfHeight ??= false;
+    config.liveTokensBlock ??= false;
+    config.liveHalfHeight ??= getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE) !== "";
 
     this.config = config;
   }
@@ -444,33 +435,20 @@ export class Area2d {
   shadowLOSForElevation(targetElevation = 0) {
     const visionSource = this.visionSource;
     const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
-    const { type, tokensBlock, liveTokensBlock, deadTokensBlock } = this.config;
+    const { type, liveTokensBlock, deadTokensBlock } = this.config;
     const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
 
     // Find the walls and, optionally, tokens, for the triangle between origin and target
     const filterConfig = {
       type,
       filterWalls: true,
-      filterTokens: tokensBlock,
+      filterTokens: liveTokensBlock || deadTokensBlock,
       filterTiles: false,
       viewer: visionSource.object,
       debug: this.debug
     };
     const viewableObjs = Area3d.filterSceneObjectsByVisionPolygon(origin, this.target, filterConfig);
 
-    if ( viewableObjs.tokens.size ) {
-      // Filter live or dead tokens, depending on config.
-      if ( liveTokensBlock ^ deadTokensBlock ) { // We handled tokensBlock above
-        viewableObjs.tokens = viewableObjs.tokens.filter(t => {
-          const hp = getObjectProperty(t.actor, hpAttribute);
-          if ( typeof hp !== "number" ) return true;
-
-          if ( liveTokensBlock && hp > 0 ) return true;
-          if ( deadTokensBlock && hp <= 0 ) return true;
-          return false;
-        });
-      }
-    }
 
     // Note: Wall Height removes walls from LOS calculation if
     // 1. origin is above the top of the wall
