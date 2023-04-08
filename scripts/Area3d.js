@@ -6,7 +6,8 @@ Token,
 CONST,
 Ray,
 LimitedAnglePolygon,
-CONFIG
+CONFIG,
+ClipperLib
 */
 "use strict";
 
@@ -192,7 +193,7 @@ export class Area3d {
     }
   }
 
-   /**
+  /**
    * Initialize the configuration for this constructor.
    * @param {object} config   Settings intended to override defaults.
    */
@@ -367,10 +368,6 @@ export class Area3d {
       || (this._viewerCenter = new Point3d(this.viewer.x, this.viewer.y, this.viewer.elevationZ));
   }
 
-  get visionPolygon() {
-    return this._visionPolygon || (this._visionPolygon = Area3d.visionPolygon(this.viewerCenter, this.target));
-  }
-
   get targetTop() {
     if ( typeof this._targetTop === "undefined" ) {
       const pts = Point3d.fromToken(this.target);
@@ -397,7 +394,7 @@ export class Area3d {
 
   /** @type {PIXI.Polygon} */
   get visionPolygon() {
-    return this._visionPolygon || (this._visionPolygon = Area3d.visionPolygon(this.viewerCenter, this.target))
+    return this._visionPolygon || (this._visionPolygon = Area3d.visionPolygon(this.viewerCenter, this.target));
   }
 
   // NOTE ----- STATIC METHODS ----- //
@@ -416,7 +413,7 @@ export class Area3d {
     const border = target.constrainedTokenBorder;
     const keyPoints = border.viewablePoints(viewingPoint, { outermostOnly: false });
     if ( !keyPoints ) {
-      log(`visionPolygon: key points are null.`);
+      log("visionPolygon: key points are null.");
       return border.toPolygon();
     }
 
@@ -442,7 +439,7 @@ export class Area3d {
         // Union the triangle with this border
         const triangle = new PIXI.Polygon([viewingPoint, k0, k1]);
         // TODO: WA should be able to union two shapes that share a single edge.
-        out = intersect.intersectPolygon(triangle , { clipType: ClipperLib.ClipType.ctUnion, disableWA: true });
+        out = intersect.intersectPolygon(triangle, { clipType: ClipperLib.ClipType.ctUnion, disableWA: true });
         break;
       }
       default:
@@ -798,11 +795,6 @@ export class Area3d {
    */
   _constructBlockingObjectsPoints() {
     const blockingObjs = this.blockingObjects;
-    const {
-      type,
-      liveTokensBlock,
-      deadTokensBlock,
-      deadHalfHeight } = this.config;
 
     // Clear any prior objects from the respective sets
     const { drawings, terrainWalls, tiles, tokens, walls } = this._blockingObjectsPoints;

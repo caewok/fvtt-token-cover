@@ -15,7 +15,6 @@ import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";
 import { CWSweepInfiniteWallsOnly } from "./CWSweepInfiniteWallsOnly.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
-import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
 
 import { Shadow } from "./geometry/Shadow.js";
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
@@ -342,7 +341,7 @@ export class Area2d {
       else seenArea += this._calculateSeenAreaForPolygon(poly) ?? 0;
     }
 
-    if ( !seenArea || seenArea < 0 || seenArea.almostEqual(0)  ) return 0;
+    if ( !seenArea || seenArea < 0 || seenArea.almostEqual(0) ) return 0;
 
     const percentSeen = seenArea / tokenArea;
 
@@ -428,7 +427,8 @@ export class Area2d {
     // holes and multiple pieces.
 
     // Use ClipperPaths to ensure all polygons are returned.
-    los = los instanceof ClipperPaths ? los : ClipperPaths.fromPolygons([los], { scalingFactor: Area2d.SCALING_FACTOR });
+    los = los instanceof ClipperPaths
+      ? los : ClipperPaths.fromPolygons([los], { scalingFactor: Area2d.SCALING_FACTOR });
     if ( constrained instanceof PIXI.Rectangle ) constrained = constrained.toPolygon();
 
     const intersect = los.intersectPolygon(constrained);
@@ -444,7 +444,7 @@ export class Area2d {
   shadowLOSForElevation(targetElevation = 0) {
     const visionSource = this.visionSource;
     const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
-    const { type, tokensBlock, liveTokensBlock, deadTokensBlock, deadHalfHeight } = this.config;
+    const { type, tokensBlock, liveTokensBlock, deadTokensBlock } = this.config;
     const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
 
     // Find the walls and, optionally, tokens, for the triangle between origin and target

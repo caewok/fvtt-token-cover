@@ -20,12 +20,10 @@ import { Draw } from "./geometry/Draw.js"; // For debugging
 import {
   lineSegmentIntersectsQuadrilateral3d,
   lineIntersectionQuadrilateral3d,
-  getObjectProperty } from "./util.js";
+  buildTokenPoints } from "./util.js";
 
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
-import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
-import { buildTokenPoints } from "./util.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
 // Don't pass complex classes through the socket. Use token ids instead.
@@ -537,7 +535,6 @@ export class CoverCalculator {
   }
 
   _hasTokenCollision(tokenPoint, targetPoint) {
-    const { liveTokensBlock, deadTokensBlock, deadHalfHeight, liveHalfHeight } = this.config;
     const ray = new Ray(tokenPoint, targetPoint);
     let tokens = canvas.tokens.quadtree.getObjects(ray.bounds);
 
@@ -549,8 +546,8 @@ export class CoverCalculator {
     const tokenPoints = buildTokenPoints(tokens, this.config);
 
     // Set viewing position and test token sides for collisions
-    for ( const token of tokens ) {
-      const sides = token._viewableFaces(tokenPoint);
+    for ( const pts of tokenPoints ) {
+      const sides = pts._viewableFaces(tokenPoint);
       for ( const side of sides ) {
         if ( lineSegmentIntersectsQuadrilateral3d(tokenPoint, targetPoint,
           side.points[0],
