@@ -32,7 +32,7 @@ Area:
 
 import { MODULE_ID, FLAGS, MODULES_ACTIVE, DEBUG } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
-import { log, getObjectProperty } from "./util.js";
+import { log, getObjectProperty, buildTokenPoints } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 import { Draw } from "./geometry/Draw.js"; // For debugging
@@ -175,34 +175,14 @@ export class Area3d {
    * @param {VisionSource|TOKEN} visionSource     Token, viewing from token.topZ.
    * @param {Target} target   Target; token is looking at the target center.
    */
-  constructor(viewer, target, {
-    type = "sight",
-    wallsBlock = true,
-    tilesBlock = false,
-    liveTokensBlock = false,
-    deadTokensBlock = false,
-    deadHalfHeight = false } = {}) {
+  constructor(viewer, target, config = {}) {
 
     this.viewer = viewer instanceof Token ? viewer.vision : viewer;
     this.target = target;
+    this._targetPoints = new TokenPoints3d(target);
 
     // Configuration options
-    this.config = {
-      type,
-      wallsBlock,
-      tilesBlock,
-      tokensBlock: liveTokensBlock || deadTokensBlock,
-      percentAreaForLOS: getSetting(SETTINGS.LOS.PERCENT_AREA),
-      _useShadows: getSetting(SETTINGS.AREA3D_USE_SHADOWS),
-      liveTokensBlock,
-      deadTokensBlock,
-      deadHalfHeight
-    };
-
-    // Internal setting.
-    // If true, draws the _blockingObjectsPoints.
-    // If false, draws the _blockingPoints
-    this.config.debugDrawObjects = false;
+    this.#configure(config);
 
     // Set debug only if the target is being targeted.
     // Avoids "double-vision" from multiple targets for area3d on scene.
@@ -210,9 +190,40 @@ export class Area3d {
       const targets = canvas.tokens.placeables.filter(t => t.isTargeted);
       this.debug = targets.some(t => t === target);
     }
-
-    this._targetPoints = new TokenPoints3d(target);
   }
+
+   /**
+   * Initialize the configuration for this constructor.
+   * @param {object} config   Settings intended to override defaults.
+   */
+  #configure(config = {}) {
+    const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
+    const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
+    const liveTokenAlg = getSetting(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
+    const liveTypes = SETTINGS.COVER.LIVE_TOKENS.TYPES;
+
+    config.type ??= "sight";
+    config.percentAreaForLOS ??= getSetting(SETTINGS.LOS.PERCENT_AREA);
+    config.useShadows: getSetting(SETTINGS.AREA3D_USE_SHADOWS);
+    config.wallsBlock ??= true;
+    config.tilesBlock ??= MODULES_ACTIVE.LEVELS;
+    config.deadTokensBlock ??= deadTokenAlg !== deadTypes.NONE;
+    config.deadHalfHeight ??= deadTokenAlg === deadTypes.HALF;
+    config.liveTokensBlock ??= liveTokenAlg !== liveTypes.NONE;
+    config.liveHalfHeight ??= getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE)
+      && liveTokenAlg !== liveTypes.NONE;
+    config.liveForceHalfCover ??= liveTokenAlg === liveTypes.HALF;
+
+    config.tokensBlock = config.deadTokensBlock || config.liveTokensBlock;
+
+    // Internal setting.
+    // If true, draws the _blockingObjectsPoints.
+    // If false, draws the _blockingPoints
+    this.config.debugDrawObjects ??f= false;
+
+    this.config = config;
+  }
+
 
   // NOTE ----- USER-FACING METHODS -----
 
@@ -1048,31 +1059,8 @@ export class Area3d {
       && blockingObjs.drawings.size ) blockingObjs.drawings.forEach(d => drawings.add(new DrawingPoints3d(d)));
 
     // Add Tokens
-    if ( blockingObjs.tokens.size ) {
-      const filteredTokens = new Set(blockingObjs.tokens);
-
-      // Filter live or dead tokens, depending on config.
-      if ( liveTokensBlock ^ deadTokensBlock ) { // We handled tokensBlock above
-        const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
-        filteredTokens.forEach(t => {
-          const hp = getObjectProperty(t.actor, hpAttribute);
-          if ( typeof hp === "number" ) return;
-          if ( liveTokensBlock && hp > 0 ) return;
-          if ( deadTokensBlock && hp <= 0 ) return;
-          filteredTokens.delete(t);
-        });
-      }
-
-      // Construct the TokenPoints3d for each token, using half-height for dead if required
-      if ( deadHalfHeight ) {
-        const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
-        filteredTokens.forEach(t => {
-          const hp = getObjectProperty(t.actor, hpAttribute);
-          const halfHeight = (typeof hp === "number") && (hp <= 0);
-          tokens.add(new TokenPoints3d(t, { type, halfHeight }));
-        });
-      } else filteredTokens.forEach(t => tokens.add(new TokenPoints3d(t, { type })));
-    }
+    const tokenPoints = buildTokenPoints(blockingObjs.tokens, this.config);
+    tokenPoints.forEach(pts => tokens.add(pts));
 
     // Add Walls
     blockingObjs.walls.forEach(w => walls.add(new WallPoints3d(w)));

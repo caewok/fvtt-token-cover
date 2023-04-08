@@ -25,6 +25,7 @@ import {
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
+import { buildTokenPoints } from "./utils.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
 // Don't pass complex classes through the socket. Use token ids instead.
@@ -545,31 +546,8 @@ export class CoverCalculator {
     tokens.delete(this.viewer);
     tokens.delete(this.target);
 
-    // Filter live or dead tokens
-    if ( liveTokensBlock ^ deadTokensBlock ) {
-      tokens = tokens.filter(t => {
-        const hp = getObjectProperty(t.actor, hpAttribute);
-        if ( typeof hp !== "number" ) return true;
-
-        if ( liveTokensBlock && hp > 0 ) return true;
-        if ( deadTokensBlock && hp <= 0 ) return true;
-        return false;
-      });
-    }
-
-    // Construct the TokenPoints3d for each token, using half-height if required
-    const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
-    if ( deadHalfHeight || liveHalfHeight ) {
-      tokens = tokens.map(t => {
-        const hp = getObjectProperty(t.actor, hpAttribute);
-        const isProne = t.document.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId);
-        const halfHeight = (deadHalfHeight && (typeof hp === "number") && (hp <= 0))
-          || (liveHalfHeight && hp > 0 && isProne);
-        return new TokenPoints3d(t, { type: this.config.type, halfHeight });
-      });
-    } else {
-      tokens = tokens.map(t => new TokenPoints3d(t, { type: this.config.type, halfHeight: false }));
-    }
+    // Build full- or half-height tokenPoints3d from tokens
+    const tokenPoints = buildTokenPoints(tokens, this.config);
 
     // Set viewing position and test token sides for collisions
     for ( const token of tokens ) {

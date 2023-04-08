@@ -10,7 +10,7 @@ canvas
 "use strict";
 
 import { MODULES_ACTIVE, DEBUG } from "./const.js";
-import { getObjectProperty } from "./util.js";
+import { getObjectProperty, buildTokenPoints } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";
 import { CWSweepInfiniteWallsOnly } from "./CWSweepInfiniteWallsOnly.js";
@@ -60,27 +60,42 @@ export class Area2d {
    * @param {VisionSource} visionSource
    * @param {Token} target
    */
-  constructor(visionSource, target, {
-    type = "sight",
-    liveTokensBlock = false,
-    deadTokensBlock = false,
-    deadHalfHeight = false } = {}) {
+  constructor(visionSource, target, config = {}) {
 
     this.visionSource = visionSource instanceof Token ? visionSource.vision : visionSource;
     this.target = target;
 
     // Configuration options
-    this.config = {
-      type,
-      percentAreaForLOS: getSetting(SETTINGS.LOS.PERCENT_AREA),
-      tokensBlock: liveTokensBlock || deadTokensBlock,
-      liveTokensBlock,
-      deadTokensBlock,
-      deadHalfHeight
-    };
-
+    this.#configure(config);
     this.debug = DEBUG.area;
   }
+
+  /**
+   * Initialize the configuration for this constructor.
+   * @param {object} config   Settings intended to override defaults.
+   */
+  #configure(config = {}) {
+    const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
+    const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
+    const liveTokenAlg = getSetting(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
+    const liveTypes = SETTINGS.COVER.LIVE_TOKENS.TYPES;
+
+    config.type ??= "sight";
+    config.percentAreaForLOS ??= getSetting(SETTINGS.LOS.PERCENT_AREA);
+    config.wallsBlock ??= true;
+    config.tilesBlock ??= MODULES_ACTIVE.LEVELS;
+    config.deadTokensBlock ??= deadTokenAlg !== deadTypes.NONE;
+    config.deadHalfHeight ??= deadTokenAlg === deadTypes.HALF;
+    config.liveTokensBlock ??= liveTokenAlg !== liveTypes.NONE;
+    config.liveHalfHeight ??= getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE)
+      && liveTokenAlg !== liveTypes.NONE;
+    config.liveForceHalfCover ??= liveTokenAlg === liveTypes.HALF;
+
+    config.tokensBlock = config.deadTokensBlock || config.liveTokensBlock;
+
+    this.config = config;
+  }
+
 
   /**
    * Determine whether a visionSource has line-of-sight to a target based on the percent
@@ -506,17 +521,12 @@ export class Area2d {
       if ( shadow ) shadows.push(shadow);
     }
 
-    // Add token borders as shadows if tokens block
-    for ( const token of viewableObjs.tokens ) {
-      let halfHeight = false;
-      if ( deadHalfHeight ) {
-        const hp = getObjectProperty(token.actor, hpAttribute);
-        halfHeight = (typeof hp === "number") && (hp <= 0);
-      }
+    const tokenPoints = buildTokenPoints(viewableObjs.tokens, this.config);
 
+    // Add token borders as shadows if tokens block
+    for ( const token3d of tokenPoints ) {
       // Use each vertical side of the token to shadow
       // This allows the back walls to shadow if viewer is above/below.
-      const token3d = new TokenPoints3d(token, { type, halfHeight });
       const sidePoints = token3d._allSides();
       sidePoints.forEach(pts => {
         pts = pts.points; // [topA, bottomA, bottomB, topB]
