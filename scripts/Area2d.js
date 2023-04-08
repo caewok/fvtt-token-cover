@@ -10,12 +10,11 @@ canvas
 "use strict";
 
 import { MODULES_ACTIVE, DEBUG } from "./const.js";
-import { getObjectProperty } from "./util.js";
+import { getObjectProperty, buildTokenPoints } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";
 import { CWSweepInfiniteWallsOnly } from "./CWSweepInfiniteWallsOnly.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
-import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
 
 import { Shadow } from "./geometry/Shadow.js";
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
@@ -60,27 +59,42 @@ export class Area2d {
    * @param {VisionSource} visionSource
    * @param {Token} target
    */
-  constructor(visionSource, target, {
-    type = "sight",
-    liveTokensBlock = false,
-    deadTokensBlock = false,
-    deadHalfHeight = false } = {}) {
+  constructor(visionSource, target, config = {}) {
 
     this.visionSource = visionSource instanceof Token ? visionSource.vision : visionSource;
     this.target = target;
 
     // Configuration options
-    this.config = {
-      type,
-      percentAreaForLOS: getSetting(SETTINGS.LOS.PERCENT_AREA),
-      tokensBlock: liveTokensBlock || deadTokensBlock,
-      liveTokensBlock,
-      deadTokensBlock,
-      deadHalfHeight
-    };
-
+    this.#configure(config);
     this.debug = DEBUG.area;
   }
+
+  /**
+   * Initialize the configuration for this constructor.
+   * @param {object} config   Settings intended to override defaults.
+   */
+  #configure(config = {}) {
+    const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
+    const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
+    const liveTokenAlg = getSetting(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
+    const liveTypes = SETTINGS.COVER.LIVE_TOKENS.TYPES;
+
+    config.type ??= "sight";
+    config.percentAreaForLOS ??= getSetting(SETTINGS.LOS.PERCENT_AREA);
+    config.wallsBlock ??= true;
+    config.tilesBlock ??= MODULES_ACTIVE.LEVELS;
+    config.deadTokensBlock ??= deadTokenAlg !== deadTypes.NONE;
+    config.deadHalfHeight ??= deadTokenAlg === deadTypes.HALF;
+    config.liveTokensBlock ??= liveTokenAlg !== liveTypes.NONE;
+    config.liveHalfHeight ??= getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE)
+      && liveTokenAlg !== liveTypes.NONE;
+    config.liveForceHalfCover ??= liveTokenAlg === liveTypes.HALF;
+
+    config.tokensBlock = config.deadTokensBlock || config.liveTokensBlock;
+
+    this.config = config;
+  }
+
 
   /**
    * Determine whether a visionSource has line-of-sight to a target based on the percent
@@ -327,7 +341,7 @@ export class Area2d {
       else seenArea += this._calculateSeenAreaForPolygon(poly) ?? 0;
     }
 
-    if ( !seenArea || seenArea < 0 || seenArea.almostEqual(0)  ) return 0;
+    if ( !seenArea || seenArea < 0 || seenArea.almostEqual(0) ) return 0;
 
     const percentSeen = seenArea / tokenArea;
 
@@ -413,7 +427,8 @@ export class Area2d {
     // holes and multiple pieces.
 
     // Use ClipperPaths to ensure all polygons are returned.
-    los = los instanceof ClipperPaths ? los : ClipperPaths.fromPolygons([los], { scalingFactor: Area2d.SCALING_FACTOR });
+    los = los instanceof ClipperPaths
+      ? los : ClipperPaths.fromPolygons([los], { scalingFactor: Area2d.SCALING_FACTOR });
     if ( constrained instanceof PIXI.Rectangle ) constrained = constrained.toPolygon();
 
     const intersect = los.intersectPolygon(constrained);
@@ -429,7 +444,7 @@ export class Area2d {
   shadowLOSForElevation(targetElevation = 0) {
     const visionSource = this.visionSource;
     const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
-    const { type, tokensBlock, liveTokensBlock, deadTokensBlock, deadHalfHeight } = this.config;
+    const { type, tokensBlock, liveTokensBlock, deadTokensBlock } = this.config;
     const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
 
     // Find the walls and, optionally, tokens, for the triangle between origin and target
@@ -506,17 +521,12 @@ export class Area2d {
       if ( shadow ) shadows.push(shadow);
     }
 
-    // Add token borders as shadows if tokens block
-    for ( const token of viewableObjs.tokens ) {
-      let halfHeight = false;
-      if ( deadHalfHeight ) {
-        const hp = getObjectProperty(token.actor, hpAttribute);
-        halfHeight = (typeof hp === "number") && (hp <= 0);
-      }
+    const tokenPoints = buildTokenPoints(viewableObjs.tokens, this.config);
 
+    // Add token borders as shadows if tokens block
+    for ( const token3d of tokenPoints ) {
       // Use each vertical side of the token to shadow
       // This allows the back walls to shadow if viewer is above/below.
-      const token3d = new TokenPoints3d(token, { type, halfHeight });
       const sidePoints = token3d._allSides();
       sidePoints.forEach(pts => {
         pts = pts.points; // [topA, bottomA, bottomB, topB]

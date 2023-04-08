@@ -20,11 +20,10 @@ import { Draw } from "./geometry/Draw.js"; // For debugging
 import {
   lineSegmentIntersectsQuadrilateral3d,
   lineIntersectionQuadrilateral3d,
-  getObjectProperty } from "./util.js";
+  buildTokenPoints } from "./util.js";
 
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
-import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
 // Don't pass complex classes through the socket. Use token ids instead.
@@ -150,13 +149,17 @@ export class CoverCalculator {
 
     const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
     const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
+    const liveTokenAlg = getSetting(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
+    const liveTypes = SETTINGS.COVER.LIVE_TOKENS.TYPES;
     this.config = {
       type: "move",
       wallsBlock: true,
       tilesBlock: MODULES_ACTIVE.LEVELS,
-      liveTokensBlock: getSetting(SETTINGS.COVER.LIVE_TOKENS),
       deadTokensBlock: deadTokenAlg !== deadTypes.NONE,
-      deadHalfHeight: deadTokenAlg === deadTypes.HALF
+      deadHalfHeight: deadTokenAlg === deadTypes.HALF,
+      liveTokensBlock: liveTokenAlg !== liveTypes.NONE,
+      liveHalfHeight: getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE) && liveTokenAlg !== liveTypes.NONE,
+      liveForceHalfCover: liveTokenAlg === liveTypes.HALF
     };
     this.config.tokensBlock = this.config.liveTokensBlock || this.config.deadTokensBlock;
   }
@@ -532,41 +535,19 @@ export class CoverCalculator {
   }
 
   _hasTokenCollision(tokenPoint, targetPoint) {
-    const { liveTokensBlock, deadTokensBlock, deadHalfHeight } = this.config;
     const ray = new Ray(tokenPoint, targetPoint);
     let tokens = canvas.tokens.quadtree.getObjects(ray.bounds);
-    const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
 
     // Filter out the viewer and target token
     tokens.delete(this.viewer);
     tokens.delete(this.target);
 
-    // Filter live or dead tokens
-    if ( liveTokensBlock ^ deadTokensBlock ) {
-      tokens = tokens.filter(t => {
-        const hp = getObjectProperty(t.actor, hpAttribute);
-        if ( typeof hp !== "number" ) return true;
-
-        if ( liveTokensBlock && hp > 0 ) return true;
-        if ( deadTokensBlock && hp <= 0 ) return true;
-        return false;
-      });
-    }
-
-    // Construct the TokenPoints3d for each token, using half-height if required
-    if ( deadHalfHeight ) {
-      tokens = tokens.map(t => {
-        const hp = getObjectProperty(t.actor, hpAttribute);
-        const halfHeight = (typeof hp === "number") && (hp <= 0);
-        return new TokenPoints3d(t, { type: this.config.type, halfHeight });
-      });
-    } else {
-      tokens = tokens.map(t => new TokenPoints3d(t, { type: this.config.type, halfHeight: false }));
-    }
+    // Build full- or half-height tokenPoints3d from tokens
+    const tokenPoints = buildTokenPoints(tokens, this.config);
 
     // Set viewing position and test token sides for collisions
-    for ( const token of tokens ) {
-      const sides = token._viewableFaces(tokenPoint);
+    for ( const pts of tokenPoints ) {
+      const sides = pts._viewableFaces(tokenPoint);
       for ( const side of sides ) {
         if ( lineSegmentIntersectsQuadrilateral3d(tokenPoint, targetPoint,
           side.points[0],
@@ -575,20 +556,6 @@ export class CoverCalculator {
           side.points[3]) ) return true;
       }
     }
-
-    return false;
-  }
-
-  /**
-   * Determine if there is a collision between two 3d points.
-   * Depending on configuration, accounts for tokens and tiles as well as walls.
-   */
-  _hasCollision(tokenPoint, targetPoint) {
-    const { wallsBlock, tokensBlock, tilesBlock } = this.config;
-
-    if ( wallsBlock && this._hasWallCollision(tokenPoint, targetPoint) ) return true;
-    if ( tilesBlock && this._hasTileCollision(tokenPoint, targetPoint) ) return true;
-    if ( tokensBlock && this._hasTokenCollision(tokenPoint, targetPoint) ) return true;
 
     return false;
   }
@@ -899,16 +866,29 @@ export class CoverCalculator {
    * @returns {COVER_TYPE}
    */
   _testPointToPoints(tokenPoint, targetPoints) {
+    const liveForceHalfCover = this.config.liveForceHalfCover;
+
     let numCornersBlocked = 0;
+    let tokenBlocks = false;
     const ln = targetPoints.length;
     for ( let i = 0; i < ln; i += 1 ) {
       const targetPoint = targetPoints[i];
-      const collision = this._hasCollision(tokenPoint, targetPoint);
+      const tokenCollision = this._hasTokenCollision(tokenPoint, targetPoint);
+      const edgeCollision = this._hasWallCollision(tokenPoint, targetPoint)
+        || this._hasTileCollision(tokenPoint, targetPoint);
+
+      tokenBlocks ||= tokenCollision;
+
+      const collision = edgeCollision || (!liveForceHalfCover && tokenCollision);
       if ( collision ) numCornersBlocked += 1;
     }
 
     const percentCornersBlocked = numCornersBlocked / ln;
-    return CoverCalculator.typeForPercentage(percentCornersBlocked);
+    const coverType = CoverCalculator.typeForPercentage(percentCornersBlocked);
+
+    return ( liveForceHalfCover && tokenBlocks )
+      ? Math.max(coverType, SETTINGS.COVER.TRIGGER_PERCENT.LOW)
+      : coverType;
   }
 
   /**
@@ -917,18 +897,7 @@ export class CoverCalculator {
    * @returns {number} Percentage seen, of the total target top or bottom area.
    */
   _percentVisible(Area) {
-    const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
-    const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
-    const config = {
-      type: "move",
-      wallsBlock: true,
-      tilesBlock: MODULES_ACTIVE.LEVELS,
-      liveTokensBlock: getSetting(SETTINGS.COVER.LIVE_TOKENS),
-      deadTokensBlock: deadTokenAlg !== deadTypes.NONE,
-      deadHalfHeight: deadTokenAlg === deadTypes.HALF
-    };
-
-    const area = new Area(this.viewer, this.target, config);
+    const area = new Area(this.viewer, this.target, this.config);
     if ( this.debug ) area.debug = true;
     return area.percentAreaVisible();
   }

@@ -52,10 +52,10 @@
     "tokenvisibility.settings.midiqol-covercheck-gm": "Ask GM to confirm",
     "tokenvisibility.settings.midiqol-covercheck-auto": "Automatically apply",
 
-    "tokenvisibility.settings.cover-combat-auto.Name": "Combatant targeting applies cover",
+    "tokenvisibility.settings.cover-combat-auto.Name": "Combatant Targeting Applies Cover",
     "tokenvisibility.settings.cover-combat-auto.Hint": "If in combat, when a user that owns the current combatant is targeting a token, apply cover effects to the targeted token based on cover from the current combatant.",
 
-    "tokenvisibility.settings.cover-chat-message.Name": "Display cover in chat",
+    "tokenvisibility.settings.cover-chat-message.Name": "Display Cover in Chat",
     "tokenvisibility.settings.cover-chat-message.Hint": "When rolling an attack, test and display cover for targets in the chat. Currently only in dnd5e.",
 
     "tokenvisibility.settings.menu-cover-effects-low.Name": "Low Cover Active Effect",
@@ -80,7 +80,13 @@
     "tokenvisibility.settings.cover-token-dead-attribute.Hint": "String indicating where the hit points for a `token.actor` can be found. Required to use dead tokens for cover.",
 
     "tokenvisibility.settings.cover-token-live.Name": "Live Tokens Grant Cover",
-    "tokenvisibility.settings.cover-token-live.Hint": "If checked, live tokens will be considered blocking for measuring cover.",
+    "tokenvisibility.settings.cover-token-live.Hint": "'Full': Full token height/shape contributes to cover. 'Half': Flat half-cover for tokens; token shape not otherwise considered (dnd5e). None: Tokens do not contribute to cover.",
+    "tokenvisibility.settings.cover-token-live-none": "No cover",
+    "tokenvisibility.settings.cover-token-live-half": "Force flat half-cover",
+    "tokenvisibility.settings.cover-token-live-full": "Full token height",
+
+    "tokenvisibility.settings.cover-token-prone-attribute.Name": "'Prone' Status Id",
+    "tokenvisibility.settings.cover-token-prone-attribute.Hint": "String indicating the id for the token 'prone' status. If live tokens grant full cover, a prone token will use half the height of the token. Ignored otherwise or if left blank.",
 
     "tokenvisibility.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
     "tokenvisibility.DrawingConfiguration.isHole.Name": "Drawing is Hole",

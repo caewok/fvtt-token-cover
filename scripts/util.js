@@ -8,6 +8,8 @@ CONFIG
 
 import { MODULE_ID, EPSILON } from "./const.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
+import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
+import { getSetting, SETTINGS } from "./settings.js";
 
 /**
  * Log message only when debug flag is enabled from DevMode module.
@@ -289,4 +291,50 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
   const d = new Point3d(-(wall.B.y - Ay), (wall.B.x - Ax), 0);
 
   return linePlane3dIntersection(a, b, c, d, epsilon);
+}
+
+/**
+ * Given config options, build TokenPoints3d from tokens.
+ * The points will use either half- or full-height tokens, depending on config.
+ * @param {Token[]|Set<Token>} tokens
+ * @param {object} config
+ *   - {string}  type
+ *   - {boolean} liveTokensBlock
+ *   - {boolean} deadTokensBlock
+ *   - {boolean} deadHalfHeight
+ *   - {boolean} liveHalfHeight
+ * @returns {TokenPoints3d[]}
+ */
+export function buildTokenPoints(tokens, config) {
+  if ( !tokens.length && !tokens.size ) return tokens;
+  const { type, liveTokensBlock, deadTokensBlock, deadHalfHeight, liveHalfHeight } = config;
+  const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
+  const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
+
+  // Filter live or dead tokens
+  if ( liveTokensBlock ^ deadTokensBlock ) {
+    tokens = tokens.filter(t => {
+      const hp = getObjectProperty(t.actor, hpAttribute);
+      if ( typeof hp !== "number" ) return true;
+
+      if ( liveTokensBlock && hp > 0 ) return true;
+      if ( deadTokensBlock && hp <= 0 ) return true;
+      return false;
+    });
+  }
+
+  // Construct the TokenPoints3d for each token, using half-height if required
+  if ( deadHalfHeight || liveHalfHeight ) {
+    tokens = tokens.map(t => {
+      const hp = getObjectProperty(t.actor, hpAttribute);
+      const isProne = t.actor ? t.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
+      const halfHeight = (deadHalfHeight && (typeof hp === "number") && (hp <= 0))
+        || (liveHalfHeight && hp > 0 && isProne);
+      return new TokenPoints3d(t, { type, halfHeight });
+    });
+  } else {
+    tokens = tokens.map(t => new TokenPoints3d(t, { type, halfHeight: false }));
+  }
+
+  return tokens;
 }

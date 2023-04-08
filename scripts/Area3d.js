@@ -6,7 +6,8 @@ Token,
 CONST,
 Ray,
 LimitedAnglePolygon,
-CONFIG
+CONFIG,
+ClipperLib
 */
 "use strict";
 
@@ -32,7 +33,7 @@ Area:
 
 import { MODULE_ID, FLAGS, MODULES_ACTIVE, DEBUG } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
-import { log, getObjectProperty } from "./util.js";
+import { log, buildTokenPoints } from "./util.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 import { Draw } from "./geometry/Draw.js"; // For debugging
@@ -175,34 +176,14 @@ export class Area3d {
    * @param {VisionSource|TOKEN} visionSource     Token, viewing from token.topZ.
    * @param {Target} target   Target; token is looking at the target center.
    */
-  constructor(viewer, target, {
-    type = "sight",
-    wallsBlock = true,
-    tilesBlock = false,
-    liveTokensBlock = false,
-    deadTokensBlock = false,
-    deadHalfHeight = false } = {}) {
+  constructor(viewer, target, config = {}) {
 
     this.viewer = viewer instanceof Token ? viewer.vision : viewer;
     this.target = target;
+    this._targetPoints = new TokenPoints3d(target);
 
     // Configuration options
-    this.config = {
-      type,
-      wallsBlock,
-      tilesBlock,
-      tokensBlock: liveTokensBlock || deadTokensBlock,
-      percentAreaForLOS: getSetting(SETTINGS.LOS.PERCENT_AREA),
-      _useShadows: getSetting(SETTINGS.AREA3D_USE_SHADOWS),
-      liveTokensBlock,
-      deadTokensBlock,
-      deadHalfHeight
-    };
-
-    // Internal setting.
-    // If true, draws the _blockingObjectsPoints.
-    // If false, draws the _blockingPoints
-    this.config.debugDrawObjects = false;
+    this.#configure(config);
 
     // Set debug only if the target is being targeted.
     // Avoids "double-vision" from multiple targets for area3d on scene.
@@ -210,9 +191,40 @@ export class Area3d {
       const targets = canvas.tokens.placeables.filter(t => t.isTargeted);
       this.debug = targets.some(t => t === target);
     }
-
-    this._targetPoints = new TokenPoints3d(target);
   }
+
+  /**
+   * Initialize the configuration for this constructor.
+   * @param {object} config   Settings intended to override defaults.
+   */
+  #configure(config = {}) {
+    const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
+    const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
+    const liveTokenAlg = getSetting(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
+    const liveTypes = SETTINGS.COVER.LIVE_TOKENS.TYPES;
+
+    config.type ??= "sight";
+    config.percentAreaForLOS ??= getSetting(SETTINGS.LOS.PERCENT_AREA);
+    config.useShadows ??= getSetting(SETTINGS.AREA3D_USE_SHADOWS);
+    config.wallsBlock ??= true;
+    config.tilesBlock ??= MODULES_ACTIVE.LEVELS;
+    config.deadTokensBlock ??= deadTokenAlg !== deadTypes.NONE;
+    config.deadHalfHeight ??= deadTokenAlg === deadTypes.HALF;
+    config.liveTokensBlock ??= liveTokenAlg !== liveTypes.NONE;
+    config.liveHalfHeight ??= getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE)
+      && liveTokenAlg !== liveTypes.NONE;
+    config.liveForceHalfCover ??= liveTokenAlg === liveTypes.HALF;
+
+    config.tokensBlock = config.deadTokensBlock || config.liveTokensBlock;
+
+    // Internal setting.
+    // If true, draws the _blockingObjectsPoints.
+    // If false, draws the _blockingPoints
+    this.config.debugDrawObjects ??= false;
+
+    this.config = config;
+  }
+
 
   // NOTE ----- USER-FACING METHODS -----
 
@@ -356,10 +368,6 @@ export class Area3d {
       || (this._viewerCenter = new Point3d(this.viewer.x, this.viewer.y, this.viewer.elevationZ));
   }
 
-  get visionPolygon() {
-    return this._visionPolygon || (this._visionPolygon = Area3d.visionPolygon(this.viewerCenter, this.target));
-  }
-
   get targetTop() {
     if ( typeof this._targetTop === "undefined" ) {
       const pts = Point3d.fromToken(this.target);
@@ -386,141 +394,10 @@ export class Area3d {
 
   /** @type {PIXI.Polygon} */
   get visionPolygon() {
-    return this._visionPolygon || (this._visionPolygon = Area3d.visionPolygon(this.viewerCenter, this.target))
+    return this._visionPolygon || (this._visionPolygon = Area3d.visionPolygon(this.viewerCenter, this.target));
   }
 
   // NOTE ----- STATIC METHODS ----- //
-
-  /**
-   * Split a wall that intersects a token shape
-   * Consider 3d aspects of wall, and return a array of wall points representing
-   * portions of the wall not intersecting the 3d token cube
-   * @param {Wall} wall             Wall to split
-   * @param {Token} target          Token to test for intersecting walls
-   * @param {object} [options]      Options that affect which walls are returned
-   * @param {boolean} [options.keepTop]     Keep the portion of the wall directly above the token.
-   * @param {boolean} [optinos.keepBottom]  Keep the portion of the wall directly below the token.
-   * @returns {object} Object with WallPoints3d|null for top, bottom, left, right, middle
-   */
-//   static splitWallAtTokenIntersections(wall, target) {
-//     // For speed, we can rely on the rectangular token border.
-//     // Will be slightly off when using hexagons, so revert to constrained token there.
-//     const splitWallPoints = {
-//       top: null,
-//       middle: null,
-//       bottom: null,
-//       sideA: null,
-//       sideB: null,
-//       full: null
-//     };
-//
-//     const isHex = canvas.scene.grid.type > 1;
-//     const targetBorder = isHex ? ConstrainedTokenBorder.get(target).constrainedBorder() : target.bounds;
-//     if ( !targetBorder.lineSegmentIntersects(wall.A, wall.B, { inside: true }) ) {
-//       splitWallPoints.full = new WallPoints3d(wall);
-//       return splitWallPoints;
-//     }
-//
-//     // First, split top and bottom.
-//     const wallPoints = Point3d.fromWall(wall, { finite: true });
-//     const pTop = duplicate(wallPoints);
-//     const pBottom = duplicate(pTop);
-//     const pMiddle = duplicate(pTop);
-//     pTop.A.bottom.z = target.topZ;
-//     pTop.B.bottom.z = target.topZ;
-//     pBottom.A.top.z = target.bottomZ;
-//     pBottom.B.top.z = target.bottomZ;
-//
-//     pMiddle.A.top.z = target.topZ;
-//     pMiddle.A.bottom.z = target.bottomZ;
-//     pMiddle.B.top.z = target.topZ;
-//     pMiddle.B.bottom.z = target.bottomZ;
-//
-//     // Test whether A and B are inside the token border
-//     const Acontained = targetBorder.contains(wall.A.x, wall.A.y);
-//     const Bcontained = targetBorder.contains(wall.B.x, wall.B.y);
-//
-//     // Find where the wall intersects the token border, if at all
-//     const ixs = !Acontained || !Bcontained ? targetBorder.segmentIntersections(wall.A, wall.B) : null;
-//
-//     if ( !Acontained ) {
-//       // A endpoint is outside token. Cut wall at the A --> ix point.
-//       const pA = duplicate(wallPoints);
-//
-//       pA.B.top.x = ixs[0].x;
-//       pA.B.top.y = ixs[0].y;
-//       pA.B.bottom.x = ixs[0].x;
-//       pA.B.bottom.y = ixs[0].y;
-//
-//       pTop.A.top.x = ixs[0].x;
-//       pTop.A.top.y = ixs[0].y;
-//       pTop.A.bottom.x = ixs[0].x;
-//       pTop.A.bottom.y = ixs[0].y;
-//
-//       pBottom.A.top.x = ixs[0].x;
-//       pBottom.A.top.y = ixs[0].y;
-//       pBottom.A.bottom.x = ixs[0].x;
-//       pBottom.A.bottom.y = ixs[0].y;
-//
-//       pMiddle.A.top.x = ixs[0].x;
-//       pMiddle.A.top.y = ixs[0].y;
-//       pMiddle.A.bottom.x = ixs[0].x;
-//       pMiddle.A.bottom.y = ixs[0].y;
-//
-//       if ( PIXI.Point.distanceSquaredBetween(pA.A.top, pA.B.top) > (0 + 1e-08)
-//         && pA.A.top.z > (pA.A.bottom.z + 1e-08) ) {
-//
-//         splitWallPoints.sideA = WallPoints3d.fromWallPoints(pA, wall);
-//       }
-//
-//     } // Otherwise ignore pA
-//
-//     if ( !Bcontained ) {
-//       // B endpoint outside token. Cut wall at the B --> ix point
-//       const pB = duplicate(wallPoints);
-//
-//       const i = ixs.length - 1;
-//       pB.A.top.x = ixs[i].x;
-//       pB.A.top.y = ixs[i].y;
-//       pB.A.bottom.x = ixs[i].x;
-//       pB.A.bottom.y = ixs[i].y;
-//
-//       pTop.B.top.x = ixs[i].x;
-//       pTop.B.top.y = ixs[i].y;
-//       pTop.B.bottom.x = ixs[i].x;
-//       pTop.B.bottom.y = ixs[i].y;
-//
-//       pBottom.B.top.x = ixs[i].x;
-//       pBottom.B.top.y = ixs[i].y;
-//       pBottom.B.bottom.x = ixs[i].x;
-//       pBottom.B.bottom.y = ixs[i].y;
-//
-//       pMiddle.B.top.x = ixs[i].x;
-//       pMiddle.B.top.y = ixs[i].y;
-//       pMiddle.B.bottom.x = ixs[i].x;
-//       pMiddle.B.bottom.y = ixs[i].y;
-//
-//       if ( PIXI.Point.distanceSquaredBetween(pB.A.bottom, pB.B.bottom) > (0 + 1e-08)
-//         && pB.A.top.z > (pB.A.bottom.z + 1e-08) ) {
-//         splitWallPoints.sideB = WallPoints3d.fromWallPoints(pB, wall);
-//       }
-//
-//     } // Otherwise ignore pB
-//
-//     if ( pTop.A.top.z > (pTop.A.bottom.z + 1e-08) ) {
-//       splitWallPoints.top = WallPoints3d.fromWallPoints(pTop, wall);
-//     }
-//
-//     if ( pBottom.A.top.z > (pBottom.A.bottom.z + 1e-08) ) {
-//       splitWallPoints.bottom = WallPoints3d.fromWallPoints(pBottom, wall);
-//     }
-//
-//     if ( pMiddle.A.top.z > (pMiddle.A.bottom.z + 1e-08) ) {
-//       splitWallPoints.middle = WallPoints3d.fromWallPoints(pMiddle, wall);
-//     }
-//
-//     return splitWallPoints;
-//   }
 
   /**
    * Vision Polygon for the view point --> target.
@@ -536,7 +413,7 @@ export class Area3d {
     const border = target.constrainedTokenBorder;
     const keyPoints = border.viewablePoints(viewingPoint, { outermostOnly: false });
     if ( !keyPoints ) {
-      log(`visionPolygon: key points are null.`);
+      log("visionPolygon: key points are null.");
       return border.toPolygon();
     }
 
@@ -562,7 +439,7 @@ export class Area3d {
         // Union the triangle with this border
         const triangle = new PIXI.Polygon([viewingPoint, k0, k1]);
         // TODO: WA should be able to union two shapes that share a single edge.
-        out = intersect.intersectPolygon(triangle , { clipType: ClipperLib.ClipType.ctUnion, disableWA: true });
+        out = intersect.intersectPolygon(triangle, { clipType: ClipperLib.ClipType.ctUnion, disableWA: true });
         break;
       }
       default:
@@ -613,52 +490,6 @@ export class Area3d {
       });
 
       if ( debug ) out.walls.forEach(w => Draw.segment(w, { color: Draw.COLORS.gray, alpha: 0.2 }));
-
- //      // For walls that intersect the target token, remove the portion within the token cube.
-//       // Filter the resulting points by the vision triangle
-//       // As a result, all walls must be stored as WallPoints3d
-//       // We can check the token constrained border against each wall b/c walls all vertical.
-//       const constrainedTokenBorder = ConstrainedTokenBorder.get(target).constrainedBorder();
-//       out.wallPoints3d = [];
-//       const splitWallPoints = [];
-//
-//       // If we are looking down on the target, keep the top walls only.
-//       // If we are looking up at the target, keep bottom walls only.
-//       let keepBottom = true;
-//       let keepTop = true;
-//       if ( viewingPoint.z > target.topZ ) keepBottom = false;
-//       if ( viewingPoint.z < target.bottomZ ) keepTop = false;
-//
-//       for ( const wall of out.walls ) {
-//         const splitWalls = Area3d.splitWallAtTokenIntersections(wall, target);
-//         if ( splitWalls.full ) {
-//           splitWallPoints.push(splitWalls.full);
-//           continue;
-//         }
-//
-//         if ( keepBottom && splitWalls.bottom) splitWallPoints.push(splitWalls.bottom);
-//         if ( keepTop && splitWalls.top ) splitWallPoints.push(splitWalls.top);
-//
-//         // Keep sides and middle if they potentially block viewer --> token center.
-//         [splitWalls.sideA, splitWalls.sideB, splitWalls.middle].forEach(pts => {
-//           if ( !pts ) return;
-//           const oViewer = foundry.utils.orient2dFast(pts.topA, pts.topB, viewingPoint);
-//           const oTarget = foundry.utils.orient2dFast(pts.topA, pts.topB, target.center);
-//           if ( oViewer * oTarget < 0 ) splitWallPoints.push(pts);
-//         })
-//       }
-//
-//       // Test the new wall portions against the vision triangle; several are likely behind and can be dropped.
-//       const edges = [...visionPolygon.iterateEdges()];
-//       const filteredWallPoints = splitWallPoints.filter(w => {
-//         const { topA, topB } = w;
-//         if ( visionPolygon.contains(topA.x, topA.y) || visionPolygon.contains(topB.x, topB.y) ) return true;
-//         return edges.some(e => foundry.utils.lineSegmentIntersects(topA, topB, e.A, e.B));
-//       });
-//
-//       out.wallPoints3d.push(...filteredWallPoints);
-//
-//       if ( debug ) out.wallPoints3d.forEach(pts => pts.draw({ color: Draw.COLORS.gray }));
     }
 
     if ( filterTokens ) {
@@ -818,68 +649,6 @@ export class Area3d {
     return !wall.document.dir || (side !== wall.document.dir);
   }
 
-  /**
-   * Test whether walls block the source with regard to LOS.
-   * @param {PIXI.Polygon|PIXI.Rectangle} constrained   Token shape
-   * @param {Point} origin                              Viewpoint to test for whether constrained can be seen
-   * @param {hasLOS: {Boolean}, hasFOV: {Boolean}}
-   * @return {Boolean} Returns false if the source definitely cannot provide LOS; true otherwise.
-   */
-//   static filterWallsForVisionCone(walls, constrained, origin, type = "sight") {
-//     const keyPoints = (constrained instanceof PIXI.Polygon)
-//       ? Area3d.polygonKeyPointsForOrigin(constrained, origin)
-//       : Area3d.bboxKeyCornersForOrigin(constrained, origin);
-//     if ( !keyPoints || !keyPoints.length ) return walls;
-//
-//     const visionPoly = new PIXI.Polygon([origin, ...keyPoints]);
-//
-//     walls = walls.filter(wall =>
-//       !wall.document[type]
-//       || wall.isOpen
-//       || visionPoly.contains(wall.A.x, wall.A.y)
-//       || visionPoly.contains(wall.B.x, wall.B.y)
-//       || visionPoly.linesCross([wall]));
-//
-//     // Avoid walls that are underground if origin is above ground, or vice-versa
-//     if ( origin.z >= 0 ) walls = walls.filter(w => w.topZ >= 0);
-//     else walls = walls.filter(w => w.bottomZ <= 0);
-//
-//     // Avoid walls for which a tile separates the observer from the wall.
-//     const rect = new PIXI.Rectangle(origin.x - 1, origin.y - 1, 2, 2);
-//     const tiles = canvas.tiles.quadtree.getObjects(rect);
-//     walls = walls.filter(w => !Area3d.isWallBetweenTile(origin, w, tiles));
-//
-//     return walls;
-//   }
-
-
-  /**
-   * Also in Elevated Vision clockwise_sweep.js
-   * From point of view of a source (light or vision observer), is the wall underneath the tile?
-   * Only source elevation and position, not perspective, taken into account.
-   * So if source is above tile and wall is below tile, that counts.
-   * @param {PointSource} observer
-   * @param {Wall} wall
-   * @param {Tile[]} tiles    Set of tiles; will default to all tiles under the observer
-   * @returns {boolean}
-   */
-//   static isWallBetweenTile(origin, wall, tiles) {
-//     if ( !tiles ) {
-//       const rect = new PIXI.Rectangle(origin.x - 1, origin.y - 1, 2, 2);
-//       tiles = canvas.tiles.quadtree.getObjects(rect);
-//     }
-//
-//     for ( const tile of tiles ) {
-//       if ( !tile.bounds.contains(origin.x, origin.y) ) continue;
-//
-//       const tileE = tile.document.flags?.levels.rangeBottom ?? tile.document.elevation;
-//       const tileZ = CONFIG.GeometryLib.utils.gridUnitsToPixels(tileE);
-//       if ( (origin.z > tileZ && wall.topZ < tileZ)
-//         || (origin.z < tileZ && wall.bottomZ > tileZ) ) return true;
-//     }
-//     return false;
-//   }
-
   // NOTE ----- PRIMARY METHODS ----- //
 
   /**
@@ -1026,11 +795,6 @@ export class Area3d {
    */
   _constructBlockingObjectsPoints() {
     const blockingObjs = this.blockingObjects;
-    const {
-      type,
-      liveTokensBlock,
-      deadTokensBlock,
-      deadHalfHeight } = this.config;
 
     // Clear any prior objects from the respective sets
     const { drawings, terrainWalls, tiles, tokens, walls } = this._blockingObjectsPoints;
@@ -1048,31 +812,8 @@ export class Area3d {
       && blockingObjs.drawings.size ) blockingObjs.drawings.forEach(d => drawings.add(new DrawingPoints3d(d)));
 
     // Add Tokens
-    if ( blockingObjs.tokens.size ) {
-      const filteredTokens = new Set(blockingObjs.tokens);
-
-      // Filter live or dead tokens, depending on config.
-      if ( liveTokensBlock ^ deadTokensBlock ) { // We handled tokensBlock above
-        const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
-        filteredTokens.forEach(t => {
-          const hp = getObjectProperty(t.actor, hpAttribute);
-          if ( typeof hp === "number" ) return;
-          if ( liveTokensBlock && hp > 0 ) return;
-          if ( deadTokensBlock && hp <= 0 ) return;
-          filteredTokens.delete(t);
-        });
-      }
-
-      // Construct the TokenPoints3d for each token, using half-height for dead if required
-      if ( deadHalfHeight ) {
-        const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
-        filteredTokens.forEach(t => {
-          const hp = getObjectProperty(t.actor, hpAttribute);
-          const halfHeight = (typeof hp === "number") && (hp <= 0);
-          tokens.add(new TokenPoints3d(t, { type, halfHeight }));
-        });
-      } else filteredTokens.forEach(t => tokens.add(new TokenPoints3d(t, { type })));
-    }
+    const tokenPoints = buildTokenPoints(blockingObjs.tokens, this.config);
+    tokenPoints.forEach(pts => tokens.add(pts));
 
     // Add Walls
     blockingObjs.walls.forEach(w => walls.add(new WallPoints3d(w)));
