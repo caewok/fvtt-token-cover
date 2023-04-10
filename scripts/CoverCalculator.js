@@ -130,6 +130,17 @@ export class CoverCalculator {
   /** @type {object} */
   static ALGORITHMS = SETTINGS.COVER.TYPES;
 
+  /**
+   * @typedef Area2dConfig  Configuration settings for this class.
+   * @type {object}
+   * @property {CONST.WALL_RESTRICTION_TYPES} type    Type of vision source
+   * @property {boolean} wallsBlock                   Do walls block vision?
+   * @property {boolean} tilesBlock                   Do tiles block vision?
+   * @property {boolean} deadTokensBlock              Do dead tokens block vision?
+   * @property {boolean} liveTokensBlock              Do live tokens block vision?
+   * @property {boolean} liveForceHalfCover           Use dnd5e token half-cover rule
+   */
+
   /** @type {object} */
   config = {};
 
@@ -162,12 +173,9 @@ export class CoverCalculator {
 
     config.type ??= "move";
     config.wallsBlock ??= true;
-    config.tilesBlock ??= MODULES_ACTIVE.LEVELS;
+    config.tilesBlock ??= MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.EV;
     config.deadTokensBlock ??= deadTokenAlg !== deadTypes.NONE;
-    config.deadHalfHeight ??= deadTokenAlg === deadTypes.HALF;
     config.liveTokensBlock ??= liveTokenAlg !== liveTypes.NONE;
-    config.liveHalfHeight ??= getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE) !== ""
-      && liveTokenAlg !== liveTypes.NONE;
     config.liveForceHalfCover ??= liveTokenAlg === liveTypes.HALF;
 
     this.config = config;

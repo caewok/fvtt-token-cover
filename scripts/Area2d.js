@@ -229,38 +229,23 @@ export class Area2d {
   _buildShadowLOS() {
     const visionSource = this.visionSource;
     const target = this.target;
+    const { topZ, bottomZ } = target;
 
     // Test top and bottom of target shape.
     let bottom;
     let top;
-
-    const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
-    const isProne = (proneStatusId !== "" && target.actor)
-      ? target.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
-    const bottomZ = target.bottomZ;
-    const topZ = (this.config.liveHalfHeight && isProne)
-      ? target.topZ - ((target.topZ - bottomZ) * 0.5) : target.topZ;
-
     const inBetween = visionSource.elevationZ <= topZ && visionSource.elevationZ >= bottomZ;
 
     // If target has no height, return one shadowed LOS polygon based on target elevation.
-    if ( !(topZ - bottomZ) ) return {
-      top: this.shadowLOSForElevation(topZ)
-    };
+    if ( !(topZ - bottomZ) ) return { top: this.shadowLOSForElevation(topZ) };
 
-    if ( inBetween || visionSource.elevationZ < bottomZ ) {
-      // Looking up at bottom
-      bottom = this.shadowLOSForElevation(bottomZ);
-    }
+    // Looking up at bottom
+    if ( inBetween || visionSource.elevationZ < bottomZ ) bottom = this.shadowLOSForElevation(bottomZ);
 
-    if ( inBetween || visionSource.elevationZ > topZ ) {
-      // Looking down at top
-      top = this.shadowLOSForElevation(topZ);
-    }
+    // Looking down at top
+    if ( inBetween || visionSource.elevationZ > topZ ) top = this.shadowLOSForElevation(topZ);
 
-    if ( top && bottom && objectsEqual(top.points, bottom.points) ) return { top };
-
-    return { bottom, top };
+    return (top && bottom && objectsEqual(top.points, bottom.points)) ? { top } : { bottom, top };
   }
 
   /**
@@ -462,7 +447,6 @@ export class Area2d {
       filterWalls: true,
       filterTokens: liveTokensBlock || deadTokensBlock,
       filterTiles: false,
-      liveHalfHeight: this.config.liveHalfHeight,
       viewer: visionSource.object,
       debug: this.debug
     };

@@ -294,15 +294,18 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
 }
 
 /**
+ * @typedef buildTokenPointsConfig
+ * @type {object}
+ * @property {CONST.WALL_RESTRICTION_TYPES} type    Type of vision source
+ * @property {boolean} deadTokensBlock              Do dead tokens block vision?
+ * @property {boolean} liveTokensBlock              Do live tokens block vision?
+ */
+
+/**
  * Given config options, build TokenPoints3d from tokens.
  * The points will use either half- or full-height tokens, depending on config.
  * @param {Token[]|Set<Token>} tokens
- * @param {object} config
- *   - {string}  type
- *   - {boolean} liveTokensBlock
- *   - {boolean} deadTokensBlock
- *   - {boolean} deadHalfHeight
- *   - {boolean} liveHalfHeight
+ * @param {buildTokenPointsConfig} config
  * @returns {TokenPoints3d[]}
  */
 export function buildTokenPoints(tokens, config) {

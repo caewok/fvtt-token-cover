@@ -80,8 +80,7 @@ export class Area3d {
    * @property {boolean} liveTokensBlock              Do live tokens block vision?
    * @property {boolean} useShadows                   For benchmarking and debugging
    * @property {boolean} debugDrawObjects             Draw blockingObjectPoints if true
-   * @property {}
-   *
+   */
 
   /** @type object */
   config = {};
@@ -298,17 +297,12 @@ export class Area3d {
 
       // Calculate the areas of the target faces separately, along with the obscured side areas.
       const target = this.target;
-      const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
-      const isProne = (proneStatusId !== "" && target.actor)
-        ? target.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
-      const bottomZ = target.bottomZ;
-      const topZ = (this.config.liveHalfHeight && isProne)
-        ? target.topZ - ((target.topZ - bottomZ) * 0.5) : target.topZ;
-
+      const { topZ, bottomZ } = target;
+      const height = topZ - bottomZ;
       this.debugSideAreas = {
         top: target.w * target.h,
-        ogSide1: target.w * (topZ - bottomZ),
-        ogSide2: target.h * (topZ - bottomZ),
+        ogSide1: target.w * height,
+        ogSide2: target.h * height,
         sides: [],
         obscuredSides: []
       };
@@ -484,7 +478,6 @@ export class Area3d {
     filterWalls = true,
     filterTokens = true,
     filterTiles = true,
-    liveHalfHeight = false,
     debug = false,
     viewer } = {}) {
 
@@ -492,14 +485,7 @@ export class Area3d {
     if ( debug ) Draw.shape(visionPolygon,
       { color: Draw.COLORS.blue, fillAlpha: 0.2, fill: Draw.COLORS.blue });
 
-    const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
-    const isProne = (proneStatusId !== "" && target.actor)
-      ? target.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
-    const bottomZ = target.bottomZ;
-    const topZ = (liveHalfHeight && isProne)
-      ? target.topZ - ((target.topZ - bottomZ) * 0.5) : target.topZ;
-
-
+    const { topZ, bottomZ } = target;
     const maxE = Math.max(viewingPoint.z ?? 0, topZ);
     const minE = Math.min(viewingPoint.z ?? 0, bottomZ);
 
@@ -786,7 +772,6 @@ export class Area3d {
       filterWalls: wallsBlock,
       filterTokens: liveTokensBlock || deadTokensBlock,
       filterTiles: tilesBlock,
-      liveHalfHeight: this.config.liveHalfHeight,
       debug: this.debug,
       viewer: this.viewer.object });
 
