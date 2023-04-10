@@ -951,7 +951,7 @@ export class CoverCalculator {
     const coverType = CoverCalculator.typeForPercentage(percentCornersBlocked);
 
     return ( liveForceHalfCover && tokenBlocks )
-      ? Math.max(coverType, SETTINGS.COVER.TRIGGER_PERCENT.LOW)
+      ? Math.max(coverType, COVER_TYPES.LOW)
       : coverType;
   }
 
