@@ -12,6 +12,8 @@ Dialog,
 Ray,
 duplicate
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
+"use strict";
 
 import { MODULE_ID, COVER_TYPES, MODULES_ACTIVE, DEBUG } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
@@ -166,15 +168,13 @@ export class CoverCalculator {
    * @param {object} config   Settings intended to override defaults.
    */
   #configure(config = {}) {
-    const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
-    const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
     const liveTokenAlg = getSetting(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
     const liveTypes = SETTINGS.COVER.LIVE_TOKENS.TYPES;
 
     config.type ??= "move";
     config.wallsBlock ??= true;
     config.tilesBlock ??= MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.EV;
-    config.deadTokensBlock ??= deadTokenAlg !== deadTypes.NONE;
+    config.deadTokensBlock ??= getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
     config.liveTokensBlock ??= liveTokenAlg !== liveTypes.NONE;
     config.liveForceHalfCover ??= liveTokenAlg === liveTypes.HALF;
 
@@ -516,7 +516,7 @@ export class CoverCalculator {
     const ray = new Ray(tokenPoint, targetPoint);
 
     // Ignore non-overhead tiles
-    const collisionTest = (o, rect) => o.t.document.overhead;
+    const collisionTest = (o, _rect) => o.t.document.overhead;
     const tiles = canvas.tiles.quadtree.getObjects(ray.bounds, { collisionTest });
 
     // Because tiles are parallel to the XY plane, we need not test ones obviously above or below.
@@ -598,7 +598,6 @@ export class CoverCalculator {
     const targetPoint = new Point3d(this.target.center.x, this.target.center.y, this.targetAvgElevationZ);
 
     const { wallsBlock, liveTokensBlock, deadTokensBlock, tilesBlock } = this.config;
-
     const collision = (wallsBlock && this._hasWallCollision(tokenPoint, targetPoint))
       || (tilesBlock && this._hasTileCollision(tokenPoint, targetPoint));
 
@@ -958,7 +957,7 @@ export class CoverCalculator {
 
   /**
    * For debugging.
-   * Color lines from point to points as red or green depending on collisions.
+   * Color lines from point to points as yellow, red, or green depending on collisions.
    * @param {Point3d} tokenPoint        Point on the token to use.
    * @param {Point3d[]} targetPoints    Array of points on the target to test
    */
@@ -966,11 +965,14 @@ export class CoverCalculator {
     const ln = targetPoints.length;
     for ( let i = 0; i < ln; i += 1 ) {
       const targetPoint = targetPoints[i];
-      const collision = this._hasCollision(tokenPoint, targetPoint);
+      const tokenCollision = this._hasTokenCollision(tokenPoint, targetPoint);
+      const edgeCollision = this._hasWallCollision(tokenPoint, targetPoint)
+        || this._hasTileCollision(tokenPoint, targetPoint);
 
-      Draw.segment(  // eslint-disable-line no-unused-expressions
-        {A: tokenPoint, B: targetPoint},
-        { alpha, width, color: collision ? Draw.COLORS.red : Draw.COLORS.green });
+      const color = (tokenCollision && !edgeCollision) ? Draw.COLORS.yellow
+        : edgeCollision ? Draw.COLORS.red : Draw.COLORS.green;
+
+      Draw.segment({ A: tokenPoint, B: targetPoint }, { alpha, width, color });
     }
   }
 }
