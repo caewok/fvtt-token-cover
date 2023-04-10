@@ -28,63 +28,73 @@ export function registerElevationAdditions() {
   // ----- TOKENS ----- //
   if ( !Object.hasOwn(Token.prototype, "topE") ) {
     Object.defineProperty(Token.prototype, "topE", {
-      get: tokenTopElevation
+      get: tokenTopElevation,
+      configurable: true
     });
   }
 
   if ( !Object.hasOwn(Token.prototype, "bottomE") ) {
     Object.defineProperty(Token.prototype, "bottomE", {
-      get: tokenBottomElevation
+      get: tokenBottomElevation,
+      configurable: true
     });
   }
 
   if ( !Object.hasOwn(Token.prototype, "topZ") ) {
     Object.defineProperty(Token.prototype, "topZ", {
-      get: zTop
+      get: zTop,
+      configurable: true
     });
   }
 
   if ( !Object.hasOwn(Token.prototype, "bottomZ") ) {
     Object.defineProperty(Token.prototype, "bottomZ", {
-      get: zBottom
+      get: zBottom,
+      configurable: true
     });
   }
 
   // ----- WALLS ----- //
   if ( !Object.hasOwn(Wall.prototype, "topE") ) {
     Object.defineProperty(Wall.prototype, "topE", {
-      get: wallTopElevation
+      get: wallTopElevation,
+      configurable: true
     });
   }
 
   if ( !Object.hasOwn(Wall.prototype, "bottomE") ) {
     Object.defineProperty(Wall.prototype, "bottomE", {
-      get: wallBottomElevation
+      get: wallBottomElevation,
+      configurable: true
     });
   }
 
   if ( !Object.hasOwn(Wall.prototype, "topZ") ) {
     Object.defineProperty(Wall.prototype, "topZ", {
-      get: zTop
+      get: zTop,
+      configurable: true
     });
   }
 
   if ( !Object.hasOwn(Wall.prototype, "bottomZ") ) {
     Object.defineProperty(Wall.prototype, "bottomZ", {
-      get: zBottom
+      get: zBottom,
+      configurable: true
     });
   }
 
   // ----- VisionSource ----- //
   if ( !Object.hasOwn(VisionSource.prototype, "elevationE") ) {
     Object.defineProperty(VisionSource.prototype, "elevationE", {
-      get: visionSourceElevation
+      get: visionSourceElevation,
+      configurable: true
     });
   }
 
   if ( !Object.hasOwn(VisionSource.prototype, "elevationZ") ) {
     Object.defineProperty(VisionSource.prototype, "elevationZ", {
-      get: zElevation
+      get: zElevation,
+      configurable: true
     });
   }
 }

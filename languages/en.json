@@ -83,7 +83,7 @@
     "tokenvisibility.settings.cover-token-live-full": "Cover",
 
     "tokenvisibility.settings.cover-token-prone-attribute.Name": "'Prone' Status Id",
-    "tokenvisibility.settings.cover-token-prone-attribute.Hint": "String indicating the id for the token 'prone' status. If set, prone tokens will be considered half-height for all vision and cover calculations.",
+    "tokenvisibility.settings.cover-token-prone-attribute.Hint": "String indicating the id for the token 'prone' status. If set, prone tokens will be considered half-height for all vision and cover calculations. Requires Wall Height module.",
 
     "tokenvisibility.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
     "tokenvisibility.DrawingConfiguration.isHole.Name": "Drawing is Hole",
