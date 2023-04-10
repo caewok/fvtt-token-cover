@@ -70,6 +70,19 @@ export class Area3d {
   /** @type {Point3d} */
   _targetCenter;
 
+  /**
+   * @typedef Area3dConfig  Configuration settings for this class.
+   * @type {object}
+   * @property {CONST.WALL_RESTRICTION_TYPES} type    Type of vision source
+   * @property {boolean} wallsBlock                   Do walls block vision?
+   * @property {boolean} tilesBlock                   Do tiles block vision?
+   * @property {boolean} deadTokensBlock              Do dead tokens block vision?
+   * @property {boolean} liveTokensBlock              Do live tokens block vision?
+   * @property {boolean} useShadows                   For benchmarking and debugging
+   * @property {boolean} debugDrawObjects             Draw blockingObjectPoints if true
+   * @property {}
+   *
+
   /** @type object */
   config = {};
 
@@ -199,14 +212,13 @@ export class Area3d {
    */
   #configure(config = {}) {
     config.type ??= "sight";
-    config.percentAreaForLOS ??= getSetting(SETTINGS.LOS.PERCENT_AREA);
-    config.useShadows ??= getSetting(SETTINGS.AREA3D_USE_SHADOWS);
     config.wallsBlock ??= true;
-    config.tilesBlock ??= MODULES_ACTIVE.LEVELS;
+    config.tilesBlock ??= MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.EV;
     config.deadTokensBlock ??= false;
-    config.deadHalfHeight ??= false;
     config.liveTokensBlock ??= false;
-    config.liveHalfHeight ??= getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE) !== "";
+
+    // Not user-facing. For debugging and benchmarking shadows
+    config.useShadows ??= getSetting(SETTINGS.AREA3D_USE_SHADOWS);
 
     // Internal setting.
     // If true, draws the _blockingObjectsPoints.
@@ -222,16 +234,20 @@ export class Area3d {
   /**
    * Determine whether a visionSource has line-of-sight to a target based on the percent
    * area of the target visible to the source.
+   * @param {number} [thresholdArea]    Area required to have LOS between 0 and 1
+   *   0% means any line-of-sight counts.
+   *   100% means the entire token must be visible.
+   * @returns {boolean}
    */
-  hasLOS() {
-    const percentArea = this.config.percentAreaForLOS;
+  hasLOS(thresholdArea) {
+    thresholdArea ??= getSetting(SETTINGS.LOS.PERCENT_AREA);
 
     // If center point is visible, then target is likely visible but not always.
     // e.g., walls slightly block the center point. Or walls block all but center.
 
     const percentVisible = this.percentAreaVisible();
     if ( percentVisible.almostEqual(0) ) return false;
-    return (percentVisible > percentArea) || percentVisible.almostEqual(percentArea);
+    return (percentVisible > thresholdArea) || percentVisible.almostEqual(thresholdArea);
   }
 
   /**
@@ -282,10 +298,17 @@ export class Area3d {
 
       // Calculate the areas of the target faces separately, along with the obscured side areas.
       const target = this.target;
+      const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
+      const isProne = (proneStatusId !== "" && target.actor)
+        ? target.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
+      const bottomZ = target.bottomZ;
+      const topZ = (this.config.liveHalfHeight && isProne)
+        ? target.topZ - ((target.topZ - bottomZ) * 0.5) : target.topZ;
+
       this.debugSideAreas = {
         top: target.w * target.h,
-        ogSide1: target.w * (target.topZ - target.bottomZ),
-        ogSide2: target.h * (target.topZ - target.bottomZ),
+        ogSide1: target.w * (topZ - bottomZ),
+        ogSide2: target.h * (topZ - bottomZ),
         sides: [],
         obscuredSides: []
       };
@@ -461,6 +484,7 @@ export class Area3d {
     filterWalls = true,
     filterTokens = true,
     filterTiles = true,
+    liveHalfHeight = false,
     debug = false,
     viewer } = {}) {
 
@@ -468,8 +492,16 @@ export class Area3d {
     if ( debug ) Draw.shape(visionPolygon,
       { color: Draw.COLORS.blue, fillAlpha: 0.2, fill: Draw.COLORS.blue });
 
-    const maxE = Math.max(viewingPoint.z ?? 0, target.topZ);
-    const minE = Math.min(viewingPoint.z ?? 0, target.bottomZ);
+    const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
+    const isProne = (proneStatusId !== "" && target.actor)
+      ? target.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
+    const bottomZ = target.bottomZ;
+    const topZ = (liveHalfHeight && isProne)
+      ? target.topZ - ((target.topZ - bottomZ) * 0.5) : target.topZ;
+
+
+    const maxE = Math.max(viewingPoint.z ?? 0, topZ);
+    const minE = Math.min(viewingPoint.z ?? 0, bottomZ);
 
     const out = { walls: new Set(), tokens: new Set(), tiles: new Set(), drawings: new Set() };
     if ( filterWalls ) {
@@ -754,6 +786,7 @@ export class Area3d {
       filterWalls: wallsBlock,
       filterTokens: liveTokensBlock || deadTokensBlock,
       filterTiles: tilesBlock,
+      liveHalfHeight: this.config.liveHalfHeight,
       debug: this.debug,
       viewer: this.viewer.object });
 

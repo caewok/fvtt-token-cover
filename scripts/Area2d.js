@@ -47,7 +47,17 @@ export class Area2d {
   /** @type {boolean} */
   debug = false;
 
-  /** @type {object} */
+  /**
+   * @typedef Area2dConfig  Configuration settings for this class.
+   * @type {object}
+   * @property {CONST.WALL_RESTRICTION_TYPES} type    Type of vision source
+   * @property {boolean} wallsBlock                   Do walls block vision?
+   * @property {boolean} tilesBlock                   Do tiles block vision?
+   * @property {boolean} deadTokensBlock              Do dead tokens block vision?
+   * @property {boolean} liveTokensBlock              Do live tokens block vision?
+   */
+
+  /** @type {Area2dConfig} */
   config = {};
 
   /**
@@ -75,13 +85,10 @@ export class Area2d {
    */
   #configure(config = {}) {
     config.type ??= "sight";
-    config.percentAreaForLOS ??= getSetting(SETTINGS.LOS.PERCENT_AREA);
     config.wallsBlock ??= true;
-    config.tilesBlock ??= MODULES_ACTIVE.LEVELS;
+    config.tilesBlock ??= MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.EV;
     config.deadTokensBlock ??= false;
-    config.deadHalfHeight ??= false;
     config.liveTokensBlock ??= false;
-    config.liveHalfHeight ??= getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE) !== "";
 
     this.config = config;
   }
@@ -90,11 +97,14 @@ export class Area2d {
   /**
    * Determine whether a visionSource has line-of-sight to a target based on the percent
    * area of the target visible to the source.
-   * @param {boolean} centerPointIsVisible
+   * @param {boolean} centerPointIsVisible    Is the center of the token visible?
+   * @param {number} [thresholdArea]          Percent between 0 and 1 required for LOS.
+   *   0% means any line-of-sight counts.
+   *   100% means the entire token must be visible.
    * @returns {boolean}
    */
-  hasLOS(centerPointIsVisible) {
-    const percentArea = this.config.percentAreaForLOS;
+  hasLOS(centerPointIsVisible, thresholdArea) {
+    thresholdArea ??= getSetting(SETTINGS.LOS.PERCENT_AREA);
 
     // If less than 50% of the token area is required to be viewable, then
     // if the center point is viewable, the token is viewable from that source.
@@ -110,7 +120,7 @@ export class Area2d {
     // If more than 50% of the token area is required to be viewable, then
     // the center point must be viewable for the token to be viewable from that source.
     // (necessary but not sufficient)
-    if ( !centerPointIsVisible && percentArea >= 0.50 ) {
+    if ( !centerPointIsVisible && thresholdArea >= 0.50 ) {
       if ( this.debug ) Draw.point(this.target.center, {
         alpha: 1,
         radius: 3,
@@ -122,7 +132,7 @@ export class Area2d {
 
     const shadowLOS = this._buildShadowLOS();
 
-    if ( percentArea === 0 ) {
+    if ( thresholdArea === 0 ) {
       // If percentArea equals zero, it might be possible to skip intersectConstrainedShapeWithLOS
       // and instead just measure if a token boundary has been breached.
 
@@ -138,7 +148,7 @@ export class Area2d {
     const percentVisible = this.percentAreaVisible(shadowLOS);
     if ( percentVisible.almostEqual(0) ) return false;
 
-    return (percentVisible > percentArea) || percentVisible.almostEqual(percentArea);
+    return (percentVisible > thresholdArea) || percentVisible.almostEqual(thresholdArea);
   }
 
   /**
@@ -223,21 +233,29 @@ export class Area2d {
     // Test top and bottom of target shape.
     let bottom;
     let top;
-    const inBetween = visionSource.elevationZ <= target.topZ && visionSource.elevationZ >= target.bottomZ;
+
+    const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
+    const isProne = (proneStatusId !== "" && target.actor)
+      ? target.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
+    const bottomZ = target.bottomZ;
+    const topZ = (this.config.liveHalfHeight && isProne)
+      ? target.topZ - ((target.topZ - bottomZ) * 0.5) : target.topZ;
+
+    const inBetween = visionSource.elevationZ <= topZ && visionSource.elevationZ >= bottomZ;
 
     // If target has no height, return one shadowed LOS polygon based on target elevation.
-    if ( !(target.topZ - target.bottomZ) ) return {
-      top: this.shadowLOSForElevation(target.topZ)
+    if ( !(topZ - bottomZ) ) return {
+      top: this.shadowLOSForElevation(topZ)
     };
 
-    if ( inBetween || visionSource.elevationZ < target.bottomZ ) {
+    if ( inBetween || visionSource.elevationZ < bottomZ ) {
       // Looking up at bottom
-      bottom = this.shadowLOSForElevation(target.bottomZ);
+      bottom = this.shadowLOSForElevation(bottomZ);
     }
 
-    if ( inBetween || visionSource.elevationZ > target.topZ ) {
+    if ( inBetween || visionSource.elevationZ > topZ ) {
       // Looking down at top
-      top = this.shadowLOSForElevation(target.topZ);
+      top = this.shadowLOSForElevation(topZ);
     }
 
     if ( top && bottom && objectsEqual(top.points, bottom.points) ) return { top };
@@ -444,6 +462,7 @@ export class Area2d {
       filterWalls: true,
       filterTokens: liveTokensBlock || deadTokensBlock,
       filterTiles: false,
+      liveHalfHeight: this.config.liveHalfHeight,
       viewer: visionSource.object,
       debug: this.debug
     };
