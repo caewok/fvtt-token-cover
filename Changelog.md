@@ -1,8 +1,11 @@
 # 0.4.4
-Update to lib geometry v0.1.5.
-Possible fix for issue #33 (null error reading "length").
-Keep the high cover setting even when using DFred's (closes issue #31).
-
+- Update to lib geometry v0.1.5.
+- Possible fix for issue #33 (null error reading "length").
+- Keep the high cover setting even when using DFred's (closes issue #31).
+- Add setting for dnd5e 1/2 cover for tokens. Tokens in this setting will not contribute to cover, except that if tokens block they cause 1/2 cover at minimum. For area3d, token must block ≥ low cover area. Closes issue #30.
+- Add setting to set token heights to half if the token is prone. Works for either live or dead tokens. The dead tokens are half-height setting is removed in favor of using prone status. This simplifies code dealing with half-height tokens.
+- Fix for Area3d algorithm when testing a wall that does not reach the height of the token.
+- Add changelog dialog on first load.
 
 # 0.4.3
 Update to lib geometry v0.1.4.
