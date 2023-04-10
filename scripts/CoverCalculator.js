@@ -9,8 +9,11 @@ socketlib,
 VisionSource,
 CONFIG,
 Dialog,
-Ray
+Ray,
+duplicate
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
+"use strict";
 
 import { MODULE_ID, COVER_TYPES, MODULES_ACTIVE, DEBUG } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
@@ -129,6 +132,17 @@ export class CoverCalculator {
   /** @type {object} */
   static ALGORITHMS = SETTINGS.COVER.TYPES;
 
+  /**
+   * @typedef Area2dConfig  Configuration settings for this class.
+   * @type {object}
+   * @property {CONST.WALL_RESTRICTION_TYPES} type    Type of vision source
+   * @property {boolean} wallsBlock                   Do walls block vision?
+   * @property {boolean} tilesBlock                   Do tiles block vision?
+   * @property {boolean} deadTokensBlock              Do dead tokens block vision?
+   * @property {boolean} liveTokensBlock              Do live tokens block vision?
+   * @property {boolean} liveForceHalfCover           Use dnd5e token half-cover rule
+   */
+
   /** @type {object} */
   config = {};
 
@@ -142,27 +156,31 @@ export class CoverCalculator {
    * @param {VisionSource|Token} viewer
    * @param {Token} target
    */
-  constructor(viewer, target) {
+  constructor(viewer, target, config = {}) {
     this.viewer = viewer instanceof VisionSource ? viewer.object : viewer;
     this.target = target;
+    this.#configure(config);
     this.debug = DEBUG.cover;
+  }
 
-    const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
-    const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
+  /**
+   * Initialize the configuration for this constructor.
+   * @param {object} config   Settings intended to override defaults.
+   */
+  #configure(config = {}) {
     const liveTokenAlg = getSetting(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
     const liveTypes = SETTINGS.COVER.LIVE_TOKENS.TYPES;
-    this.config = {
-      type: "move",
-      wallsBlock: true,
-      tilesBlock: MODULES_ACTIVE.LEVELS,
-      deadTokensBlock: deadTokenAlg !== deadTypes.NONE,
-      deadHalfHeight: deadTokenAlg === deadTypes.HALF,
-      liveTokensBlock: liveTokenAlg !== liveTypes.NONE,
-      liveHalfHeight: getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE) && liveTokenAlg !== liveTypes.NONE,
-      liveForceHalfCover: liveTokenAlg === liveTypes.HALF
-    };
-    this.config.tokensBlock = this.config.liveTokensBlock || this.config.deadTokensBlock;
+
+    config.type ??= "move";
+    config.wallsBlock ??= true;
+    config.tilesBlock ??= MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.EV;
+    config.deadTokensBlock ??= getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
+    config.liveTokensBlock ??= liveTokenAlg !== liveTypes.NONE;
+    config.liveForceHalfCover ??= liveTokenAlg === liveTypes.HALF;
+
+    this.config = config;
   }
+
 
   /** @type {string} */
   static get currentAlgorithm() {
@@ -496,7 +514,10 @@ export class CoverCalculator {
 
   _hasTileCollision(tokenPoint, targetPoint) {
     const ray = new Ray(tokenPoint, targetPoint);
-    const tiles = canvas.tiles.quadtree.getObjects(ray.bounds);
+
+    // Ignore non-overhead tiles
+    const collisionTest = (o, _rect) => o.t.document.overhead;
+    const tiles = canvas.tiles.quadtree.getObjects(ray.bounds, { collisionTest });
 
     // Because tiles are parallel to the XY plane, we need not test ones obviously above or below.
     const maxE = Math.max(tokenPoint.z, targetPoint.z);
@@ -576,8 +597,7 @@ export class CoverCalculator {
     const tokenPoint = this.viewerCenter;
     const targetPoint = new Point3d(this.target.center.x, this.target.center.y, this.targetAvgElevationZ);
 
-    const { wallsBlock, tokensBlock, tilesBlock } = this.config;
-
+    const { wallsBlock, liveTokensBlock, deadTokensBlock, tilesBlock } = this.config;
     const collision = (wallsBlock && this._hasWallCollision(tokenPoint, targetPoint))
       || (tilesBlock && this._hasTileCollision(tokenPoint, targetPoint));
 
@@ -587,7 +607,7 @@ export class CoverCalculator {
 
     if ( collision ) return COVER_TYPES[getSetting(SETTINGS.COVER.TRIGGER_CENTER)];
 
-    if ( tokensBlock ) {
+    if ( liveTokensBlock || deadTokensBlock ) {
       const collision = this._hasTokenCollision(tokenPoint, targetPoint);
       if ( collision ) {
         this.debug && Draw.segment(  // eslint-disable-line no-unused-expressions
@@ -709,10 +729,40 @@ export class CoverCalculator {
   area2d() {
     this.debug && console.log("Cover algorithm: Area"); // eslint-disable-line no-unused-expressions
 
+    // dnd5e rule
+    if ( this.config.liveForceHalfCover ) return this._forceLowCover(Area2d);
+
     const percentCover = 1 - this._percentVisible(Area2d);
     this.debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
 
     return CoverCalculator.typeForPercentage(percentCover);
+  }
+
+  /**
+   * Dnd5e rule: tokens provide half cover but do not otherwise contribute to cover.
+   * Compare percent visible w/o tokens and w/ tokens only.
+   * @param {Area2d|Area3d} Area    Class to use to calculate percent visibility
+   * @returns {COVER_TYPE}
+   */
+  _forceLowCover(Area) {
+    const config = duplicate(this.config);
+    config.deadTokensBlock = false;
+    config.liveTokensBlock = false;
+
+    // If low (1/2) cover is exceeded even without tokens, we can use that cover.
+    const percentCoverNoTokens = 1 - this._percentVisible(Area, config);
+    const coverTypeNoTokens = CoverCalculator.typeForPercentage(percentCoverNoTokens);
+    if ( coverTypeNoTokens >= COVER_TYPES.LOW ) return coverTypeNoTokens;
+
+    // If tokens provide at least low cover on their own, cover is low; otherwise no cover
+    config.deadTokensBlock = this.config.deadTokensBlock;
+    config.liveTokensBlock = true;
+    config.wallsBlock = false;
+    config.tilesBlock = false;
+
+    const percentCoverTokensOnly = 1 - this._percentVisible(Area, config);
+    const coverTypeTokensOnly = CoverCalculator.typeForPercentage(percentCoverTokensOnly);
+    return coverTypeTokensOnly >= COVER_TYPES.LOW ? COVER_TYPES.LOW : COVER_TYPES.NONE;
   }
 
   /**
@@ -724,10 +774,24 @@ export class CoverCalculator {
   area3d() {
     this.debug && console.log("Cover algorithm: Area 3d"); // eslint-disable-line no-unused-expressions
 
+    // dnd5e rule
+    if ( this.config.liveForceHalfCover ) return this._forceLowCover(Area3d);
+
     const percentCover = 1 - this._percentVisible(Area3d);
     this.debug && console.log(`Cover percentage ${percentCover}`); // eslint-disable-line no-unused-expressions
 
     return CoverCalculator.typeForPercentage(percentCover);
+  }
+
+  /**
+   * Determine the percent of the target top or bottom visible to the viewer.
+   * @param {Area2d|Area3d} Area    Class to use to calculate percent visibility
+   * @returns {number} Percentage seen, of the total target top or bottom area.
+   */
+  _percentVisible(Area, config = this.config) {
+    const area = new Area(this.viewer, this.target, config);
+    if ( this.debug ) area.debug = true;
+    return area.percentAreaVisible();
   }
 
   // ----- HELPER METHODS ----- //
@@ -887,24 +951,13 @@ export class CoverCalculator {
     const coverType = CoverCalculator.typeForPercentage(percentCornersBlocked);
 
     return ( liveForceHalfCover && tokenBlocks )
-      ? Math.max(coverType, SETTINGS.COVER.TRIGGER_PERCENT.LOW)
+      ? Math.max(coverType, COVER_TYPES.LOW)
       : coverType;
   }
 
   /**
-   * Determine the percent of the target top or bottom visible to the viewer.
-   * @param {Area2d|Area3d} Area    Class to use to calculate percent visibility
-   * @returns {number} Percentage seen, of the total target top or bottom area.
-   */
-  _percentVisible(Area) {
-    const area = new Area(this.viewer, this.target, this.config);
-    if ( this.debug ) area.debug = true;
-    return area.percentAreaVisible();
-  }
-
-  /**
    * For debugging.
-   * Color lines from point to points as red or green depending on collisions.
+   * Color lines from point to points as yellow, red, or green depending on collisions.
    * @param {Point3d} tokenPoint        Point on the token to use.
    * @param {Point3d[]} targetPoints    Array of points on the target to test
    */
@@ -912,11 +965,14 @@ export class CoverCalculator {
     const ln = targetPoints.length;
     for ( let i = 0; i < ln; i += 1 ) {
       const targetPoint = targetPoints[i];
-      const collision = this._hasCollision(tokenPoint, targetPoint);
+      const tokenCollision = this._hasTokenCollision(tokenPoint, targetPoint);
+      const edgeCollision = this._hasWallCollision(tokenPoint, targetPoint)
+        || this._hasTileCollision(tokenPoint, targetPoint);
 
-      Draw.segment(  // eslint-disable-line no-unused-expressions
-        {A: tokenPoint, B: targetPoint},
-        { alpha, width, color: collision ? Draw.COLORS.red : Draw.COLORS.green });
+      const color = (tokenCollision && !edgeCollision) ? Draw.COLORS.yellow
+        : edgeCollision ? Draw.COLORS.red : Draw.COLORS.green;
+
+      Draw.segment({ A: tokenPoint, B: targetPoint }, { alpha, width, color });
     }
   }
 }

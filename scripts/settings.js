@@ -123,11 +123,6 @@ export const SETTINGS = {
     DEAD_TOKENS: {
       ALGORITHM: "cover-token-dead",
       ATTRIBUTE: "cover-token-dead-attribute",
-      TYPES: {
-        NONE: "cover-token-dead-none",
-        HALF: "cover-token-dead-half",
-        FULL: "cover-token-dead-full"
-      }
     },
 
     LIVE_TOKENS: {
@@ -416,13 +411,8 @@ export function registerSettings() {
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ALGORITHM}.Hint`),
     scope: "world",
     config: true,
-    type: String,
-    choices: {
-      [DEADCHOICES.NONE]: game.i18n.localize(`${MODULE_ID}.settings.${DEADCHOICES.NONE}`),
-      [DEADCHOICES.HALF]: game.i18n.localize(`${MODULE_ID}.settings.${DEADCHOICES.HALF}`),
-      [DEADCHOICES.FULL]: game.i18n.localize(`${MODULE_ID}.settings.${DEADCHOICES.FULL}`)
-    },
-    default: DEADCHOICES.NONE
+    type: Boolean,
+    default: true
   });
 
   const LIVECHOICES = SETTINGS.COVER.LIVE_TOKENS.TYPES;
@@ -434,8 +424,8 @@ export function registerSettings() {
     type: String,
     choices: {
       [LIVECHOICES.NONE]: game.i18n.localize(`${MODULE_ID}.settings.${LIVECHOICES.NONE}`),
-      [LIVECHOICES.HALF]: game.i18n.localize(`${MODULE_ID}.settings.${LIVECHOICES.HALF}`),
-      [LIVECHOICES.FULL]: game.i18n.localize(`${MODULE_ID}.settings.${LIVECHOICES.FULL}`)
+      [LIVECHOICES.FULL]: game.i18n.localize(`${MODULE_ID}.settings.${LIVECHOICES.FULL}`),
+      [LIVECHOICES.HALF]: game.i18n.localize(`${MODULE_ID}.settings.${LIVECHOICES.HALF}`)
     },
     default: LIVECHOICES.FULL
   });

@@ -294,22 +294,23 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
 }
 
 /**
+ * @typedef buildTokenPointsConfig
+ * @type {object}
+ * @property {CONST.WALL_RESTRICTION_TYPES} type    Type of vision source
+ * @property {boolean} deadTokensBlock              Do dead tokens block vision?
+ * @property {boolean} liveTokensBlock              Do live tokens block vision?
+ */
+
+/**
  * Given config options, build TokenPoints3d from tokens.
  * The points will use either half- or full-height tokens, depending on config.
  * @param {Token[]|Set<Token>} tokens
- * @param {object} config
- *   - {string}  type
- *   - {boolean} liveTokensBlock
- *   - {boolean} deadTokensBlock
- *   - {boolean} deadHalfHeight
- *   - {boolean} liveHalfHeight
+ * @param {buildTokenPointsConfig} config
  * @returns {TokenPoints3d[]}
  */
 export function buildTokenPoints(tokens, config) {
   if ( !tokens.length && !tokens.size ) return tokens;
-  const { type, liveTokensBlock, deadTokensBlock, deadHalfHeight, liveHalfHeight } = config;
-  const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
-  const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
+  const { type, liveTokensBlock, deadTokensBlock } = config;
 
   // Filter live or dead tokens
   if ( liveTokensBlock ^ deadTokensBlock ) {
@@ -323,18 +324,5 @@ export function buildTokenPoints(tokens, config) {
     });
   }
 
-  // Construct the TokenPoints3d for each token, using half-height if required
-  if ( deadHalfHeight || liveHalfHeight ) {
-    tokens = tokens.map(t => {
-      const hp = getObjectProperty(t.actor, hpAttribute);
-      const isProne = t.actor ? t.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
-      const halfHeight = (deadHalfHeight && (typeof hp === "number") && (hp <= 0))
-        || (liveHalfHeight && hp > 0 && isProne);
-      return new TokenPoints3d(t, { type, halfHeight });
-    });
-  } else {
-    tokens = tokens.map(t => new TokenPoints3d(t, { type, halfHeight: false }));
-  }
-
-  return tokens;
+  return tokens.map(t => new TokenPoints3d(t, { type }));
 }

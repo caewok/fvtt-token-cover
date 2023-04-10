@@ -70,6 +70,18 @@ export class Area3d {
   /** @type {Point3d} */
   _targetCenter;
 
+  /**
+   * @typedef Area3dConfig  Configuration settings for this class.
+   * @type {object}
+   * @property {CONST.WALL_RESTRICTION_TYPES} type    Type of vision source
+   * @property {boolean} wallsBlock                   Do walls block vision?
+   * @property {boolean} tilesBlock                   Do tiles block vision?
+   * @property {boolean} deadTokensBlock              Do dead tokens block vision?
+   * @property {boolean} liveTokensBlock              Do live tokens block vision?
+   * @property {boolean} useShadows                   For benchmarking and debugging
+   * @property {boolean} debugDrawObjects             Draw blockingObjectPoints if true
+   */
+
   /** @type object */
   config = {};
 
@@ -198,24 +210,14 @@ export class Area3d {
    * @param {object} config   Settings intended to override defaults.
    */
   #configure(config = {}) {
-    const deadTokenAlg = getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
-    const deadTypes = SETTINGS.COVER.DEAD_TOKENS.TYPES;
-    const liveTokenAlg = getSetting(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
-    const liveTypes = SETTINGS.COVER.LIVE_TOKENS.TYPES;
-
     config.type ??= "sight";
-    config.percentAreaForLOS ??= getSetting(SETTINGS.LOS.PERCENT_AREA);
-    config.useShadows ??= getSetting(SETTINGS.AREA3D_USE_SHADOWS);
     config.wallsBlock ??= true;
-    config.tilesBlock ??= MODULES_ACTIVE.LEVELS;
-    config.deadTokensBlock ??= deadTokenAlg !== deadTypes.NONE;
-    config.deadHalfHeight ??= deadTokenAlg === deadTypes.HALF;
-    config.liveTokensBlock ??= liveTokenAlg !== liveTypes.NONE;
-    config.liveHalfHeight ??= getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE)
-      && liveTokenAlg !== liveTypes.NONE;
-    config.liveForceHalfCover ??= liveTokenAlg === liveTypes.HALF;
+    config.tilesBlock ??= MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.EV;
+    config.deadTokensBlock ??= false;
+    config.liveTokensBlock ??= false;
 
-    config.tokensBlock = config.deadTokensBlock || config.liveTokensBlock;
+    // Not user-facing. For debugging and benchmarking shadows
+    config.useShadows ??= getSetting(SETTINGS.AREA3D_USE_SHADOWS);
 
     // Internal setting.
     // If true, draws the _blockingObjectsPoints.
@@ -231,16 +233,20 @@ export class Area3d {
   /**
    * Determine whether a visionSource has line-of-sight to a target based on the percent
    * area of the target visible to the source.
+   * @param {number} [thresholdArea]    Area required to have LOS between 0 and 1
+   *   0% means any line-of-sight counts.
+   *   100% means the entire token must be visible.
+   * @returns {boolean}
    */
-  hasLOS() {
-    const percentArea = this.config.percentAreaForLOS;
+  hasLOS(thresholdArea) {
+    thresholdArea ??= getSetting(SETTINGS.LOS.PERCENT_AREA);
 
     // If center point is visible, then target is likely visible but not always.
     // e.g., walls slightly block the center point. Or walls block all but center.
 
     const percentVisible = this.percentAreaVisible();
     if ( percentVisible.almostEqual(0) ) return false;
-    return (percentVisible > percentArea) || percentVisible.almostEqual(percentArea);
+    return (percentVisible > thresholdArea) || percentVisible.almostEqual(thresholdArea);
   }
 
   /**
@@ -291,10 +297,12 @@ export class Area3d {
 
       // Calculate the areas of the target faces separately, along with the obscured side areas.
       const target = this.target;
+      const { topZ, bottomZ } = target;
+      const height = topZ - bottomZ;
       this.debugSideAreas = {
         top: target.w * target.h,
-        ogSide1: target.w * (target.topZ - target.bottomZ),
-        ogSide2: target.h * (target.topZ - target.bottomZ),
+        ogSide1: target.w * height,
+        ogSide2: target.h * height,
         sides: [],
         obscuredSides: []
       };
@@ -477,8 +485,9 @@ export class Area3d {
     if ( debug ) Draw.shape(visionPolygon,
       { color: Draw.COLORS.blue, fillAlpha: 0.2, fill: Draw.COLORS.blue });
 
-    const maxE = Math.max(viewingPoint.z ?? 0, target.topZ);
-    const minE = Math.min(viewingPoint.z ?? 0, target.bottomZ);
+    const { topZ, bottomZ } = target;
+    const maxE = Math.max(viewingPoint.z ?? 0, topZ);
+    const minE = Math.min(viewingPoint.z ?? 0, bottomZ);
 
     const out = { walls: new Set(), tokens: new Set(), tiles: new Set(), drawings: new Set() };
     if ( filterWalls ) {
@@ -600,8 +609,13 @@ export class Area3d {
     if ( !tiles.size ) return tiles;
 
     // Filter by the precise triangle shape
+    // Also filter by overhead tiles
     const edges = [...visionPolygon.iterateEdges()];
     tiles = tiles.filter(t => {
+      // Only overhead tiles count for blocking vision
+      if ( !t.document.overhead ) return false;
+
+      // Check remainder against the vision polygon shape
       const tBounds = t.bounds;
       const tCenter = tBounds.center;
       if ( visionPolygon.contains(tCenter.x, tCenter.y) ) return true;
@@ -609,7 +623,6 @@ export class Area3d {
     });
     return tiles;
   }
-
 
   /**
    * Filter walls in the scene by a triangle representing the view from viewingPoint to some
@@ -749,7 +762,8 @@ export class Area3d {
     const {
       type,
       wallsBlock,
-      tokensBlock,
+      liveTokensBlock,
+      deadTokensBlock,
       tilesBlock } = this.config;
 
     // Clear any prior objects from the respective sets
@@ -760,7 +774,7 @@ export class Area3d {
     const objsFound = Area3d.filterSceneObjectsByVisionPolygon(this.viewerCenter, this.target, {
       type,
       filterWalls: wallsBlock,
-      filterTokens: tokensBlock,
+      filterTokens: liveTokensBlock || deadTokensBlock,
       filterTiles: tilesBlock,
       debug: this.debug,
       viewer: this.viewer.object });

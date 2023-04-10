@@ -5,7 +5,7 @@ Dialog
 */
 "use strict";
 
-import { MODULE_ID, COVER_TYPES, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, COVER_TYPES, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
@@ -89,7 +89,31 @@ Hooks.once("init", async function() {
 Hooks.once("setup", async function() {
   registerSettings();
   updateConfigStatusEffects();
+
+  // Replace topZ method for tokens
+  // Do this here so that it can override method from other modules, like EV.
+  Object.defineProperty(Token.prototype, "topE", {
+      get: tokenTopElevation,
+      configurable: true
+  });
 });
+
+
+/**
+ * Top elevation of a token.
+ * @returns {number} In grid units.
+ * If Wall Height is active, use the losHeight. Otherwise, use bottomE.
+ * Returns half the height if the token is prone.
+ */
+function tokenTopElevation() {
+  if ( !MODULES_ACTIVE.WALL_HEIGHT ) return this.bottomE;
+
+  const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
+  const isProne = (proneStatusId !== "" && this.actor)
+    ? this.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
+
+  return isProne ? this.losHeight * 0.5 : this.losHeight;
+}
 
 Hooks.once("ready", async function() {
   if ( !getSetting(SETTINGS.WELCOME_DIALOG.v030) ) {
