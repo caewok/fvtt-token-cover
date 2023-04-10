@@ -71,10 +71,7 @@
     "tokenvisibility.settings.menu-cover-effects-high.Label": "Configure High Cover",
 
     "tokenvisibility.settings.cover-token-dead.Name": "Dead Tokens Grant Cover",
-    "tokenvisibility.settings.cover-token-dead.Hint": "Do dead or unconscious tokens grant cover? For 3d cover, half means half the height of the token will be used; full uses the full token height.",
-    "tokenvisibility.settings.cover-token-dead-none": "No cover",
-    "tokenvisibility.settings.cover-token-dead-half": "Half the token height",
-    "tokenvisibility.settings.cover-token-dead-full": "Full token height",
+    "tokenvisibility.settings.cover-token-dead.Hint": "Do dead or unconscious tokens grant cover? Set token to prone to give it half-cover when this setting is enabled.",
 
     "tokenvisibility.settings.cover-token-dead-attribute.Name": "Token HP Attribute",
     "tokenvisibility.settings.cover-token-dead-attribute.Hint": "String indicating where the hit points for a `token.actor` can be found. Required to use dead tokens for cover.",
@@ -86,7 +83,7 @@
     "tokenvisibility.settings.cover-token-live-full": "Cover",
 
     "tokenvisibility.settings.cover-token-prone-attribute.Name": "'Prone' Status Id",
-    "tokenvisibility.settings.cover-token-prone-attribute.Hint": "String indicating the id for the token 'prone' status. If set, prone tokens will be considered half-height for vision and cover. Leave blank to ignore prone status.",
+    "tokenvisibility.settings.cover-token-prone-attribute.Hint": "String indicating the id for the token 'prone' status. If set, prone tokens will be considered half-height for all vision and cover calculations.",
 
     "tokenvisibility.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
     "tokenvisibility.DrawingConfiguration.isHole.Name": "Drawing is Hole",
