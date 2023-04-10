@@ -52,7 +52,7 @@ export const MODULES_ACTIVE = {
   LEVELS: false,
   DFREDS_CE: false,
   SIMBULS_CC: false,
-  MIDI_QOL: false
+  MIDI_QOL: false,
   EV: false
 };
 
