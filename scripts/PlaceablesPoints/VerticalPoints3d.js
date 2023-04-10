@@ -149,7 +149,7 @@ export class VerticalPoints3d extends PlanePoints3d {
       sideB: null,
       full: null
     };
-    const { topA, topB } = this;
+    const { topA, topB, bottomA } = this;
     const targetBorder = target.constrainedTokenBorder;
     if ( !targetBorder.lineSegmentIntersects(topA, topB, { inside: true }) ) {
       splits.full = this;
@@ -165,8 +165,10 @@ export class VerticalPoints3d extends PlanePoints3d {
 
     pTop.bottomA.z = pTop.bottomB.z = topZ;
     pBottom.topA.z = pBottom.topB.z = bottomZ;
-    pMiddle.topA.z = pMiddle.topB.z = topZ;
-    pMiddle.bottomA.z = pMiddle.bottomB.z = bottomZ;
+
+    // If the wall does not cover the entirety of the token, keep only the part of the wall that does.
+    pMiddle.topA.z = pMiddle.topB.z = Math.min(topZ, topA.z);
+    pMiddle.bottomA.z = pMiddle.bottomB.z = Math.max(bottomZ, bottomA.z);
 
     // Test whether A and B are inside the token border
     const Acontained = targetBorder.contains(topA.x, topA.y);
@@ -185,7 +187,7 @@ export class VerticalPoints3d extends PlanePoints3d {
     // Intersect of viewerLoc --> keyPoint and wall becomes the new intersection
     if ( viewerLoc && numIxs ) {
       const keyPoints = targetBorder.viewablePoints(viewerLoc, { outermostOnly: true });
-      if ( keyPoints.length === 2 ) {
+      if ( keyPoints && keyPoints.length === 2 ) {
         const ix0 = foundry.utils.lineLineIntersection(topA, topB, viewerLoc, keyPoints[0]);
         const ix1 = foundry.utils.lineLineIntersection(topA, topB, viewerLoc, keyPoints[1]);
 

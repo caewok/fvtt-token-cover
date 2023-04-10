@@ -245,7 +245,16 @@ function testLOSArea(visionSource, target, test) {
 
   const centerPointIsVisible = testLOSPoint(visionSource, target, test);
 
-  const area2d = new Area2d(visionSource, target);
+  const config = {
+    type: "sight",
+    liveTokensBlock: false,
+    deadTokensBlock: false,
+  };
+
+  if ( DEBUG.forceLiveTokensBlock ) config.liveTokensBlock = true;
+  if ( DEBUG.forceDeadTokensBlock ) config.deadTokensBlock = true;
+
+  const area2d = new Area2d(visionSource, target, config);
   area2d.debug = DEBUG.los;
   return area2d.hasLOS(centerPointIsVisible);
 }
@@ -267,10 +276,8 @@ function testLOSArea3d(visionSource, target, test) {
   // TODO: Add debug to config, add a getter to check for targeted?
   const config = {
     type: "sight",
-    wallsBlock: true,
-    tilesBlock: MODULES_ACTIVE.LEVELS,
     liveTokensBlock: false,
-    deadTokensBlock: false
+    deadTokensBlock: false,
   };
 
   if ( DEBUG.forceLiveTokensBlock ) config.liveTokensBlock = true;

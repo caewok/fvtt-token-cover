@@ -5,7 +5,7 @@ Dialog
 */
 "use strict";
 
-import { MODULE_ID, COVER_TYPES, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, COVER_TYPES, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
@@ -46,6 +46,9 @@ import {
   IgnoresCoverSimbuls,
   IgnoresCoverDND5e,
   addDND5eCoverFeatFlags } from "./IgnoresCover.js";
+
+// Other self-executing hooks
+import "./changelog.js";
 
 Hooks.once("init", async function() {
   registerGeometry();
@@ -89,53 +92,31 @@ Hooks.once("init", async function() {
 Hooks.once("setup", async function() {
   registerSettings();
   updateConfigStatusEffects();
+
+  // Replace topZ method for tokens
+  // Do this here so that it can override method from other modules, like EV.
+  Object.defineProperty(Token.prototype, "topE", {
+      get: tokenTopElevation,
+      configurable: true
+  });
 });
 
-Hooks.once("ready", async function() {
-  if ( !getSetting(SETTINGS.WELCOME_DIALOG.v030) ) {
-    Dialog.prompt({
-      title: "Alt Token Visibility v0.3.0 Changes!",
-      content: `
-<p>
-Version 0.3.0 of Alternative Token Visibility brings several improvements.
-You can read more about the module and report any issues on the  <a href="https://github.com/caewok/fvtt-token-visibility">Git page</a>.
-</p>
 
-<p>
-Settings allow the GM to permit live or dead tokens to provide cover, or, in the case of dead tokens, half-height cover.
-You can also now have tokens ignore cover. For dnd5e, you can set the actor's special feat, just as you can
-(and compatible with) <a href="https://github.com/vtt-lair/simbuls-cover-calculator">Simbul's Cover Calculator</a>. For non-dnd5e systems, the "token.ignoresCoverType" property
-controls this.
-</p>
+/**
+ * Top elevation of a token.
+ * @returns {number} In grid units.
+ * If Wall Height is active, use the losHeight. Otherwise, use bottomE.
+ * Returns half the height if the token is prone.
+ */
+function tokenTopElevation() {
+  if ( !MODULES_ACTIVE.WALL_HEIGHT ) return this.bottomE;
 
-<p>
-If you want more information on what the Cover algorithm is doing, try the new Macro in the compendium,
-"Cover Debug Tester." This will temporarily turn on debug visualization when running the Cover macro.
-</p>
+  const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
+  const isProne = (proneStatusId !== "" && this.actor)
+    ? this.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
 
-<p>
-<a href="https://github.com/theripper93/Levels">Levels</a> users now get improved handling of tiles. For Points algorithms or the Area2d algorithm,
-transparent tile pixels are ignored, to align with how Levels treats holes in tiles. For the
-Area3d algorithm, you will need to use a rectangle, ellipse, or polygon drawing and set the drawing to be a hole
-in the drawing configuration.
-</p>
-
-<p>
-FYI, Area3d is probably the better algorithm choice for Levels users because it considers the 3d view of the scene
-from the perspective of the viewing token.
-</p>
-
-<p>
-<br>
-<em>Clicking the button below will make this message no longer display when FoundryVTT loads. If you
-want to keep seeing this message, please click the close button above.</em>
-</p>
-`,
-      rejectClose: false,
-      callback: () => setSetting(SETTINGS.WELCOME_DIALOG.v030, true)
-    });
-  }
-});
+  return isProne ? this.losHeight * 0.5 : this.losHeight;
+}
 
 /**
  * Tell DevMode that we want a flag for debugging this module.

@@ -7,7 +7,7 @@
     "tokenvisibility.settings.range-points-nine": "Foundry default (9 points)",
 
     "tokenvisibility.settings.range-points-3d.Name": "Test Bottom and Top Token Points",
-    "tokenvisibility.settings.range-points-3d.Hint": "When applicable, use both the token elevation and the token line-of-sight to construct additional points for testing range and the line-of-sight points algorithm.",
+    "tokenvisibility.settings.range-points-3d.Hint": "When applicable, use both the token elevation and the token line-of-sight to construct additional points for testing range and the line-of-sight points algorithm. (Requires Wall Height module.)",
 
     "tokenvisibility.settings.range-distance-3d.Name": "Measure Range Distance in 3d",
     "tokenvisibility.settings.range-distance-3d.Hint": "Whether to measure token visibility range calculations in 3 dimensions, versus 2 (overhead view).",
@@ -52,10 +52,10 @@
     "tokenvisibility.settings.midiqol-covercheck-gm": "Ask GM to confirm",
     "tokenvisibility.settings.midiqol-covercheck-auto": "Automatically apply",
 
-    "tokenvisibility.settings.cover-combat-auto.Name": "Combatant targeting applies cover",
+    "tokenvisibility.settings.cover-combat-auto.Name": "Combat: Targeting Applies Cover",
     "tokenvisibility.settings.cover-combat-auto.Hint": "If in combat, when a user that owns the current combatant is targeting a token, apply cover effects to the targeted token based on cover from the current combatant.",
 
-    "tokenvisibility.settings.cover-chat-message.Name": "Display cover in chat",
+    "tokenvisibility.settings.cover-chat-message.Name": "Display Cover in Chat",
     "tokenvisibility.settings.cover-chat-message.Hint": "When rolling an attack, test and display cover for targets in the chat. Currently only in dnd5e.",
 
     "tokenvisibility.settings.menu-cover-effects-low.Name": "Low Cover Active Effect",
@@ -71,16 +71,19 @@
     "tokenvisibility.settings.menu-cover-effects-high.Label": "Configure High Cover",
 
     "tokenvisibility.settings.cover-token-dead.Name": "Dead Tokens Grant Cover",
-    "tokenvisibility.settings.cover-token-dead.Hint": "Do dead or unconscious tokens grant cover? For 3d cover, half means half the height of the token will be used; full uses the full token height.",
-    "tokenvisibility.settings.cover-token-dead-none": "No cover",
-    "tokenvisibility.settings.cover-token-dead-half": "Half the token height",
-    "tokenvisibility.settings.cover-token-dead-full": "Full token height",
+    "tokenvisibility.settings.cover-token-dead.Hint": "Do dead or unconscious tokens grant cover? Set token to prone to give it half-cover when this setting is enabled.",
 
     "tokenvisibility.settings.cover-token-dead-attribute.Name": "Token HP Attribute",
     "tokenvisibility.settings.cover-token-dead-attribute.Hint": "String indicating where the hit points for a `token.actor` can be found. Required to use dead tokens for cover.",
 
     "tokenvisibility.settings.cover-token-live.Name": "Live Tokens Grant Cover",
-    "tokenvisibility.settings.cover-token-live.Hint": "If checked, live tokens will be considered blocking for measuring cover.",
+    "tokenvisibility.settings.cover-token-live.Hint": "'Cover': Token shape contributes to cover. 'Forced': Flat low cover for tokens; token shape not otherwise considered (dnd5e). No cover: Tokens do not contribute to cover.",
+    "tokenvisibility.settings.cover-token-live-none": "No cover",
+    "tokenvisibility.settings.cover-token-live-half": "Forced flat low cover (dnd5e rule)",
+    "tokenvisibility.settings.cover-token-live-full": "Cover",
+
+    "tokenvisibility.settings.cover-token-prone-attribute.Name": "'Prone' Status Id",
+    "tokenvisibility.settings.cover-token-prone-attribute.Hint": "String indicating the id for the token 'prone' status. If set, prone tokens will be considered half-height for all vision and cover calculations. Requires Wall Height module.",
 
     "tokenvisibility.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
     "tokenvisibility.DrawingConfiguration.isHole.Name": "Drawing is Hole",

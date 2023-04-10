@@ -18,7 +18,6 @@ export class TokenPoints3d {
   /** @type {object} */
   config = {
     type: "sight", /** @type {string} */
-    halfHeight: false /** @type {boolean} */
   };
 
   /* @type {boolean} */
@@ -44,12 +43,10 @@ export class TokenPoints3d {
    * @param {object} [options]
    * @param {string} [options.type]         Wall restriction type, for constructing the
    *                                        constrained token shape
-   * @param {boolean} [options.halfHeight]  Whether half the height of the token should be used.
    */
-  constructor(token, { type = "sight", halfHeight = false } = {}) {
+  constructor(token, { type = "sight" } = {}) {
     this.token = token;
     this.config.type = type;
-    this.config.halfHeight = halfHeight;
 
     this._setTokenBorder();
     this._setTopBottomPoints();
@@ -94,8 +91,7 @@ export class TokenPoints3d {
   get topZ() {
     const { topZ, bottomZ } = this.token;
     return topZ === this.bottomZ
-      ? (topZ + 2) : this.config.halfHeight
-        ? topZ - ((topZ - bottomZ) * 0.5) : topZ;
+      ? (topZ + 2) : topZ;
   }
 
   /**

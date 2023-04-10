@@ -123,15 +123,20 @@ export const SETTINGS = {
     DEAD_TOKENS: {
       ALGORITHM: "cover-token-dead",
       ATTRIBUTE: "cover-token-dead-attribute",
-      TYPES: {
-        NONE: "cover-token-dead-none",
-        HALF: "cover-token-dead-half",
-        FULL: "cover-token-dead-full"
-      }
     },
 
-    LIVE_TOKENS: "cover-token-live"
+    LIVE_TOKENS: {
+      ALGORITHM: "cover-token-live",
+      ATTRIBUTE: "cover-token-prone-attribute",
+      TYPES: {
+        NONE: "cover-token-live-none",
+        HALF: "cover-token-live-half",
+        FULL: "cover-token-live-full"
+      }
+    }
   },
+
+  CHANGELOG: "changelog",
 
   WELCOME_DIALOG: {
     v020: "welcome-dialog-v0-20",
@@ -357,16 +362,16 @@ export function registerSettings() {
       type: MediumCoverEffectConfig,
       restricted: true
     });
-
-    game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.HIGH, {
-      name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Name`),
-      hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Hint`),
-      label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Label`),
-      icon: "fas fa-shield",
-      type: HighCoverEffectConfig,
-      restricted: true
-    });
   }
+
+  game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.HIGH, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Hint`),
+    label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Label`),
+    icon: "fas fa-shield",
+    type: HighCoverEffectConfig,
+    restricted: true
+  });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.COMBAT_AUTO, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.COMBAT_AUTO}.Name`),
@@ -399,8 +404,7 @@ export function registerSettings() {
       [MIDICHOICES.GM]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.GM}`),
       [MIDICHOICES.AUTO]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.AUTO}`)
     },
-    default: MIDICHOICES.NONE,
-    onChange: updateCoverSetting
+    default: MIDICHOICES.NONE
   });
 
   const DEADCHOICES = SETTINGS.COVER.DEAD_TOKENS.TYPES;
@@ -409,23 +413,23 @@ export function registerSettings() {
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ALGORITHM}.Hint`),
     scope: "world",
     config: true,
-    type: String,
-    choices: {
-      [DEADCHOICES.NONE]: game.i18n.localize(`${MODULE_ID}.settings.${DEADCHOICES.NONE}`),
-      [DEADCHOICES.HALF]: game.i18n.localize(`${MODULE_ID}.settings.${DEADCHOICES.HALF}`),
-      [DEADCHOICES.FULL]: game.i18n.localize(`${MODULE_ID}.settings.${DEADCHOICES.FULL}`)
-    },
-    default: DEADCHOICES.NONE,
-    onChange: updateCoverSetting
+    type: Boolean,
+    default: true
   });
 
-  game.settings.register(MODULE_ID, SETTINGS.COVER.LIVE_TOKENS, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.LIVE_TOKENS}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.LIVE_TOKENS}.Hint`),
+  const LIVECHOICES = SETTINGS.COVER.LIVE_TOKENS.TYPES;
+  game.settings.register(MODULE_ID, SETTINGS.COVER.LIVE_TOKENS.ALGORITHM, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.LIVE_TOKENS.ALGORITHM}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.LIVE_TOKENS.ALGORITHM}.Hint`),
     scope: "world",
     config: true,
-    type: Boolean,
-    default: false
+    type: String,
+    choices: {
+      [LIVECHOICES.NONE]: game.i18n.localize(`${MODULE_ID}.settings.${LIVECHOICES.NONE}`),
+      [LIVECHOICES.FULL]: game.i18n.localize(`${MODULE_ID}.settings.${LIVECHOICES.FULL}`),
+      [LIVECHOICES.HALF]: game.i18n.localize(`${MODULE_ID}.settings.${LIVECHOICES.HALF}`)
+    },
+    default: LIVECHOICES.FULL
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE, {
@@ -435,6 +439,15 @@ export function registerSettings() {
     config: true,
     type: String,
     default: "system.attributes.hp.value"
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    default: "prone"
   });
 
   // ----- HIDDEN SETTINGS ----- //

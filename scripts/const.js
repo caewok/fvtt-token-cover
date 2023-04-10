@@ -52,7 +52,8 @@ export const MODULES_ACTIVE = {
   LEVELS: false,
   DFREDS_CE: false,
   SIMBULS_CC: false,
-  MIDI_QOL: false
+  MIDI_QOL: false,
+  EV: false
 };
 
 export const DEBUG = {
@@ -74,7 +75,8 @@ Hooks.once("init", function() {
   MODULES_ACTIVE.LEVELS = game.modules.get("levels")?.active;
   MODULES_ACTIVE.DFREDS_CE = game.modules.get("dfreds-convenient-effects")?.active;
   MODULES_ACTIVE.SIMBULS_CC = game.modules.get("simbuls-cover-calculator")?.active;
-  MODULES_ACTIVE.MIDI_QOL= game.modules.get("midi-qol")?.active;
+  MODULES_ACTIVE.MIDI_QOL = game.modules.get("midi-qol")?.active;
+  MODULES_ACTIVE.ELEVATED_VISION = game.modules.get("elevatedvision")?.active;
 });
 
 /**

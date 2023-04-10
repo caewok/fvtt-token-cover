@@ -8,6 +8,8 @@ CONFIG
 
 import { MODULE_ID, EPSILON } from "./const.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
+import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
+import { getSetting, SETTINGS } from "./settings.js";
 
 /**
  * Log message only when debug flag is enabled from DevMode module.
@@ -289,4 +291,38 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
   const d = new Point3d(-(wall.B.y - Ay), (wall.B.x - Ax), 0);
 
   return linePlane3dIntersection(a, b, c, d, epsilon);
+}
+
+/**
+ * @typedef buildTokenPointsConfig
+ * @type {object}
+ * @property {CONST.WALL_RESTRICTION_TYPES} type    Type of vision source
+ * @property {boolean} deadTokensBlock              Do dead tokens block vision?
+ * @property {boolean} liveTokensBlock              Do live tokens block vision?
+ */
+
+/**
+ * Given config options, build TokenPoints3d from tokens.
+ * The points will use either half- or full-height tokens, depending on config.
+ * @param {Token[]|Set<Token>} tokens
+ * @param {buildTokenPointsConfig} config
+ * @returns {TokenPoints3d[]}
+ */
+export function buildTokenPoints(tokens, config) {
+  if ( !tokens.length && !tokens.size ) return tokens;
+  const { type, liveTokensBlock, deadTokensBlock } = config;
+
+  // Filter live or dead tokens
+  if ( liveTokensBlock ^ deadTokensBlock ) {
+    tokens = tokens.filter(t => {
+      const hp = getObjectProperty(t.actor, hpAttribute);
+      if ( typeof hp !== "number" ) return true;
+
+      if ( liveTokensBlock && hp > 0 ) return true;
+      if ( deadTokensBlock && hp <= 0 ) return true;
+      return false;
+    });
+  }
+
+  return tokens.map(t => new TokenPoints3d(t, { type }));
 }
