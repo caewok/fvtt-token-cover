@@ -136,6 +136,8 @@ export const SETTINGS = {
     }
   },
 
+  CHANGELOG: "changelog",
+
   WELCOME_DIALOG: {
     v020: "welcome-dialog-v0-20",
     v030: "welcome-dialog-v0-30"
