@@ -609,8 +609,13 @@ export class Area3d {
     if ( !tiles.size ) return tiles;
 
     // Filter by the precise triangle shape
+    // Also filter by overhead tiles
     const edges = [...visionPolygon.iterateEdges()];
     tiles = tiles.filter(t => {
+      // Only overhead tiles count for blocking vision
+      if ( !t.document.overhead ) return false;
+
+      // Check remainder against the vision polygon shape
       const tBounds = t.bounds;
       const tCenter = tBounds.center;
       if ( visionPolygon.contains(tCenter.x, tCenter.y) ) return true;
@@ -618,7 +623,6 @@ export class Area3d {
     });
     return tiles;
   }
-
 
   /**
    * Filter walls in the scene by a triangle representing the view from viewingPoint to some

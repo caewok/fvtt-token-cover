@@ -514,7 +514,10 @@ export class CoverCalculator {
 
   _hasTileCollision(tokenPoint, targetPoint) {
     const ray = new Ray(tokenPoint, targetPoint);
-    const tiles = canvas.tiles.quadtree.getObjects(ray.bounds);
+
+    // Ignore non-overhead tiles
+    const collisionTest = (o, rect) => o.t.document.overhead;
+    const tiles = canvas.tiles.quadtree.getObjects(ray.bounds, { collisionTest });
 
     // Because tiles are parallel to the XY plane, we need not test ones obviously above or below.
     const maxE = Math.max(tokenPoint.z, targetPoint.z);
