@@ -38,6 +38,8 @@ import { Area2d } from "./Area2d.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
+import { Area3dPopout } from "./Area3dPopout.js";
+
 import * as los from "./visibility_los.js";
 
 // Ignores Cover
@@ -82,6 +84,8 @@ Hooks.once("init", async function() {
       IgnoresCoverDND5e,
       IgnoresCoverSimbuls
     },
+
+    Area3dPopout,
 
     debug: DEBUG
   };
