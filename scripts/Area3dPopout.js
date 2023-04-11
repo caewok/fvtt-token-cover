@@ -5,12 +5,12 @@ Application
 
 import { MODULE_ID } from "./const.js";
 
-// const area3dpopout_data = {
-//   hooked: false,
-//   shown: false,
-//   savedTop: null,
-//   savedLeft: null
-// };
+export const area3dPopoutData = {
+  savedTop: null,
+  savedLeft: null,
+  app: null,
+  shown: false
+};
 
 export class Area3dPopout extends Application {
 
@@ -23,14 +23,15 @@ export class Area3dPopout extends Application {
     // Default positioning
     // let h = window.innerHeight * 0.9,
     // w = Math.min(window.innerWidth * 0.9, 1200);
-    // options.top = area3dpopout_data.savedTop;
-//     options.left = area3dpopout_data.savedLeft;
+    options.top = area3dPopoutData.savedTop;
+    options.left = area3dPopoutData.savedLeft;
     // options.top = (window.innertop - this.h) / 2;
     // options.left = (window.innerleft - this.w) / 2;
     options.id = "area3dpopout";
     options.template = `modules/${MODULE_ID}/templates/area3d_popout.html`;
     options.popOut = true;
     options.minimizable = true;
+    options.title = "Area3d Debug";
     return options;
   }
 
@@ -39,6 +40,7 @@ export class Area3dPopout extends Application {
   /** @override */
   render(force=false, options={}) {
     super.render(force, options);
+    area3dPopoutData.shown = true;
 
     // Add pixi app
     //this.pixiApp = new PIXI.Application({width: 400, height: 400, view: document.getElementById("area3dcanvas"), backgroundColor: 0xD3D3D3 });
@@ -51,12 +53,16 @@ export class Area3dPopout extends Application {
   //   /* -------------------------------------------- */
   /** @override */
   close() {
-//     area3dpopout_data.shown = false;
-//     area3dpopout_data.savedTop = this.position.top;
-//     area3dpopout_data.savedLeft = this.position.left;
+    area3dPopoutData.shown = false;
+    area3dPopoutData.savedTop = this.position.top;
+    area3dPopoutData.savedLeft = this.position.left;
     super.close();
   }
 }
+
+Hooks.on("canvasReady", function() {
+  area3dPopoutData.app = new Area3dPopout();
+});
 
 Hooks.on("renderArea3dPopout", function(app, html, data) {
   app.pixiApp = new PIXI.Application({width: 400, height: 400, view: document.getElementById("area3dcanvas"), backgroundColor: 0xD3D3D3 });

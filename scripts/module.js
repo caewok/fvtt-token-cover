@@ -38,7 +38,7 @@ import { Area2d } from "./Area2d.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
-import { Area3dPopout } from "./Area3dPopout.js";
+import { Area3dPopout, area3dPopoutData } from "./Area3dPopout.js";
 
 import * as los from "./visibility_los.js";
 
@@ -86,6 +86,7 @@ Hooks.once("init", async function() {
     },
 
     Area3dPopout,
+    area3dPopoutData,
 
     debug: DEBUG
   };
