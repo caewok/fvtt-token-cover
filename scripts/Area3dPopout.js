@@ -14,6 +14,8 @@ export const area3dPopoutData = {
 
 export class Area3dPopout extends Application {
 
+  graphics = new PIXI.Graphics();
+
   /* -------------------------------------------- */
 
   /** @override */
@@ -56,6 +58,7 @@ export class Area3dPopout extends Application {
     area3dPopoutData.shown = false;
     area3dPopoutData.savedTop = this.position.top;
     area3dPopoutData.savedLeft = this.position.left;
+    this.graphics.clear();
     super.close();
   }
 }
@@ -66,6 +69,16 @@ Hooks.on("canvasReady", function() {
 
 Hooks.on("renderArea3dPopout", function(app, html, data) {
   app.pixiApp = new PIXI.Application({width: 400, height: 400, view: document.getElementById("area3dcanvas"), backgroundColor: 0xD3D3D3 });
+
+  // Center of window should be 0,0
+  app.pixiApp.stage.position.x = 200;
+  app.pixiApp.stage.position.y = 200;
+
+  // Scale to give a bit more room in the popout
+  app.pixiApp.stage.scale.x = 0.5;
+  app.pixiApp.stage.scale.y = 0.5;
+
+  app.pixiApp.stage.addChild(app.graphics);
 });
 
 /*

@@ -47,6 +47,10 @@ import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
 import { TilePoints3d } from "./PlaceablesPoints/TilePoints3d.js";
 import { WallPoints3d } from "./PlaceablesPoints/WallPoints3d.js";
 
+// Debugging pop-up
+import { area3dPopoutData } from "./Area3dPopout.js";
+
+
 export class Area3d {
 
   /** @type {VisionSource} */
@@ -86,7 +90,10 @@ export class Area3d {
   config = {};
 
   /** @type {boolean} */
-  debug = false;
+  #debug = false;
+
+  /** @type {Draw} **/
+  drawTool = new Draw();
 
   /**
    * Holds Foundry objects that are within the vision triangle.
@@ -151,12 +158,6 @@ export class Area3d {
    */
   _visionPolygon;
 
-  /** @type {Point3d[]} */
-  _transformedTarget;
-
-  /** @type {object[]}  An object with A and B. */
-  _transformedWalls;
-
   /** @type {Shadow[]} */
   wallShadows = [];
 
@@ -202,6 +203,19 @@ export class Area3d {
     if ( DEBUG.area ) {
       const targets = canvas.tokens.placeables.filter(t => t.isTargeted);
       this.debug = targets.some(t => t === target);
+    }
+  }
+
+  get debug() { return this.#debug; }
+
+  set debug(value) {
+    this.#debug = Boolean(value);
+
+    // Turn on popout for the debug
+    if ( this.#debug ) {
+      if ( !area3dPopoutData.shown ) area3dPopoutData.app.render(true);
+      this.drawTool = new Draw(area3dPopoutData.app.graphics);
+      this.drawTool.clearDrawings();
     }
   }
 
@@ -283,17 +297,20 @@ export class Area3d {
       objs.drawings.forEach(d => Draw.shape(d.bounds, { color: colors.gray, fillAlpha: 0.5 }));
       objs.tokens.forEach(t => Draw.shape(t.constrainedTokenBorder, { color: colors.orange, fillAlpha: 0.5 }));
 
-      // Draw the target in 3d, centered on 0,0, and fill in the constrained border on canvas
-      this.targetPoints.drawTransformed();
+      // Draw the target in 3d, centered on 0,0
+      this.targetPoints.drawTransformed({ drawTool: this.drawTool });
+
+      // Fill in the constrained border on canvas
       Draw.shape(this.target.constrainedTokenBorder, { color: colors.red, fillAlpha: 0.5});
 
       // Draw the detected objects in 3d, centered on 0,0
       const pts = this.config.debugDrawObjects ? this.blockingObjectsPoints : this.blockingPoints;
-      pts.walls.forEach(w => w.drawTransformed({ color: colors.blue }));
-      pts.tiles.forEach(w => w.drawTransformed({ color: colors.yellow }));
-      pts.drawings.forEach(d => d.drawTransformed({ color: colors.gray, fillAlpha: 0.7 }));
-      pts.tokens.forEach(t => t.drawTransformed({ color: colors.orange }));
-      pts.terrainWalls.forEach(w => w.drawTransformed({ color: colors.lightgreen, fillAlpha: 0.1 }));
+      const drawTool = this.drawTool;
+      pts.walls.forEach(w => w.drawTransformed({ color: colors.blue, drawTool }));
+      pts.tiles.forEach(w => w.drawTransformed({ color: colors.yellow, drawTool }));
+      pts.drawings.forEach(d => d.drawTransformed({ color: colors.gray, fillAlpha: 0.7, drawTool }));
+      pts.tokens.forEach(t => t.drawTransformed({ color: colors.orange, drawTool }));
+      pts.terrainWalls.forEach(w => w.drawTransformed({ color: colors.lightgreen, fillAlpha: 0.1, drawTool }));
 
       // Calculate the areas of the target faces separately, along with the obscured side areas.
       const target = this.target;

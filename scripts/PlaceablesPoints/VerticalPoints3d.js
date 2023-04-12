@@ -341,12 +341,13 @@ export class VerticalPoints3d extends PlanePoints3d {
    * Draw the shape on the 2d canvas
    */
   draw(drawingOptions = {}) {
+    const drawTool = drawingOptions.drawTool ?? new Draw();
     const convert = CONFIG.GeometryLib.utils.pixelsToGridUnits;
 
-    Draw.segment({ A: this.topA, B: this.topB }, drawingOptions);
-    Draw.labelPoint(this.topA, `${convert(this.topA.z)}/${convert(this.bottomA.z)}`);
-    Draw.labelPoint(this.topB, `${convert(this.topB.z)}/${convert(this.bottomB.z)}`);
-    this.points.forEach(pt => Draw.point(pt, drawingOptions));
+    drawTool.segment({ A: this.topA, B: this.topB }, drawingOptions);
+    drawTool.labelPoint(this.topA, `${convert(this.topA.z)}/${convert(this.bottomA.z)}`);
+    drawTool.labelPoint(this.topB, `${convert(this.topB.z)}/${convert(this.bottomB.z)}`);
+    this.points.forEach(pt => drawTool.point(pt, drawingOptions));
   }
 }
 
