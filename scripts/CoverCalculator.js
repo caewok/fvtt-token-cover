@@ -589,35 +589,8 @@ export class CoverCalculator {
    */
   centerToCenter() {
     this.debug && console.log("Cover algorithm: Center-to-Center"); // eslint-disable-line no-unused-expressions
-
-    // TO-DO: Test visibility? This is hard b/c testVisibility assumes a token is selected.
-    // Test visibility is thus a per-user test.
-
-    // Test all non-infinite walls for collisions
-    const tokenPoint = this.viewerCenter;
-    const targetPoint = new Point3d(this.target.center.x, this.target.center.y, this.targetAvgElevationZ);
-
-    const { wallsBlock, liveTokensBlock, deadTokensBlock, tilesBlock } = this.config;
-    const collision = (wallsBlock && this._hasWallCollision(tokenPoint, targetPoint))
-      || (tilesBlock && this._hasTileCollision(tokenPoint, targetPoint));
-
-    this.debug && Draw.segment(  // eslint-disable-line no-unused-expressions
-      {A: tokenPoint, B: targetPoint},
-      { color: collision ? Draw.COLORS.red : Draw.COLORS.green });
-
-    if ( collision ) return COVER_TYPES[getSetting(SETTINGS.COVER.TRIGGER_CENTER)];
-
-    if ( liveTokensBlock || deadTokensBlock ) {
-      const collision = this._hasTokenCollision(tokenPoint, targetPoint);
-      if ( collision ) {
-        this.debug && Draw.segment(  // eslint-disable-line no-unused-expressions
-          {A: tokenPoint, B: targetPoint},
-          { color: collision ? Draw.COLORS.lightred : Draw.COLORS.lightgreen });
-        return Math.max(COVER_TYPES.NONE, COVER_TYPES[getSetting(SETTINGS.COVER.TRIGGER_CENTER)] - 1);
-      }
-    }
-
-    return COVER_TYPES.NONE;
+    const targetPoints = [new Point3d(this.target.center.x, this.target.center.y, this.targetAvgElevationZ)];
+    return this._testTokenTargetPoints([this.viewerCenter], [targetPoints]);
   }
 
   /**
@@ -628,9 +601,7 @@ export class CoverCalculator {
    */
   centerToTargetCorners() {
     this.debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
-
     const targetPoints = this._getCorners(this.target.constrainedTokenBorder, this.targetAvgElevationZ);
-
     return this._testTokenTargetPoints([this.viewerCenter], [targetPoints]);
   }
 
@@ -642,10 +613,8 @@ export class CoverCalculator {
    */
   cornerToTargetCorners() {
     this.debug && console.log("Cover algorithm: Corner-to-Corners"); // eslint-disable-line no-unused-expressions
-
     const tokenCorners = this._getCorners(this.viewer.constrainedTokenBorder, this.viewer.topZ);
     const targetPoints = this._getCorners(this.target.constrainedTokenBorder, this.targetAvgElevationZ);
-
     return this._testTokenTargetPoints(tokenCorners, [targetPoints]);
   }
 
@@ -658,11 +627,9 @@ export class CoverCalculator {
    */
   centerToTargetGridCorners() {
     this.debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
-
     const targetShapes = CoverCalculator.constrainedGridShapesUnderToken(this.target);
     const targetElevation = this.targetAvgElevation;
     const targetPointsArray = targetShapes.map(targetShape => this._getCorners(targetShape, targetElevation));
-
     return this._testTokenTargetPoints([this.viewerCenter], targetPointsArray);
   }
 
@@ -674,12 +641,10 @@ export class CoverCalculator {
    */
   cornerToTargetGridCorners() {
     this.debug && console.log("Cover algorithm: Center-to-Corners"); // eslint-disable-line no-unused-expressions
-
     const tokenCorners = this._getCorners(this.viewer.constrainedTokenBorder, this.viewer.topZ);
     const targetShapes = CoverCalculator.constrainedGridShapesUnderToken(this.target);
     const targetElevationZ = this.targetAvgElevationZ;
     const targetPointsArray = targetShapes.map(targetShape => this._getCorners(targetShape, targetElevationZ));
-
     return this._testTokenTargetPoints(tokenCorners, targetPointsArray);
   }
 
