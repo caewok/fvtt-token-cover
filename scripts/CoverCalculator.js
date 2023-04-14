@@ -434,7 +434,9 @@ export class CoverCalculator {
    * @type {Point3d}
    */
   get viewerCenter() {
-    return new Point3d(this.viewer.center.x, this.viewer.center.y, this.viewer.topZ);
+    const height = this.viewer.topZ - this.viewer.bottomZ;
+    const losHeight = height ? this.viewer.topZ : this.viewer.topZ + 1;
+    return new Point3d(this.viewer.center.x, this.viewer.center.y, losHeight);
   }
 
   /**
@@ -859,7 +861,8 @@ export class CoverCalculator {
    * @returns {number}
    */
   static averageTokenElevationZ(token) {
-    return token.bottomZ + ((token.topZ - token.bottomZ) * 0.5);
+    const height = (token.topZ - token.bottomZ) || 1; // So token always has a minimum height.
+    return token.bottomZ + (height * 0.5);
   }
 
   /**
