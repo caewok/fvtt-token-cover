@@ -1,3 +1,7 @@
+# 0.4.5
+- Fix for issue #40 (error with Area2d).
+- Fix for issue #39 (failure to detect token cover using center to center in PF2e)
+
 # 0.4.4
 - Update to lib geometry v0.1.5.
 - Possible fix for issue #33 (null error reading "length").

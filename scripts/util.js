@@ -231,6 +231,13 @@ export function lineTriangleIntersectionLocation(rayVector, edge1, edge2, s, f, 
  * @returns {number|null}  Place on the ray of the intersection or null if none.
  */
 export function lineIntersectionQuadrilateral3d(A, rayVector, r0, r1, r2, r3) {
+  // Test both directions of the quad (otherwise, need to force to CW order)
+  let res = _lineIntersectionQuadrilateral3d(A, rayVector, r0, r1, r2, r3);
+  if ( res === null ) res = _lineIntersectionQuadrilateral3d(A, rayVector, r3, r2, r1, r0);
+  return res;
+}
+
+function _lineIntersectionQuadrilateral3d(A, rayVector, r0, r1, r2, r3) {
   // Triangles are 0-1-2 and 0-2-3
   const edge1 = r1.subtract(r0);
   const edge2 = r2.subtract(r0);

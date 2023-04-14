@@ -10,7 +10,7 @@ canvas
 "use strict";
 
 import { MODULES_ACTIVE, DEBUG } from "./const.js";
-import { getObjectProperty, buildTokenPoints } from "./util.js";
+import { buildTokenPoints } from "./util.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Area3d} from "./Area3d.js";
 import { CWSweepInfiniteWallsOnly } from "./CWSweepInfiniteWallsOnly.js";
@@ -108,7 +108,7 @@ export class Area2d {
 
     // If less than 50% of the token area is required to be viewable, then
     // if the center point is viewable, the token is viewable from that source.
-    if ( centerPointIsVisible && percentArea < 0.50 ) {
+    if ( centerPointIsVisible && thresholdArea < 0.50 ) {
       if ( this.debug ) Draw.point(this.target.center, {
         alpha: 1,
         radius: 3,
@@ -439,7 +439,6 @@ export class Area2d {
     const visionSource = this.visionSource;
     const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
     const { type, liveTokensBlock, deadTokensBlock } = this.config;
-    const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
 
     // Find the walls and, optionally, tokens, for the triangle between origin and target
     const filterConfig = {
