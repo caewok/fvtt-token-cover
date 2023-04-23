@@ -109,13 +109,15 @@ Hooks.once("setup", async function() {
  * Returns half the height if the token is prone.
  */
 function tokenTopElevation() {
-  if ( !MODULES_ACTIVE.WALL_HEIGHT ) return this.bottomE;
+  const e = this.bottomE;
+  if ( !MODULES_ACTIVE.WALL_HEIGHT ) return e;
 
   const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
   const isProne = (proneStatusId !== "" && this.actor)
     ? this.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
 
-  return isProne ? this.losHeight * 0.5 : this.losHeight;
+  const height = this.losHeight - e;
+  return isProne ? e + (height * 0.5) : this.losHeight;
 }
 
 /**
