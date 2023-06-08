@@ -58,7 +58,7 @@ import {
 // Other self-executing hooks
 import "./changelog.js";
 
-Hooks.once("init", async function() {
+Hooks.once("init", function() {
   registerGeometry();
 
   registerElevationAdditions();
