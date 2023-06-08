@@ -24,12 +24,14 @@ export class HorizontalPoints3d extends PlanePoints3d {
    * @returns {HorizontalPoints3d}
    */
   static fromPIXIRectangle(r, { elevation = 0, object = r } = {}) {
-    return new this(object, [
+    const points = [
       new Point3d(r.x, r.y, elevation),
       new Point3d(r.x + r.width, r.y, elevation),
       new Point3d(r.x + r.width, r.y + r.height, elevation),
       new Point3d(r.x, r.y + r.height, elevation)
-    ]);
+    ];
+
+    return new this(object, points);
   }
 
   /**
@@ -55,12 +57,12 @@ export class HorizontalPoints3d extends PlanePoints3d {
   static fromPolygon(poly, { elevation = 0, object = poly } = {}) {
     const pts = [...poly.iteratePoints({close: false})];
     const nPts = pts.length;
-    const points3d = new Array(nPts);
+    const points = new Array(nPts);
     for ( let i = 0; i < nPts; i += 1 ) {
       const pt = pts[i];
-      points3d[i] = new Point3d(pt.x, pt.y, elevation);
+      points[i] = new Point3d(pt.x, pt.y, elevation);
     }
-    return new this(object, points3d);
+    return new this(object, points);
   }
 
   /**
@@ -277,10 +279,9 @@ export class HorizontalPoints3d extends PlanePoints3d {
    * @param {PIXI.Polygon} viewableTriangle   Polygon triangle to test
    * @param {object} [options]                Options that affect the test.
    * @param {object[]} [options.edges]        Array of edges for the triangle, {A: Point, B: Point}.
-    * @param {Point3d} [options.viewerLoc]    Coordinates of viewer
    * @param {}
    */
-  _getVisibleSplits(target, viewableTriangle, { edges, viewerLoc } = {}) {
+  _getVisibleSplits(target, viewableTriangle, { edges } = {}) {
     // Triangle must be clockwise so we pass edges in the correct orientation to isWithin2dConvexPolygon.
     if ( !viewableTriangle.isClockwise ) {
       viewableTriangle.reverseOrientation();
@@ -307,11 +308,12 @@ export class HorizontalPoints3d extends PlanePoints3d {
    * Draw the shape on the 2d canvas
    */
   draw(drawingOptions = {}) {
+    const drawTool = drawingOptions.drawTool ?? new Draw();
     const convert = CONFIG.GeometryLib.utils.pixelsToGridUnits;
-    Draw.shape(this.toPolygon());
+    drawTool.shape(this.toPolygon());
     this.points.forEach(pt => {
-      Draw.point(pt, drawingOptions);
-      Draw.labelPoint(pt, `${convert(pt.z)}`);
+      drawTool.point(pt, drawingOptions);
+      drawTool.labelPoint(pt, `${convert(pt.z)}`);
     });
   }
 }

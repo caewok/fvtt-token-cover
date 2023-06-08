@@ -17,8 +17,8 @@ export class WallPoints3d extends VerticalPoints3d {
    */
   constructor(wall, points) {
     if ( typeof points === "undefined" ) {
-       const pts = Point3d.fromWall(wall, { finite: true });
-       points = [pts.A.top, pts.B.top, pts.B.bottom, pts.A.bottom];
+      const pts = Point3d.fromWall(wall, { finite: true });
+      points = [pts.A.top, pts.B.top, pts.B.bottom, pts.A.bottom];
     }
     super(wall, points);
   }

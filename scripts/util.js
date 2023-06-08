@@ -9,7 +9,6 @@ CONFIG
 import { MODULE_ID, EPSILON } from "./const.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
-import { getSetting, SETTINGS } from "./settings.js";
 
 /**
  * Log message only when debug flag is enabled from DevMode module.
@@ -306,6 +305,7 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
  * @property {CONST.WALL_RESTRICTION_TYPES} type    Type of vision source
  * @property {boolean} deadTokensBlock              Do dead tokens block vision?
  * @property {boolean} liveTokensBlock              Do live tokens block vision?
+ * @property {PIXI.Graphics} graphics               Graphics to pass to the point constructor
  */
 
 /**
@@ -317,7 +317,8 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
  */
 export function buildTokenPoints(tokens, config) {
   if ( !tokens.length && !tokens.size ) return tokens;
-  const { type, liveTokensBlock, deadTokensBlock } = config;
+  const { liveTokensBlock, deadTokensBlock } = config;
+  const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
 
   // Filter live or dead tokens
   if ( liveTokensBlock ^ deadTokensBlock ) {
@@ -331,5 +332,5 @@ export function buildTokenPoints(tokens, config) {
     });
   }
 
-  return tokens.map(t => new TokenPoints3d(t, { type }));
+  return tokens.map(t => new TokenPoints3d(t));
 }

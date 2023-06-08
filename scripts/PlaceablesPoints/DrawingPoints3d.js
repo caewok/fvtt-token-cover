@@ -30,15 +30,15 @@ export class DrawingPoints3d extends HorizontalPoints3d {
     const shapePoints = shape.points;
     const ln = shapePoints.length;
     const newLn = ln * 0.5;
-    const points3d = new Array(newLn);
+    const points = new Array(newLn);
     for ( let i = 0; i < newLn; i += 1 ) {
       const j = i * 2;
       const x = shapePoints[j];
       const y = shapePoints[j + 1];
-      points3d[i] = new Point3d(x, y, elevationZ);
+      points[i] = new Point3d(x, y, elevationZ);
     }
 
-    super(object, points3d);
+    super(object, points);
     this._elevationZ = elevationZ;
     this.shape = shape;
   }

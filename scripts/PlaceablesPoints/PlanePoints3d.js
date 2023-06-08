@@ -61,7 +61,6 @@ newPoints.forEach(pt => Draw.point(pt, { color: Draw.COLORS.blue}))
 // Used for representing walls, tiles, drawings, token sides in 3d.
 // Can set a view matrix and transform points accordingly.
 
-import { Matrix } from "../geometry/Matrix.js";
 import { Draw } from "../geometry/Draw.js";
 import { Point3d } from "../geometry/3d/Point3d.js";
 
@@ -244,20 +243,22 @@ export class PlanePoints3d {
    * Draw the shape on the 2d canvas
    */
   draw(drawingOptions = {}) {
-    this.points.forEach(pt => Draw.point(pt, drawingOptions));
+    const drawTool = drawingOptions.drawTool ?? new Draw();
+    this.points.forEach(pt => drawTool.point(pt, drawingOptions));
     const poly = new PIXI.Polygon(this.points);
-    Draw.shape(poly, drawingOptions);
+    drawTool.shape(poly, drawingOptions);
   }
 
   /**
    * Draw the transformed shape.
    */
-  drawTransformed({perspective = true, color = Draw.COLORS.blue, width = 1, fill, fillAlpha = 0.2 } = {}) {
-    if ( typeof fill === "undefined" ) fill = color;
+  drawTransformed({perspective = true, color = Draw.COLORS.blue, width = 1, fill, fillAlpha = 0.2, drawTool } = {}) {
+    drawTool ??= new Draw();
+    fill ??= color;
 
     const pts = perspective ? this.perspectiveTransform() : this.tPoints;
     const poly = new PIXI.Polygon(pts);
-    Draw.shape(poly, { color, width, fill, fillAlpha });
+    drawTool.shape(poly, { color, width, fill, fillAlpha });
   }
 
   /**
