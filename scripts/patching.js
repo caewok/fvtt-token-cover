@@ -1,9 +1,9 @@
 /* globals
-libWrapper,
-Token,
-game,
 CONFIG,
-ClockwiseSweepPolygon
+game,
+libWrapper,
+PointSourcePolygon,
+Token
 */
 "use strict";
 
@@ -26,8 +26,8 @@ import { toggleActiveEffectTokenDocument } from "./cover.js";
 import { MODULE_ID, MODULES_ACTIVE, DEBUG } from "./const.js";
 
 import {
-  testCollision3dClockwiseSweepPolygon,
-  _testCollision3dClockwiseSweepPolygon
+  testCollision3dPointSourcePolygon,
+  _testCollision3dPointSourcePolygon
 } from "./clockwise_sweep.js";
 
 import {
