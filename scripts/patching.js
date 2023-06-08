@@ -24,9 +24,6 @@ import {
 import { toggleActiveEffectTokenDocument } from "./cover.js";
 
 import { MODULE_ID, MODULES_ACTIVE, DEBUG } from "./const.js";
-import {
-  activateListenersSettingsConfig
-} from "./settings.js";
 
 import {
   testCollision3dClockwiseSweepPolygon,
@@ -81,9 +78,6 @@ function addClassGetter(cl, name, fn) {
 }
 
 export function registerLibWrapperMethods() {
-  // ---- Settings manipulations to hide unneeded settings ----- //
-  wrap("SettingsConfig.prototype.activateListeners", activateListenersSettingsConfig);
-
   // ----- Token Visibility ----- //
   mixed("CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, {perf_mode: libWrapper.PERF_FAST});
 

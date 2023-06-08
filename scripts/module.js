@@ -1,7 +1,7 @@
 /* globals
-Hooks,
 game,
-Dialog
+Hooks
+Token
 */
 "use strict";
 
@@ -12,7 +12,13 @@ import { registerGeometry } from "./geometry/registration.js";
 
 import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
-import { registerSettings, getSetting, setSetting, SETTINGS, updateConfigStatusEffects, settingsCache } from "./settings.js";
+import {
+  registerSettings,
+  getSetting,
+  SETTINGS,
+  updateConfigStatusEffects,
+  updateSettingHook,
+  renderSettingsConfigHook } from "./settings.js";
 import { registerElevationAdditions } from "./elevation.js";
 
 // Rendering configs
@@ -101,8 +107,8 @@ Hooks.once("setup", async function() {
   // Replace topZ method for tokens
   // Do this here so that it can override method from other modules, like EV.
   Object.defineProperty(Token.prototype, "topE", {
-      get: tokenTopElevation,
-      configurable: true
+    get: tokenTopElevation,
+    configurable: true
   });
 });
 
@@ -201,65 +207,8 @@ function updateTokenHook(document, change, options, userId) { // eslint-disable-
  */
 Hooks.on("renderDrawingConfig", renderDrawingConfigHook);
 
-
-/**
- * Wipe the settings cache on update
- */
-Hooks.on("updateSetting", updateSettingHook);
-
-function updateSettingHook(document, change, options, userId) {  // eslint-disable-line no-unused-vars
-  const [module, ...arr] = document.key.split(".");
-  const key = arr.join("."); // If the key has periods, multiple will be returned by split.
-  if ( module === MODULE_ID && settingsCache.has(key) ) settingsCache.delete(key);
-}
-
-/**
- * A hook event that fires whenever an Application is rendered. Substitute the
- * Application name in the hook event to target a specific Application type, for example "renderMyApplication".
- * Each Application class in the inheritance chain will also fire this hook, i.e. "renderApplication" will also fire.
- * The hook provides the pending application HTML which will be added to the DOM.
- * Hooked functions may modify that HTML or attach interactive listeners to it.
- *
- * @event renderApplication
- * @category Application
- * @param {Application} application     The Application instance being rendered
- * @param {jQuery} html                 The inner HTML of the document that will be displayed and may be modified
- * @param {object} data                 The object of data used when rendering the application
- */
+// Note: Settings hooks
+// Settings manipulations to hide unneeded settings
+// Wipe the settings cache on update
 Hooks.on("renderSettingsConfig", renderSettingsConfigHook);
-
-/**
- * Register listeners when the settings config is opened.
- */
-function renderSettingsConfigHook(application, html, data) {
-  util.log("SettingsConfig", application, html, data);
-
-  const tvSettings = html.find(`section[data-tab="${MODULE_ID}"]`);
-  if ( !tvSettings || !tvSettings.length ) return;
-
-  const losAlgorithm = getSetting(SETTINGS.LOS.ALGORITHM);
-  const coverAlgorithm = getSetting(SETTINGS.COVER.ALGORITHM);
-
-  const displayArea = losAlgorithm === SETTINGS.LOS.TYPES.POINTS ? "none" : "block";
-  const inputLOSArea = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.LOS.PERCENT_AREA}"]`);
-  const divLOSArea = inputLOSArea.parent().parent();
-  divLOSArea[0].style.display = displayArea;
-
-  const [displayCoverTriggers, displayCenterCoverTrigger] = coverAlgorithm === SETTINGS.COVER.TYPES.CENTER_CENTER
-    ? ["none", "block"] : ["block", "none"];
-
-  const inputCenter = tvSettings.find(`select[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_CENTER}"]`);
-  const inputLow = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}"]`);
-  const inputMedium = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM}"]`);
-  const inputHigh = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}"]`);
-
-  const divInputCenter = inputCenter.parent().parent();
-  const divInputLow = inputLow.parent().parent();
-  const divInputMedium = inputMedium.parent().parent();
-  const divInputHigh = inputHigh.parent().parent();
-
-  if ( divInputCenter.length ) divInputCenter[0].style.display = displayCenterCoverTrigger;
-  if ( divInputLow.length ) divInputLow[0].style.display = displayCoverTriggers;
-  if ( divInputMedium.length ) divInputMedium[0].style.display = displayCoverTriggers;
-  if ( divInputHigh.length ) divInputHigh[0].style.display = displayCoverTriggers;
-}
+Hooks.on("updateSetting", updateSettingHook);
