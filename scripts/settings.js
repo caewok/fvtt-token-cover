@@ -13,8 +13,7 @@ import {
   MediumCoverEffectConfig,
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
-export const settingsCache = new Map();
-
+const settingsCache = new Map();
 export function getSetting(settingName) {
   const cached = settingsCache.get(settingName);
   if ( cached === undefined ) {
