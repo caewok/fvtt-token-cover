@@ -2,8 +2,7 @@
 CONFIG,
 game,
 libWrapper,
-PointSourcePolygon,
-Token
+PointSourcePolygon
 */
 "use strict";
 
@@ -68,7 +67,7 @@ function addClassMethod(cl, name, fn) {
  * @param {function} fn   Function to use for the method
  */
 function addClassGetter(cl, name, fn) {
-  if ( !Object.hasown(cl, name) ) {
+  if ( !Object.hasOwn(cl, name) ) {
     Object.defineProperty(cl, name, {
       get: fn,
       enumerable: false,
