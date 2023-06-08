@@ -104,7 +104,10 @@ export function _createPolygonVisionSource(config) {
   if ( this._losCache[config.type] ) return this._losCache[config.type];
 
   const origin = { x: this.data.x, y: this.data.y };
-  const poly = CONFIG.Canvas.losBackend.create(origin, config);
+
+  // See PointSource.prototype._createPolygon
+  const polygonClass = CONFIG.Canvas.polygonBackends[config.type];
+  const poly = polygonClass.create(origin, config);
   this._losCache[config.type] = poly;
   return poly;
 }
