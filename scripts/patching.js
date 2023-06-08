@@ -105,18 +105,18 @@ export function registerLibWrapperMethods() {
   mixed("DetectionMode.prototype._testLOS", _testLOSDetectionMode, {perf_mode: libWrapper.PERF_FAST});
 
   // ----- Cover status effects ----- //
-  wrap("TokenDocument.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument);
-  wrap("Token.prototype.updateSource", updateSourceToken, {perf_mode: libWrapper.PERF_FAST});
+  wrap("CONFIG.Token.documentClass.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument);
+  wrap("CONFIG.Token.objectClass.prototype.updateSource", updateSourceToken, {perf_mode: libWrapper.PERF_FAST});
 
   if ( !MODULES_ACTIVE.PERFECT_VISION ) {
     wrap( "VisionSource.prototype.initialize", initializeVisionSource, {perf_mode: libWrapper.PERF_FAST});
     override("VisionSource.prototype._createPolygon", _createPolygonVisionSource, {perf_mode: libWrapper.PERF_FAST});
   }
 
-  addClassGetter(Token.prototype, "tokenShape", getTokenShape);
-  addClassGetter(Token.prototype, "tokenBorder", getTokenBorder);
-  addClassGetter(Token.prototype, "constrainedTokenBorder", getConstrainedTokenBorder);
-  addClassGetter(Token.prototype, "ignoresCoverType", cachedGetterIgnoresCover);
+  addClassGetter(CONFIG.Token.objectClass.prototype, "tokenShape", getTokenShape);
+  addClassGetter(CONFIG.Token.objectClass.prototype, "tokenBorder", getTokenBorder);
+  addClassGetter(CONFIG.Token.objectClass.prototype, "constrainedTokenBorder", getConstrainedTokenBorder);
+  addClassGetter(CONFIG.Token.objectClass.prototype, "ignoresCoverType", cachedGetterIgnoresCover);
 
   addClassMethod(PointSourcePolygon, "testCollision3d", testCollision3dPointSourcePolygon);
   addClassMethod(PointSourcePolygon.prototype, "_testCollision3d", _testCollision3dPointSourcePolygon);
