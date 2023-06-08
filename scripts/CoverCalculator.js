@@ -511,7 +511,7 @@ export class CoverCalculator {
   _hasWallCollision(tokenPoint, targetPoint) {
     const mode = "any";
     const type = this.config.type;
-    return ClockwiseSweepPolygon.testCollision3d(tokenPoint, targetPoint, { type, mode });
+    return PointSourcePolygon.testCollision3d(tokenPoint, targetPoint, { type, mode });
   }
 
   _hasTileCollision(tokenPoint, targetPoint) {

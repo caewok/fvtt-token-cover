@@ -2,7 +2,6 @@
 libWrapper,
 Token,
 game,
-VisionSource,
 CONFIG,
 ClockwiseSweepPolygon
 */
@@ -49,7 +48,7 @@ function wrap(method, fn, options = {}) { libWrapper.register(MODULE_ID, method,
 
 function mixed(method, fn, options = {}) { libWrapper.register(MODULE_ID, method, fn, libWrapper.MIXED, options); }
 
-function override(method, fn, options = {}) { libWrapper.register(MODULE_ID, method, fn, libWrapper.OVERRIDE, options); }
+function override(method, fn, options = {}) { libWrapper.register(MODULE_ID, method, fn, libWrapper.OVERRIDE, options);}
 
 /**
  * Helper to add a method to a class.
@@ -111,7 +110,7 @@ export function registerLibWrapperMethods() {
 
   if ( !MODULES_ACTIVE.PERFECT_VISION ) {
     wrap( "VisionSource.prototype.initialize", initializeVisionSource, {perf_mode: libWrapper.PERF_FAST});
-    override("VisionSource.prototype._createPolygon", _createPolygonVisionSource, {perf_mode: libWrapper.PERF_FAST})
+    override("VisionSource.prototype._createPolygon", _createPolygonVisionSource, {perf_mode: libWrapper.PERF_FAST});
   }
 
   addClassGetter(Token.prototype, "tokenShape", getTokenShape);
@@ -119,8 +118,8 @@ export function registerLibWrapperMethods() {
   addClassGetter(Token.prototype, "constrainedTokenBorder", getConstrainedTokenBorder);
   addClassGetter(Token.prototype, "ignoresCoverType", cachedGetterIgnoresCover);
 
-  addClassMethod(ClockwiseSweepPolygon, "testCollision3d", testCollision3dClockwiseSweepPolygon);
-  addClassMethod(ClockwiseSweepPolygon.prototype, "_testCollision3d", _testCollision3dClockwiseSweepPolygon);
+  addClassMethod(PointSourcePolygon, "testCollision3d", testCollision3dPointSourcePolygon);
+  addClassMethod(PointSourcePolygon.prototype, "_testCollision3d", _testCollision3dPointSourcePolygon);
 }
 
 function cachedGetterIgnoresCover() {

@@ -226,7 +226,7 @@ function testLOSPoint(visionSource, target, test) {
 
   // Test all non-infinite walls for collisions
   if ( MODULES_ACTIVE.LEVELS ) return !CONFIG.Levels.API.testCollision(origin, pt);
-  else return !ClockwiseSweepPolygon.testCollision3d(origin, pt, { type: "sight", mode: "any", wallTypes: "limited" });
+  else return !PointSourcePolygon.testCollision3d(origin, pt, { type: "sight", mode: "any", wallTypes: "limited" });
 }
 
 /**
