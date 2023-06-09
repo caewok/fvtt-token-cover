@@ -1,8 +1,10 @@
 /* globals
-Application
+Application,
+Hooks,
+PIXI
 */
 "use strict";
-
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 import { MODULE_ID } from "./const.js";
 
 export const area3dPopoutData = {
@@ -23,10 +25,12 @@ export class Area3dPopout extends Application {
     const options = super.defaultOptions;
 
     // Default positioning
+    // If width calc is necessary:
     // let h = window.innerHeight * 0.9,
     // w = Math.min(window.innerWidth * 0.9, 1200);
     options.top = area3dPopoutData.savedTop;
     options.left = area3dPopoutData.savedLeft;
+    // Other possible options:
     // options.top = (window.innertop - this.h) / 2;
     // options.left = (window.innerleft - this.w) / 2;
     options.id = "area3dpopout";
@@ -45,8 +49,10 @@ export class Area3dPopout extends Application {
     area3dPopoutData.shown = true;
 
     // Add pixi app
-    //this.pixiApp = new PIXI.Application({width: 400, height: 400, view: document.getElementById("area3dcanvas"), backgroundColor: 0xD3D3D3 });
-    // this.pixiApp = new PIXI.Application({width: 400, height: 400, view: document.getElementById("area3dcanvas"), backgroundColor: 0xD3D3D3 });
+    // this.pixiApp = new PIXI.Application({
+    // width: 400, height: 400, view: document.getElementById("area3dcanvas"), backgroundColor: 0xD3D3D3 });
+    // this.pixiApp = new PIXI.Application({
+    // width: 400, height: 400, view: document.getElementById("area3dcanvas"), backgroundColor: 0xD3D3D3 });
 
     return this;
   }
@@ -67,7 +73,7 @@ Hooks.on("canvasReady", function() {
   area3dPopoutData.app = new Area3dPopout();
 });
 
-Hooks.on("renderArea3dPopout", function(app, html, data) {
+Hooks.on("renderArea3dPopout", function(app, _html, _data) {
   app.pixiApp = new PIXI.Application({width: 400, height: 400, view: document.getElementById("area3dcanvas"), backgroundColor: 0xD3D3D3 });
 
   // Center of window should be 0,0
@@ -81,8 +87,7 @@ Hooks.on("renderArea3dPopout", function(app, html, data) {
   app.pixiApp.stage.addChild(app.graphics);
 });
 
-/*
-
+/* Testing
 api = game.modules.get("tokenvisibility").api
 Area3dPopout = api.Area3dPopout
 popout = new Area3dPopout()

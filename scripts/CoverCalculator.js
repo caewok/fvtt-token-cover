@@ -1,16 +1,16 @@
 /* globals
-game,
 canvas,
-ClockwiseSweepPolygon,
-CONST,
-PIXI,
-Hooks,
-socketlib,
-VisionSource,
 CONFIG,
+CONST,
 Dialog,
-Ray,
-duplicate
+duplicate,
+game,
+Hooks,
+PIXI,
+PointSourcePolygon,
+Ray
+socketlib,
+VisionSource
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";

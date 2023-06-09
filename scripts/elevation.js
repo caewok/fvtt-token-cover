@@ -1,8 +1,8 @@
 /* globals
-Wall,
-Token,
 CONFIG
-
+Token,
+VisionSource,
+Wall
 */
 "use strict";
 

@@ -1,8 +1,9 @@
 /* globals
-Token,
 canvas,
-ClockwiseSweepPolygon,
-CONFIG
+CONFIG,
+LimitedAnglePolygon,
+PointSourcePolygon,
+Token
 */
 "use strict";
 
@@ -160,6 +161,18 @@ function drawDebugPoint(visionSource, pt, hasLOS) {
   });
 }
 
+function isConstrained(los) {
+  const boundaryShapes = los.config.boundaryShapes;
+  if ( boundaryShapes.length === 0 ) return false;
+  if ( boundaryShapes.length >= 2 ) return true;
+
+  const boundaryShape = boundaryShapes[0];
+  if ( !(boundaryShape instanceof LimitedAnglePolygon) ) return true;
+
+  return boundaryShape.radius < canvas.dimensions.maxR;
+}
+
+
 /**
  * Test a point for line-of-sight. Confirm:
  * 1. Point is on the same level as the visionSource.
@@ -179,20 +192,6 @@ function testLOSPoint(visionSource, target, test) {
 
   // If not within LOS, then we are done.
   if ( MODULES_ACTIVE.PERFECT_VISION ) {
-    function isConstrained(los) {
-      const boundaryShapes = los.config.boundaryShapes;
-      if ( boundaryShapes.length === 0 ) {
-          return false;
-      }
-      if ( boundaryShapes.length >= 2 ) {
-          return true;
-      }
-      const boundaryShape = boundaryShapes[0];
-      if ( !(boundaryShape instanceof LimitedAnglePolygon) ) {
-          return true;
-      }
-      return boundaryShape.radius < canvas.dimensions.maxR;
-    }
     if ( !isConstrained(visionSource.los) ) {
       if ( !visionSource.los.contains(pt.x, pt.y) ) return false;
     } else {
@@ -200,12 +199,10 @@ function testLOSPoint(visionSource, target, test) {
       if ( angle !== 360 ) {
         const dx = pt.x - visionSource.x;
         const dy = pt.y - visionSource.y;
-        if ( dx * dx + dy * dy > externalRadius * externalRadius ) {
-          const aMin = rotation + 90 - angle / 2;
+        if ( (dx * dx) + (dy * dy) > (externalRadius * externalRadius) ) {
+          const aMin = rotation + 90 - (angle / 2);
           const a = Math.toDegrees(Math.atan2(dy, dx));
-          if ( ((a - aMin) % 360 + 360) % 360 > angle ) {
-              return false;
-          }
+          if ( ((((a - aMin) % 360) + 360) % 360) > angle ) return false;
         }
       }
       const origin = { x: visionSource.x, y: visionSource.y };
@@ -214,9 +211,7 @@ function testLOSPoint(visionSource, target, test) {
         return false;
       }
     }
-  } else {
-    if ( !visionSource.los.contains(pt.x, pt.y) ) return false;
-  }
+  } else if ( !visionSource.los.contains(pt.x, pt.y) ) return false;
 
   // If not within the constrained token shape, then don't test.
   // Assume that unconstrained token shapes contain all test points.
@@ -251,7 +246,7 @@ function testLOSArea(visionSource, target, test) {
   const config = {
     type: "sight",
     liveTokensBlock: false,
-    deadTokensBlock: false,
+    deadTokensBlock: false
   };
 
   if ( DEBUG.forceLiveTokensBlock ) config.liveTokensBlock = true;
@@ -280,7 +275,7 @@ function testLOSArea3d(visionSource, target, test) {
   const config = {
     type: "sight",
     liveTokensBlock: false,
-    deadTokensBlock: false,
+    deadTokensBlock: false
   };
 
   if ( DEBUG.forceLiveTokensBlock ) config.liveTokensBlock = true;

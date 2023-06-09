@@ -1,13 +1,14 @@
 /* globals
-Ray,
 canvas,
-CONST
+CONST,
+foundry,
+PointSourcePolygon,
+Ray
 */
 "use strict";
 
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Plane } from "./geometry/3d/Plane.js";
-import { lineSegment3dWallIntersection } from "./util.js";
 
 /**
  * 3d version of ClockwiseSweepPolygon.testCollision
@@ -95,7 +96,7 @@ function testWallsForIntersections(origin, destination, walls, mode, type) {
 
     if ( t === null || t < 0 || t > 1 ) continue;
 
-    const ix = origin.add(direction.multiplyScalar(t))
+    const ix = origin.add(direction.multiplyScalar(t));
     ix.type = wall.document[type] ?? CONST.WALL_SENSE_TYPES.NORMAL;
     ix.t = t;
     ix.wall = wall;
