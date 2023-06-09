@@ -19,7 +19,6 @@ import {
   updateConfigStatusEffects,
   updateSettingHook,
   renderSettingsConfigHook } from "./settings.js";
-import { registerElevationAdditions } from "./elevation.js";
 
 // Rendering configs
 import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
@@ -61,7 +60,6 @@ import "./changelog.js";
 Hooks.once("init", function() {
   registerGeometry();
 
-  registerElevationAdditions();
   registerLibWrapperMethods();
   patchHelperMethods();
   addDND5eCoverFeatFlags();
