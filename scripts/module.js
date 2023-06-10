@@ -59,7 +59,6 @@ import "./changelog.js";
 
 Hooks.once("init", function() {
   registerGeometry();
-
   registerLibWrapperMethods();
   patchHelperMethods();
   addDND5eCoverFeatFlags();
