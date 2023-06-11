@@ -1,13 +1,14 @@
 /* globals
-Ray,
 canvas,
-CONST
+CONST,
+foundry,
+PointSourcePolygon,
+Ray
 */
 "use strict";
 
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Plane } from "./geometry/3d/Plane.js";
-import { lineSegment3dWallIntersection } from "./util.js";
 
 /**
  * 3d version of ClockwiseSweepPolygon.testCollision
@@ -21,7 +22,7 @@ import { lineSegment3dWallIntersection } from "./util.js";
  *                                                * all: returns a sorted array of Point3d instances
  *                                                * closest: returns a Point3d instance or null
  */
-export function testCollision3dClockwiseSweepPolygon(origin, destination, {mode="all", wallTypes="all", ...config}={}) {
+export function testCollision3dPointSourcePolygon(origin, destination, {mode="all", wallTypes="all", ...config}={}) {
   const poly = new this();
   const ray = new Ray(origin, destination);
   config.boundaryShapes ||= [];
@@ -46,7 +47,7 @@ export function testCollision3dClockwiseSweepPolygon(origin, destination, {mode=
  *                                    An array of collisions, if mode is "all"
  *                                    The closest collision, if mode is "closest"
  */
-export function _testCollision3dClockwiseSweepPolygon(ray, mode, wallTypes = "all") {
+export function _testCollision3dPointSourcePolygon(ray, mode, wallTypes = "all") {
   // Identify candidate edges
   // Don't use this._identifyEdges b/c we need all edges, including those excluded by Wall Height
   const collisionTest = (o, rect) => originalTestWallInclusion.call(this, o.t, rect);
@@ -95,7 +96,7 @@ function testWallsForIntersections(origin, destination, walls, mode, type) {
 
     if ( t === null || t < 0 || t > 1 ) continue;
 
-    const ix = origin.add(direction.multiplyScalar(t))
+    const ix = origin.add(direction.multiplyScalar(t));
     ix.type = wall.document[type] ?? CONST.WALL_SENSE_TYPES.NORMAL;
     ix.t = t;
     ix.wall = wall;
@@ -119,7 +120,7 @@ function testWallsForIntersections(origin, destination, walls, mode, type) {
 }
 
 function originalTestWallInclusion(wall, bounds) {
-  const {type, boundaryShapes} = this.config;
+  const {type, boundaryShapes, useThreshold, wallDirectionMode } = this.config;
 
   // First test for inclusion in our overall bounding box
   if ( !bounds.lineSegmentIntersects(wall.A, wall.B, { inside: true }) ) return false;
@@ -140,5 +141,12 @@ function originalTestWallInclusion(wall, bounds) {
   else if ( !wall.document[type] || wall.isOpen ) return false;
 
   // Ignore one-directional walls which are facing away from the origin
-  return !wall.document.dir || (side !== wall.document.dir);
+  const wdm = PointSourcePolygon.WALL_DIRECTION_MODES;
+  if ( wall.document.dir && (wallDirectionMode !== wdm.BOTH) ) {
+    if ( (wallDirectionMode === wdm.NORMAL) === (side === wall.document.dir) ) return false;
+  }
+
+  // Condition walls on whether their threshold proximity is met
+  if ( useThreshold ) return !wall.applyThreshold(type, this.origin);
+  return true;
 }

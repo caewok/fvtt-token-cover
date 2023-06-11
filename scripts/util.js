@@ -9,6 +9,7 @@ CONFIG
 import { MODULE_ID, EPSILON } from "./const.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
+import { getSetting, SETTINGS } from "./settings.js";
 
 /**
  * Log message only when debug flag is enabled from DevMode module.
@@ -33,7 +34,7 @@ export function log(...args) {
  */
 export function getObjectProperty(obj, str) {
   return str
-    .replace(/\[([^\[\]]*)\]/g, ".$1.")
+    .replace(/\[([^\[\]]*)\]/g, ".$1.") // eslint-disable-line no-useless-escape
     .split(".")
     .filter(t => t !== "")
     .reduce((prev, cur) => prev && prev[cur], obj);

@@ -463,8 +463,10 @@ export class Area3d {
 
         // Union the triangle with this border
         const triangle = new PIXI.Polygon([viewingPoint, k0, k1]);
-        // TODO: WA should be able to union two shapes that share a single edge.
-        out = intersect.intersectPolygon(triangle, { clipType: ClipperLib.ClipType.ctUnion, disableWA: true });
+
+        // WA requires a polygon with a positive orientation.
+        if ( !triangle.isPositive ) triangle.reverseOrientation();
+        out = intersect.intersectPolygon(triangle, { clipType: ClipperLib.ClipType.ctUnion });
         break;
       }
       default:
