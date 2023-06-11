@@ -1,3 +1,9 @@
+# 0.5.0
+Updated for Foundry v11. Update geometry lib to v0.2.0.
+
+# 0.4.6
+- Fix how token height was calculated in some situations.
+
 # 0.4.5
 - Fix for issue #40 (error with Area2d).
 - Fix for issue #39 (failure to detect token cover using center to center in PF2e)

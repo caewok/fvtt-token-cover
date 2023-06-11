@@ -1,10 +1,8 @@
 /* globals
-libWrapper,
-Token,
-game,
-VisionSource,
 CONFIG,
-ClockwiseSweepPolygon
+game,
+libWrapper,
+PointSourcePolygon
 */
 "use strict";
 
@@ -25,13 +23,10 @@ import {
 import { toggleActiveEffectTokenDocument } from "./cover.js";
 
 import { MODULE_ID, MODULES_ACTIVE, DEBUG } from "./const.js";
-import {
-  activateListenersSettingsConfig
-} from "./settings.js";
 
 import {
-  testCollision3dClockwiseSweepPolygon,
-  _testCollision3dClockwiseSweepPolygon
+  testCollision3dPointSourcePolygon,
+  _testCollision3dPointSourcePolygon
 } from "./clockwise_sweep.js";
 
 import {
@@ -39,80 +34,85 @@ import {
   getTokenShape,
   getConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
-export function registerLibWrapperMethods() {
-  // ---- Settings manipulations to hide unneeded settings ----- //
-  libWrapper.register(MODULE_ID, "SettingsConfig.prototype.activateListeners", activateListenersSettingsConfig, libWrapper.WRAPPER);
+/**
+ * Helpers to wrap methods.
+ * @param {string} method       Method to wrap
+ * @param {function} fn         Function to use for the wrap
+ * @param {object} [options]    Options passed to libWrapper.register. E.g., { perf_mode: libWrapper.PERF_FAST}
+ */
+function wrap(method, fn, options = {}) { libWrapper.register(MODULE_ID, method, fn, libWrapper.WRAPPER, options); }
 
+function mixed(method, fn, options = {}) { libWrapper.register(MODULE_ID, method, fn, libWrapper.MIXED, options); }
+
+function override(method, fn, options = {}) { libWrapper.register(MODULE_ID, method, fn, libWrapper.OVERRIDE, options);}
+
+/**
+ * Helper to add a method to a class.
+ * @param {class} cl      Either Class.prototype or Class
+ * @param {string} name   Name of the method
+ * @param {function} fn   Function to use for the method
+ */
+function addClassMethod(cl, name, fn) {
+  Object.defineProperty(cl, name, {
+    value: fn,
+    writable: true,
+    configurable: true
+  });
+}
+
+/**
+ * Helper to add a getter to a class.
+ * @param {class} cl      Either Class.prototype or Class
+ * @param {string} name   Name of the method
+ * @param {function} fn   Function to use for the method
+ */
+function addClassGetter(cl, name, fn) {
+  if ( !Object.hasOwn(cl, name) ) {
+    Object.defineProperty(cl, name, {
+      get: fn,
+      enumerable: false,
+      configurable: true
+    });
+  }
+}
+
+export function registerLibWrapperMethods() {
   // ----- Token Visibility ----- //
-  libWrapper.register(MODULE_ID, "CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
+  mixed("CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, {perf_mode: libWrapper.PERF_FAST});
 
   if ( MODULES_ACTIVE.LEVELS ) {
-    libWrapper.register(MODULE_ID, "CONFIG.Levels.handlers.SightHandler.getTestPoints", getTestPointsSightHandlerLevels, libWrapper.OVERRIDE, {perf_mode: libWrapper.PERF_FAST});
+    override("CONFIG.Levels.handlers.SightHandler.getTestPoints", getTestPointsSightHandlerLevels, {perf_mode: libWrapper.PERF_FAST});
   } else {
-    libWrapper.register(MODULE_ID, "DetectionMode.prototype.testVisibility", testVisibilityDetectionMode, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
-    libWrapper.register(MODULE_ID, "LightSource.prototype.testVisibility", testVisibilityLightSource, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+    wrap("DetectionMode.prototype.testVisibility", testVisibilityDetectionMode, {perf_mode: libWrapper.PERF_FAST});
+    wrap("LightSource.prototype.testVisibility", testVisibilityLightSource, {perf_mode: libWrapper.PERF_FAST});
   }
 
   // ----- Range Testing ----- //
-  if ( !(MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.PERFECT_VISION) ) libWrapper.register(
-    MODULE_ID,
+  if ( !(MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.PERFECT_VISION) ) mixed(
     "DetectionMode.prototype._testRange",
     _testRangeDetectionMode,
-    libWrapper.MIXED,
     { perf_mode: libWrapper.PERF_FAST }
   );
 
   // ----- LOS Testing ----- //
-  libWrapper.register(MODULE_ID, "DetectionMode.prototype._testLOS", _testLOSDetectionMode, libWrapper.MIXED, {perf_mode: libWrapper.PERF_FAST});
+  mixed("DetectionMode.prototype._testLOS", _testLOSDetectionMode, {perf_mode: libWrapper.PERF_FAST});
 
   // ----- Cover status effects ----- //
-  libWrapper.register(MODULE_ID, "TokenDocument.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument, libWrapper.WRAPPER);
-  libWrapper.register(MODULE_ID, "Token.prototype.updateSource", updateSourceToken, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+  wrap("CONFIG.Token.documentClass.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument);
+  wrap("CONFIG.Token.objectClass.prototype.updateSource", updateSourceToken, {perf_mode: libWrapper.PERF_FAST});
 
   if ( !MODULES_ACTIVE.PERFECT_VISION ) {
-    libWrapper.register(MODULE_ID, "VisionSource.prototype.initialize", initializeVisionSource, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
-    libWrapper.register(MODULE_ID, "VisionSource.prototype._createPolygon", _createPolygonVisionSource, libWrapper.OVERRIDE, {perf_mode: libWrapper.PERF_FAST});
+    wrap( "VisionSource.prototype.initialize", initializeVisionSource, {perf_mode: libWrapper.PERF_FAST});
+    override("VisionSource.prototype._createPolygon", _createPolygonVisionSource, {perf_mode: libWrapper.PERF_FAST});
   }
 
-  if ( !Object.hasOwn(Token.prototype, "tokenShape") ) {
-    Object.defineProperty(Token.prototype, "tokenShape", {
-      get: getTokenShape,
-      enumerable: false
-    });
-  }
+  addClassGetter(CONFIG.Token.objectClass.prototype, "tokenShape", getTokenShape);
+  addClassGetter(CONFIG.Token.objectClass.prototype, "tokenBorder", getTokenBorder);
+  addClassGetter(CONFIG.Token.objectClass.prototype, "constrainedTokenBorder", getConstrainedTokenBorder);
+  addClassGetter(CONFIG.Token.objectClass.prototype, "ignoresCoverType", cachedGetterIgnoresCover);
 
-  if ( !Object.hasOwn(Token.prototype, "tokenBorder") ) {
-    Object.defineProperty(Token.prototype, "tokenBorder", {
-      get: getTokenBorder,
-      enumerable: false
-    });
-  }
-
-  if ( !Object.hasOwn(Token.prototype, "constrainedTokenBorder") ) {
-    Object.defineProperty(Token.prototype, "constrainedTokenBorder", {
-      get: getConstrainedTokenBorder,
-      enumerable: false
-    });
-  }
-
-  if ( !Object.hasOwn(Token.prototype, "ignoresCoverType") ) {
-    Object.defineProperty(Token.prototype, "ignoresCoverType", {
-      get: cachedGetterIgnoresCover,
-      enumerable: false
-    });
-  }
-
-  Object.defineProperty(ClockwiseSweepPolygon, "testCollision3d", {
-    value: testCollision3dClockwiseSweepPolygon,
-    writable: true,
-    configurable: true
-  });
-
-  Object.defineProperty(ClockwiseSweepPolygon.prototype, "_testCollision3d", {
-    value: _testCollision3dClockwiseSweepPolygon,
-    writable: true,
-    configurable: true
-  });
+  addClassMethod(PointSourcePolygon, "testCollision3d", testCollision3dPointSourcePolygon);
+  addClassMethod(PointSourcePolygon.prototype, "_testCollision3d", _testCollision3dPointSourcePolygon);
 }
 
 function cachedGetterIgnoresCover() {
@@ -141,11 +141,5 @@ function updateSourceToken(wrapper, ...args) {
 
 export function patchHelperMethods() {
   function setIntersect(b) { return new Set([...this].filter(x => b.has(x))); }
-
-  Object.defineProperty(Set.prototype, "intersect", {
-    value: setIntersect,
-    writable: true,
-    configurable: true
-  });
-
+  addClassMethod(Set.prototype, "intersect", setIntersect);
 }

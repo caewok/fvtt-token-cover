@@ -6,8 +6,8 @@
   "socket": true,
   "manifestPlusVersion": "1.0.0",
   "compatibility": {
-    "minimum": "10.286",
-    "verified": "10.291"
+    "minimum": "11.299",
+    "verified": "11.301"
   },
   "authors": [
     {

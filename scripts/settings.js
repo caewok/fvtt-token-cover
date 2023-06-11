@@ -3,7 +3,7 @@ game,
 duplicate,
 CONFIG
 */
-
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { log } from "./util.js";
@@ -13,8 +13,7 @@ import {
   MediumCoverEffectConfig,
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
-export const settingsCache = new Map();
-
+const settingsCache = new Map();
 export function getSetting(settingName) {
   const cached = settingsCache.get(settingName);
   if ( cached === undefined ) {
@@ -45,14 +44,6 @@ export async function setSetting(settingName, value) {
   settingsCache.delete(settingName);
   return await game.settings.set(MODULE_ID, settingName, value);
 }
-
-// Functions to change visibility of a setting
-function setSettingVisibility(settingName, visible = true) {
-  log(`Setting ${settingName} to ${visible ? "visible" : "not visible"}`);
-  game.settings.settings.get(`${MODULE_ID}.${settingName}`).config = visible;
-  if ( game.settings._sheet ) game.settings._sheet.render();
-}
-
 
 export const SETTINGS = {
   AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
@@ -122,7 +113,7 @@ export const SETTINGS = {
 
     DEAD_TOKENS: {
       ALGORITHM: "cover-token-dead",
-      ATTRIBUTE: "cover-token-dead-attribute",
+      ATTRIBUTE: "cover-token-dead-attribute"
     },
 
     LIVE_TOKENS: {
@@ -407,7 +398,6 @@ export function registerSettings() {
     default: MIDICHOICES.NONE
   });
 
-  const DEADCHOICES = SETTINGS.COVER.DEAD_TOKENS.TYPES;
   game.settings.register(MODULE_ID, SETTINGS.COVER.DEAD_TOKENS.ALGORITHM, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ALGORITHM}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ALGORITHM}.Hint`),
@@ -491,24 +481,56 @@ function getCoverNames() {
   };
 }
 
-function updateCoverSetting(value) {
-  log(`Changing to ${value}`);
-  const CTYPES = SETTINGS.COVER.TYPES;
-  const center_visible = value === CTYPES.CENTER_CENTER;
+/**
+ * @param {Application} application     The Application instance being rendered
+ * @param {jQuery} html                 The inner HTML of the document that will be displayed and may be modified
+ * @param {object} data                 The object of data used when rendering the application
+ */
+export function renderSettingsConfigHook(app, html, _data) {
+  activateListenersSettingsConfig(app, html);
 
-  setSettingVisibility(SETTINGS.COVER.TRIGGER_PERCENT.LOW, !center_visible);
-  setSettingVisibility(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM, !center_visible);
-  setSettingVisibility(SETTINGS.COVER.TRIGGER_PERCENT.HIGH, !center_visible);
+  const tvSettings = html.find(`section[data-tab="${MODULE_ID}"]`);
+  if ( !tvSettings || !tvSettings.length ) return;
 
-  setSettingVisibility(SETTINGS.COVER.TRIGGER_CENTER, center_visible);
+  const losAlgorithm = getSetting(SETTINGS.LOS.ALGORITHM);
+  const coverAlgorithm = getSetting(SETTINGS.COVER.ALGORITHM);
+
+  const displayArea = losAlgorithm === SETTINGS.LOS.TYPES.POINTS ? "none" : "block";
+  const inputLOSArea = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.LOS.PERCENT_AREA}"]`);
+  const divLOSArea = inputLOSArea.parent().parent();
+  divLOSArea[0].style.display = displayArea;
+
+  const [displayCoverTriggers, displayCenterCoverTrigger] = coverAlgorithm === SETTINGS.COVER.TYPES.CENTER_CENTER
+    ? ["none", "block"] : ["block", "none"];
+
+  const inputCenter = tvSettings.find(`select[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_CENTER}"]`);
+  const inputLow = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}"]`);
+  const inputMedium = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM}"]`);
+  const inputHigh = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}"]`);
+
+  const divInputCenter = inputCenter.parent().parent();
+  const divInputLow = inputLow.parent().parent();
+  const divInputMedium = inputMedium.parent().parent();
+  const divInputHigh = inputHigh.parent().parent();
+
+  if ( divInputCenter.length ) divInputCenter[0].style.display = displayCenterCoverTrigger;
+  if ( divInputLow.length ) divInputLow[0].style.display = displayCoverTriggers;
+  if ( divInputMedium.length ) divInputMedium[0].style.display = displayCoverTriggers;
+  if ( divInputHigh.length ) divInputHigh[0].style.display = displayCoverTriggers;
 }
 
-export function activateListenersSettingsConfig(wrapper, html) {
-  log("activateListenersSettingsConfig", html);
+function activateListenersSettingsConfig(app, html) {
+  html.find(`[name="${MODULE_ID}.${SETTINGS.LOS.ALGORITHM}"]`).change(losAlgorithmChanged.bind(app));
+  html.find(`[name="${MODULE_ID}.${SETTINGS.COVER.ALGORITHM}"]`).change(coverAlgorithmChanged.bind(app));
+}
 
-  html.find(`[name="${MODULE_ID}.${SETTINGS.LOS.ALGORITHM}"]`).change(losAlgorithmChanged.bind(this));
-  html.find(`[name="${MODULE_ID}.${SETTINGS.COVER.ALGORITHM}"]`).change(coverAlgorithmChanged.bind(this));
-  wrapper(html);
+/**
+ * Wipe the settings cache on update
+ */
+export function updateSettingHook(document, change, options, userId) {  // eslint-disable-line no-unused-vars
+  const [module, ...arr] = document.key.split(".");
+  const key = arr.join("."); // If the key has periods, multiple will be returned by split.
+  if ( module === MODULE_ID && settingsCache.has(key) ) settingsCache.delete(key);
 }
 
 

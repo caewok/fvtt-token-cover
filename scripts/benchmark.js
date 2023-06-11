@@ -270,8 +270,8 @@ function visibilityTestFn(tokens) {
 
     // Randomize a bit to try to limit caching
     const center = {
-      x: token.center.x + Math.roundFast(randomUniform(-10, 10)),
-      y: token.center.y + Math.roundFast(randomUniform(-10, 10))
+      x: token.center.x + Math.round(randomUniform(-10, 10)),
+      y: token.center.y + Math.round(randomUniform(-10, 10))
     };
 
     out.push(canvas.effects.visibility.testVisibility(center, { tolerance, object: token }));

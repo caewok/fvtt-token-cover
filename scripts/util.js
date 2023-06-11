@@ -34,7 +34,7 @@ export function log(...args) {
  */
 export function getObjectProperty(obj, str) {
   return str
-    .replace(/\[([^\[\]]*)\]/g, ".$1.")
+    .replace(/\[([^\[\]]*)\]/g, ".$1.") // eslint-disable-line no-useless-escape
     .split(".")
     .filter(t => t !== "")
     .reduce((prev, cur) => prev && prev[cur], obj);
@@ -306,6 +306,7 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
  * @property {CONST.WALL_RESTRICTION_TYPES} type    Type of vision source
  * @property {boolean} deadTokensBlock              Do dead tokens block vision?
  * @property {boolean} liveTokensBlock              Do live tokens block vision?
+ * @property {PIXI.Graphics} graphics               Graphics to pass to the point constructor
  */
 
 /**
@@ -317,7 +318,8 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
  */
 export function buildTokenPoints(tokens, config) {
   if ( !tokens.length && !tokens.size ) return tokens;
-  const { type, liveTokensBlock, deadTokensBlock } = config;
+  const { liveTokensBlock, deadTokensBlock } = config;
+  const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
 
   // Filter live or dead tokens
   if ( liveTokensBlock ^ deadTokensBlock ) {
@@ -331,5 +333,5 @@ export function buildTokenPoints(tokens, config) {
     });
   }
 
-  return tokens.map(t => new TokenPoints3d(t, { type }));
+  return tokens.map(t => new TokenPoints3d(t));
 }

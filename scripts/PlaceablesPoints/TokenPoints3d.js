@@ -17,7 +17,7 @@ export class TokenPoints3d {
 
   /** @type {object} */
   config = {
-    type: "sight", /** @type {string} */
+    type: "sight" /** @type {string} */
   };
 
   /* @type {boolean} */
@@ -90,8 +90,7 @@ export class TokenPoints3d {
   /** @type {number} */
   get topZ() {
     const { topZ, bottomZ } = this.token;
-    return topZ === this.bottomZ
-      ? (topZ + 2) : topZ;
+    return topZ === bottomZ ? (topZ + 2) : topZ;
   }
 
   /**
@@ -123,10 +122,8 @@ export class TokenPoints3d {
    */
   _viewableFaces(viewingPoint) {
     const sides = this._viewableSides(viewingPoint);
-
-    const topBottom = this._viewableTopBottom(viewingPoint)
+    const topBottom = this._viewableTopBottom(viewingPoint);
     if ( topBottom ) sides.push(topBottom);
-
     return sides;
   }
 
@@ -204,8 +201,10 @@ export class TokenPoints3d {
    * Draw the constrained token shape and the points on the 2d canvas.
    */
   draw(drawingOptions = {}) {
-    Draw.shape(this.borderPolygon, drawingOptions);
-    if ( this.viewingPoint ) Draw.segment(
+    const drawTool = drawingOptions.drawTool ?? new Draw();
+
+    drawTool.shape(this.borderPolygon, drawingOptions);
+    if ( this.viewingPoint ) drawTool.segment(
       { A: this.viewingPoint, B: this.token.center },
       { color: Draw.COLORS.blue, alpha: 0.5 });
     this.topSide.draw(drawingOptions);
@@ -216,12 +215,12 @@ export class TokenPoints3d {
    * @param {object} [options]
    * @param {boolean} [perspective]   Draw using 2d perspective.
    */
-  drawTransformed({perspective = true, color = Draw.COLORS.red, width = 1, fill = null, fillAlpha = 0.2 } = {}) {
+  drawTransformed(opts) {
     if ( !this.viewIsSet ) {
       console.warn(`TokenPoints3d: View is not yet set for Token ${this.token.name}.`);
       return;
     }
 
-    this.faces.forEach(f => f.drawTransformed({ perspective, color, width, fill, fillAlpha }));
+    this.faces.forEach(f => f.drawTransformed(opts));
   }
 }
