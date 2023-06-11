@@ -1,3 +1,6 @@
+# 0.5.0
+Updated for Foundry v11. Update geometry lib to v0.2.0.
+
 # 0.4.6
 - Fix how token height was calculated in some situations.
 
