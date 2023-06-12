@@ -100,33 +100,7 @@ Hooks.once("init", function() {
 Hooks.once("setup", async function() {
   registerSettings();
   updateConfigStatusEffects();
-
-  // Replace topZ method for tokens
-  // Do this here so that it can override method from other modules, like EV.
-  Object.defineProperty(Token.prototype, "topE", {
-    get: tokenTopElevation,
-    configurable: true
-  });
 });
-
-
-/**
- * Top elevation of a token.
- * @returns {number} In grid units.
- * If Wall Height is active, use the losHeight. Otherwise, use bottomE.
- * Returns half the height if the token is prone.
- */
-function tokenTopElevation() {
-  const e = this.bottomE;
-  if ( !MODULES_ACTIVE.WALL_HEIGHT ) return e;
-
-  const proneStatusId = getSetting(SETTINGS.COVER.LIVE_TOKENS.ATTRIBUTE);
-  const isProne = (proneStatusId !== "" && this.actor)
-    ? this.actor.effects.some(e => e.getFlag("core", "statusId") === proneStatusId) : false;
-
-  const height = this.losHeight - e;
-  return isProne ? e + (height * 0.5) : this.losHeight;
-}
 
 /**
  * Tell DevMode that we want a flag for debugging this module.

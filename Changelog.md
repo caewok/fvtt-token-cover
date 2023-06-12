@@ -1,3 +1,6 @@
+# 0.5.1
+Update geometry lib to v0.2.1. Handle token prone and token height using geometry lib elevation getters.
+
 # 0.5.0
 Updated for Foundry v11. Update geometry lib to v0.2.0.
 
