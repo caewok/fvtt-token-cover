@@ -437,7 +437,8 @@ export function registerSettings() {
     scope: "world",
     config: true,
     type: String,
-    default: "prone"
+    default: "prone",
+    onChange: (value) => CONFIG.GeometryLib.proneStatusId = value;
   });
 
   // ----- HIDDEN SETTINGS ----- //
