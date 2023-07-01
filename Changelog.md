@@ -1,3 +1,6 @@
+# 0.5.3
+Fix the possibly borked v0.5.1 and v0.5.2. (Amazing what a stray ";" can do!)
+
 # 0.5.2
 Update geometry lib to v0.2.2.
 
