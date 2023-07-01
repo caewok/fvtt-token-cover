@@ -1,11 +1,10 @@
 /* globals
 game,
 Hooks
-Token
 */
 "use strict";
 
-import { MODULE_ID, MODULES_ACTIVE, COVER_TYPES, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, COVER_TYPES, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
@@ -14,8 +13,6 @@ import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambl
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import {
   registerSettings,
-  getSetting,
-  SETTINGS,
   updateConfigStatusEffects,
   updateSettingHook,
   renderSettingsConfigHook } from "./settings.js";

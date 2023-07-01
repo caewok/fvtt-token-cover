@@ -438,7 +438,7 @@ export function registerSettings() {
     config: true,
     type: String,
     default: "prone",
-    onChange: (value) => CONFIG.GeometryLib.proneStatusId = value;
+    onChange: value => CONFIG.GeometryLib.proneStatusId = value
   });
 
   // ----- HIDDEN SETTINGS ----- //
