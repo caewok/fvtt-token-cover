@@ -1,3 +1,6 @@
+# 0.5.2
+Update geometry lib to v0.2.2.
+
 # 0.5.1
 Update geometry lib to v0.2.1. Handle token prone and token height using geometry lib elevation getters.
 
