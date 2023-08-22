@@ -338,7 +338,6 @@ export function registerSettings() {
   if ( !MODULES_ACTIVE.DFREDS_CE ) {
     game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.LOW, {
       name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Name`),
-      hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Hint`),
       label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Label`),
       icon: "fas fa-shield-halved",
       type: LowCoverEffectConfig,
@@ -347,22 +346,21 @@ export function registerSettings() {
 
     game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.MEDIUM, {
       name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Name`),
-      hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Hint`),
       label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Label`),
       icon: "fas fa-shield-heart",
       type: MediumCoverEffectConfig,
       restricted: true
     });
-  }
 
-  game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.HIGH, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Hint`),
-    label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Label`),
-    icon: "fas fa-shield",
-    type: HighCoverEffectConfig,
-    restricted: true
-  });
+    game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.HIGH, {
+      name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Name`),
+      hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Hint`),
+      label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Label`),
+      icon: "fas fa-shield",
+      type: HighCoverEffectConfig,
+      restricted: true
+    });
+  }
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.COMBAT_AUTO, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.COMBAT_AUTO}.Name`),
@@ -586,11 +584,13 @@ export async function setCoverEffect(type, value) {
   }
 
   const allStatusEffects = getSetting(SETTINGS.COVER.EFFECTS);
-  if ( !Object.hasOwn(allStatusEffects, game.system.id) ) {
-    allStatusEffects[game.system.id] = duplicate(allStatusEffects.generic);
-  }
+  let systemId = game.system.id;
+  if ( (systemId === "dnd5e" || systemId === "sw5e")
+    && game.modules.get("midi-qol")?.active ) systemId = `${systemId}_midiqol`;
 
-  allStatusEffects[game.system.id][type] = value;
+  if ( !Object.hasOwn(allStatusEffects, systemId) ) allStatusEffects[systemId] = duplicate(allStatusEffects.generic);
+
+  allStatusEffects[systemId][type] = value;
   await setSetting(SETTINGS.COVER.EFFECTS, allStatusEffects);
   updateConfigStatusEffects(type);
 }

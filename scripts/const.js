@@ -134,6 +134,7 @@ function migrateIgnoreCoverFlag() {
 }
 
 // Default status effects for different systems.
+// {0: 'Custom', 1: 'Multiply', 2: 'Add', 3: 'Downgrade', 4: 'Upgrade', 5: 'Override'}
 export const STATUS_EFFECTS = {
   generic: {
     LOW: {
@@ -192,20 +193,26 @@ STATUS_EFFECTS.dnd5e.MEDIUM.changes = [
 
 STATUS_EFFECTS.dnd5e.HIGH.changes = [
   {
-    key: "flags.midi-qol.success.attack.mwak",
+    key: "system.attributes.ac.cover",
     mode: 2,
-    value: "+5"
+    value: "+99"
   },
 
   {
     key: "system.attributes.dex.bonuses.save",
     mode: 2,
-    value: "+5"
+    value: "+99"
   }
 ];
 
-// system.attributes.ac.cover  2   +5
-// system.abilities.dex.bonuses.save
+STATUS_EFFECTS.dnd5e_midiqol = duplicate(STATUS_EFFECTS.dnd5e);
+STATUS_EFFECTS.dnd5e_midiqol.HIGH.changes = [
+  {
+    key: "flags.midi-qol.grants.attack.fail.all",
+    mode: 0,
+    value: "1"
+  }
+];
 
 
 STATUS_EFFECTS.pf2e = duplicate(STATUS_EFFECTS.generic);
