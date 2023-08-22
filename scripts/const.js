@@ -184,7 +184,7 @@ STATUS_EFFECTS.dnd5e.MEDIUM.changes = [
   },
 
   {
-    key: "system.attributes.dex.saveBonus",
+    key: "system.attributes.dex.bonuses.save",
     mode: 2,
     value: "+5"
   }
@@ -198,7 +198,7 @@ STATUS_EFFECTS.dnd5e.HIGH.changes = [
   },
 
   {
-    key: "system.attributes.dex.saveBonus",
+    key: "system.attributes.dex.bonuses.save",
     mode: 2,
     value: "+5"
   }
