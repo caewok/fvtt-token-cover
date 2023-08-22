@@ -163,7 +163,7 @@ STATUS_EFFECTS.dnd5e.HIGH.label = "Total";
 
 STATUS_EFFECTS.dnd5e.LOW.changes = [
   {
-    key: "system.attributes.ac.bonus",
+    key: "system.attributes.ac.cover",
     mode: 2,
     value: "+2"
   },
@@ -178,7 +178,7 @@ STATUS_EFFECTS.dnd5e.LOW.changes = [
 
 STATUS_EFFECTS.dnd5e.MEDIUM.changes = [
   {
-    key: "system.attributes.ac.bonus",
+    key: "system.attributes.ac.cover",
     mode: 2,
     value: "+5"
   },
@@ -189,6 +189,24 @@ STATUS_EFFECTS.dnd5e.MEDIUM.changes = [
     value: "+5"
   }
 ];
+
+STATUS_EFFECTS.dnd5e.HIGH.changes = [
+  {
+    key: "flags.midi-qol.success.attack.mwak",
+    mode: 2,
+    value: "+5"
+  },
+
+  {
+    key: "system.attributes.dex.saveBonus",
+    mode: 2,
+    value: "+5"
+  }
+];
+
+// system.attributes.ac.cover  2   +5
+// system.abilities.dex.bonuses.save
+
 
 STATUS_EFFECTS.pf2e = duplicate(STATUS_EFFECTS.generic);
 STATUS_EFFECTS.pf2e.LOW.label = "Lesser";
