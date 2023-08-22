@@ -134,6 +134,7 @@ function migrateIgnoreCoverFlag() {
 }
 
 // Default status effects for different systems.
+// {0: 'Custom', 1: 'Multiply', 2: 'Add', 3: 'Downgrade', 4: 'Upgrade', 5: 'Override'}
 export const STATUS_EFFECTS = {
   generic: {
     LOW: {
@@ -163,7 +164,7 @@ STATUS_EFFECTS.dnd5e.HIGH.label = "Total";
 
 STATUS_EFFECTS.dnd5e.LOW.changes = [
   {
-    key: "system.attributes.ac.bonus",
+    key: "system.attributes.ac.cover",
     mode: 2,
     value: "+2"
   },
@@ -178,17 +179,41 @@ STATUS_EFFECTS.dnd5e.LOW.changes = [
 
 STATUS_EFFECTS.dnd5e.MEDIUM.changes = [
   {
-    key: "system.attributes.ac.bonus",
+    key: "system.attributes.ac.cover",
     mode: 2,
     value: "+5"
   },
 
   {
-    key: "system.attributes.dex.saveBonus",
+    key: "system.attributes.dex.bonuses.save",
     mode: 2,
     value: "+5"
   }
 ];
+
+STATUS_EFFECTS.dnd5e.HIGH.changes = [
+  {
+    key: "system.attributes.ac.cover",
+    mode: 2,
+    value: "+99"
+  },
+
+  {
+    key: "system.attributes.dex.bonuses.save",
+    mode: 2,
+    value: "+99"
+  }
+];
+
+STATUS_EFFECTS.dnd5e_midiqol = duplicate(STATUS_EFFECTS.dnd5e);
+STATUS_EFFECTS.dnd5e_midiqol.HIGH.changes = [
+  {
+    key: "flags.midi-qol.grants.attack.fail.all",
+    mode: 0,
+    value: "1"
+  }
+];
+
 
 STATUS_EFFECTS.pf2e = duplicate(STATUS_EFFECTS.generic);
 STATUS_EFFECTS.pf2e.LOW.label = "Lesser";
