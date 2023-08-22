@@ -48,7 +48,7 @@ dnd5e: half, 3/4, full
 
 */
 
-import { MODULE_ID, COVER_TYPES } from "./const.js";
+import { MODULE_ID, COVER } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { log } from "./util.js";
 import { CoverCalculator, SOCKETS, dialogPromise } from "./CoverCalculator.js";
@@ -77,7 +77,7 @@ export async function midiqolPreambleCompleteHook(workflow) {
 
     const ic = token.ignoresCoverType;
     const allCoverIgnored = ic.all;
-    const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
+    const typeCoverIgnored = ic[actionType] || COVER.TYPES.NONE;
     const ignoresCover = Math.max(allCoverIgnored, typeCoverIgnored);
 
     originalCoverCalculations = CoverCalculator.coverCalculations([token], targets);
@@ -85,7 +85,7 @@ export async function midiqolPreambleCompleteHook(workflow) {
 
     for ( const target of targets ) {
       const cover = coverCalculations[token.id][target.id];
-      const calcCover = cover <= ignoresCover ? COVER_TYPES.NONE : cover;
+      const calcCover = cover <= ignoresCover ? COVER.TYPES.NONE : cover;
       coverCalculations[token.id][target.id] = calcCover;
     }
   }
@@ -112,7 +112,7 @@ export async function midiqolPreambleCompleteHook(workflow) {
       targetCoverCalculations[targets[i].id] = selectedCover;
 
       // Allow the GM or user to omit targets
-      if ( selectedCover === COVER_TYPES.TOTAL ) {
+      if ( selectedCover === COVER.TYPES.TOTAL ) {
         workflow.targets.delete(targets[i]);
         continue;
       }
@@ -150,7 +150,7 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations, ogC
   let ignoresCoverLabel = "";
   const ic = token.ignoresCoverType;
   const allCoverIgnored = ic.all;
-  const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
+  const typeCoverIgnored = ic[actionType] || COVER.TYPES.NONE;
 
   if ( allCoverIgnored > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(allCoverIgnored)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
   if ( typeCoverIgnored > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(typeCoverIgnored)} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
@@ -191,10 +191,10 @@ function constructCoverCheckDialogContent(token, targets, coverCalculations, ogC
     const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
     const coverOptions =
     `
-    <option value="NONE" ${cover === COVER_TYPES.NONE ? "selected" : ""}>None</option>
-    <option value="LOW" ${cover === COVER_TYPES.LOW ? "selected" : ""}>${getCoverName("LOW")}</option>
-    <option value="MEDIUM" ${cover === COVER_TYPES.MEDIUM ? "selected" : ""}>${getCoverName("MEDIUM")}</option>
-    <option value="HIGH" ${cover === COVER_TYPES.HIGH ? "selected" : ""}>${getCoverName("HIGH")}</option>
+    <option value="NONE" ${cover === COVER.TYPES.NONE ? "selected" : ""}>None</option>
+    <option value="LOW" ${cover === COVER.TYPES.LOW ? "selected" : ""}>${getCoverName("LOW")}</option>
+    <option value="MEDIUM" ${cover === COVER.TYPES.MEDIUM ? "selected" : ""}>${getCoverName("MEDIUM")}</option>
+    <option value="HIGH" ${cover === COVER.TYPES.HIGH ? "selected" : ""}>${getCoverName("HIGH")}</option>
     <option value="OMIT">Omit from attack</option>
     `;
     const coverSelector =

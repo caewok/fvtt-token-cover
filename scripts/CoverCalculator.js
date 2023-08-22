@@ -15,7 +15,7 @@ VisionSource
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, COVER_TYPES, MODULES_ACTIVE, DEBUG } from "./const.js";
+import { MODULE_ID, COVER, MODULES_ACTIVE, DEBUG, STATUS_COVER_EFFECT_IDS, STATUS_COVER_EFFECT_CATEGORIES } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
@@ -38,43 +38,47 @@ export const SOCKETS = {
 Hooks.once("socketlib.ready", () => {
   SOCKETS.socket = socketlib.registerModule(MODULE_ID);
   SOCKETS.socket.register("dialogPromise", dialogPromise);
-  SOCKETS.socket.register("disableCoverStatus", disableCoverStatus);
-  SOCKETS.socket.register("enableCoverStatus", enableCoverStatus);
+  SOCKETS.socket.register("disableAllCover", disableAllCover);
+  SOCKETS.socket.register("enableCover", enableCover);
 });
 
 /**
- * Remove a cover status (ActiveEffect) from a token.
+ * Remove all cover statuses (ActiveEffect) from a token.
+ * Removes DFred's and ATV cover.
  * @param {COVER_TYPE} type
  * @param {string} tokenId
  */
-async function disableCoverStatus(tokenId, type = COVER_TYPES.LOW) {
-  if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
-
+async function disableAllCover(tokenId) {
   const token = canvas.tokens.get(tokenId);
   if ( !token ) return;
 
-  const keys = Object.keys(COVER_TYPES);
-  const key = keys[type];
-  if ( !key ) return;
-
-  const id = `${MODULE_ID}.cover.${key}`;
-  await token.document.toggleActiveEffect({ id }, { active: false });
+  // Drop all cover statuses.
+  const coverStatuses = token.actor?.statuses.intersect(STATUS_COVER_EFFECT_IDS);
+  if ( !coverStatuses ) return; // Should not happen, but...
+  const promises = coverStatuses.map(id => token.document.toggleActiveEffect({ id }, { active: false }));
+  return Promise.all(promises);
 }
 
 /**
- * Enable a cover status (ActiveEffect) for a token
+ * Enable a cover status (ActiveEffect) for a token.
+ * Token can only have one cover status at a time.
  * @param {string} tokenId
  * @param {COVER_TYPE} type
  */
-async function enableCoverStatus(tokenId, type = COVER_TYPES.LOW) {
-  if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
+async function enableCover(tokenId, type = COVER.TYPES.LOW) {
+  // If enabling the "None" cover, remove all cover.
+  // If TOTAL, this is used as a flag elsewhere to remove the token from targeting. Ignored here.
+  if ( type === COVER.TYPES.NONE ) return disableAllCover(tokenId);
+  if ( type === COVER.TYPES.TOTAL ) return;
 
   const token = canvas.tokens.get(tokenId);
   if ( !token ) return;
 
-  const keys = Object.keys(COVER_TYPES);
+  const keys = Object.keys(COVER.TYPES);
   const key = keys[type];
   if ( !key ) return;
+
+  //
 
   // If already exists, do not add again to avoid duplicate effects.
   const id = `${MODULE_ID}.cover.${key}`;
@@ -127,7 +131,7 @@ function dialogCallback(data, callbackFn, options = {}) {
 export class CoverCalculator {
 
   /** @type {object} */
-  static COVER_TYPES = COVER_TYPES;
+  static COVER_TYPES = COVER.TYPES;
 
   /** @type {object} */
   static ALGORITHMS = SETTINGS.COVER.TYPES;

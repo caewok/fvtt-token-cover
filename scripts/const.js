@@ -35,7 +35,9 @@ export const FLAGS = {
   }
 };
 
-export const COVER_TYPES = {
+export const COVER = {}
+
+COVER.TYPES = {
   NONE: 0,
   LOW: 1,
   MEDIUM: 2,
@@ -43,8 +45,34 @@ export const COVER_TYPES = {
   TOTAL: 4
 };
 
-export const MIN_COVER = Math.min(...Object.values(COVER_TYPES));
-export const MAX_COVER = Math.max(...Object.values(COVER_TYPES));
+COVER.IDS = new Set([
+  `${MODULE_ID}.cover.LOW`,
+  `${MODULE_ID}.cover.MEDIUM`,
+  `${MODULE_ID}.cover.HIGH`,
+  "Convenient Effect: Cover (Half)",
+  "Convenient Effect: Cover (Three-Quarters)",
+  "Convenient Effect: Cover (Total)"
+]);
+
+COVER.CATEGORIES = {
+  LOW: {
+    "dfreds-convenient-effects": "Convenient Effect: Cover (Half)",
+    [MODULE_ID]: `${MODULE_ID}.cover.LOW`
+  },
+
+  MEDIUM: {
+    "dfreds-convenient-effects": "Convenient Effect: Cover (Three-Quarters)",
+    [MODULE_ID]: `${MODULE_ID}.cover.MEDIUM`
+  },
+
+  HIGH: {
+    "dfreds-convenient-effects": "Convenient Effect: Cover (Total)",
+    [MODULE_ID]: `${MODULE_ID}.cover.HIGH`
+  }
+}
+
+COVER.MIN = Math.min(...Object.values(COVER.TYPES));
+COVER.MAX = Math.max(...Object.values(COVER.TYPES));
 
 export const MODULES_ACTIVE = {
   WALL_HEIGHT: false,

@@ -4,7 +4,7 @@ Hooks
 */
 "use strict";
 
-import { MODULE_ID, COVER_TYPES, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, COVER, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
@@ -66,7 +66,7 @@ Hooks.once("init", function() {
     Area3d,
     util,
     CoverCalculator,
-    COVER_TYPES,
+    COVER,
     ConstrainedTokenBorder,
     los,
     PlanePoints3d,
