@@ -815,7 +815,7 @@ export class CoverCalculator {
    * @returns {COVER_TYPE}
    */
   static typeForPercentage(percentCover) {
-    const COVER_TYPES = this.constructor.COVER_TYPES;
+    const COVER_TYPES = this.COVER_TYPES;
     if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
     if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
     if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
