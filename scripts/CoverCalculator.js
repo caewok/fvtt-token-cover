@@ -247,10 +247,21 @@ export class CoverCalculator {
     this.config = config;
   }
 
-
   /** @type {string} */
   static get currentAlgorithm() {
     return getSetting(SETTINGS.COVER.ALGORITHM);
+  }
+
+  /**
+   * Convert dialog to a promise to allow use with await/async.
+   * @content HTML content for the dialog.
+   * @return Promise for the html content of the dialog
+   * Will return "Cancel" or "Close" if those are selected.
+   */
+  static async dialogPromise(data, options = {}) {
+    return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
+      dialogCallback(data, html => resolve(html), options);
+    });
   }
 
   /**
