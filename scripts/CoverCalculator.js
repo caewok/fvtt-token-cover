@@ -29,7 +29,7 @@ import {
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { squaresUnderToken, hexesUnderToken } from "./shapes_under_token.js";
-//import { CoverDialog } from "./CoverDialog.js";
+import { CoverDialog } from "./CoverDialog.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
 // Don't pass complex classes through the socket. Use token ids instead.
