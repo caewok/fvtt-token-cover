@@ -92,7 +92,7 @@
     "tokenvisibility.dnd5e.feats.cover.OptionNone": "Don't ignore any cover.",
     "tokenvisibility.dnd5e.feats.cover.OptionHalf": "Ignore half cover.",
     "tokenvisibility.dnd5e.feats.cover.OptionThreeQuarters": "Ignore half and three-quarters cover.",
-    "tokenvisibility.dnd5e.feats.cover.OptionFull": "Ignore all cover."
+    "tokenvisibility.dnd5e.feats.cover.OptionFull": "Ignore all cover.",
 
-
+    "tokenvisibility.phrases.Total": "Total"
 }
