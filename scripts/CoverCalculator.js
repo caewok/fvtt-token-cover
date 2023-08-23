@@ -85,13 +85,15 @@ async function enableATVCover(actorUUID, type = COVER.TYPES.LOW) {
   // Get the corresponding id for the desired cover type.
   const desiredCoverId = COVER.CATEGORIES[key][MODULE_ID];
 
-  // Drop all cover statuses except the desired one.
+  // Determine what cover statuses are already applied.
   const tokenD = actor.token.document;
   const coverStatuses = actor.statuses?.intersect(COVER.IDS[MODULE_ID]) ?? new Set();
   const coverAlreadyApplied = coverStatuses.has(desiredCoverId);
   if ( coverAlreadyApplied ) coverStatuses.delete(desiredCoverId);
+
+  // Drop all cover statuses except the one to apply.
   const promises = coverStatuses.map(id => tokenD.toggleActiveEffect({ id }, { active: false }));
-  if ( !coverAlreadyApplied ) promises.push(tokenD.toggleActiveEffect( { id: desiredCoverId }, { active: true }));
+  if ( !coverAlreadyApplied ) promises.add(tokenD.toggleActiveEffect( { id: desiredCoverId }, { active: true }));
   return Promise.all(promises);
 }
 
@@ -107,7 +109,10 @@ async function disableAllDFredsCover(uuid) {
   const actor = getActorByUuid(uuid);
   if ( !actor ) return;
 
+  // Determine what cover statuses are already applied.
   const coverStatuses = actor.statuses?.intersect(COVER.IDS["dfreds-convenient-effects"]) ?? new Set();
+
+  // Drop all cover statuses.
   const promises = coverStatuses.map(id => {
     const effectName = id.replace("Convenient Effect: ", "");
     return game.dfreds.effectInterface.removeEffect({ effectName, uuid });
@@ -149,7 +154,7 @@ async function enableDFredsCover(uuid, type = COVER.TYPES.LOW) {
   // Add the desired effect.
   if ( !coverAlreadyApplied ) {
     const effectName = COVER.DFRED_NAMES[key];
-    promises.push(game.dfreds.effectInterface.addEffect({ effectName, uuid }));
+    promises.add(game.dfreds.effectInterface.addEffect({ effectName, uuid }));
   }
   return Promise.all(promises);
 }
