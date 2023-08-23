@@ -341,7 +341,7 @@ export async function combatTurnHook(combat, updateData, updateOptions) { // esl
     if ( playerOwners.some(owner => token.targeted.has(owner)) ) {
       userTargetedTokens.push(token);
     }
-    CoverCalculator.disableAllCoverStatus(token.id);
+    CoverCalculator.disableAllCover(token.id);
   }
 
   // Calculate cover from combatant to any currently targeted tokens
@@ -372,7 +372,7 @@ export async function targetTokenHook(user, target, targeted) {
   if ( !isUserCombatTurn(user) ) return;
 
   if ( !targeted ) {
-    return await CoverCalculator.disableAllCoverStatus(target.id);
+    return await CoverCalculator.disableAllCover(target.id);
   }
 
   // Target from the current combatant to the target token

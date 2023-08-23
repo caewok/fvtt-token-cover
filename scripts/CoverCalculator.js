@@ -297,7 +297,7 @@ export class CoverCalculator {
     return undefined;
   }
 
-  static disableAllCoverStatus(tokenId) {
+  static async disableAllCover(tokenId) {
     const token = canvas.tokens.get(tokenId);
     if ( !token ) return;
     const uuid = token.actor.uuid;
@@ -307,8 +307,13 @@ export class CoverCalculator {
   }
 
   static async disableCoverStatus(tokenId) {
-    console.warning(`${MODULE_ID}|disableCoverStatus is deprecated. Please use disableAllCoverStatus instead.`);
-    return this.disableAllCoverStatus(tokenId);
+    console.warn(`${MODULE_ID}|disableCoverStatus is deprecated. Please use disableAllCover instead.`);
+    return this.disableAllCover(tokenId);
+  }
+
+  static async disableAllCoverStatus(tokenId) {
+    console.warn(`${MODULE_ID}|disableAllCoverStatus is deprecated. Please use disableAllCover instead.`);
+    return this.disableAllCover(tokenId);
   }
 
   /**
@@ -316,7 +321,7 @@ export class CoverCalculator {
    * Use DFred's if active; ATV otherwise.
    * @param {string} tokenId
    */
-  static async enableCoverStatus(tokenId, type = this.COVER_TYPES.LOW ) {
+  static async enableCover(tokenId, type = this.COVER_TYPES.LOW ) {
     if ( type === this.COVER_TYPES.NONE ) return this.disableAllCover(tokenId);
     if ( type === this.COVER_TYPES.TOTAL ) return;
     const token = canvas.tokens.get(tokenId);
@@ -327,8 +332,8 @@ export class CoverCalculator {
   }
 
   static async setCoverStatus(tokenId, type = this.COVER_TYPES.NONE ) {
-    console.warning(`${MODULE_ID}|setCoverStatus is deprecated. Please use enableCoverStatus instead.`);
-    return this.enableCoverStatus(tokenId, type);
+    console.warn(`${MODULE_ID}|setCoverStatus is deprecated. Please use enableCover instead.`);
+    return this.enableCover(tokenId, type);
   }
 
   /**
@@ -557,12 +562,12 @@ export class CoverCalculator {
     switch ( type ) {
       case COVER_TYPES.NONE:
       case COVER_TYPES.FULL:
-        CoverCalculator.disableAllCoverStatus(this.target.id);
+        CoverCalculator.disableAllCover(this.target.id);
         break;
       case COVER_TYPES.LOW:
       case COVER_TYPES.MEDIUM:
       case COVER_TYPES.HIGH:
-        CoverCalculator.enableCoverStatus(this.target.id, type);
+        CoverCalculator.enableCover(this.target.id, type);
     }
   }
 
