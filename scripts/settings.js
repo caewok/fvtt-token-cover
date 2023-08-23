@@ -611,7 +611,7 @@ export function updateConfigStatusEffects(type) {
     return;
   }
 
-  if ( dfActive && (type === "LOW" || type === "MEDIUM") ) return;
+  if ( dfActive && (type === "LOW" || type === "MEDIUM" || type === "HIGH") ) return;
 
   const coverEffect = getCoverEffect(type);
   coverEffect.id = `${MODULE_ID}.cover.${type}`;
