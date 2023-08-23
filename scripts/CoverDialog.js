@@ -2,24 +2,26 @@
 canvas,
 CONFIG,
 duplicate,
-game
+game,
+Token
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
+import { MODULE_ID } from "./const.js";
 import { CoverCalculator, SOCKETS, dialogPromise } from "./CoverCalculator.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
+import { SETTINGS, getSetting } from "./settings.js";
 
 // Helper class to construct dialogs related to cover between token(s) and target(s).
 
-
 export class CoverDialog {
 
-  /** @type {Token[]} */
-  tokens = [];
+  /** @type {Set<Token>} */
+  tokens = new Set();
 
-  /** @type {Token[]} */
-  targets = [];
+  /** @type {Set<Token>} */
+  targets = new Set();
 
   /**
    * @typedef TokenCoverCalculations
@@ -35,11 +37,14 @@ export class CoverDialog {
     if ( !tokens ) tokens = [...canvas.tokens.controlled];
     if ( !targets ) targets = [...game.user.targets];
 
-    this.tokens = tokens instanceof Array ? tokens : [tokens];
-    this.targets = targets instanceof Array ? targets : [targets];
+    if ( tokens instanceof Token ) tokens = [tokens];
+    if ( targets instanceof Token ) targets = [targets];
 
-    if ( this.tokens.length < 1 ) console.warn("CoverDialog|no tokens provided.");
-    if ( this.targets.length < 1 ) console.warn("CoverDialog|no targets provided.");
+    tokens.forEach(t => this.tokens.add(t));
+    targets.forEach(t => this.targets.add(t));
+
+    if ( this.tokens.size < 1 ) console.warn("CoverDialog|no tokens provided.");
+    if ( this.targets.size < 1 ) console.warn("CoverDialog|no targets provided.");
   }
 
   get coverCalculations() {
@@ -50,24 +55,68 @@ export class CoverDialog {
   resetCoverCalculations() { this.#coverCalculations = undefined; }
 
   /**
+   * If the token(s) are not present in the set, add them and refresh cover calculation.
+   * @param {Token[]} token
+   */
+  _addTokens(tokens) {
+    if ( tokens instanceof Token ) tokens = [tokens];
+    let recalc = false;
+    tokens.forEach(t => {
+      if ( !this.tokens.has(t) ) {
+        recalc = true;
+        this.tokens.add(t);
+      }
+    });
+    if ( recalc ) this.resetCoverCalculations();
+  }
+
+  /**
+   * If the targets(s) are not present in the set, add them and refresh cover calculation.
+   * @param {Token[]} targets
+   */
+  _addTargets(targets) {
+    if ( targets instanceof Token ) targets = [targets];
+    let recalc = false;
+    targets.forEach(t => {
+      if ( !this.targets.has(t) ) {
+        recalc = true;
+        this.targets.add(t);
+      }
+    });
+    if ( recalc ) this.resetCoverCalculations();
+  }
+
+  /**
    * Retrieve cover calculations for a specific token of those provided.
    * If token ignores cover, apply that as well.
    * @param {Token} token
    * @param {string} actionType     "msak"|"mwak"|"rsak"|"rwak"
    */
-  coverCalculationsForToken(token, actionType) {
+  coverCalculationsForTokenAction(token, actionType) {
+    this._addTokens(token);
     const COVER_TYPES = CoverCalculator.COVER_TYPES;
     const ic = token.ignoresCoverType;
     const allCoverIgnored = ic.all;
     const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
     const ignoresCover = allCoverIgnored ? COVER_TYPES.TOTAL : typeCoverIgnored;
-    const coverCalculations = duplicate(this.coverCalculations[token.id]);
+    const tokenCoverCalculations = duplicate(this.coverCalculations[token.id]);
     const targets = this.targets;
     for ( const target of targets ) {
-      const cover = coverCalculations[target.id];
+      const cover = tokenCoverCalculations[target.id];
       const calcCover = cover <= ignoresCover ? COVER_TYPES.NONE : cover;
-      coverCalculations[target.id] = calcCover;
+      tokenCoverCalculations[target.id] = calcCover;
     }
+    return tokenCoverCalculations;
+  }
+
+  /**
+   * Convert tokenCoverCalculations to coverCalculations by applying the same set of cover
+   * for each token.
+   */
+  static convertTokenCalculations(tokens, tokenCoverCalculations) {
+    if ( tokens instanceof Token ) tokens = [tokens];
+    const coverCalculations = {};
+    for ( const token of tokens ) coverCalculations[`${token.id}`] = tokenCoverCalculations;
     return coverCalculations;
   }
 
@@ -80,7 +129,8 @@ export class CoverDialog {
    * @param {string} [actionType]     "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
    * @returns {TokenCoverCalculations}
    */
-  async confirmCover(askGM = false, { token, targets, actionType } = {}) {
+  async confirmCover({ askGM, token, targets, actionType } = {}) {
+    askGM ||= false;
     const dialogData = this._coverCheckDialogContent({ token, targets, actionType });
     const res = askGM
       ? await SOCKETS.socket.executeAsGM("dialogPromise", dialogData)
@@ -88,9 +138,10 @@ export class CoverDialog {
     if ( "Close" === res ) return false;
 
     // Update the cover calculations with User or GM selections
-    const tokenCoverCalculations = res.tokenCoverCalculations;
+    const tokenCoverCalculations = dialogData.tokenCoverCalculations;
     const coverSelections = res.find("[class=CoverSelect]");
-    const nTargets = res.targets.length;
+    const nTargets = dialogData.targets.length;
+    targets = dialogData.targets;
     for ( let i = 0; i < nTargets; i += 1 ) {
       const selectedCover = coverSelections[i].selectedIndex;
       tokenCoverCalculations[targets[i].id] = selectedCover;
@@ -98,16 +149,17 @@ export class CoverDialog {
     return tokenCoverCalculations;
   }
 
-  /**
-   *
 
   /**
    * Build cover check dialog data to ask the user to confirm cover choices for targets.
    */
   _coverCheckDialogContent({ token, targets, tokenCoverCalculations, actionType } = {}) {
-    token ??= this.tokens[0];
+    if ( token ) this._addTokens(token);
+    if ( targets ) this._addTargets(targets);
+
+    if ( !token ) [token] = this.tokens;
     targets ??= this.targets;
-    tokenCoverCalculations ??= this.coverCalculationsForToken(token, actionType);
+    tokenCoverCalculations ??= this.coverCalculationsForTokenAction(token, actionType);
 
     const COVER_TYPES = CoverCalculator.COVER_TYPES;
     const ic = token.ignoresCoverType;
@@ -199,6 +251,35 @@ export class CoverDialog {
   }
 
   /**
+   * Display a dialog displaying cover tests to the user.
+   */
+  async showCoverResults() {
+    const coverAlgorithm = getSetting(SETTINGS.COVER.ALGORITHM);
+    const algorithmDescription = game.i18n.localize(`${MODULE_ID}.settings.${coverAlgorithm}`);
+    const coverTable = this.htmlCoverTable();
+    const content =
+`
+${coverTable.html}
+<em>Cover algorithm: ${algorithmDescription}</em>
+<br>
+<br>
+`;
+    const dialogData = {
+      title: game.i18n.localize(`${MODULE_ID}.phrases.CoverByTarget`),
+      content,
+      buttons: {
+        one: {
+          icon: '<i class="fas fa-times"></i>',
+          label: game.i18n.localize(`${MODULE_ID}.phrases.Done`)
+        }
+      },
+      default: game.i18n.localize(`${MODULE_ID}.phrases.Done`),
+      height: "100%"
+    };
+    return this.constructor.dialogPromise(dialogData);
+  }
+
+  /**
    * Construct an html table describing cover for various target(s) versus token(s).
    * @param {Token[]} tokens    Array of tokens to measure cover from.
    * @param {Token[]} targets   Target tokens that may have cover from one or more tokens.
@@ -217,10 +298,12 @@ export class CoverDialog {
     applied = false,
     displayIgnored = true } = {}) {
 
+    if ( tokens ) this._addTokens(tokens);
+    if ( targets ) this._addTargets(targets);
     tokens ??= this.tokens;
     targets ??= this.targets;
-
-    if ( !coverCalculations ) coverCalculations = CoverCalculator.coverCalculations(tokens, targets);
+    const COVER_TYPES = CoverCalculator.COVER_TYPES;
+    coverCalculations ??= CoverCalculator.coverCalculations(tokens, targets);
 
     let html = "";
     const coverResults = [];
@@ -248,7 +331,7 @@ export class CoverDialog {
       for ( const target of targets ) {
         if ( token.id === target.id ) {
           // Skip targeting oneself.
-          targetCoverResults.push(this.COVER_TYPES.NONE);
+          targetCoverResults.push(COVER_TYPES.NONE);
           continue;
         }
 
@@ -261,8 +344,8 @@ export class CoverDialog {
 
         targetCoverResults.push(cover);
 
-        if ( !includeZeroCover && cover === this.COVER_TYPES.NONE ) continue;
-        if ( cover !== this.COVER_TYPES.NONE ) nCover += 1;
+        if ( !includeZeroCover && cover === COVER_TYPES.NONE ) continue;
+        if ( cover !== COVER_TYPES.NONE ) nCover += 1;
 
         const targetImage = target.document.texture.src; // Token canvas image.
         const dist = Point3d.distanceBetween(token_center, target_center);
