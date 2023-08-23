@@ -2,7 +2,6 @@
 canvas,
 CONFIG,
 CONST,
-Dialog,
 duplicate,
 game,
 Hooks,
@@ -30,6 +29,7 @@ import {
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { squaresUnderToken, hexesUnderToken } from "./shapes_under_token.js";
+import { dialogPromise, CoverDialog } from "./CoverDialog.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
 // Don't pass complex classes through the socket. Use token ids instead.
@@ -159,40 +159,6 @@ async function enableDFredsCover(uuid, type = COVER.TYPES.LOW) {
   return Promise.all(promises);
 }
 
-/**
- * Convert dialog to a promise to allow use with await/async.
- * @content HTML content for the dialog.
- * @return Promise for the html content of the dialog
- * Will return "Cancel" or "Close" if those are selected.
- */
-export function dialogPromise(data, options = {}) {
-  return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
-    dialogCallback(data, html => resolve(html), options);
-  });
-}
-
-/**
- * Create new dialog with a callback function that can be used for dialogPromise.
- * @content HTML content for the dialog.
- * @callbackFn Allows conversion of the callback to a promise using dialogPromise.
- * @return rendered dialog.
- */
-function dialogCallback(data, callbackFn, options = {}) {
-  data.buttons = {
-    one: {
-      icon: '<i class="fas fa-check"></i>',
-      label: "Confirm",
-      callback: html => callbackFn(html)
-    }
-  };
-
-  data.default = "one";
-  data.close = () => callbackFn("Close");
-
-  let d = new Dialog(data, options);
-  d.render(true, { height: "100%" });
-}
-
 /* Cover Calculation Class
  * Calculate cover between a token and target, based on different algorithms.
  */
@@ -256,18 +222,6 @@ export class CoverCalculator {
   /** @type {string} */
   static get currentAlgorithm() {
     return getSetting(SETTINGS.COVER.ALGORITHM);
-  }
-
-  /**
-   * Convert dialog to a promise to allow use with await/async.
-   * @content HTML content for the dialog.
-   * @return Promise for the html content of the dialog
-   * Will return "Cancel" or "Close" if those are selected.
-   */
-  static async dialogPromise(data, options = {}) {
-    return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
-      dialogCallback(data, html => resolve(html), options);
-    });
   }
 
   /**
