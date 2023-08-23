@@ -568,10 +568,10 @@ export function getCoverEffect(type = "LOW") {
  */
 export function getCoverName(type = "LOW") {
   if ( type === "NONE" ) return game.i18n.localize("None");
-  if ( type === "TOTAL" ) return game.i18n.localize(tokenvisibility.phrases.Total);
+  if ( type === "TOTAL" ) return game.i18n.localize("tokenvisibility.phrases.Total");
 
   const effect = getCoverEffect(type);
-  return effect.name;
+  return effect.name ?? effect.label;
 }
 
 /**
