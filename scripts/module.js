@@ -39,6 +39,7 @@ import { Area3d } from "./Area3d.js";
 import { Area2d } from "./Area2d.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+import { CoverDialog } from "./CoverDialog.js";
 
 import { Area3dPopout, area3dPopoutData } from "./Area3dPopout.js";
 
@@ -66,6 +67,7 @@ Hooks.once("init", function() {
     Area3d,
     util,
     CoverCalculator,
+    CoverDialog,
     COVER,
     ConstrainedTokenBorder,
     los,
