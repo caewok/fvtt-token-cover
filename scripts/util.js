@@ -27,6 +27,18 @@ export function log(...args) {
 }
 
 /**
+ * Gets the actor object by the actor UUID
+ * Comparable to DFred's version.
+ * https://github.com/DFreds/dfreds-convenient-effects/blob/8feaede24d310a3fa231d320ae5d33ecb326897f/scripts/foundry-helpers.js#L41
+ * @param {string} uuid - the actor UUID
+ * @returns {Actor} the actor that was found via the UUID
+ */
+export function getActorByUuid(uuid) {
+  const actorToken = fromUuidSync(uuid);
+  return actorToken?.actor ?? actorToken;
+}
+
+/**
  * Retrieve an embedded property from an object using a string.
  * @param {object} obj
  * @param {string} str

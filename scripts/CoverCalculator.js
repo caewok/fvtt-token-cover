@@ -15,7 +15,7 @@ VisionSource
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, COVER, MODULES_ACTIVE, DEBUG, STATUS_COVER_EFFECT_IDS, STATUS_COVER_EFFECT_CATEGORIES } from "./const.js";
+import { MODULE_ID, COVER, MODULES_ACTIVE, DEBUG } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
@@ -23,7 +23,8 @@ import { Draw } from "./geometry/Draw.js"; // For debugging
 import {
   lineSegmentIntersectsQuadrilateral3d,
   lineIntersectionQuadrilateral3d,
-  buildTokenPoints } from "./util.js";
+  buildTokenPoints,
+  getActorByUuid } from "./util.js";
 
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
@@ -38,57 +39,119 @@ export const SOCKETS = {
 Hooks.once("socketlib.ready", () => {
   SOCKETS.socket = socketlib.registerModule(MODULE_ID);
   SOCKETS.socket.register("dialogPromise", dialogPromise);
-  SOCKETS.socket.register("disableAllCover", disableAllCover);
-  SOCKETS.socket.register("enableCover", enableCover);
+  SOCKETS.socket.register("disableAllATVCover", disableAllATVCover);
+  SOCKETS.socket.register("enableATVCover", enableATVCover);
 });
 
 /**
- * Remove all cover statuses (ActiveEffect) from a token.
- * Removes DFred's and ATV cover.
+ * Remove all ATV cover statuses (ActiveEffect) from a token.
+ * Used in SOCKETS above.
  * @param {COVER_TYPE} type
- * @param {string} tokenId
+ * @param {string} actorUUID
+ * @returns {Promise<boolean>} Return from toggleActiveEffect.
  */
-async function disableAllCover(tokenId) {
-  const token = canvas.tokens.get(tokenId);
-  if ( !token ) return;
+async function disableAllATVCover(actorUUID) {
+  const actor = getActorByUuid(actorUUID);
+  if ( !actor ) return;
 
   // Drop all cover statuses.
-  const coverStatuses = token.actor?.statuses.intersect(STATUS_COVER_EFFECT_IDS);
-  if ( !coverStatuses ) return; // Should not happen, but...
-  const promises = coverStatuses.map(id => token.document.toggleActiveEffect({ id }, { active: false }));
+  const coverStatuses = actor.statuses?.intersect(COVER.IDS[MODULE_ID]) ?? new Set();
+  const promises = coverStatuses.map(id => actor.token.document.toggleActiveEffect({ id }, { active: false }));
   return Promise.all(promises);
 }
 
 /**
  * Enable a cover status (ActiveEffect) for a token.
- * Token can only have one cover status at a time.
- * @param {string} tokenId
+ * Token can only have one cover status at a time, so all other ATV covers are removed.
+ * Used in SOCKETS above.
+ * @param {string} actorUUID
  * @param {COVER_TYPE} type
+ * @returns {Promise<boolean>} Return from toggleActiveEffect.
  */
-async function enableCover(tokenId, type = COVER.TYPES.LOW) {
+async function enableATVCover(actorUUID, type = COVER.TYPES.LOW) {
   // If enabling the "None" cover, remove all cover.
   // If TOTAL, this is used as a flag elsewhere to remove the token from targeting. Ignored here.
-  if ( type === COVER.TYPES.NONE ) return disableAllCover(tokenId);
+  if ( type === COVER.TYPES.NONE ) return disableAllATVCover(actorUUID);
   if ( type === COVER.TYPES.TOTAL ) return;
 
-  const token = canvas.tokens.get(tokenId);
-  if ( !token ) return;
+  const actor = getActorByUuid(actorUUID);
+  if ( !actor ) return;
 
   const keys = Object.keys(COVER.TYPES);
   const key = keys[type];
   if ( !key ) return;
 
-  //
+  // Get the corresponding id for the desired cover type.
+  const desiredCoverId = COVER.CATEGORIES[key][MODULE_ID];
 
-  // If already exists, do not add again to avoid duplicate effects.
-  const id = `${MODULE_ID}.cover.${key}`;
-  const effect = CONFIG.statusEffects.find(effect => effect.id === id);
-  if ( !effect ) return;
+  // Drop all cover statuses except the desired one.
+  const tokenD = actor.token.document;
+  const coverStatuses = actor.statuses?.intersect(COVER.IDS[MODULE_ID]) ?? new Set();
+  const coverAlreadyApplied = coverStatuses.has(desiredCoverId);
+  if ( coverAlreadyApplied ) coverStatuses.delete(desiredCoverId);
+  const promises = coverStatuses.map(id => tokenD.toggleActiveEffect({ id }, { active: false }));
+  if ( !coverAlreadyApplied ) promises.push(tokenD.toggleActiveEffect( { id: desiredCoverId }, { active: true }));
+  return Promise.all(promises);
+}
 
-  const existing = token.document.actor.effects.find(e => e.getFlag("core", "statusId") === effect.id);
-  if ( existing ) return;
+/**
+ * Remove all ATV cover statuses (ActiveEffect) from a token.
+ * Used in SOCKETS above.
+ * @param {COVER_TYPE} type
+ * @param {string} uuid
+ * @returns {Promise<boolean>} Return from toggleActiveEffect.
+ */
+async function disableAllDFredsCover(uuid) {
+  // Drop all cover statuses.
+  const actor = getActorByUuid(uuid);
+  if ( !actor ) return;
 
-  await token.document.toggleActiveEffect(effect, { active: true });
+  const coverStatuses = actor.statuses?.intersect(COVER.IDS["dfreds-convenient-effects"]) ?? new Set();
+  const promises = coverStatuses.map(id => {
+    const effectName = id.replace("Convenient Effect: ", "");
+    return game.dfreds.effectInterface.removeEffect({ effectName, uuid });
+  });
+  return Promise.all(promises);
+}
+
+/**
+ * Enable a cover status (ActiveEffect) for a token.
+ * Token can only have one cover status at a time, so all other DFred covers are removed.
+ * @param {string} uuid       Actor uuid
+ * @param {COVER_TYPE} type
+ * @returns {Promise<boolean>} Return from toggleActiveEffect.
+ */
+async function enableDFredsCover(uuid, type = COVER.TYPES.LOW) {
+  // If enabling the "None" cover, remove all cover.
+  // If TOTAL, this is used as a flag elsewhere to remove the token from targeting. Ignored here.
+  if ( type === COVER.TYPES.NONE ) return disableAllDFredsCover(uuid);
+  if ( type === COVER.TYPES.TOTAL ) return;
+
+  const actor = getActorByUuid(uuid);
+  if ( !actor ) return;
+
+  const keys = Object.keys(COVER.TYPES);
+  const key = keys[type];
+  if ( !key ) return;
+
+  // Get the corresponding id for the desired cover type.
+  const desiredCoverId = COVER.CATEGORIES[key]["dfreds-convenient-effects"];
+
+  // Drop all DFred's cover except the desired one.
+  const coverStatuses = actor.statuses?.intersect(COVER.IDS["dfreds-convenient-effects"]) ?? new Set();
+  const coverAlreadyApplied = coverStatuses.has(desiredCoverId);
+  if ( coverAlreadyApplied ) coverStatuses.delete(desiredCoverId);
+  const promises = coverStatuses.map(id => {
+    const effectName = id.replace("Convenient Effect: ", "");
+    return game.dfreds.effectInterface.removeEffect({ effectName, uuid });
+  });
+
+  // Add the desired effect.
+  if ( !coverAlreadyApplied ) {
+    const effectName = COVER.DFRED_NAMES[key];
+    promises.push(game.dfreds.effectInterface.addEffect({ effectName, uuid }));
+  }
+  return Promise.all(promises);
 }
 
 /**
@@ -222,60 +285,37 @@ export class CoverCalculator {
   }
 
   static disableAllCoverStatus(tokenId) {
-    // Don't really need to await in order to disable all... right?
-    CoverCalculator.disableCoverStatus(tokenId, COVER_TYPES.LOW);
-    CoverCalculator.disableCoverStatus(tokenId, COVER_TYPES.MEDIUM);
-    CoverCalculator.disableCoverStatus(tokenId, COVER_TYPES.HIGH);
+    const token = canvas.tokens.get(tokenId);
+    if ( !token ) return;
+    const uuid = token.actor.uuid;
+
+    if ( MODULES_ACTIVE.DFREDS_CE ) return disableAllDFredsCover(uuid);
+    else return SOCKETS.socket.executeAsGM("disableAllATVCover", uuid);
   }
 
-  static async disableCoverStatus(tokenId, type = COVER_TYPES.LOW ) {
-    if ( (type === COVER_TYPES.LOW
-      || type === COVER_TYPES.MEDIUM)
-      && MODULES_ACTIVE.DFREDS_CE ) {
-      const effectName = type === COVER_TYPES.LOW ? "Cover (Half)" : "Cover (Three-Quarters)";
-      const token = canvas.tokens.get(tokenId);
-      if ( !token ) return;
-
-      return await game.dfreds.effectInterface.removeEffect({
-        effectName,
-        uuid: token.actor?.uuid
-      });
-    }
-
-    // Test id is string for debugging
-    if ( !(typeof tokenId === "string" || tokenId instanceof String) ) console.error("tokenId is not a string!");
-    await SOCKETS.socket.executeAsGM("disableCoverStatus", tokenId, type);
+  static async disableCoverStatus(tokenId) {
+    console.warning(`${MODULE_ID}|disableCoverStatus is deprecated. Please use disableAllCoverStatus instead.`);
+    return this.disableAllCoverStatus(tokenId);
   }
 
-  static async enableCoverStatus(tokenId, type = COVER_TYPES.LOW ) {
-    if ( (type === COVER_TYPES.LOW
-      || type === COVER_TYPES.MEDIUM)
-      && MODULES_ACTIVE.DFREDS_CE ) {
-      // Params: effectName, uuid, origin, overlay, metadata
-      const effectName = type === COVER_TYPES.LOW ? "Cover (Half)" : "Cover (Three-Quarters)";
-      const token = canvas.tokens.get(tokenId);
-      if ( !token ) return;
-
-      // Do not enable if already enabled. (issue #26)
-      if ( game.dfreds.effectInterface.hasEffectApplied(effectName, token.actor?.uuid) ) return;
-
-      return await game.dfreds.effectInterface.addEffect({
-        effectName,
-        uuid: token.actor?.uuid,
-        origin: MODULE_ID
-      });
-    }
-
-    // Test id is string for debugging
-    if ( !(typeof tokenId === "string" || tokenId instanceof String) ) console.error("tokenId is not a string!");
-    return await SOCKETS.socket.executeAsGM("enableCoverStatus", tokenId, type);
+  /**
+   * Enable a specific cover status, removing all the rest.
+   * Use DFred's if active; ATV otherwise.
+   * @param {string} tokenId
+   */
+  static async enableCoverStatus(tokenId, type = this.COVER_TYPES.LOW ) {
+    if ( type === this.COVER_TYPES.NONE ) return this.disableAllCover(tokenId);
+    if ( type === this.COVER_TYPES.TOTAL ) return;
+    const token = canvas.tokens.get(tokenId);
+    if ( !token ) return;
+    const uuid = token.actor.uuid;
+    if ( MODULES_ACTIVE.DFREDS_CE ) return enableDFredsCover(uuid, type);
+    else return SOCKETS.socket.executeAsGM("enableATVCover", uuid, type);
   }
 
-  static async setCoverStatus(tokenId, type = COVER_TYPES.NONE ) {
-    if ( type === COVER_TYPES.NONE
-      || type === COVER_TYPES.TOTAL ) return CoverCalculator.disableAllCoverStatus(tokenId);
-
-    return CoverCalculator.enableCoverStatus(tokenId, type);
+  static async setCoverStatus(tokenId, type = this.COVER_TYPES.NONE ) {
+    console.warning(`${MODULE_ID}|setCoverStatus is deprecated. Please use enableCoverStatus instead.`);
+    return this.enableCoverStatus(tokenId, type);
   }
 
   /**
@@ -352,7 +392,7 @@ export class CoverCalculator {
       for ( const target of targets ) {
         if ( token.id === target.id ) {
           // Skip targeting oneself.
-          targetCoverResults.push(COVER_TYPES.NONE);
+          targetCoverResults.push(this.COVER_TYPES.NONE);
           continue;
         }
 
@@ -365,8 +405,8 @@ export class CoverCalculator {
 
         targetCoverResults.push(cover);
 
-        if ( !includeZeroCover && cover === COVER_TYPES.NONE ) continue;
-        if ( cover !== COVER_TYPES.NONE ) nCover += 1;
+        if ( !includeZeroCover && cover === this.COVER_TYPES.NONE ) continue;
+        if ( cover !== this.COVER_TYPES.NONE ) nCover += 1;
 
         const targetImage = target.document.texture.src; // Token canvas image.
         const dist = Point3d.distanceBetween(token_center, target_center);
@@ -468,7 +508,7 @@ export class CoverCalculator {
    * @returns {COVER_TYPE}
    */
   targetCover(algorithm = getSetting(SETTINGS.COVER.ALGORITHM)) {
-    let coverType = COVER_TYPES.NONE;
+    let coverType = this.constructor.COVER_TYPES.NONE;
 
     switch ( algorithm ) {
       case SETTINGS.COVER.TYPES.CENTER_CENTER:
@@ -500,6 +540,7 @@ export class CoverCalculator {
    * @param {COVER.TYPE} type   Cover type. Default to calculating.
    */
   setTargetCoverEffect(type = this.targetCover()) {
+    const COVER_TYPES = this.constructor.COVER_TYPES;
     switch ( type ) {
       case COVER_TYPES.NONE:
       case COVER_TYPES.FULL:
@@ -716,6 +757,7 @@ export class CoverCalculator {
    * @returns {COVER_TYPE}
    */
   _forceLowCover(Area) {
+    const COVER_TYPES = this.constructor.COVER_TYPES;
     const config = duplicate(this.config);
     config.deadTokensBlock = false;
     config.liveTokensBlock = false;
@@ -773,6 +815,7 @@ export class CoverCalculator {
    * @returns {COVER_TYPE}
    */
   static typeForPercentage(percentCover) {
+    const COVER_TYPES = this.constructor.COVER_TYPES;
     if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
     if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
     if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
@@ -787,6 +830,7 @@ export class CoverCalculator {
    * @returns {COVER_TYPE}
    */
   _testTokenTargetPoints(tokenPoints, targetPointsArray) {
+    const COVER_TYPES = this.constructor.COVER_TYPES;
     let minCover = COVER_TYPES.TOTAL;
     const minPointData = { tokenPoint: undefined, targetPoints: undefined }; // Debugging
 
@@ -923,7 +967,7 @@ export class CoverCalculator {
     const coverType = CoverCalculator.typeForPercentage(percentCornersBlocked);
 
     return ( liveForceHalfCover && tokenBlocks )
-      ? Math.max(coverType, COVER_TYPES.LOW)
+      ? Math.max(coverType, this.constructor.COVER_TYPES.LOW)
       : coverType;
   }
 

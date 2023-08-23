@@ -35,7 +35,7 @@ export const FLAGS = {
   }
 };
 
-export const COVER = {}
+export const COVER = {};
 
 COVER.TYPES = {
   NONE: 0,
@@ -45,14 +45,25 @@ COVER.TYPES = {
   TOTAL: 4
 };
 
-COVER.IDS = new Set([
+COVER.IDS = {};
+
+COVER.IDS[MODULE_ID] = new Set([
   `${MODULE_ID}.cover.LOW`,
   `${MODULE_ID}.cover.MEDIUM`,
-  `${MODULE_ID}.cover.HIGH`,
+  `${MODULE_ID}.cover.HIGH`
+]);
+
+COVER.IDS["dfreds-convenient-effects"] = new Set([
   "Convenient Effect: Cover (Half)",
   "Convenient Effect: Cover (Three-Quarters)",
   "Convenient Effect: Cover (Total)"
 ]);
+
+COVER.DFRED_NAMES = {
+  LOW: "Cover (Half)",
+  MEDIUM: "Cover (Three-Quarters)",
+  HIGH: "Cover (Total)"
+};
 
 COVER.CATEGORIES = {
   LOW: {
@@ -69,7 +80,7 @@ COVER.CATEGORIES = {
     "dfreds-convenient-effects": "Convenient Effect: Cover (Total)",
     [MODULE_ID]: `${MODULE_ID}.cover.HIGH`
   }
-}
+};
 
 COVER.MIN = Math.min(...Object.values(COVER.TYPES));
 COVER.MAX = Math.max(...Object.values(COVER.TYPES));
