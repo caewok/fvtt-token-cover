@@ -24,7 +24,8 @@ import {
   lineSegmentIntersectsQuadrilateral3d,
   lineIntersectionQuadrilateral3d,
   buildTokenPoints,
-  getActorByUuid } from "./util.js";
+  getActorByUuid,
+  keyForValue } from "./util.js";
 
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
@@ -77,8 +78,7 @@ async function enableATVCover(actorUUID, type = COVER.TYPES.LOW) {
   const actor = getActorByUuid(actorUUID);
   if ( !actor ) return;
 
-  const keys = Object.keys(COVER.TYPES);
-  const key = keys[type];
+  const key = keyForValue(COVER.TYPES, type);
   if ( !key ) return;
 
   // Get the corresponding id for the desired cover type.
@@ -130,8 +130,7 @@ async function enableDFredsCover(uuid, type = COVER.TYPES.LOW) {
   const actor = getActorByUuid(uuid);
   if ( !actor ) return;
 
-  const keys = Object.keys(COVER.TYPES);
-  const key = keys[type];
+  const key = keyForValue(COVER.TYPES, type);
   if ( !key ) return;
 
   // Get the corresponding id for the desired cover type.
@@ -260,10 +259,7 @@ export class CoverCalculator {
    * @returns {string}
    */
   static coverNameForType(type) {
-    // TO-DO: Add the "None" name to settings
-    if ( type === CoverCalculator.COVER_TYPES.NONE ) return "None";
-
-    const key = Object.keys(CoverCalculator.COVER_TYPES)[type];
+    const key = keyForValue(this.COVER_TYPES, type);
     return getCoverName(key);
   }
 

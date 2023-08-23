@@ -568,7 +568,7 @@ export function getCoverEffect(type = "LOW") {
  */
 export function getCoverName(type = "LOW") {
   const effect = getCoverEffect(type);
-  return effect.label;
+  return effect.name;
 }
 
 /**

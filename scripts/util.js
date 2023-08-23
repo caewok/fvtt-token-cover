@@ -39,6 +39,13 @@ export function getActorByUuid(uuid) {
 }
 
 /**
+ * Get the key for a given object value. Presumes unique values, otherwise returns first.
+ */
+export function keyForValue(object, value) {
+  return Object.keys(object).find(key => object[key] === value);
+}
+
+/**
  * Retrieve an embedded property from an object using a string.
  * @param {object} obj
  * @param {string} str
