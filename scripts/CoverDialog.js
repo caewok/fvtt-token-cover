@@ -140,11 +140,9 @@ export class CoverDialog {
     // Update the cover calculations with User or GM selections
     const tokenCoverCalculations = dialogData.tokenCoverCalculations;
     const coverSelections = res.find("[class=CoverSelect]");
-    const nTargets = dialogData.targets.length;
-    targets = dialogData.targets;
-    for ( let i = 0; i < nTargets; i += 1 ) {
-      const selectedCover = coverSelections[i].selectedIndex;
-      tokenCoverCalculations[targets[i].id] = selectedCover;
+    for ( const selection of coverSelections ) {
+      const id = selection.id.replace("CoverSelect.", "");
+      tokenCoverCalculations[id] = selection.selectedIndex;
     }
     return tokenCoverCalculations;
   }
