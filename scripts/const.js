@@ -59,6 +59,8 @@ COVER.IDS["dfreds-convenient-effects"] = new Set([
   "Convenient Effect: Cover (Total)"
 ]);
 
+COVER.IDS.ALL = COVER.IDS[MODULE_ID].union(COVER.IDS["dfreds-convenient-effects"]);
+
 COVER.DFRED_NAMES = {
   LOW: "Cover (Half)",
   MEDIUM: "Cover (Three-Quarters)",
