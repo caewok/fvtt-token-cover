@@ -406,7 +406,10 @@ function isUserCombatTurn(user) {
 export function createActiveEffectHook(activeEffect, options, userId) {
   if ( userId !== game.userId ) return;
 
-  // Check if statuses need to be removed.
+  // Is the activeEffect a cover status?
+  if ( !activeEffect.statuses.intersects(COVER.IDS.ALL) ) return;
+
+  // Do statuses need to be removed?
   const actor = activeEffect.parent;
   const coverStatuses = actor.statuses?.intersect(COVER.IDS.ALL) ?? new Set();
   const toRemove = coverStatuses.difference(activeEffect.statuses);
