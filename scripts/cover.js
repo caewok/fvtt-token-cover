@@ -396,3 +396,28 @@ function isUserCombatTurn(user) {
 
   return c.combatant.players.some(player => user.name === player.name);
 }
+
+/**
+ * When creating an active cover effect, remove all other cover effects.
+ * @param {Document} document                       The new Document instance which has been created
+ * @param {DocumentModificationContext} options     Additional options which modified the creation request
+ * @param {string} userId                           The ID of the User who triggered the creation workflow
+ */
+export function createActiveEffectHook(activeEffect, options, userId) {
+  if ( userId !== game.userId ) return;
+
+  // Check if statuses need to be removed.
+  const actor = activeEffect.parent;
+  const coverStatuses = actor.statuses?.intersect(COVER.IDS.ALL) ?? new Set();
+  const toRemove = coverStatuses.difference(activeEffect.statuses);
+  if ( !toRemove.size ) return;
+
+  // Remove all cover statuses except the activeEffect status
+  // ActiveEffect actor does not point to specific token for linked so use getActiveTokens
+  const tokenDocs = actor.getActiveTokens(false, true);
+  tokenDocs.forEach(tokenD => {
+    toRemove.map(id => tokenD.toggleActiveEffect({ id }, { active: false })); // Async
+  });
+}
+
+
