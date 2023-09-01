@@ -398,6 +398,27 @@ function isUserCombatTurn(user) {
 }
 
 /**
+ * When considering creating an active cover effect, do not do so if it already exists.
+ * @param {Document} document                     The pending document which is requested for creation
+ * @param {object} data                           The initial data object provided to the document creation request
+ * @param {DocumentModificationContext} options   Additional options which modify the creation request
+ * @param {string} userId                         The ID of the requesting user, always game.user.id
+ * @returns {boolean|void}                        Explicitly return false to prevent creation of this Document
+ */
+export function preCreateActiveEffectHook(activeEffect, data, options, userId) {
+  if ( userId !== game.userId ) return;
+
+  // Is the activeEffect a cover status?
+  if ( !activeEffect.statuses.intersects(COVER.IDS.ALL) ) return;
+
+  // Does the status effect already exist?
+  const actor = activeEffect.parent;
+  const coverStatuses = actor.statuses?.intersect(COVER.IDS.ALL) ?? new Set();
+  if ( coverStatuses.intersects(activeEffect.statuses) ) return false;
+  return true;
+}
+
+/**
  * When creating an active cover effect, remove all other cover effects.
  * @param {Document} document                       The new Document instance which has been created
  * @param {DocumentModificationContext} options     Additional options which modified the creation request
