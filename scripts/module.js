@@ -13,9 +13,9 @@ import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambl
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import {
   registerSettings,
-  updateConfigStatusEffects,
   updateSettingHook,
-  renderSettingsConfigHook } from "./settings.js";
+  renderSettingsConfigHook,
+  updateConfigStatusEffects } from "./settings.js";
 
 // Rendering configs
 import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
@@ -96,10 +96,11 @@ Hooks.once("init", function() {
   registerSystemHooks();
 });
 
-Hooks.once("setup", async function() {
+Hooks.once("setup", function() {
   registerSettings();
   updateConfigStatusEffects();
 });
+
 
 /**
  * Tell DevMode that we want a flag for debugging this module.

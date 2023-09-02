@@ -12,7 +12,7 @@ import {
   IgnoresCoverSimbuls,
   IgnoresCoverDND5e } from "./IgnoresCover.js";
 
-import { getSetting, SETTINGS } from "./settings.js";
+import { getSetting, SETTINGS, setSetting, updateConfigStatusEffects } from "./settings.js";
 
 
 export const MODULE_ID = "tokenvisibility";
@@ -66,6 +66,7 @@ COVER.DFRED_NAMES = {
   MEDIUM: "Cover (Three-Quarters)",
   HIGH: "Cover (Total)"
 };
+
 
 COVER.CATEGORIES = {
   LOW: {
@@ -135,9 +136,10 @@ export function setCoverIgnoreHandler(handler) {
   canvas.tokens.placeables.forEach(t => t._ignoresCoverType = undefined);
 }
 
-Hooks.once("canvasReady", async function() {
+Hooks.once("ready", async function() {
   // Version 0.3.2: "ignoreCover" flag becomes "ignoreCoverAll"
-  migrateIgnoreCoverFlag();
+  await migrateIgnoreCoverFlag();
+  await migrateCoverStatusData();
 
   // Set the ignores cover handler based on what systems and modules are active
   const handler = MODULES_ACTIVE.SIMBULS_CC ? IgnoresCoverSimbuls
@@ -151,7 +153,7 @@ Hooks.once("canvasReady", async function() {
  * Cover flag was originally "ignoreCover".
  * As of v0.3.2, all, mwak, etc. were introduced. So migrate the "ignoreCover" to "ignoreCoverAll"
  */
-function migrateIgnoreCoverFlag() {
+async function migrateIgnoreCoverFlag() {
   if ( getSetting(SETTINGS.MIGRATION.v032) ) return;
 
   // Confirm that actor flags are updated to newest version
@@ -172,7 +174,53 @@ function migrateIgnoreCoverFlag() {
       t.actor.unsetFlag(MODULE_ID, "ignoreCover");
     }
   });
+
+  await setSetting(SETTINGS.MIGRATION.v032, true);
 }
+
+async function migrateCoverStatusData() {
+  if ( getSetting(SETTINGS.MIGRATION.v054) ) return;
+
+  // Update config status effects.
+  const allStatusEffects = getSetting(SETTINGS.COVER.EFFECTS);
+  for ( const systemId of Object.keys(allStatusEffects) ) {
+    const systemStatusEffects = allStatusEffects[systemId];
+    for ( const type of Object.keys(systemStatusEffects) ) {
+      const effectData = systemStatusEffects[type];
+
+      if ( !effectData.name ) effectData.name = effectData.label;
+      delete effectData.label;
+
+      if ( !effectData.id ) effectData.id = effectData._id;
+      delete effectData._id;
+
+      switch ( systemId ) {
+        case "generic":
+          if ( type === "LOW" && effectData.name === "Low" ) effectData.name = "tokenvisibility.Cover.Low";
+          if ( type === "MEDIUM" && effectData.name === "Medium" ) effectData.name = "tokenvisibility.Cover.Medium";
+          if ( type === "HIGH" && effectData.name === "High" ) effectData.name = "tokenvisibility.Cover.High";
+          break;
+        case "dnd5e":
+        case "dnd5e_midiqol":
+          if ( type === "LOW" && effectData.name === "Half" ) effectData.name = "DND5E.CoverHalf";
+          if ( type === "MEDIUM" && effectData.name === "Three-Quarters" ) effectData.name = "DND5E.CoverThreeQuarters";
+          if ( type === "HIGH" && effectData.name === "Total" ) effectData.name = "DND5E.CoverTotal";
+          break;
+        case "pf2e":
+          if ( type === "LOW" && effectData.name === "Lesser" ) effectData.name = "PF2E.Cover.Lesser";
+          if ( type === "MEDIUM" && effectData.name === "Standard" ) effectData.name = "PF2E.Cover.Standard";
+          if ( type === "HIGH" && effectData.name === "Greater" ) effectData.name = "PF2E.Cover.Greater";
+          break;
+      }
+      allStatusEffects[systemId][type] = effectData;
+    }
+  }
+
+  await setSetting(SETTINGS.COVER.EFFECTS, allStatusEffects);
+  updateConfigStatusEffects();
+  await setSetting(SETTINGS.MIGRATION.v054, true);
+}
+
 
 // Default status effects for different systems.
 // {0: 'Custom', 1: 'Multiply', 2: 'Add', 3: 'Downgrade', 4: 'Upgrade', 5: 'Override'}
@@ -180,28 +228,28 @@ export const STATUS_EFFECTS = {
   generic: {
     LOW: {
       id: `${MODULE_ID}.cover.LOW`,
-      label: "Low",
-      icon: `modules/${MODULE_ID}/assets/shield_low_gray.svg`
+      icon: `modules/${MODULE_ID}/assets/shield_low_gray.svg`,
+      name: "tokenvisibility.Cover.Low"
     },
 
     MEDIUM: {
       id: `${MODULE_ID}.cover.MEDIUM`,
-      label: "Medium",
-      icon: `modules/${MODULE_ID}/assets/shield_medium_gray.svg`
+      icon: `modules/${MODULE_ID}/assets/shield_medium_gray.svg`,
+      name: "tokenvisibility.Cover.Medium"
     },
 
     HIGH: {
       id: `${MODULE_ID}.cover.HIGH`,
-      label: "High",
-      icon: `modules/${MODULE_ID}/assets/shield_high_gray.svg`
+      icon: `modules/${MODULE_ID}/assets/shield_high_gray.svg`,
+      name: "tokenvisibility.Cover.High"
     }
   }
 };
 
 STATUS_EFFECTS.dnd5e = duplicate(STATUS_EFFECTS.generic);
-STATUS_EFFECTS.dnd5e.LOW.label = "Half";
-STATUS_EFFECTS.dnd5e.MEDIUM.label = "Three-quarters";
-STATUS_EFFECTS.dnd5e.HIGH.label = "Total";
+STATUS_EFFECTS.dnd5e.LOW.name = "DND5E.CoverHalf";
+STATUS_EFFECTS.dnd5e.MEDIUM.name = "DND5E.CoverThreeQuarters";
+STATUS_EFFECTS.dnd5e.HIGH.name = "DND5E.CoverTotal";
 
 STATUS_EFFECTS.dnd5e.LOW.changes = [
   {
@@ -257,6 +305,6 @@ STATUS_EFFECTS.dnd5e_midiqol.HIGH.changes = [
 
 
 STATUS_EFFECTS.pf2e = duplicate(STATUS_EFFECTS.generic);
-STATUS_EFFECTS.pf2e.LOW.label = "Lesser";
-STATUS_EFFECTS.pf2e.MEDIUM.label = "Standard";
-STATUS_EFFECTS.pf2e.HIGH.label = "Greater";
+STATUS_EFFECTS.pf2e.LOW.name = "PF2E.Cover.Lesser";
+STATUS_EFFECTS.pf2e.MEDIUM.name = "PF2E.Cover.Standard";
+STATUS_EFFECTS.pf2e.HIGH.name = "PF2E.Cover.Greater";
