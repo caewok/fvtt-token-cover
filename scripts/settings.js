@@ -580,7 +580,7 @@ export function getCoverName(type = "LOW") {
   if ( type === "TOTAL" ) return game.i18n.localize("tokenvisibility.phrases.Total");
 
   const effect = getCoverEffect(type);
-  return effect.name ?? effect.label;
+  return game.i18n.localize(effect.name ?? effect.label);
 }
 
 /**
