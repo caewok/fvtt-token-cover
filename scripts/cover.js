@@ -322,7 +322,7 @@ export function preCreateActiveEffectHook(activeEffect, data, options, userId) {
 // }
 
 /**
- * Wrap ActiveEffect.create
+ * Wrap ActiveEffect._onCreateDocuments
  * When creating an active cover effect, remove all other cover effects.
  * Cannot use createActiveEffectHook b/c it is not async.
  *
