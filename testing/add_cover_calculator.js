@@ -31,5 +31,7 @@ for ( const token of tokens ) {
 for ( const token of tokens ) {
   await CoverCalculator.enableCover(token, TYPES.LOW);
   await CoverCalculator.disableAllCover(token);
-  if ( !token.actor.statuses.has(COVER.CATEGORIES.LOW[coverModule]) ) console.error("Token status LOW still present.");
+  if ( token.actor.statuses.has(COVER.CATEGORIES.LOW[coverModule]) ) console.error("Token status LOW still present.");
+  if ( token.actor.statuses.has(COVER.CATEGORIES.MEDIUM[coverModule]) ) console.error("Token status MEDIUM still present.");
+  if ( token.actor.statuses.has(COVER.CATEGORIES.HIGH[coverModule]) ) console.error("Token status HIGH still present.");
 }

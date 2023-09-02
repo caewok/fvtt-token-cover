@@ -20,7 +20,7 @@ import {
   _testRangeDetectionMode
 } from "./visibility_range.js";
 
-import { toggleActiveEffectTokenDocument, createActiveEffect } from "./cover.js";
+import { toggleActiveEffectTokenDocument, _onCreateDocumentsActiveEffect } from "./cover.js";
 
 import { MODULE_ID, MODULES_ACTIVE, DEBUG } from "./const.js";
 
@@ -100,7 +100,7 @@ export function registerLibWrapperMethods() {
   // ----- Cover status effects ----- //
   wrap("CONFIG.Token.documentClass.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument);
   wrap("CONFIG.Token.objectClass.prototype.updateSource", updateSourceToken, {perf_mode: libWrapper.PERF_FAST});
-  wrap("ActiveEffect.create", createActiveEffect, {perf_mode: libWrapper.PERF_FAST});
+  wrap("ActiveEffect._onCreateDocuments", _onCreateDocumentsActiveEffect, {perf_mode: libWrapper.PERF_FAST});
 
   if ( !MODULES_ACTIVE.PERFECT_VISION ) {
     wrap( "VisionSource.prototype.initialize", initializeVisionSource, {perf_mode: libWrapper.PERF_FAST});
