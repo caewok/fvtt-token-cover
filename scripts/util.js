@@ -38,6 +38,11 @@ export function getActorByUuid(uuid) {
   return actorToken?.actor ?? actorToken;
 }
 
+export function getTokenByUUID(uuid) {
+  const token = fromUuidSync(uuid);
+  return token?.object;
+}
+
 /**
  * Get the key for a given object value. Presumes unique values, otherwise returns first.
  */
