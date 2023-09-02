@@ -9,7 +9,7 @@ import { MODULE_ID, COVER, DEBUG, IGNORES_COVER_HANDLER } from "./const.js";
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 
-import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook, createActiveEffectHook, preCreateActiveEffectHook } from "./cover.js";
+import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook, preCreateActiveEffectHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import {
   registerSettings,
@@ -136,8 +136,6 @@ function registerSystemHooks() {
     Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHook);
   }
 }
-
-Hooks.on("createActiveEffect", createActiveEffectHook);
 
 Hooks.on("preCreateActiveEffect", preCreateActiveEffectHook);
 

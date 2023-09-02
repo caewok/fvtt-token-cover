@@ -301,22 +301,51 @@ export function preCreateActiveEffectHook(activeEffect, data, options, userId) {
  * @param {DocumentModificationContext} options     Additional options which modified the creation request
  * @param {string} userId                           The ID of the User who triggered the creation workflow
  */
-export function createActiveEffectHook(activeEffect, options, userId) {
-  if ( userId !== game.userId ) return;
+// export function createActiveEffectHook(activeEffect, options, userId) {
+//   if ( userId !== game.userId ) return;
+//
+//   // Is the activeEffect a cover status?
+//   if ( !activeEffect.statuses.intersects(COVER.IDS.ALL) ) return;
+//
+//   // Do statuses need to be removed?
+//   const actor = activeEffect.parent;
+//   const coverStatuses = actor.statuses?.intersect(COVER.IDS.ALL) ?? new Set();
+//   const toRemove = coverStatuses.difference(activeEffect.statuses);
+//   if ( !toRemove.size ) return;
+//
+//   // Remove all cover statuses except the activeEffect status
+//   // ActiveEffect actor does not point to specific token for linked so use getActiveTokens
+//   const tokenDocs = actor.getActiveTokens(false, true);
+//   tokenDocs.forEach(tokenD => {
+//     toRemove.map(id => tokenD.toggleActiveEffect({ id }, { active: false })); // Async
+//   });
+// }
 
-  // Is the activeEffect a cover status?
-  if ( !activeEffect.statuses.intersects(COVER.IDS.ALL) ) return;
+/**
+ * Wrap ActiveEffect.create
+ * When creating an active cover effect, remove all other cover effects.
+ * Cannot use createActiveEffectHook b/c it is not async.
+ *
+ */
+export async function createActiveEffect(wrapper, data, context={}) {
+  const effect = await wrapper(data, context);
+
+  // If the effect already exists (or cannot be found) effect might be undefined.
+  if ( !effect || !effect.statuses || !effect.parent ) return effect;
 
   // Do statuses need to be removed?
-  const actor = activeEffect.parent;
-  const coverStatuses = actor.statuses?.intersect(COVER.IDS.ALL) ?? new Set();
-  const toRemove = coverStatuses.difference(activeEffect.statuses);
-  if ( !toRemove.size ) return;
+  const actor = effect.parent;
+  const coverStatuses = actor.statuses.intersect(COVER.IDS.ALL);
+  const toRemove = coverStatuses.difference(effect.statuses);
+  if ( !toRemove.size ) return effect;
 
   // Remove all cover statuses except the activeEffect status
   // ActiveEffect actor does not point to specific token for linked so use getActiveTokens
   const tokenDocs = actor.getActiveTokens(false, true);
+  const promises = [];
   tokenDocs.forEach(tokenD => {
-    toRemove.map(id => tokenD.toggleActiveEffect({ id }, { active: false })); // Async
+    promises.push(...toRemove.map(id => tokenD.toggleActiveEffect({ id }, { active: false }))); // Async
   });
+  await Promise.all(promises);
+  return effect;
 }
