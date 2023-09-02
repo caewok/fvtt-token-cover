@@ -1,3 +1,10 @@
+# 0.5.4
+Fixes to how cover status data id is handled. Switch from label to name to accommodate Foundry change. Migrate old cover status data objects.
+
+Better tests to prevent multiple cover statuses on a single token.
+
+Improve compatibility with DFred's Convenient Effects.
+
 # 0.5.3
 Fix the possibly borked v0.5.1 and v0.5.2. (Amazing what a stray ";" can do!)
 

@@ -7,7 +7,8 @@ CONFIG
 "use strict";
 
 import { log } from "./util.js";
-import { MODULE_ID, STATUS_EFFECTS, MODULES_ACTIVE } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
+import { STATUS_EFFECTS } from "./status_effects.js";
 import {
   LowCoverEffectConfig,
   MediumCoverEffectConfig,
@@ -135,7 +136,8 @@ export const SETTINGS = {
   },
 
   MIGRATION: {
-    v032: "migration-v032"
+    v032: "migration-v032",
+    v054: "migration-v054"
   }
 };
 
@@ -467,6 +469,13 @@ export function registerSettings() {
     type: Boolean
   });
 
+  game.settings.register(MODULE_ID, SETTINGS.MIGRATION.v054, {
+    scope: "world",
+    config: false,
+    default: false,
+    type: Boolean
+  });
+
   log("Done registering settings.");
 }
 
@@ -567,8 +576,11 @@ export function getCoverEffect(type = "LOW") {
  * @returns {string} Label for the cover effect
  */
 export function getCoverName(type = "LOW") {
+  if ( type === "NONE" ) return game.i18n.localize("None");
+  if ( type === "TOTAL" ) return game.i18n.localize("tokenvisibility.phrases.Total");
+
   const effect = getCoverEffect(type);
-  return effect.label;
+  return game.i18n.localize(effect.name ?? effect.label);
 }
 
 /**
@@ -601,21 +613,20 @@ export async function setCoverEffect(type, value) {
  */
 export function updateConfigStatusEffects(type) {
   // Skip if using DFred's CE
-  const dfActive = MODULES_ACTIVE.DFREDS_CE;
+  if ( MODULES_ACTIVE.DFREDS_CE ) return;
 
   if ( !type ) {
     // Update all types
-    if ( !dfActive ) updateConfigStatusEffects("LOW");
-    if ( !dfActive ) updateConfigStatusEffects("MEDIUM");
+    updateConfigStatusEffects("LOW");
+    updateConfigStatusEffects("MEDIUM");
     updateConfigStatusEffects("HIGH");
     return;
   }
 
-  if ( dfActive && (type === "LOW" || type === "MEDIUM") ) return;
-
   const coverEffect = getCoverEffect(type);
   coverEffect.id = `${MODULE_ID}.cover.${type}`;
   const currIdx = CONFIG.statusEffects.findIndex(effect => effect.id === coverEffect.id);
+  coverEffect.name ??= coverEffect.label ?? coverEffect.id; // Ensure name is always present.
 
   if ( !~currIdx ) CONFIG.statusEffects.push(coverEffect);
   else CONFIG.statusEffects[currIdx] = coverEffect;

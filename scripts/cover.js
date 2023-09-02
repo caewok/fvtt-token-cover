@@ -48,11 +48,11 @@ dnd5e: half, 3/4, full
 
 */
 
-import { MODULE_ID, COVER_TYPES } from "./const.js";
+import { MODULE_ID, COVER } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { log } from "./util.js";
 import { CoverCalculator, SOCKETS, dialogPromise } from "./CoverCalculator.js";
-
+import { CoverDialog } from "./CoverDialog.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 
 /**
@@ -70,165 +70,42 @@ export async function midiqolPreambleCompleteHook(workflow) {
   const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
   const actionType = workflow.item?.system?.actionType;
 
-  let coverCalculations;
-  let originalCoverCalculations;
-  if ( getSetting(SETTINGS.COVER.CHAT)
-    || coverCheckOption !== choices.NONE ) {
-
-    const ic = token.ignoresCoverType;
-    const allCoverIgnored = ic.all;
-    const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
-    const ignoresCover = Math.max(allCoverIgnored, typeCoverIgnored);
-
-    originalCoverCalculations = CoverCalculator.coverCalculations([token], targets);
-    coverCalculations = duplicate(originalCoverCalculations);
-
-    for ( const target of targets ) {
-      const cover = coverCalculations[token.id][target.id];
-      const calcCover = cover <= ignoresCover ? COVER_TYPES.NONE : cover;
-      coverCalculations[token.id][target.id] = calcCover;
-    }
-  }
-
+  // TODO: Return early for certain action types that do not implicate cover?
+  // TODO: Setting to only ask to confirm if it will change the current token status?
+  const coverDialog = new CoverDialog(token, targets);
+  let tokenCoverCalculations;
   if ( coverCheckOption === choices.GM || coverCheckOption === choices.USER ) {
-    const dialogData = constructCoverCheckDialogContent(
-      token,
-      targets,
-      coverCalculations,
-      originalCoverCalculations,
-      actionType);
+    tokenCoverCalculations = await coverDialog.confirmCover({ askGM: coverCheckOption === choices.GM, actionType });
+    if ( !tokenCoverCalculations ) return false;
 
-    const res = coverCheckOption === choices.GM
-      ? await SOCKETS.socket.executeAsGM("dialogPromise", dialogData)
-      : await dialogPromise(dialogData);
-
-    if ( "Close" === res ) return false;
-
-    // Update the cover calculations with User or GM selections
-    const coverSelections = res.find("[class=CoverSelect]");
-    const targetCoverCalculations = coverCalculations[token.id];
-    for ( let i = 0; i < nTargets; i += 1 ) {
-      const selectedCover = coverSelections[i].selectedIndex;
-      targetCoverCalculations[targets[i].id] = selectedCover;
-
-      // Allow the GM or user to omit targets
-      if ( selectedCover === COVER_TYPES.TOTAL ) {
-        workflow.targets.delete(targets[i]);
-        continue;
+    // Allow the GM or user to omit targets.
+    for ( const [targetId, targetCover] of Object.entries(tokenCoverCalculations)) {
+      if ( targetCover === COVER.TYPES.TOTAL ) {
+        const target = targets.find(t => t.id === targetId);
+        workflow.targets.delete(target);
+        delete tokenCoverCalculations[targetId];
       }
     }
-  }
+  } else tokenCoverCalculations = coverDialog.coverCalculationsForTokenAction(token, actionType);
 
-  if ( coverCheckOption !== choices.NONE ) {
-    // Update targets' cover
-    const targetCoverCalculations = coverCalculations[token.id];
-    for ( const target of targets ) {
-      await CoverCalculator.setCoverStatus(target.id, targetCoverCalculations[target.id]);
-    }
-  }
+  // Update targets' cover
+  if ( coverCheckOption !== choices.NONE ) await coverDialog.updateTargetsCover(tokenCoverCalculations);
 
   // Send cover to chat
   if ( getSetting(SETTINGS.COVER.CHAT) ) {
-    const coverTable = CoverCalculator.htmlCoverTable([token], targets, {
+    const coverCalculations = CoverDialog.convertTokenCalculations(token, tokenCoverCalculations);
+    const coverTable = coverDialog.htmlCoverTable({
       includeZeroCover: false,
       imageWidth: 30,
       coverCalculations,
       applied: true,
       displayIgnored: false
     });
-    log(coverTable.html);
 
     if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
   }
 
   return true;
-}
-
-function constructCoverCheckDialogContent(token, targets, coverCalculations, ogCoverCalculations, actionType) {
-  // Describe the types of cover ignored by the token
-  // If actionType is defined, use that to limit the types
-  let ignoresCoverLabel = "";
-  const ic = token.ignoresCoverType;
-  const allCoverIgnored = ic.all;
-  const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
-
-  if ( allCoverIgnored > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(allCoverIgnored)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
-  if ( typeCoverIgnored > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(typeCoverIgnored)} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
-
-  if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = ` <em>Ignores:${ignoresCoverLabel}</em>`;
-
-  let html = `<b>${token.name}</b>. ${CoverCalculator.attackNameForType(actionType)} attack. ${ignoresCoverLabel}`;
-
-  const include3dDistance = true;
-  const imageWidth = 50;
-  const token_center = new Point3d(token.center.x, token.center.y, token.topZ); // Measure from token vision point.
-  const distHeader = include3dDistance ? '<th style="text-align: right"><b>Dist. (3d)</b></th>' : "";
-  html +=
-  `
-  <table id="${token.id}_table" class="table table-striped">
-  <thead>
-    <tr class="character-row">
-      <th colspan="2"><b>Target</b></th>
-      <th style="text-align: left"><b>Applied</b></th>
-      <th style="text-align: left"><b>Estimated</b></th>
-      ${distHeader}
-    </tr>
-  </thead>
-  <tbody>
-  `;
-
-  for ( const target of targets ) {
-    const cover = coverCalculations[token.id][target.id];
-    const ogCover = ogCoverCalculations[token.id][target.id];
-
-    const target_center = new Point3d(
-      target.center.x,
-      target.center.y,
-      CoverCalculator.averageTokenElevationZ(target));
-
-    const targetImage = target.document.texture.src; // Token canvas image.
-    const dist = Point3d.distanceBetween(token_center, target_center);
-    const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
-    const coverOptions =
-    `
-    <option value="NONE" ${cover === COVER_TYPES.NONE ? "selected" : ""}>None</option>
-    <option value="LOW" ${cover === COVER_TYPES.LOW ? "selected" : ""}>${getCoverName("LOW")}</option>
-    <option value="MEDIUM" ${cover === COVER_TYPES.MEDIUM ? "selected" : ""}>${getCoverName("MEDIUM")}</option>
-    <option value="HIGH" ${cover === COVER_TYPES.HIGH ? "selected" : ""}>${getCoverName("HIGH")}</option>
-    <option value="OMIT">Omit from attack</option>
-    `;
-    const coverSelector =
-    `
-    <select id="CoverSelect.${target.id}" class="CoverSelect">
-    ${coverOptions}
-    </select>
-    `;
-
-    html +=
-    `
-    <tr>
-    <td><img src="${targetImage}" alt="${target.name} image" width="${imageWidth}" style="border:0px"></td>
-    <td>${target.name}</td>
-    <td>${coverSelector}</td>
-    <td><em>${CoverCalculator.coverNameForType(ogCover)}</em></td>
-    ${distContent}
-    </tr>
-    `;
-  }
-
-  html +=
-  `
-  </tbody>
-  </table>
-  <br>
-  `;
-
-  const dialogData = {
-    content: html,
-    title: "Confirm cover"
-  };
-
-  return dialogData;
 }
 
 /**
@@ -255,12 +132,12 @@ export function dnd5ePreRollAttackHook(item, rollConfig) {
   const actionType = item.system?.actionType;
 
   // Determine cover and distance for each target
-  const coverTable = CoverCalculator.htmlCoverTable([token], targets, {
+  const coverDialog = new CoverDialog(token, targets);
+  const coverTable = coverDialog.htmlCoverTable({
     includeZeroCover: false,
     imageWidth: 30,
     actionType
   });
-  log(coverTable.html);
   if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
 }
 
@@ -297,30 +174,30 @@ export async function toggleActiveEffectTokenDocument(wrapper, effectData, { ove
   const state = await wrapper(effectData, {overlay, active});
   if ( !state ) return; // No new effect added.
 
-  let id1;
-  let id2;
-  switch ( effectData.id ) {
-    case `${MODULE_ID}.cover.LOW`:
-      id1 = `${MODULE_ID}.cover.MEDIUM`;
-      id2 = `${MODULE_ID}.cover.HIGH`;
-      break;
-    case `${MODULE_ID}.cover.MEDIUM`:
-      id1 = `${MODULE_ID}.cover.LOW`;
-      id2 = `${MODULE_ID}.cover.HIGH`;
-      break;
-    case `${MODULE_ID}.cover.HIGH`:
-      id1 = `${MODULE_ID}.cover.LOW`;
-      id2 = `${MODULE_ID}.cover.MEDIUM`;
-      break;
-    default:
-      return state;
-  }
-
-  const existing1 = this.actor.effects.find(e => e.getFlag("core", "statusId") === id1);
-  const existing2 = this.actor.effects.find(e => e.getFlag("core", "statusId") === id2);
-
-  if ( existing1 ) await existing1.delete();
-  if ( existing2 ) await existing2.delete();
+//   let id1;
+//   let id2;
+//   switch ( effectData.id ) {
+//     case `${MODULE_ID}.cover.LOW`:
+//       id1 = `${MODULE_ID}.cover.MEDIUM`;
+//       id2 = `${MODULE_ID}.cover.HIGH`;
+//       break;
+//     case `${MODULE_ID}.cover.MEDIUM`:
+//       id1 = `${MODULE_ID}.cover.LOW`;
+//       id2 = `${MODULE_ID}.cover.HIGH`;
+//       break;
+//     case `${MODULE_ID}.cover.HIGH`:
+//       id1 = `${MODULE_ID}.cover.LOW`;
+//       id2 = `${MODULE_ID}.cover.MEDIUM`;
+//       break;
+//     default:
+//       return state;
+//   }
+//
+//   const existing1 = this.actor.effects.find(e => e.getFlag("core", "statusId") === id1);
+//   const existing2 = this.actor.effects.find(e => e.getFlag("core", "statusId") === id2);
+//
+//   if ( existing1 ) await existing1.delete();
+//   if ( existing2 ) await existing2.delete();
 
   return state;
 }
@@ -341,7 +218,7 @@ export async function combatTurnHook(combat, updateData, updateOptions) { // esl
     if ( playerOwners.some(owner => token.targeted.has(owner)) ) {
       userTargetedTokens.push(token);
     }
-    CoverCalculator.disableAllCoverStatus(token.id);
+    CoverCalculator.disableAllCover(token.id);
   }
 
   // Calculate cover from combatant to any currently targeted tokens
@@ -372,7 +249,7 @@ export async function targetTokenHook(user, target, targeted) {
   if ( !isUserCombatTurn(user) ) return;
 
   if ( !targeted ) {
-    return await CoverCalculator.disableAllCoverStatus(target.id);
+    return await CoverCalculator.disableAllCover(target.id);
   }
 
   // Target from the current combatant to the target token
@@ -395,4 +272,80 @@ function isUserCombatTurn(user) {
   if ( !c.combatant.players.length ) return user.isGM;
 
   return c.combatant.players.some(player => user.name === player.name);
+}
+
+/**
+ * When considering creating an active cover effect, do not do so if it already exists.
+ * @param {Document} document                     The pending document which is requested for creation
+ * @param {object} data                           The initial data object provided to the document creation request
+ * @param {DocumentModificationContext} options   Additional options which modify the creation request
+ * @param {string} userId                         The ID of the requesting user, always game.user.id
+ * @returns {boolean|void}                        Explicitly return false to prevent creation of this Document
+ */
+export function preCreateActiveEffectHook(activeEffect, data, options, userId) {
+  if ( userId !== game.userId ) return;
+
+  // Is the activeEffect a cover status?
+  if ( !activeEffect.statuses.intersects(COVER.IDS.ALL) ) return;
+
+  // Does the status effect already exist?
+  const actor = activeEffect.parent;
+  const coverStatuses = actor.statuses?.intersect(COVER.IDS.ALL) ?? new Set();
+  if ( coverStatuses.intersects(activeEffect.statuses) ) return false;
+  return true;
+}
+
+/**
+ * When creating an active cover effect, remove all other cover effects.
+ * @param {Document} document                       The new Document instance which has been created
+ * @param {DocumentModificationContext} options     Additional options which modified the creation request
+ * @param {string} userId                           The ID of the User who triggered the creation workflow
+ */
+// export function createActiveEffectHook(activeEffect, options, userId) {
+//   if ( userId !== game.userId ) return;
+//
+//   // Is the activeEffect a cover status?
+//   if ( !activeEffect.statuses.intersects(COVER.IDS.ALL) ) return;
+//
+//   // Do statuses need to be removed?
+//   const actor = activeEffect.parent;
+//   const coverStatuses = actor.statuses?.intersect(COVER.IDS.ALL) ?? new Set();
+//   const toRemove = coverStatuses.difference(activeEffect.statuses);
+//   if ( !toRemove.size ) return;
+//
+//   // Remove all cover statuses except the activeEffect status
+//   // ActiveEffect actor does not point to specific token for linked so use getActiveTokens
+//   const tokenDocs = actor.getActiveTokens(false, true);
+//   tokenDocs.forEach(tokenD => {
+//     toRemove.map(id => tokenD.toggleActiveEffect({ id }, { active: false })); // Async
+//   });
+// }
+
+/**
+ * Wrap ActiveEffect._onCreateDocuments
+ * When creating an active cover effect, remove all other cover effects.
+ * Cannot use createActiveEffectHook b/c it is not async.
+ *
+ */
+export async function _onCreateDocumentsActiveEffect(wrapper, documents, context) {
+  await wrapper(documents, context);
+  for ( const effect of documents ) {
+    // If the effect already exists (or cannot be found) effect might be undefined.
+    if ( !effect || !effect.statuses || !effect.parent ) continue;
+
+    // Do statuses need to be removed?
+    const actor = effect.parent;
+    const coverStatuses = actor.statuses.intersect(COVER.IDS.ALL);
+    const toRemove = coverStatuses.difference(effect.statuses);
+    if ( !toRemove.size ) return effect;
+
+    // Remove all cover statuses except the activeEffect status
+    // ActiveEffect actor does not point to specific token for linked so use getActiveTokens
+    const tokenDocs = actor.getActiveTokens(false, true);
+    const promises = [];
+    tokenDocs.forEach(tokenD => {
+      promises.push(...toRemove.map(id => tokenD.toggleActiveEffect({ id }, { active: false }))); // Async
+    });
+    await Promise.all(promises);
+  }
 }

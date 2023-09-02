@@ -2,7 +2,6 @@
 canvas,
 CONFIG,
 CONST,
-Dialog,
 duplicate,
 game,
 Hooks,
@@ -15,7 +14,7 @@ VisionSource
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, COVER_TYPES, MODULES_ACTIVE, DEBUG } from "./const.js";
+import { MODULE_ID, COVER, MODULES_ACTIVE, DEBUG } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
@@ -23,10 +22,14 @@ import { Draw } from "./geometry/Draw.js"; // For debugging
 import {
   lineSegmentIntersectsQuadrilateral3d,
   lineIntersectionQuadrilateral3d,
-  buildTokenPoints } from "./util.js";
+  buildTokenPoints,
+  getActorByUuid,
+  keyForValue } from "./util.js";
 
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
+import { squaresUnderToken, hexesUnderToken } from "./shapes_under_token.js";
+import { CoverDialog } from "./CoverDialog.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
 // Don't pass complex classes through the socket. Use token ids instead.
@@ -38,54 +41,9 @@ export const SOCKETS = {
 Hooks.once("socketlib.ready", () => {
   SOCKETS.socket = socketlib.registerModule(MODULE_ID);
   SOCKETS.socket.register("dialogPromise", dialogPromise);
-  SOCKETS.socket.register("disableCoverStatus", disableCoverStatus);
-  SOCKETS.socket.register("enableCoverStatus", enableCoverStatus);
+  SOCKETS.socket.register("disableAllATVCover", disableAllATVCover);
+  SOCKETS.socket.register("enableATVCover", enableATVCover);
 });
-
-/**
- * Remove a cover status (ActiveEffect) from a token.
- * @param {COVER_TYPE} type
- * @param {string} tokenId
- */
-async function disableCoverStatus(tokenId, type = COVER_TYPES.LOW) {
-  if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
-
-  const token = canvas.tokens.get(tokenId);
-  if ( !token ) return;
-
-  const keys = Object.keys(COVER_TYPES);
-  const key = keys[type];
-  if ( !key ) return;
-
-  const id = `${MODULE_ID}.cover.${key}`;
-  await token.document.toggleActiveEffect({ id }, { active: false });
-}
-
-/**
- * Enable a cover status (ActiveEffect) for a token
- * @param {string} tokenId
- * @param {COVER_TYPE} type
- */
-async function enableCoverStatus(tokenId, type = COVER_TYPES.LOW) {
-  if ( type === COVER_TYPES.NONE || type === COVER_TYPES.TOTAL ) return;
-
-  const token = canvas.tokens.get(tokenId);
-  if ( !token ) return;
-
-  const keys = Object.keys(COVER_TYPES);
-  const key = keys[type];
-  if ( !key ) return;
-
-  // If already exists, do not add again to avoid duplicate effects.
-  const id = `${MODULE_ID}.cover.${key}`;
-  const effect = CONFIG.statusEffects.find(effect => effect.id === id);
-  if ( !effect ) return;
-
-  const existing = token.document.actor.effects.find(e => e.getFlag("core", "statusId") === effect.id);
-  if ( existing ) return;
-
-  await token.document.toggleActiveEffect(effect, { active: true });
-}
 
 /**
  * Convert dialog to a promise to allow use with await/async.
@@ -121,13 +79,114 @@ function dialogCallback(data, callbackFn, options = {}) {
   d.render(true, { height: "100%" });
 }
 
+/**
+ * Remove all ATV cover statuses (ActiveEffect) from a token.
+ * Used in SOCKETS above.
+ * @param {string} tokenUUID         Token uuid
+ * @returns {Promise<boolean>} Return from toggleActiveEffect.
+ */
+async function disableAllATVCover(tokenUUID) {
+  // Confirm the token UUID is valid.
+  const tokenD = fromUuidSync(tokenUUID);
+  if ( !tokenD ) return;
+
+  // Drop all cover statuses.
+  const coverStatuses = tokenD.actor.statuses?.intersect(COVER.IDS[MODULE_ID]) ?? new Set();
+  const promises = coverStatuses.map(id => tokenD.toggleActiveEffect({ id }, { active: false }));
+  return Promise.all(promises);
+}
+
+/**
+ * Enable a cover status (ActiveEffect) for a token.
+ * Token can only have one cover status at a time, so all other ATV covers are removed.
+ * Used in SOCKETS above.
+ * @param {string} tokenUUID    Token uuid
+ * @param {COVER_TYPE} type     Type of cover to apply
+ * @returns {Promise<boolean>} Return from toggleActiveEffect.
+ */
+async function enableATVCover(tokenUUID, type = COVER.TYPES.LOW) {
+  // If enabling the "None" cover, remove all cover.
+  // If TOTAL, this is used as a flag elsewhere to remove the token from targeting. Ignored here.
+  if ( type === COVER.TYPES.NONE ) return disableAllATVCover(uuid);
+  if ( type === COVER.TYPES.TOTAL ) return;
+
+  // Confirm the token UUID is valid.
+  const tokenD = fromUuidSync(tokenUUID);
+  if ( !tokenD ) return;
+
+  // Confirm this is a valid cover type.
+  const key = keyForValue(COVER.TYPES, type);
+  if ( !key ) return;
+  const desiredCoverId = COVER.CATEGORIES[key][MODULE_ID];
+
+  // Add the effect. (ActiveEffect hooks will prevent multiple additions.)
+  const effectData = CONFIG.statusEffects.find(e => e.id === desiredCoverId);
+  return tokenD.toggleActiveEffect(effectData, { active: true })
+}
+
+async function enableATVCoverSocket(tokenUUID, type = COVER.TYPES.LOW) {
+  return SOCKETS.socket.executeAsGM("enableATVCover", tokenUUID, type);
+}
+
+async function disableAllATVCoverSocket(tokenUUID) {
+  return SOCKETS.socket.executeAsGM("disableAllATVCover",tokenUUID);
+}
+
+/**
+ * Remove all ATV cover statuses (ActiveEffect) from a token.
+ * Used in SOCKETS above.
+ * @param {string} uuid         Actor or token uuid
+ * @returns {Promise<boolean>} Return from toggleActiveEffect.
+ */
+async function disableAllDFredsCover(uuid) {
+  // Drop all cover statuses.
+  const actor = getActorByUuid(uuid);
+  if ( !actor ) return;
+
+  // Determine what cover statuses are already applied.
+  const coverStatuses = actor.statuses?.intersect(COVER.IDS["dfreds-convenient-effects"]) ?? new Set();
+
+  // Drop all cover statuses.
+  const promises = coverStatuses.map(id => {
+    const effectName = id.replace("Convenient Effect: ", "");
+    return game.dfreds.effectInterface.removeEffect({ effectName, uuid });
+  });
+  return Promise.all(promises);
+}
+
+/**
+ * Enable a cover status (ActiveEffect) for a token.
+ * Token can only have one cover status at a time, so all other DFred covers are removed.
+ * @param {string} uuid       Actor or Token uuid
+ * @param {COVER_TYPE} type
+ * @returns {Promise<boolean>} Return from toggleActiveEffect.
+ */
+async function enableDFredsCover(uuid, type = COVER.TYPES.LOW) {
+  // If enabling the "None" cover, remove all cover.
+  // If TOTAL, this is used as a flag elsewhere to remove the token from targeting. Ignored here.
+  if ( type === COVER.TYPES.NONE ) return disableAllDFredsCover(actorUUID);
+  if ( type === COVER.TYPES.TOTAL ) return;
+
+  // Check that actor exists to avoid error when calling addEffect below.
+  const actor = getActorByUuid(uuid);
+  if ( !actor ) return;
+
+  // Confirm this is a valid cover type.
+  const key = keyForValue(COVER.TYPES, type);
+  if ( !key ) return;
+
+  // Add the effect. (ActiveEffect hooks will prevent multiple additions.)
+  const effectName = COVER.DFRED_NAMES[key];
+  return game.dfreds.effectInterface.addEffect({ effectName, uuid });
+}
+
 /* Cover Calculation Class
  * Calculate cover between a token and target, based on different algorithms.
  */
 export class CoverCalculator {
 
   /** @type {object} */
-  static COVER_TYPES = COVER_TYPES;
+  static COVER_TYPES = COVER.TYPES;
 
   /** @type {object} */
   static ALGORITHMS = SETTINGS.COVER.TYPES;
@@ -181,7 +240,6 @@ export class CoverCalculator {
     this.config = config;
   }
 
-
   /** @type {string} */
   static get currentAlgorithm() {
     return getSetting(SETTINGS.COVER.ALGORITHM);
@@ -193,10 +251,7 @@ export class CoverCalculator {
    * @returns {string}
    */
   static coverNameForType(type) {
-    // TO-DO: Add the "None" name to settings
-    if ( type === CoverCalculator.COVER_TYPES.NONE ) return "None";
-
-    const key = Object.keys(CoverCalculator.COVER_TYPES)[type];
+    const key = keyForValue(this.COVER_TYPES, type);
     return getCoverName(key);
   }
 
@@ -217,61 +272,44 @@ export class CoverCalculator {
     return undefined;
   }
 
-  static disableAllCoverStatus(tokenId) {
-    // Don't really need to await in order to disable all... right?
-    CoverCalculator.disableCoverStatus(tokenId, COVER_TYPES.LOW);
-    CoverCalculator.disableCoverStatus(tokenId, COVER_TYPES.MEDIUM);
-    CoverCalculator.disableCoverStatus(tokenId, COVER_TYPES.HIGH);
+  static async disableAllCover(token) {
+    if ( !(token instanceof Token) ) token = canvas.tokens.get(token);
+    if ( !token ) return;
+    const uuid = token.document.uuid;
+
+    if ( MODULES_ACTIVE.DFREDS_CE ) return disableAllDFredsCover(uuid);
+    else return SOCKETS.socket.executeAsGM("disableAllATVCover", uuid);
   }
 
-  static async disableCoverStatus(tokenId, type = COVER_TYPES.LOW ) {
-    if ( (type === COVER_TYPES.LOW
-      || type === COVER_TYPES.MEDIUM)
-      && MODULES_ACTIVE.DFREDS_CE ) {
-      const effectName = type === COVER_TYPES.LOW ? "Cover (Half)" : "Cover (Three-Quarters)";
-      const token = canvas.tokens.get(tokenId);
-      if ( !token ) return;
-
-      return await game.dfreds.effectInterface.removeEffect({
-        effectName,
-        uuid: token.actor?.uuid
-      });
-    }
-
-    // Test id is string for debugging
-    if ( !(typeof tokenId === "string" || tokenId instanceof String) ) console.error("tokenId is not a string!");
-    await SOCKETS.socket.executeAsGM("disableCoverStatus", tokenId, type);
+  static async disableCoverStatus(tokenId) {
+    console.warn(`${MODULE_ID}|disableCoverStatus is deprecated. Please use disableAllCover instead.`);
+    return this.disableAllCover(tokenId);
   }
 
-  static async enableCoverStatus(tokenId, type = COVER_TYPES.LOW ) {
-    if ( (type === COVER_TYPES.LOW
-      || type === COVER_TYPES.MEDIUM)
-      && MODULES_ACTIVE.DFREDS_CE ) {
-      // Params: effectName, uuid, origin, overlay, metadata
-      const effectName = type === COVER_TYPES.LOW ? "Cover (Half)" : "Cover (Three-Quarters)";
-      const token = canvas.tokens.get(tokenId);
-      if ( !token ) return;
-
-      // Do not enable if already enabled. (issue #26)
-      if ( game.dfreds.effectInterface.hasEffectApplied(effectName, token.actor?.uuid) ) return;
-
-      return await game.dfreds.effectInterface.addEffect({
-        effectName,
-        uuid: token.actor?.uuid,
-        origin: MODULE_ID
-      });
-    }
-
-    // Test id is string for debugging
-    if ( !(typeof tokenId === "string" || tokenId instanceof String) ) console.error("tokenId is not a string!");
-    return await SOCKETS.socket.executeAsGM("enableCoverStatus", tokenId, type);
+  static async disableAllCoverStatus(tokenId) {
+    console.warn(`${MODULE_ID}|disableAllCoverStatus is deprecated. Please use disableAllCover instead.`);
+    return this.disableAllCover(tokenId);
   }
 
-  static async setCoverStatus(tokenId, type = COVER_TYPES.NONE ) {
-    if ( type === COVER_TYPES.NONE
-      || type === COVER_TYPES.TOTAL ) return CoverCalculator.disableAllCoverStatus(tokenId);
+  /**
+   * Enable a specific cover status, removing all the rest.
+   * Use DFred's if active; ATV otherwise.
+   * @param {Token|string} tokenId
+   */
+  static async enableCover(token, type = this.COVER_TYPES.LOW ) {
+    if ( type === this.COVER_TYPES.TOTAL ) return;
+    if ( type === this.COVER_TYPES.NONE ) return this.disableAllCover(token);
+    if ( !(token instanceof Token) ) token = canvas.tokens.get(token);
+    if ( !token ) return;
 
-    return CoverCalculator.enableCoverStatus(tokenId, type);
+    const uuid = token.document.uuid;
+    if ( MODULES_ACTIVE.DFREDS_CE ) return enableDFredsCover(uuid, type);
+    else return SOCKETS.socket.executeAsGM("enableATVCover", uuid, type);
+  }
+
+  static async setCoverStatus(tokenId, type = this.COVER_TYPES.NONE ) {
+    console.warn(`${MODULE_ID}|setCoverStatus is deprecated. Please use enableCover instead.`);
+    return this.enableCover(tokenId, type);
   }
 
   /**
@@ -310,122 +348,10 @@ export class CoverCalculator {
    * @returns {object {html: {string}, nCover: {number}, coverResults: {COVER_TYPES[][]}}}
    *   String of html content that can be used in a Dialog or ChatMessage.
    */
-  static htmlCoverTable(tokens, targets, {
-    include3dDistance = true,
-    includeZeroCover = true,
-    imageWidth = 50,
-    coverCalculations,
-    actionType,
-    applied = false,
-    displayIgnored = true } = {}) {
-
+  static htmlCoverTable(tokens, targets, opts) {
     if ( DEBUG.cover ) Draw.clearDrawings();
-    if ( !coverCalculations ) coverCalculations = CoverCalculator.coverCalculations(tokens, targets);
-
-    let html = "";
-    const coverResults = [];
-    let nCoverTotal = 0;
-    for ( const token of tokens ) {
-      let nCover = 0;
-      const targetCoverResults = [];
-      coverResults.push(targetCoverResults);
-      const token_center = new Point3d(token.center.x, token.center.y, token.topZ); // Measure from token vision point.
-
-      const distHeader = include3dDistance ? '<th style="text-align: right"><b>Dist. (3d)</b></th>' : "";
-      let htmlTable =
-      `
-      <table id="${token.id}_table" class="table table-striped">
-      <thead>
-        <tr class="character-row">
-          <th colspan="2" ><b>Target</b></th>
-          <th style="text-align: left"><b>${applied ? "Applied Cover" : "Cover"}</b></th>
-          ${distHeader}
-        </tr>
-      </thead>
-      <tbody>
-      `;
-
-      for ( const target of targets ) {
-        if ( token.id === target.id ) {
-          // Skip targeting oneself.
-          targetCoverResults.push(COVER_TYPES.NONE);
-          continue;
-        }
-
-        const target_center = new Point3d(
-          target.center.x,
-          target.center.y,
-          CoverCalculator.averageTokenElevationZ(target));
-
-        const cover = coverCalculations[token.id][target.id];
-
-        targetCoverResults.push(cover);
-
-        if ( !includeZeroCover && cover === COVER_TYPES.NONE ) continue;
-        if ( cover !== COVER_TYPES.NONE ) nCover += 1;
-
-        const targetImage = target.document.texture.src; // Token canvas image.
-        const dist = Point3d.distanceBetween(token_center, target_center);
-        const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
-
-        htmlTable +=
-        `
-        <tr>
-        <td><img src="${targetImage}" alt="${target.name} image" width="${imageWidth}" style="border:0px"></td>
-        <td>${target.name}</td>
-        <td>${CoverCalculator.coverNameForType(cover)}</td>
-        ${distContent}
-        </tr>
-        `;
-      }
-
-      htmlTable +=
-      `
-      </tbody>
-      </table>
-      <br>
-      `;
-
-      // Describe the types of cover ignored by the token
-      // If actionType is defined, use that to limit the types
-      let ignoresCoverLabel = "";
-
-      if ( displayIgnored ) {
-        const ic = token.ignoresCoverType;
-        if ( ic.all > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.all)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
-        if ( actionType && ic[actionType] > 0 ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic[actionType])} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
-
-        else { // Test them all...
-          if ( ic.mwak ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.mwak)} cover (${CoverCalculator.attackNameForType("mwak")} attacks)`;
-          if ( ic.msak ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.msak)} cover (${CoverCalculator.attackNameForType("msak")} attacks)`;
-          if ( ic.rwak ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.rwak)} cover (${CoverCalculator.attackNameForType("rwak")} attacks)`;
-          if ( ic.rsak ) ignoresCoverLabel += `<br>≤ ${CoverCalculator.coverNameForType(ic.rsak)} cover (${CoverCalculator.attackNameForType("rsak")} attacks)`;
-        }
-
-        if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = `<br><em>${token.name} ignores:${ignoresCoverLabel}</em>`;
-      }
-
-      const targetLabel = `${nCover} target${nCover === 1 ? "" : "s"}`;
-      const numCoverLabel = applied
-        ? nCover === 1 ? "has" : "have"
-        : "may have";
-
-      htmlTable =
-      `
-      ${targetLabel} ${numCoverLabel} cover from <b>${token.name}</b>.
-      ${ignoresCoverLabel}
-      ${htmlTable}
-      `;
-
-      nCoverTotal += nCover;
-      if ( includeZeroCover || nCover ) html += htmlTable;
-    }
-
-    return {
-      nCoverTotal,
-      html,
-      coverResults
-    };
+    const coverDialog = new CoverDialog(tokens, targets);
+    return coverDialog.htmlCoverTable(opts);
   }
 
   /**
@@ -464,7 +390,7 @@ export class CoverCalculator {
    * @returns {COVER_TYPE}
    */
   targetCover(algorithm = getSetting(SETTINGS.COVER.ALGORITHM)) {
-    let coverType = COVER_TYPES.NONE;
+    let coverType = this.constructor.COVER_TYPES.NONE;
 
     switch ( algorithm ) {
       case SETTINGS.COVER.TYPES.CENTER_CENTER:
@@ -496,15 +422,16 @@ export class CoverCalculator {
    * @param {COVER.TYPE} type   Cover type. Default to calculating.
    */
   setTargetCoverEffect(type = this.targetCover()) {
+    const COVER_TYPES = this.constructor.COVER_TYPES;
     switch ( type ) {
       case COVER_TYPES.NONE:
       case COVER_TYPES.FULL:
-        CoverCalculator.disableAllCoverStatus(this.target.id);
+        CoverCalculator.disableAllCover(this.target.id);
         break;
       case COVER_TYPES.LOW:
       case COVER_TYPES.MEDIUM:
       case COVER_TYPES.HIGH:
-        CoverCalculator.enableCoverStatus(this.target.id, type);
+        CoverCalculator.enableCover(this.target.id, type);
     }
   }
 
@@ -712,6 +639,7 @@ export class CoverCalculator {
    * @returns {COVER_TYPE}
    */
   _forceLowCover(Area) {
+    const COVER_TYPES = this.constructor.COVER_TYPES;
     const config = duplicate(this.config);
     config.deadTokensBlock = false;
     config.liveTokensBlock = false;
@@ -769,6 +697,7 @@ export class CoverCalculator {
    * @returns {COVER_TYPE}
    */
   static typeForPercentage(percentCover) {
+    const COVER_TYPES = this.COVER_TYPES;
     if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
     if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
     if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
@@ -783,6 +712,7 @@ export class CoverCalculator {
    * @returns {COVER_TYPE}
    */
   _testTokenTargetPoints(tokenPoints, targetPointsArray) {
+    const COVER_TYPES = this.constructor.COVER_TYPES;
     let minCover = COVER_TYPES.TOTAL;
     const minPointData = { tokenPoint: undefined, targetPoints: undefined }; // Debugging
 
@@ -919,7 +849,7 @@ export class CoverCalculator {
     const coverType = CoverCalculator.typeForPercentage(percentCornersBlocked);
 
     return ( liveForceHalfCover && tokenBlocks )
-      ? Math.max(coverType, COVER_TYPES.LOW)
+      ? Math.max(coverType, this.constructor.COVER_TYPES.LOW)
       : coverType;
   }
 
@@ -945,274 +875,5 @@ export class CoverCalculator {
   }
 }
 
-/**
- * Get an array of all the squares under a token
- * @param {Token} token
- * @returns {PIXI.Rectangle[]}
- */
-function squaresUnderToken(token) {
-  const tX = token.x;
-  const tY = token.y;
 
-  const w = token.document.width;
-  const h = token.document.height;
 
-  const r1 = canvas.grid.grid.getRect(1, 1);
-  const r = canvas.grid.grid.getRect(w, h);
-
-  const wRem = r.width % r1.width;
-  const hRem = r.height % r1.height;
-
-  const wMult = Math.floor(w);
-  const hMult = Math.floor(h);
-
-  const squares = [];
-  const baseRect = new PIXI.Rectangle(tX, tY, r1.width, r1.height);
-  for ( let i = 0; i < wMult; i += 1 ) {
-    for ( let j = 0; j < hMult; j += 1 ) {
-      squares.push(baseRect.translate(i * r1.width, j * r1.height));
-    }
-  }
-
-  if ( wRem ) {
-    // Add partial width rectangles on the right
-    const x = (wMult * r1.width )+ tX;
-    for ( let j = 0; j < hMult; j += 1 ) {
-      const y = (j * r1.height) + tY;
-      squares.push(new PIXI.Rectangle(x, y, wRem, r1.height));
-    }
-  }
-
-  if ( hRem ) {
-    // Add partial height rectangles on the bottom
-    const y = (hMult * r1.height) + tX;
-    for ( let i = 0; i < wMult; i += 1 ) {
-      const x = (i * r1.width) + tY;
-      squares.push(new PIXI.Rectangle(x, y, r1.width, hRem));
-    }
-  }
-
-  if ( wRem && hRem ) {
-    const x = (wMult * r1.width) + tX;
-    const y = (hMult * r1.height) + tY;
-    squares.push(new PIXI.Rectangle(x, y, wRem, hRem));
-  }
-
-  return squares;
-}
-
-/**
- * Get an array of all the hexes under a token.
- * Like base Foundry, defaults to squares under token if token width/height is not 1, 2, 3 or 4.
- * See HexagonalGrid.prototype.getBorderPolygon for just the border
- * @param {Token} token
- * @returns {PIXI.Polygon[]}
- */
-function hexesUnderToken(token) {
-  const tX = token.x;
-  const tY = token.y;
-
-  const w = token.document.width;
-  const h = token.document.height;
-  if ( w !== h || w > 4 ) return squaresUnderToken(token);
-
-  const hexes = [];
-  const isColumnar = canvas.grid.grid.columnar;
-  switch (w) {
-    case 1:
-      hexes.push(hexes1());
-      break;
-    case 2:
-      hexes.push(...(isColumnar ? colHexes2(tX, tY) : rowHexes2(tX, tY)));
-      break;
-
-    case 3:
-      hexes.push(...(isColumnar ? colHexes3(tX, tY) : rowHexes3(tX, tY)));
-      break;
-
-    case 4:
-      hexes.push(...(isColumnar ? colHexes4(tX, tY) : rowHexes4(tX, tY)));
-      break;
-  }
-
-  /* Test:
-    polyBorder = new PIXI.Polygon(canvas.grid.grid.getBorderPolygon(token.document.width, token.document.height, 0))
-    Draw.shape(polyBorder, { color: Draw.COLORS.blue })
-    hexes = hexesUnderToken(token)
-    hexes.forEach(hex => Draw.shape(hex, { color: Draw.COLORS.red }))
-  */
-
-  if ( hexes.length === 0 ) return squaresUnderToken(token);
-
-  return hexes;
-}
-
-function hexes1(x = 0, y = 0) {
-  const r1 = canvas.grid.grid.getRect(1, 1);
-  return new PIXI.Point(canvas.grid.grid.getPolygon(x, y, r1.width, r1.height));
-}
-
-// 2: Forms triangle.  •
-//                    • •
-function rowHexes2(x = 0, y = 0) {
-  const r1 = canvas.grid.grid.getRect(1, 1);
-  const col = r1.width;
-  const row = r1.height * .75;
-  const halfCol = col * .50;
-  const hexW = r1.width;
-  const hexH = r1.height;
-  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(x, y, hexW, hexH));
-
-  return [
-    baseHex.translate(halfCol, 0),
-    baseHex.translate(0, row),
-    baseHex.translate(col, row)
-  ];
-}
-
-/** 3: Forms • •
- *          • • •
- *           • •
- */
-function rowHexes3(x = 0, y = 0) {
-  const r1 = canvas.grid.grid.getRect(1, 1);
-  const col = r1.width;
-  const row = r1.height * .75;
-  const halfCol = col * .50;
-  const hexW = r1.width;
-  const hexH = r1.height;
-  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(x, y, hexW, hexH));
-
-  return [
-    baseHex.translate(halfCol, 0),
-    baseHex.translate(halfCol + col, 0),
-
-    baseHex.translate(0, row),
-    baseHex.translate(col, row),
-    baseHex.translate(col * 2, row),
-
-    baseHex.translate(halfCol, row * 2),
-    baseHex.translate(halfCol + col, row * 2)
-  ];
-}
-
-// 4: Forms • • •
-//         • • • •
-//          • • •
-//           • •
-function rowHexes4(x = 0, y = 0) {
-  const r1 = canvas.grid.grid.getRect(1, 1);
-  const col = r1.width;
-  const row = r1.height * .75;
-  const halfCol = col * .50;
-  const hexW = r1.width;
-  const hexH = r1.height;
-  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(x, y, hexW, hexH));
-
-  return [
-    baseHex.translate(halfCol, 0),
-    baseHex.translate(halfCol + col, 0),
-    baseHex.translate(halfCol + (col * 2), 0),
-
-    baseHex.translate(0, row),
-    baseHex.translate(col, row),
-    baseHex.translate(col * 2, row),
-    baseHex.translate(col * 3, row),
-
-    baseHex.translate(halfCol, row * 2),
-    baseHex.translate(halfCol + col, row * 2),
-    baseHex.translate(halfCol + (col * 2), row * 2),
-
-    baseHex.translate(col, row * 3),
-    baseHex.translate(col * 2, row * 3)
-  ];
-}
-
-/** 2: Forms triangle.  •
- *                    •
- *                      •
- */
-function colHexes2(x = 0, y = 0) {
-  const r1 = canvas.grid.grid.getRect(1, 1);
-  const col = r1.width * .75;
-  const row = r1.height;
-  const halfRow = row * .50;
-  const hexW = r1.width;
-  const hexH = r1.height;
-  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(x, y, hexW, hexH));
-
-  return [
-    baseHex.translate(col, 0),
-    baseHex.translate(0, halfRow),
-    baseHex.translate(col, row)
-  ];
-}
-
-/* 3: Forms  •
- *         •   •
- *           •
- *         •   •
- *           •
- */
-function colHexes3(x = 0, y = 0) {
-  const r1 = canvas.grid.grid.getRect(1, 1);
-  const col = r1.width * .75;
-  const row = r1.height;
-  const halfRow = row * .50;
-  const hexW = r1.width;
-  const hexH = r1.height;
-  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(x, y, hexW, hexH));
-
-  return [
-    baseHex.translate(col, 0),
-
-    baseHex.translate(0, halfRow),
-    baseHex.translate(col * 2, halfRow),
-
-    baseHex.translate(col, row),
-
-    baseHex.translate(0, halfRow + row),
-    baseHex.translate(col * 2, halfRow + row),
-
-    baseHex.translate(col, row * 2)
-  ];
-}
-
-/* 4: Forms   •
- *          •   •
- *            •   •
- *          •   •
- *            •   •
- *          •   •
- *            •
- */
-function colHexes4(x = 0, y = 0) {
-  const r1 = canvas.grid.grid.getRect(1, 1);
-  const col = r1.width * .75;
-  const row = r1.height;
-  const halfRow = row * .50;
-  const hexW = r1.width;
-  const hexH = r1.height;
-  const baseHex = new PIXI.Polygon(canvas.grid.grid.getPolygon(x, y, hexW, hexH));
-
-  return [
-    baseHex.translate(col, 0),
-
-    baseHex.translate(0, halfRow),
-    baseHex.translate(col * 2, halfRow),
-
-    baseHex.translate(col, row),
-    baseHex.translate(col * 3, row),
-
-    baseHex.translate(0, halfRow + row),
-    baseHex.translate(col * 2, halfRow + row),
-
-    baseHex.translate(col, row * 2),
-    baseHex.translate(col * 3, row * 2),
-
-    baseHex.translate(0, halfRow + (row * 2)),
-    baseHex.translate(col * 2, halfRow + (row * 2)),
-
-    baseHex.translate(col, row * 3)
-  ];
-}

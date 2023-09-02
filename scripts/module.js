@@ -4,18 +4,18 @@ Hooks
 */
 "use strict";
 
-import { MODULE_ID, COVER_TYPES, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, COVER, DEBUG, IGNORES_COVER_HANDLER } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 
-import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook } from "./cover.js";
+import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook, preCreateActiveEffectHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import {
   registerSettings,
-  updateConfigStatusEffects,
   updateSettingHook,
-  renderSettingsConfigHook } from "./settings.js";
+  renderSettingsConfigHook,
+  updateConfigStatusEffects } from "./settings.js";
 
 // Rendering configs
 import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
@@ -39,6 +39,7 @@ import { Area3d } from "./Area3d.js";
 import { Area2d } from "./Area2d.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+import { CoverDialog } from "./CoverDialog.js";
 
 import { Area3dPopout, area3dPopoutData } from "./Area3dPopout.js";
 
@@ -53,6 +54,7 @@ import {
 
 // Other self-executing hooks
 import "./changelog.js";
+import "./migration.js";
 
 Hooks.once("init", function() {
   registerGeometry();
@@ -66,7 +68,8 @@ Hooks.once("init", function() {
     Area3d,
     util,
     CoverCalculator,
-    COVER_TYPES,
+    CoverDialog,
+    COVER,
     ConstrainedTokenBorder,
     los,
     PlanePoints3d,
@@ -77,7 +80,6 @@ Hooks.once("init", function() {
     VerticalPoints3d,
     HorizontalPoints3d,
     IGNORES_COVER_HANDLER,
-    setCoverIgnoreHandler,
 
     IgnoresCoverClasses: {
       IgnoresCover,
@@ -94,10 +96,11 @@ Hooks.once("init", function() {
   registerSystemHooks();
 });
 
-Hooks.once("setup", async function() {
+Hooks.once("setup", function() {
   registerSettings();
   updateConfigStatusEffects();
 });
+
 
 /**
  * Tell DevMode that we want a flag for debugging this module.
@@ -133,6 +136,8 @@ function registerSystemHooks() {
     Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHook);
   }
 }
+
+Hooks.on("preCreateActiveEffect", preCreateActiveEffectHook);
 
 /**
  * A hook event that fires for every Document type after conclusion of an update workflow.
