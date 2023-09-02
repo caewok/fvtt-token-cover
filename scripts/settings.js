@@ -104,9 +104,11 @@ export const SETTINGS = {
       COVERCHECK_CHOICES: {
         NONE: "midiqol-covercheck-none",
         USER: "midiqol-covercheck-user",
+        USER_CANCEL: "midiqol-covercheck-user-cancel",
         GM: "midiqol-covercheck-gm",
         AUTO: "midiqol-covercheck-auto"
-      }
+      },
+      COVERCHECK_IF_CHANGED: "midiqol-covercheck-if-changed"
     },
 
     COMBAT_AUTO: "cover-combat-auto",
@@ -383,19 +385,30 @@ export function registerSettings() {
   });
 
   const MIDICHOICES = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
+  const useCoverCheck = game.system.id === "dnd5e" || MODULES_ACTIVE.MIDI_QOL;
   game.settings.register(MODULE_ID, SETTINGS.COVER.MIDIQOL.COVERCHECK, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK}.Hint`),
     scope: "world",
-    config: MODULES_ACTIVE.MIDI_QOL,
+    config: useCoverCheck,
     type: String,
     choices: {
       [MIDICHOICES.NONE]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.NONE}`),
       [MIDICHOICES.USER]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.USER}`),
+      [MIDICHOICES.USER_CANCEL]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.USER_CANCEL}`),
       [MIDICHOICES.GM]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.GM}`),
       [MIDICHOICES.AUTO]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.AUTO}`)
     },
     default: MIDICHOICES.NONE
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED}.Hint`),
+    scope: "world",
+    config: useCoverCheck,
+    type: Boolean,
+    default: false
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.DEAD_TOKENS.ALGORITHM, {
