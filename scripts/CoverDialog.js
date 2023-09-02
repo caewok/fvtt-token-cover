@@ -147,6 +147,17 @@ export class CoverDialog {
     return tokenCoverCalculations;
   }
 
+  /**
+   * Update targets' cover based on token --> target cover calculations.
+   * @param {TokenCoverCalculations} tokenCoverCalculations
+   * @returns {Promise<>}
+   */
+  async updateTargetsCover(tokenCoverCalculations) {
+    const promises = Object.entries(tokenCoverCalculations)
+      .map(([targetId, coverStatus]) => CoverCalculator.enableCover(targetId, coverStatus));
+    return Promise.all(promises)
+  }
+
 
   /**
    * Build cover check dialog data to ask the user to confirm cover choices for targets.

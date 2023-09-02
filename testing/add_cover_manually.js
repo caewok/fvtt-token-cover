@@ -5,8 +5,9 @@ COVER = api.COVER
 
 
 async function activateModuleCover(token, cover) {
-
-  await token.document.toggleActiveEffect(cover, { active: true })
+  const coverId = COVER.CATEGORIES[cover][MODULE_ID];
+  const effect = CONFIG.statusEffects.find(e => e.id === coverId);
+  await token.document.toggleActiveEffect(effect, { active: true })
 }
 
 async function activateDFredsCover(token, cover) {
@@ -29,4 +30,12 @@ for ( const token of tokens ) {
   if ( token.actor.statuses.has(COVER.CATEGORIES.LOW[coverModule]) ) console.error("Token status LOW still present.");
   if ( token.actor.statuses.has(COVER.CATEGORIES.MEDIUM[coverModule]) ) console.error("Token status MEDIUM still present.");
   if ( !token.actor.statuses.has(COVER.CATEGORIES.HIGH[coverModule]) ) console.error("Token status HIGH not present.");
+}
+
+// Adding two in a row should remove the status
+for ( const token of tokens ) {
+  if ( token.actor.statuses.has(COVER.CATEGORIES.LOW[coverModule]) ) await coverActivationFn(token, "LOW");
+  await coverActivationFn(token, "LOW");
+  await coverActivationFn(token, "LOW");
+  if ( token.actor.statuses.has(COVER.CATEGORIES.LOW[coverModule]) ) console.error("Token status LOW still present.");
 }

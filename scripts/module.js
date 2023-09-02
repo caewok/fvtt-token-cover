@@ -4,7 +4,7 @@ Hooks
 */
 "use strict";
 
-import { MODULE_ID, COVER, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, COVER, DEBUG, IGNORES_COVER_HANDLER } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
@@ -54,6 +54,7 @@ import {
 
 // Other self-executing hooks
 import "./changelog.js";
+import "./migration.js";
 
 Hooks.once("init", function() {
   registerGeometry();
@@ -79,7 +80,6 @@ Hooks.once("init", function() {
     VerticalPoints3d,
     HorizontalPoints3d,
     IGNORES_COVER_HANDLER,
-    setCoverIgnoreHandler,
 
     IgnoresCoverClasses: {
       IgnoresCover,
