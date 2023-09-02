@@ -7,7 +7,7 @@ CONFIG
 "use strict";
 
 import { log } from "./util.js";
-import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
 import { STATUS_EFFECTS } from "./status_effects.js";
 import {
   LowCoverEffectConfig,
