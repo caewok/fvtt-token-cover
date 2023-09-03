@@ -20,9 +20,9 @@ import {
   _testRangeDetectionMode
 } from "./visibility_range.js";
 
-import { toggleActiveEffectTokenDocument, _onCreateDocumentsActiveEffect } from "./cover.js";
+import { toggleActiveEffectTokenDocument, _onCreateDocumentsActiveEffect, rollAttackItem5e } from "./cover.js";
 
-import { MODULE_ID, MODULES_ACTIVE, DEBUG } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, DEBUG, COVER } from "./const.js";
 
 import {
   testCollision3dPointSourcePolygon,
@@ -102,6 +102,10 @@ export function registerLibWrapperMethods() {
   wrap("CONFIG.Token.objectClass.prototype.updateSource", updateSourceToken, {perf_mode: libWrapper.PERF_FAST});
   wrap("ActiveEffect._onCreateDocuments", _onCreateDocumentsActiveEffect, {perf_mode: libWrapper.PERF_FAST});
 
+  if ( game.system.id === "dnd5e" ) {
+    mixed("CONFIG.Item.documentClass.prototype.rollAttack", rollAttackItem5e, {perf_mode: libWrapper.PERF_FAST});
+  }
+
   if ( !MODULES_ACTIVE.PERFECT_VISION ) {
     wrap( "VisionSource.prototype.initialize", initializeVisionSource, {perf_mode: libWrapper.PERF_FAST});
     override("VisionSource.prototype._createPolygon", _createPolygonVisionSource, {perf_mode: libWrapper.PERF_FAST});
@@ -111,6 +115,7 @@ export function registerLibWrapperMethods() {
   addClassGetter(CONFIG.Token.objectClass.prototype, "tokenBorder", getTokenBorder);
   addClassGetter(CONFIG.Token.objectClass.prototype, "constrainedTokenBorder", getConstrainedTokenBorder);
   addClassGetter(CONFIG.Token.objectClass.prototype, "ignoresCoverType", cachedGetterIgnoresCover);
+  addClassGetter(CONFIG.Token.objectClass.prototype, "coverType", getTokenCoverType);
 
   addClassMethod(PointSourcePolygon, "testCollision3d", testCollision3dPointSourcePolygon);
   addClassMethod(PointSourcePolygon.prototype, "_testCollision3d", _testCollision3dPointSourcePolygon);
@@ -143,4 +148,14 @@ function updateSourceToken(wrapper, ...args) {
 export function patchHelperMethods() {
   function setIntersect(b) { return new Set([...this].filter(x => b.has(x))); }
   addClassMethod(Set.prototype, "intersect", setIntersect);
+}
+
+function getTokenCoverType() {
+  const statuses = this.actor?.statuses;
+  if ( !statuses ) return COVER.TYPES.NONE;
+  const coverModule = MODULES_ACTIVE.DFREDS_CE ? "dfreds-convenient-effects" : "tokenvisibility";
+  return statuses.has(COVER.CATEGORIES.HIGH[coverModule]) ? COVER.TYPES.HIGH
+    : statuses.has(COVER.CATEGORIES.MEDIUM[coverModule]) ? COVER.TYPES.MEDIUM
+    : statuses.has(COVER.CATEGORIES.LOW[coverModule]) ? COVER.TYPES.LOW
+    : COVER.TYPES.NONE;
 }
