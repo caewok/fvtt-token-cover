@@ -7,23 +7,30 @@ CONFIG
 "use strict";
 
 import { log } from "./util.js";
-import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
 import { STATUS_EFFECTS } from "./status_effects.js";
 import {
   LowCoverEffectConfig,
   MediumCoverEffectConfig,
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
-const settingsCache = new Map();
+
 export function getSetting(settingName) {
-  const cached = settingsCache.get(settingName);
-  if ( cached === undefined ) {
-    const value = game.settings.get(MODULE_ID, settingName);
-    settingsCache.set(settingName, value);
-    return value;
-  }
-  return cached;
+  return game.settings.get(MODULE_ID, settingName);
 }
+
+// For caching to work, need to clean the cache whenever a setting below changes.
+// Need function for onChange.
+// const settingsCache = new Map();
+// export function getSetting(settingName) {
+//   const cached = settingsCache.get(settingName);
+//   if ( cached === undefined ) {
+//     const value = game.settings.get(MODULE_ID, settingName);
+//     settingsCache.set(settingName, value);
+//     return value;
+//   }
+//   return cached;
+// }
 
 /* Testing cached settings
 function fnDefault(settingName) {
@@ -42,8 +49,8 @@ await api.bench.QBenchmarkLoopFn(N, fnDefault, "default","cover-token-live")
 */
 
 export async function setSetting(settingName, value) {
-  settingsCache.delete(settingName);
-  return await game.settings.set(MODULE_ID, settingName, value);
+//   settingsCache.delete(settingName);
+  return game.settings.set(MODULE_ID, settingName, value);
 }
 
 export const SETTINGS = {
@@ -104,9 +111,11 @@ export const SETTINGS = {
       COVERCHECK_CHOICES: {
         NONE: "midiqol-covercheck-none",
         USER: "midiqol-covercheck-user",
+        USER_CANCEL: "midiqol-covercheck-user-cancel",
         GM: "midiqol-covercheck-gm",
         AUTO: "midiqol-covercheck-auto"
-      }
+      },
+      COVERCHECK_IF_CHANGED: "midiqol-covercheck-if-changed"
     },
 
     COMBAT_AUTO: "cover-combat-auto",
@@ -383,19 +392,30 @@ export function registerSettings() {
   });
 
   const MIDICHOICES = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
+  const useCoverCheck = game.system.id === "dnd5e" || MODULES_ACTIVE.MIDI_QOL;
   game.settings.register(MODULE_ID, SETTINGS.COVER.MIDIQOL.COVERCHECK, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK}.Hint`),
     scope: "world",
-    config: MODULES_ACTIVE.MIDI_QOL,
+    config: useCoverCheck,
     type: String,
     choices: {
       [MIDICHOICES.NONE]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.NONE}`),
       [MIDICHOICES.USER]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.USER}`),
+      [MIDICHOICES.USER_CANCEL]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.USER_CANCEL}`),
       [MIDICHOICES.GM]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.GM}`),
       [MIDICHOICES.AUTO]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.AUTO}`)
     },
     default: MIDICHOICES.NONE
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED}.Hint`),
+    scope: "world",
+    config: useCoverCheck,
+    type: Boolean,
+    default: false
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.DEAD_TOKENS.ALGORITHM, {

@@ -78,12 +78,17 @@ async function migrateCoverStatusData() {
           if ( type === "MEDIUM" && effectData.name === "Medium" ) effectData.name = "tokenvisibility.Cover.Medium";
           if ( type === "HIGH" && effectData.name === "High" ) effectData.name = "tokenvisibility.Cover.High";
           break;
-        case "dnd5e":
+
         case "dnd5e_midiqol":
+          if ( type === "HIGH" ) updateDND5eMidiQolHighChange(effectData);
+        case "dnd5e":
           if ( type === "LOW" && effectData.name === "Half" ) effectData.name = "DND5E.CoverHalf";
           if ( type === "MEDIUM" && effectData.name === "Three-Quarters" ) effectData.name = "DND5E.CoverThreeQuarters";
           if ( type === "HIGH" && effectData.name === "Total" ) effectData.name = "DND5E.CoverTotal";
+          if ( type === "HIGH" && systemId !== "dnd5e_midiqol" ) updateDND5eHighChange(effectData);
+          updateDND5eChangeKeys(effectData, type);
           break;
+
         case "pf2e":
           if ( type === "LOW" && effectData.name === "Lesser" ) effectData.name = "PF2E.Cover.Lesser";
           if ( type === "MEDIUM" && effectData.name === "Standard" ) effectData.name = "PF2E.Cover.Standard";
@@ -97,4 +102,44 @@ async function migrateCoverStatusData() {
   await setSetting(SETTINGS.COVER.EFFECTS, allStatusEffects);
   updateConfigStatusEffects();
   await setSetting(SETTINGS.MIGRATION.v054, true);
+}
+
+
+const dnd5eChangeKeys = {
+  "system.attributes.ac.bonus": "system.attributes.ac.cover",
+  "system.attributes.dex.saveBonus": "system.abilities.dex.bonuses.save"
+};
+
+function updateDND5eChangeKeys(effectData) {
+  for ( const change of effectData.changes ) {
+    for ( const [oldKey, newKey] of Object.entries(dnd5eChangeKeys) ) {
+      if ( change.key === oldKey ) change.key = newKey;
+    }
+  }
+}
+
+function updateDND5eHighChange(effectData) {
+  effectData.changes = [
+    {
+      key: "system.attributes.ac.cover",
+      mode: 2,
+      value: "+99"
+    },
+
+    {
+      key: "system.abilities.dex.bonuses.save",
+      mode: 2,
+      value: "+99"
+    }
+  ];
+}
+
+function updateDND5eMidiQolHighChange(effectData) {
+  effectData.changes = [
+    {
+      key: "flags.midi-qol.grants.attack.fail.all",
+      mode: 0,
+      value: "1"
+    }
+  ];
 }

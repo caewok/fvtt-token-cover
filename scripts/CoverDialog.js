@@ -1,5 +1,6 @@
 /* globals
 canvas,
+ChatMessage,
 CONFIG,
 duplicate,
 game,
@@ -8,7 +9,7 @@ Token
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, COVER } from "./const.js";
 import { CoverCalculator, SOCKETS, dialogPromise } from "./CoverCalculator.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { SETTINGS, getSetting } from "./settings.js";
@@ -110,6 +111,16 @@ export class CoverDialog {
   }
 
   /**
+   * Determine if one or more calculated token covers vary from the current token cover.
+   */
+  _tokenCoverCalculationsMatchTargetCovers(tokenCoverCalculations, targets) {
+    for ( const target of targets ) {
+      if ( tokenCoverCalculations[target.id] !== target.coverType ) return false;
+    }
+    return true;
+  }
+
+  /**
    * Convert tokenCoverCalculations to coverCalculations by applying the same set of cover
    * for each token.
    */
@@ -129,22 +140,50 @@ export class CoverDialog {
    * @param {string} [actionType]     "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
    * @returns {TokenCoverCalculations}
    */
-  async confirmCover({ askGM, token, targets, actionType } = {}) {
+  async confirmCover({ askGM, token, targets, actionType, tokenCoverCalculations } = {}) {
     askGM ||= false;
-    const dialogData = this._coverCheckDialogContent({ token, targets, actionType });
+    const dialogData = this._coverCheckDialogContent({ token, targets, actionType, tokenCoverCalculations });
     const res = askGM
       ? await SOCKETS.socket.executeAsGM("dialogPromise", dialogData)
       : await this.constructor.dialogPromise(dialogData);
     if ( "Close" === res ) return false;
 
     // Update the cover calculations with User or GM selections
-    const tokenCoverCalculations = dialogData.tokenCoverCalculations;
+    tokenCoverCalculations = dialogData.tokenCoverCalculations;
     const coverSelections = res.find("[class=CoverSelect]");
     for ( const selection of coverSelections ) {
       const id = selection.id.replace("CoverSelect.", "");
       tokenCoverCalculations[id] = selection.selectedIndex;
     }
     return tokenCoverCalculations;
+  }
+
+  async _confirmCoverCalculations(token, tokenCoverCalculations, actionType) {
+    const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
+    const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
+    let askGM = true;
+    switch ( coverCheckOption ) {
+      case choices.USER:
+        askGM = false;
+      case choices.GM:  // eslint-disable-line no-fallthrough
+        tokenCoverCalculations = await this.confirmCover({ askGM, actionType, tokenCoverCalculations });
+        // Allow the GM or user to omit targets.
+        for ( const [targetId, targetCover] of Object.entries(tokenCoverCalculations)) {
+          if ( targetCover === COVER.TYPES.TOTAL ) delete tokenCoverCalculations[targetId];
+        }
+        break;
+      case choices.USER_CANCEL: {
+        const coverCalculations = this.convertTokenCalculations(token, tokenCoverCalculations);
+        const dialogRes = this.htmlCoverTable({ coverCalculations, actionType });
+        if ( "Close" === dialogRes ) return false;
+      }
+    }
+    return tokenCoverCalculations;
+  }
+
+  async _sendCoverCalculationsToChat(options) {
+    const coverTable = this.htmlCoverTable(options);
+    if ( coverTable.nCoverTotal ) return ChatMessage.create({ content: coverTable.html });
   }
 
   /**
@@ -155,7 +194,7 @@ export class CoverDialog {
   async updateTargetsCover(tokenCoverCalculations) {
     const promises = Object.entries(tokenCoverCalculations)
       .map(([targetId, coverStatus]) => CoverCalculator.enableCover(targetId, coverStatus));
-    return Promise.all(promises)
+    return Promise.all(promises);
   }
 
 
