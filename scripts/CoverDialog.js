@@ -100,7 +100,7 @@ export class CoverDialog {
     if ( "Close" === res ) return false;
 
     // Update the cover calculations with User or GM selections
-    const confirmedCalcs = dialogData.coverCalculations;
+    const confirmedCalcs = this.copyTokenCoverCalculations();
     const coverSelections = res.find("[class=CoverSelect]");
     for ( const selection of coverSelections ) {
       const id = selection.id.replace("CoverSelect.", "");
@@ -118,33 +118,42 @@ export class CoverDialog {
    * @param {string} [actionType]  "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
    * @returns {Map<Token, COVER_TYPE>|false}
    */
-  async coverWorkflow(actionType) {
+  async workflow(actionType) {
     const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
     const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
     let askGM = true;
     let coverCalculations;
     switch ( coverCheckOption ) {
+      case choices.NONE: return true;
+      case choices.AUTO: return this.coverCalculations;
       case choices.USER:
         askGM = false;
       case choices.GM:  // eslint-disable-line no-fallthrough
         coverCalculations = await this.confirmCover({ askGM, actionType });
+        if ( !coverCalculations ) return false;
+
         // Allow the GM or user to omit targets.
-        coverCalculations.forEach(([token, cover]) => {
+        coverCalculations.forEach((cover, token) => {
           if ( cover === COVER.TYPES.TOTAL) coverCalculations.delete(token);
         });
         break;
       case choices.USER_CANCEL: {
         const dialogRes = await this.showCoverResults();
         if ( "Close" === dialogRes ) return false;
+        return this.coverCalculations;
       }
     }
-    if ( !coverCalculations.size ) return false;
-    return coverCalculations;
   }
 
-  async _sendCoverCalculationsToChat(options) {
-    const coverTable = this._htmlShowCover(options);
-    if ( coverTable.nCoverTotal ) return ChatMessage.create({ content: coverTable.html });
+  /**
+   * Display a chat message with the cover calculations.
+   * @param {string} [html]   Html to display; defaults to this._htmlShowCover
+   * @param {object} [opts]   Options to pass to this._htmlShowCover
+   * @returns Result from ChatMessage.create.
+   */
+  async sendCoverCalculationsToChat(html, opts) {
+    html ??= this._htmlShowCover(opts);
+    return ChatMessage.create({ content: html });
   }
 
   /**
@@ -204,11 +213,8 @@ ${html}
     const allCoverIgnored = ic.all;
     const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
 
-    let ignoresCoverLabel = "";
-    if ( allCoverIgnored > 0 ) ignoresCoverLabel += `<br> &le; ${CoverCalculator.coverNameForType(allCoverIgnored)} (${CoverCalculator.attackNameForType("all")})`;
-    if ( typeCoverIgnored > 0 && actionType !== "all" ) ignoresCoverLabel += `<br> &le; ${CoverCalculator.coverNameForType(typeCoverIgnored)} (${CoverCalculator.attackNameForType(actionType)}s)`;
-    if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = ` <br><em>Ignores:${ignoresCoverLabel}</em>`;
-
+    // Describe the type of action the token is taking and whether the token ignores certain cover.
+    const ignoresCoverLabel = this._htmlIgnoresCover(actionType);
     const actionDescription = actionType ? `${CoverCalculator.attackNameForType(actionType)}.` : "";
 
     let html =
@@ -372,21 +378,7 @@ ${html}
 
     // Describe the types of cover ignored by the token
     // If actionType is defined, use that to limit the types
-    let ignoresCoverLabel = "";
-    if ( displayIgnored ) {
-      const ic = token.ignoresCoverType;
-      if ( ic.all > 0 ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(ic.all)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
-      if ( actionType && ic[actionType] > 0 ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(ic[actionType])} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
-
-      else { // Test them all...
-        if ( ic.mwak ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(ic.mwak)} cover (${CoverCalculator.attackNameForType("mwak")} attacks)`;
-        if ( ic.msak ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(ic.msak)} cover (${CoverCalculator.attackNameForType("msak")} attacks)`;
-        if ( ic.rwak ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(ic.rwak)} cover (${CoverCalculator.attackNameForType("rwak")} attacks)`;
-        if ( ic.rsak ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(ic.rsak)} cover (${CoverCalculator.attackNameForType("rsak")} attacks)`;
-      }
-
-      if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = `<br><em>${token.name} ignores:${ignoresCoverLabel}</em>`;
-    }
+    const ignoresCoverLabel = displayIgnored ? this._htmlIgnoresCover(actionType) : "";
 
     // State how many targets have cover prior to the cover table.
     const targetLabel = `${nCover} target${nCover === 1 ? "" : "s"}`;
@@ -405,6 +397,24 @@ ${html}
     // or we are including tokens with no cover.
     if ( includeZeroCover || nCover ) html += htmlTable;
     return html;
+  }
+
+  /**
+   * Create html that describes how the token ignores cover.
+   * @param {string|undefined} actionType   "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
+   */
+  _htmlIgnoresCover(actionType) {
+    const COVER_TYPES = CoverCalculator.COVER_TYPES;
+    const ic = this.token.ignoresCoverType;
+    const allCoverIgnored = ic.all;
+    const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
+
+    // Build the html code.
+    let ignoresCoverLabel = "";
+    if ( allCoverIgnored > 0 ) ignoresCoverLabel += `<br> &le; ${CoverCalculator.coverNameForType(allCoverIgnored)} (${CoverCalculator.attackNameForType("all")})`;
+    if ( typeCoverIgnored > 0 && actionType !== "all" ) ignoresCoverLabel += `<br> &le; ${CoverCalculator.coverNameForType(typeCoverIgnored)} (${CoverCalculator.attackNameForType(actionType)}s)`;
+    if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = ` <br><em>Ignores:${ignoresCoverLabel}</em>`;
+    return ignoresCoverLabel;
   }
 }
 

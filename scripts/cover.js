@@ -72,40 +72,6 @@ export async function midiqolPreambleCompleteHook(workflow) {
 }
 
 /**
- * A hook event that fires before an attack is rolled for an Item.
- * @function dnd5e.preRollAttack
- * @memberof hookEvents
- * @param {Item5e} item                  Item for which the roll is being performed.
- * @param {D20RollConfiguration} config  Configuration data for the pending roll.
- * @returns {boolean}                    Explicitly return false to prevent the roll from being performed.
- */
-export function dnd5ePreRollAttackHook(item, rollConfig) {
-  if ( MODULES_ACTIVE.MIDI_QOL ) return true;
-
-  if ( !getSetting(SETTINGS.COVER.CHAT) ) return true;
-
-  // Locate the token
-  const token = canvas.tokens.get(rollConfig.messageData.speaker.token);
-  if ( !token.isOwner ) return;
-
-  // Determine the targets for the user
-  const user = game.users.get(game.userId);
-  const targets = canvas.tokens.placeables.filter(t => t.isTargeted && t.targeted.has(user));
-
-  // Determine the attack type
-  const actionType = item.system?.actionType;
-
-  // Determine cover and distance for each target
-//   const coverDialog = new CoverDialog(token, targets);
-//   const coverTable = coverDialog.htmlCoverTable({
-//     includeZeroCover: false,
-//     imageWidth: 30,
-//     actionType
-//   });
-//   if ( coverTable.nCoverTotal ) ChatMessage.create({ content: coverTable.html });
-}
-
-/**
  * Wrap Item5e.prototype.rollAttack
  */
 export async function rollAttackItem5e(wrapper, options = {}) {
@@ -123,67 +89,31 @@ export async function rollAttackItem5e(wrapper, options = {}) {
   // Determine the attack type
   const actionType = this.system?.actionType;
 
-  // Do dialogs and chat message, if applicable.
-  const res = await coverTargetsWorkflow(token, targets, actionType);
-  if ( res === false ) return;
-
-  return wrapper(options);
-}
-
-/**
- * Workflow to process target cover for a given token, possibly displaying confirmation
- * dialog to user/gm and creating cover chat message.
- * @param {Token} token       Token that is doing the attack
- * @param {Token[]} targets   Targets of the attack.
- */
-async function coverTargetsWorkflow(token, targets, actionType) {
-  const nTargets = targets.length;
-  if ( !nTargets ) return true;
-
-  const { MIDIQOL, CHAT } = SETTINGS.COVER;
-  const coverCheckOption = getSetting(MIDIQOL.COVERCHECK);
-  const choices = MIDIQOL.COVERCHECK_CHOICES;
-  if ( coverCheckOption === choices.NONE && !getSetting(CHAT) ) return true;
-
+  // Construct dialogs, if applicable
   const coverDialog = new CoverDialog(token, targets);
-  let tokenCoverCalculations = coverDialog.coverCalculationsForTokenAction(token, actionType);
-  if ( coverCheckOption === choices.NONE ) return tokenCoverCalculations;
+  const tokenCoverCalculations = await coverDialog.workflow(actionType);
+  if ( tokenCoverCalculations === false ) return;  // User canceled
 
-  const displayCoverDialog = !getSetting(MIDIQOL.COVERCHECK_IF_CHANGED)
-    || !coverDialog._tokenCoverCalculationsMatchTargetCovers(tokenCoverCalculations, targets);
-
-  if ( displayCoverDialog ) {
-    tokenCoverCalculations = await coverDialog._confirmCoverCalculations(token, tokenCoverCalculations, actionType);
-  }
-  if ( !tokenCoverCalculations || isEmpty(tokenCoverCalculations) ) return false;
-
-  if ( coverCheckOption === choices.GM || coverCheckOption === choices.USER ) {
-    // Allow the GM or user to omit targets.
-    const targetIds = new Set(Object.keys(tokenCoverCalculations));
-    for ( const target of targets ) {
-      if ( !targetIds.has(target.id) ) targets.delete(target);
-    }
-  }
+  // If no token calculations, just pass through the attack.
+  if ( !tokenCoverCalculations || tokenCoverCalculations === true || !tokenCoverCalculations.size ) return wrapper(options);
 
   // Update targets' cover
   await coverDialog.updateTargetsCover(tokenCoverCalculations);
 
-  // Send target calculations to chat
-  if ( getSetting(CHAT) ) {
-    const coverCalculations = CoverDialog.convertTokenCalculations(token, tokenCoverCalculations);
-    const options = {
+  // Display in chat if requested.
+  if ( getSetting(SETTINGS.COVER.CHAT) ) {
+    const opts = {
       includeZeroCover: false,
+      actionType,
       imageWidth: 30,
-      coverCalculations,
       applied: true,
       displayIgnored: false
-    };
-    await coverDialog._sendCoverCalculationsToChat(options);
+    }
+    await coverDialog.sendCoverCalculationsToChat(tokenCoverCalculations, opts);
   }
 
-  return { tokenCoverCalculations, targets };
+  return wrapper(options);
 }
-
 
 /* Options for determining cover.
 1. Any player can run the Cover macro to determine cover for each token--> target combo.

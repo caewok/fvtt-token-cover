@@ -15,22 +15,22 @@ import {
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
 
-export function getSetting(settingName) {
-  return game.settings.get(MODULE_ID, settingName);
-}
+// export function getSetting(settingName) {
+//   return game.settings.get(MODULE_ID, settingName);
+// }
 
 // For caching to work, need to clean the cache whenever a setting below changes.
 // Need function for onChange.
-// const settingsCache = new Map();
-// export function getSetting(settingName) {
-//   const cached = settingsCache.get(settingName);
-//   if ( cached === undefined ) {
-//     const value = game.settings.get(MODULE_ID, settingName);
-//     settingsCache.set(settingName, value);
-//     return value;
-//   }
-//   return cached;
-// }
+const settingsCache = new Map();
+export function getSetting(settingName) {
+  const cached = settingsCache.get(settingName);
+  if ( cached === undefined ) {
+    const value = game.settings.get(MODULE_ID, settingName);
+    settingsCache.set(settingName, value);
+    return value;
+  }
+  return cached;
+}
 
 /* Testing cached settings
 function fnDefault(settingName) {
@@ -49,7 +49,7 @@ await api.bench.QBenchmarkLoopFn(N, fnDefault, "default","cover-token-live")
 */
 
 export async function setSetting(settingName, value) {
-//   settingsCache.delete(settingName);
+  settingsCache.delete(settingName);
   return game.settings.set(MODULE_ID, settingName, value);
 }
 

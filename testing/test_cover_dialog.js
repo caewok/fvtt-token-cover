@@ -20,7 +20,7 @@ if ( calcs.get(targets[0]) === calcs2.get(targets[0]) ) console.error("Target co
 coverDialog.resetCoverCalculations()
 coverDialog._targetCoversMatchCalculations();
 
-coverDialog.updateTargetsCover();
+await coverDialog.updateTargetsCover();
 
 await coverDialog.showCoverResults()
 await coverDialog.showCoverResults({include3dDistance: false})
@@ -32,3 +32,24 @@ await coverDialog.showCoverResults({displayIgnored: false})
 await coverDialog.confirmCover();
 await coverDialog.confirmCover({askGM: false})
 await coverDialog.confirmCover({actionType: "mwak"})
+await coverDialog.confirmCover({actionType: "all"})
+
+await coverDialog.sendCoverCalculationsToChat()
+await coverDialog.sendCoverCalculationsToChat(undefined, { actionType: "mwak" })
+
+await coverDialog.workflow()
+await coverDialog.workflow("mwak")
+
+// Test different settings.
+async function setSetting(settingName, value) {
+//   settingsCache.delete(settingName);
+  return game.settings.set(MODULE_ID, settingName, value);
+}
+
+await setSetting("midiqol-covercheck-if-changed", true);
+await setSetting("midiqol-covercheck-if-changed", false);
+await setSetting("midiqol-covercheck", "midiqol-covercheck-none");
+await setSetting("midiqol-covercheck", "midiqol-covercheck-user");
+await setSetting("midiqol-covercheck", "midiqol-covercheck-user-cancel");
+await setSetting("midiqol-covercheck", "midiqol-covercheck-gm");
+await setSetting("midiqol-covercheck", "midiqol-covercheck-auto");
