@@ -122,21 +122,20 @@ export class CoverDialog {
     const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
     const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
     let askGM = true;
-    let coverCalculations;
     switch ( coverCheckOption ) {
       case choices.NONE: return undefined;
       case choices.AUTO: return this.coverCalculations;
       case choices.USER:
         askGM = false;
       case choices.GM:  // eslint-disable-line no-fallthrough
-        coverCalculations = await this.confirmCover({ askGM, actionType });
+        const coverCalculations = await this.confirmCover({ askGM, actionType });
         if ( !coverCalculations ) return false;
 
         // Allow the GM or user to omit targets.
         coverCalculations.forEach((cover, token) => {
           if ( cover === COVER.TYPES.TOTAL) coverCalculations.delete(token);
         });
-        break;
+        return coverCalculations;
       case choices.USER_CANCEL: {
         const dialogRes = await this.showCoverResults();
         if ( "Close" === dialogRes ) return false;
@@ -151,8 +150,15 @@ export class CoverDialog {
    * @param {object} [opts]   Options to pass to this._htmlShowCover
    * @returns Result from ChatMessage.create.
    */
-  async sendCoverCalculationsToChat(html, opts) {
-    html ??= this._htmlShowCover(opts);
+  async sendCoverCalculationsToChat(opts = {}) {
+    // Reasonable defaults for a chat message
+    opts.includeZeroCover ??= false; // Only display targets that have cover.
+    opts.imageWidth ??= 30; // Smaller image for the chat.
+    opts.applied ??= true; // Treat as applied instead of "may have".
+    opts.displayIgnored ??= false; // Don't describe what cover is ignored by token.
+
+    // Construct the chat message.
+    const html = this._htmlShowCover(opts);
     return ChatMessage.create({ content: html });
   }
 

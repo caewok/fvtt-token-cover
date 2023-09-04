@@ -104,33 +104,36 @@ async function coverWorkflow(token, targets, actionType) {
   // - undefined if covercheck is set to NONE. NONE may still require chat display.
   // - Map otherwise
   const coverDialog = new CoverDialog(token, targets);
-  const tokenCoverCalculations = await coverDialog.workflow(actionType);
-  if ( tokenCoverCalculations === false ) return false;  // User canceled
+  const coverCalculations = await coverDialog.workflow(actionType);
+  if ( coverCalculations === false ) return false;  // User canceled
 
   // Check if the user removed one or more targets.
-  if ( tokenCoverCalculations && tokenCoverCalculations.size !== coverDialog.coverCalculations.size ) {
-    if ( !tokenCoverCalculations.size ) return false; // All targets removed.
+  if ( coverCalculations && coverCalculations.size !== coverDialog.coverCalculations.size ) {
+    if ( !coverCalculations.size ) return false; // All targets removed.
 
     // Drop the removed targets.
-    const removed = coverDialog.targets.difference(new Set(tokenCoverCalculations.keys()));
+    const removed = coverDialog.targets.difference(new Set(coverCalculations.keys()));
     removed.forEach(t => targets.delete(t));
   }
 
   // Update targets' cover if some targets are present
-  if ( tokenCoverCalculations && tokenCoverCalculations.size ) {
-    await coverDialog.updateTargetsCover(tokenCoverCalculations);
+  if ( coverCalculations && coverCalculations.size ) {
+    await coverDialog.updateTargetsCover(coverCalculations);
   }
 
   // Display in chat if requested.
-  if ( getSetting(SETTINGS.COVER.CHAT) ) {
+  let displayChat = getSetting(SETTINGS.COVER.CHAT);
+  if ( displayChat && getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED) ) {
+    // Only display chat if the cover differs from what is already applied to tokens.
+    displayChat = !coverDialog._targetCoversMatchCalculations(coverCalculations);
+  }
+
+  if ( displayChat ) {
     const opts = {
-      includeZeroCover: false,
       actionType,
-      imageWidth: 30,
-      applied: true,
-      displayIgnored: false
+      coverCalculations,
     };
-    await coverDialog.sendCoverCalculationsToChat(tokenCoverCalculations, opts);
+    await coverDialog.sendCoverCalculationsToChat(opts);
   }
 
   return true;
