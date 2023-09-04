@@ -327,6 +327,8 @@ ${html}
 
     // Add the distance column if requested.
     const distHeader = include3dDistance ? '<th style="text-align: right"><b>Dist. (3d)</b></th>' : "";
+    const coverAlign = include3dDistance ? "left" : "right";
+    const coverLabel = applied ? "Applied Cover" : "Cover";
 
     // Build the table header
     let htmlTable =
@@ -335,7 +337,7 @@ ${html}
     <thead>
       <tr class="character-row">
         <th colspan="2" ><b>Target</b></th>
-        <th style="text-align: left"><b>${applied ? "Applied Cover" : "Cover"}</b></th>
+        <th style="text-align: ${coverAlign}"><b>${coverLabel}</b></th>
         ${distHeader}
       </tr>
     </thead>
