@@ -103,6 +103,14 @@ export const DEBUG = {
 
 export let IGNORES_COVER_HANDLER = IgnoresCover;
 
+export const WEAPON_ATTACK_TYPES = {
+  "all": `${MODULE_ID}.phrases.AllAttacks`,
+  "mwak": "DND5E.ActionMWAK",
+  "msak": "DND5E.ActionMSAK",
+  "rwak": "DND5E.ActionRWAK",
+  "rsak": "DND5E.ActionRSAK"
+};
+
 // Hook init b/c game.modules is not initialized at start.
 Hooks.once("init", function() {
   MODULES_ACTIVE.WALL_HEIGHT = game.modules.get("wall-height")?.active;
@@ -126,5 +134,6 @@ export function setCoverIgnoreHandler(handler) {
   IGNORES_COVER_HANDLER = handler;
 
   // Simplest just to revert any existing.
+  if ( !canvas.tokens?.placeables ) return;
   canvas.tokens.placeables.forEach(t => t._ignoresCoverType = undefined);
 }

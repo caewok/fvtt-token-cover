@@ -4,12 +4,12 @@ Hooks
 */
 "use strict";
 
-import { MODULE_ID, COVER, DEBUG, IGNORES_COVER_HANDLER } from "./const.js";
+import { MODULE_ID, COVER, DEBUG, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 
-import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook, preCreateActiveEffectHook } from "./cover.js";
+import { targetTokenHook, combatTurnHook, midiqolPreambleCompleteHook, preCreateActiveEffectHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import {
   registerSettings,
@@ -79,7 +79,7 @@ Hooks.once("init", function() {
     TilePoints3d,
     VerticalPoints3d,
     HorizontalPoints3d,
-    IGNORES_COVER_HANDLER,
+    setCoverIgnoreHandler,
 
     IgnoresCoverClasses: {
       IgnoresCover,
@@ -126,14 +126,11 @@ function registerSystemHooks() {
 
   if ( game.system.id === "dnd5e" ) {
     /**
-     * For dnd5e, hook the attack roll to set cover.
-     */
-    Hooks.on("dnd5e.preRollAttack", dnd5ePreRollAttackHook);
-
-    /**
      * For midi, let GM or user decide on cover options. Or automatic.
      */
     Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHook);
+
+    setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
   }
 }
 

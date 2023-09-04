@@ -22,7 +22,7 @@ import {
 
 import { toggleActiveEffectTokenDocument, _onCreateDocumentsActiveEffect, rollAttackItem5e } from "./cover.js";
 
-import { MODULE_ID, MODULES_ACTIVE, DEBUG, COVER } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, DEBUG, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 
 import {
   testCollision3dPointSourcePolygon,
@@ -102,7 +102,7 @@ export function registerLibWrapperMethods() {
   wrap("CONFIG.Token.objectClass.prototype.updateSource", updateSourceToken, {perf_mode: libWrapper.PERF_FAST});
   wrap("ActiveEffect._onCreateDocuments", _onCreateDocumentsActiveEffect, {perf_mode: libWrapper.PERF_FAST});
 
-  if ( game.system.id === "dnd5e" ) {
+  if ( game.system.id === "dnd5e" && !MODULES_ACTIVE.MIDI_QOL ) {
     mixed("CONFIG.Item.documentClass.prototype.rollAttack", rollAttackItem5e, {perf_mode: libWrapper.PERF_FAST});
   }
 
@@ -122,8 +122,7 @@ export function registerLibWrapperMethods() {
 }
 
 function cachedGetterIgnoresCover() {
-  return this._ignoresCoverType
-    || (this._ignoresCoverType = new (game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER)(this));
+  return this._ignoresCoverType || (this._ignoresCoverType = new IGNORES_COVER_HANDLER(this));
 }
 
 function updateSourceToken(wrapper, ...args) {
