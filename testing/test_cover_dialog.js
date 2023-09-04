@@ -22,3 +22,13 @@ coverDialog._targetCoversMatchCalculations();
 
 coverDialog.updateTargetsCover();
 
+await coverDialog.showCoverResults()
+await coverDialog.showCoverResults({include3dDistance: false})
+await coverDialog.showCoverResults({includeZeroCover: false})
+await coverDialog.showCoverResults({actionType: "mwak"})
+await coverDialog.showCoverResults({applied: true})
+await coverDialog.showCoverResults({displayIgnored: false})
+
+await coverDialog.confirmCover();
+await coverDialog.confirmCover({askGM: false})
+await coverDialog.confirmCover({actionType: "mwak"})

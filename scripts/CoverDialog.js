@@ -118,7 +118,7 @@ export class CoverDialog {
    * @param {string} [actionType]  "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
    * @returns {Map<Token, COVER_TYPE>|false}
    */
-  async presentCoverCalculations(actionType) {
+  async coverWorkflow(actionType) {
     const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
     const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
     let askGM = true;
@@ -211,7 +211,9 @@ ${html}
     if ( typeCoverIgnored > 0 ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(typeCoverIgnored)} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
     if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = ` <em>Ignores:${ignoresCoverLabel}</em>`;
 
-    let html = `<b>${token.name}</b>. ${CoverCalculator.attackNameForType(actionType)} attack. ${ignoresCoverLabel}`;
+    let html =
+    `<b>${token.name}</b>. ${CoverCalculator.attackNameForType(actionType)} attack. ${ignoresCoverLabel}
+    `;
 
     const include3dDistance = true;
     const imageWidth = 50;
@@ -223,8 +225,8 @@ ${html}
     <thead>
       <tr class="character-row">
         <th colspan="2"><b>Target</b></th>
-        <th style="text-align: left"><b>Applied</b></th>
-        <th style="text-align: left"><b>Estimated</b></th>
+        <th style="text-align: left;"><b>Applied</b></th>
+        <th style="text-align: left;"><b>Estimated</b></th>
         ${distHeader}
       </tr>
     </thead>
@@ -266,7 +268,7 @@ ${html}
       <td><img src="${targetImage}" alt="${target.name} image" width="${imageWidth}" style="border:0px"></td>
       <td>${target.name}</td>
       <td>${coverSelector}</td>
-      <td><em>${CoverCalculator.coverNameForType(cover)}</em></td>
+      <td style="padding-left: 5px;"><em>${CoverCalculator.coverNameForType(cover)}</em></td>
       ${distContent}
       </tr>
       `;
