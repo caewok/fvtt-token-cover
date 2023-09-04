@@ -124,7 +124,7 @@ export class CoverDialog {
     let askGM = true;
     let coverCalculations;
     switch ( coverCheckOption ) {
-      case choices.NONE: return true;
+      case choices.NONE: return undefined;
       case choices.AUTO: return this.coverCalculations;
       case choices.USER:
         askGM = false;

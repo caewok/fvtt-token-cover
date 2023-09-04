@@ -102,7 +102,7 @@ export function registerLibWrapperMethods() {
   wrap("CONFIG.Token.objectClass.prototype.updateSource", updateSourceToken, {perf_mode: libWrapper.PERF_FAST});
   wrap("ActiveEffect._onCreateDocuments", _onCreateDocumentsActiveEffect, {perf_mode: libWrapper.PERF_FAST});
 
-  if ( game.system.id === "dnd5e" ) {
+  if ( game.system.id === "dnd5e" && !MODULES_ACTIVE.MIDI_QOL ) {
     mixed("CONFIG.Item.documentClass.prototype.rollAttack", rollAttackItem5e, {perf_mode: libWrapper.PERF_FAST});
   }
 

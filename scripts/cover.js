@@ -46,7 +46,7 @@ dnd5e: half, 3/4, full
 
 */
 
-import { COVER, MODULES_ACTIVE } from "./const.js";
+import { COVER } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { CoverDialog } from "./CoverDialog.js";
@@ -56,19 +56,12 @@ import { CoverDialog } from "./CoverDialog.js";
  * Note: hook will be run by the user that executed the attack triggering this.
  */
 export async function midiqolPreambleCompleteHook(workflow) {
-  const token = workflow.token;
-  const targets = [...workflow.targets];
-  const nTargets = targets.length;
+  const { token, targets, item } = workflow;
+  if ( !targets?.size || !token ) return true;
 
-  if ( !nTargets || !token ) return true;
-
-  const actionType = workflow.item?.system?.actionType;
-  const chosenTargets = await coverTargetsWorkflow(token, targets, actionType);
-
-  // Update targets
-  // Allow user to cancel
-
-  return true;
+  // Construct dialogs, if applicable
+  const actionType = item?.system?.actionType;
+  return coverWorkflow(token, targets, actionType);
 }
 
 /**
@@ -80,25 +73,53 @@ export async function rollAttackItem5e(wrapper, options = {}) {
   // Locate the token
   const actor = this.actor;
   const token = canvas.tokens.get(ChatMessage.getSpeaker({ actor }).token);
-  if ( !token || !token.isOwner ) return;
+  if ( !token || !token.isOwner ) return wrapper(options);
 
   // Determine the targets for the user
-  const user = game.users.get(game.userId);
-  const targets = canvas.tokens.placeables.filter(t => t.isTargeted && t.targeted.has(user));
+  const targets = game.user.targets;
+  if ( !targets.size ) return wrapper(options);
 
   // Determine the attack type
   const actionType = this.system?.actionType;
 
   // Construct dialogs, if applicable
+  if ( await coverWorkflow(token, targets, actionType) ) return wrapper(options);
+
+  // If coverWorkflow returns false, user canceled or eliminated all targets; simply return.
+}
+
+
+/**
+ * Workflow to process cover for given token and targets.
+ * Used by midi-qol and dnd5e functions.
+ * @param {Token} token
+ * @param {Set<Token>} targets    Targeted token set. May be modified by user choices.
+ * @param {string} actionType
+ * @returns {boolean} True if attack should continue; false otherwise.
+ */
+async function coverWorkflow(token, targets, actionType) {
+  // Construct dialogs, if applicable
+  // tokenCoverCalculations will be:
+  // - false if user canceled
+  // - undefined if covercheck is set to NONE. NONE may still require chat display.
+  // - Map otherwise
   const coverDialog = new CoverDialog(token, targets);
   const tokenCoverCalculations = await coverDialog.workflow(actionType);
-  if ( tokenCoverCalculations === false ) return;  // User canceled
+  if ( tokenCoverCalculations === false ) return false;  // User canceled
 
-  // If no token calculations, just pass through the attack.
-  if ( !tokenCoverCalculations || tokenCoverCalculations === true || !tokenCoverCalculations.size ) return wrapper(options);
+  // Check if the user removed one or more targets.
+  if ( tokenCoverCalculations && tokenCoverCalculations.size !== coverDialog.coverCalculations.size ) {
+    if ( !tokenCoverCalculations.size ) return false; // All targets removed.
 
-  // Update targets' cover
-  await coverDialog.updateTargetsCover(tokenCoverCalculations);
+    // Drop the removed targets.
+    const removed = coverDialog.targets.difference(new Set(tokenCoverCalculations.keys()));
+    removed.forEach(t => targets.delete(t));
+  }
+
+  // Update targets' cover if some targets are present
+  if ( tokenCoverCalculations && tokenCoverCalculations.size ) {
+    await coverDialog.updateTargetsCover(tokenCoverCalculations);
+  }
 
   // Display in chat if requested.
   if ( getSetting(SETTINGS.COVER.CHAT) ) {
@@ -108,11 +129,11 @@ export async function rollAttackItem5e(wrapper, options = {}) {
       imageWidth: 30,
       applied: true,
       displayIgnored: false
-    }
+    };
     await coverDialog.sendCoverCalculationsToChat(tokenCoverCalculations, opts);
   }
 
-  return wrapper(options);
+  return true;
 }
 
 /* Options for determining cover.
