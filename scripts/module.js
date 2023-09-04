@@ -37,7 +37,7 @@ import { HorizontalPoints3d } from "./PlaceablesPoints/HorizontalPoints3d.js";
 
 import { Area3d } from "./Area3d.js";
 import { Area2d } from "./Area2d.js";
-import { CoverCalculator } from "./CoverCalculator.js";
+import { CoverCalculator, SOCKETS } from "./CoverCalculator.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import { CoverDialog } from "./CoverDialog.js";
 
@@ -80,6 +80,7 @@ Hooks.once("init", function() {
     VerticalPoints3d,
     HorizontalPoints3d,
     setCoverIgnoreHandler,
+    SOCKETS,
 
     IgnoresCoverClasses: {
       IgnoresCover,

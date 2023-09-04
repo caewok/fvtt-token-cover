@@ -131,7 +131,7 @@ async function coverWorkflow(token, targets, actionType) {
   if ( displayChat ) {
     const opts = {
       actionType,
-      coverCalculations,
+      coverCalculations
     };
     await coverDialog.sendCoverCalculationsToChat(opts);
   }

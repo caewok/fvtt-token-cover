@@ -2,6 +2,7 @@
 canvas,
 ChatMessage,
 CONFIG,
+Dialog,
 duplicate,
 game,
 Token
@@ -10,7 +11,7 @@ Token
 "use strict";
 
 import { MODULE_ID, COVER } from "./const.js";
-import { CoverCalculator, SOCKETS, dialogPromise } from "./CoverCalculator.js";
+import { CoverCalculator, SOCKETS } from "./CoverCalculator.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { SETTINGS, getSetting } from "./settings.js";
 
@@ -94,20 +95,40 @@ export class CoverDialog {
     askGM ||= false;
     const html = this._htmlConfirmCover({ actionType });
     const dialogData = { title: game.i18n.localize("tokenvisibility.phrases.ConfirmCover"), content: html };
-    const res = askGM
-      ? await SOCKETS.socket.executeAsGM("dialogPromise", dialogData)
-      : await this.constructor.dialogPromise(dialogData);
-    if ( "Close" === res ) return false;
+
+    let coverSelections;
+    if ( askGM ) {
+      coverSelections = await SOCKETS.socket.executeAsGM("coverDialog", dialogData);
+    } else {
+      const res = await this.constructor.dialogPromise(dialogData);
+      coverSelections = this.constructor._getDialogCoverSelections(res);
+    }
+    if ( "Close" === coverSelections ) return false;
 
     // Update the cover calculations with User or GM selections
     const confirmedCalcs = this.copyTokenCoverCalculations();
+    Object.entries(coverSelections).forEach(([id, selectedIndex]) => {
+      const target = canvas.tokens.get(id);
+      confirmedCalcs.set(target, selectedIndex);
+    });
+
+    return confirmedCalcs;
+  }
+
+  /**
+   * Pull the cover selections from the dialog results.
+   * @param {object} res    JQuery object returned from Dialog.
+   * @returns {object}  id: coverSelection. Returned as object so it works with sockets.
+   */
+  static _getDialogCoverSelections(res) {
+    if ( "Close" === res ) return res;
+    const obj = {};
     const coverSelections = res.find("[class=CoverSelect]");
     for ( const selection of coverSelections ) {
       const id = selection.id.replace("CoverSelect.", "");
-      const target = canvas.tokens.get(id);
-      confirmedCalcs.set(target, selection.selectedIndex);
+      obj[id] = selection.selectedIndex;
     }
-    return confirmedCalcs;
+    return obj;
   }
 
   /**
@@ -127,7 +148,7 @@ export class CoverDialog {
       case choices.AUTO: return this.coverCalculations;
       case choices.USER:
         askGM = false;
-      case choices.GM:  // eslint-disable-line no-fallthrough
+      case choices.GM: { // eslint-disable-line no-fallthrough
         const coverCalculations = await this.confirmCover({ askGM, actionType });
         if ( !coverCalculations ) return false;
 
@@ -136,6 +157,7 @@ export class CoverDialog {
           if ( cover === COVER.TYPES.TOTAL) coverCalculations.delete(token);
         });
         return coverCalculations;
+      }
       case choices.USER_CANCEL: {
         const dialogRes = await this.showCoverResults();
         if ( "Close" === dialogRes ) return false;
@@ -214,11 +236,7 @@ ${html}
    */
   _htmlConfirmCover({ actionType } = {}) {
     const { token, targets, coverCalculations } = this;
-
     const COVER_TYPES = CoverCalculator.COVER_TYPES;
-    const ic = token.ignoresCoverType;
-    const allCoverIgnored = ic.all;
-    const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
 
     // Describe the type of action the token is taking and whether the token ignores certain cover.
     const ignoresCoverLabel = this._htmlIgnoresCover(actionType);
@@ -425,20 +443,44 @@ ${html}
     if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = ` <br><em>Ignores:${ignoresCoverLabel}</em>`;
     return ignoresCoverLabel;
   }
-}
 
-/**
- * Convert any dialog to a promise to allow use with await/async.
- * @content HTML content for the dialog.
- * @return Promise for the html content of the dialog
- * Will return "Cancel" or "Close" if those are selected.
- * See Dialog class in Foundry.
- * @param {DialogData} data          An object of dialog data which configures how the modal window is rendered
- * @param {DialogOptions} [options]  Dialog rendering options, see {@link Application}.
- * @returns {Promise<>|"Close"} The callback data or "Close" if user closed the window
- */
-CoverDialog.dialogPromise = dialogPromise;
+  /**
+   * Convert any dialog to a promise to allow use with await/async.
+   * @content HTML content for the dialog.
+   * @return Promise for the html content of the dialog
+   * Will return "Cancel" or "Close" if those are selected.
+   * See Dialog class in Foundry.
+   * @param {DialogData} data          An object of dialog data which configures how the modal window is rendered
+   * @param {DialogOptions} [options]  Dialog rendering options, see {@link Application}.
+   * @returns {Promise<>|"Close"} The callback data or "Close" if user closed the window
+   */
+  static async dialogPromise(data, options = {}) {
+    return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
+      dialogCallback(data, html => resolve(html), options);
+    });
+  }
+}
 
 // NOTE: Helper functions
 
+/**
+ * Create new dialog with a callback function that can be used for dialogPromise.
+ * @content HTML content for the dialog.
+ * @callbackFn Allows conversion of the callback to a promise using dialogPromise.
+ * @return rendered dialog.
+ */
+function dialogCallback(data, callbackFn, options = {}) {
+  data.buttons = {
+    one: {
+      icon: '<i class="fas fa-check"></i>',
+      label: "Confirm",
+      callback: html => callbackFn(html)
+    }
+  };
 
+  data.default = "one";
+  data.close = () => callbackFn("Close");
+
+  let d = new Dialog(data, options);
+  d.render(true, { height: "100%" });
+}
