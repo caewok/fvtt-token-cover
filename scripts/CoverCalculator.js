@@ -2,7 +2,6 @@
 canvas,
 CONFIG,
 CONST,
-Dialog,
 duplicate,
 fromUuidSync,
 game,
@@ -43,43 +42,27 @@ export const SOCKETS = {
 
 Hooks.once("socketlib.ready", () => {
   SOCKETS.socket = socketlib.registerModule(MODULE_ID);
-  SOCKETS.socket.register("dialogPromise", dialogPromise);
+  SOCKETS.socket.register("coverDialog", coverDialog);
   SOCKETS.socket.register("disableAllATVCover", disableAllATVCover);
   SOCKETS.socket.register("enableATVCover", enableATVCover);
 });
 
 /**
- * Convert dialog to a promise to allow use with await/async.
- * @content HTML content for the dialog.
- * @return Promise for the html content of the dialog
- * Will return "Cancel" or "Close" if those are selected.
+ * Create a dialog, await it, and return the result.
+ * For use with sockets.
  */
-export function dialogPromise(data, options = {}) {
-  return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
-    dialogCallback(data, html => resolve(html), options);
-  });
-}
+async function coverDialog(data, options = {}) {
+  const res = await CoverDialog.dialogPromise(data, options);
+  if ( res === "Close" ) return res;
 
-/**
- * Create new dialog with a callback function that can be used for dialogPromise.
- * @content HTML content for the dialog.
- * @callbackFn Allows conversion of the callback to a promise using dialogPromise.
- * @return rendered dialog.
- */
-function dialogCallback(data, callbackFn, options = {}) {
-  data.buttons = {
-    one: {
-      icon: '<i class="fas fa-check"></i>',
-      label: "Confirm",
-      callback: html => callbackFn(html)
-    }
-  };
-
-  data.default = "one";
-  data.close = () => callbackFn("Close");
-
-  let d = new Dialog(data, options);
-  d.render(true, { height: "100%" });
+  // Pull the relevant data before returning so that the class is not lost.
+  const obj = {};
+  const coverSelections = res.find("[class=CoverSelect]");
+  for ( const selection of coverSelections ) {
+    const id = selection.id.replace("CoverSelect.", "");
+    obj[id] = selection.selectedIndex;
+  }
+  return obj;
 }
 
 /**
