@@ -7,6 +7,11 @@ CoverDialog = api.CoverDialog
 TYPES = COVER.TYPES;
 coverModule = game.modules.get(DFREDS_ID)?.active ? DFREDS_ID : MODULE_ID;
 
+async function setSetting(settingName, value) {
+//   settingsCache.delete(settingName);
+  return game.settings.set(MODULE_ID, settingName, value);
+}
+
 token = game.user._lastSelected
 targets = [...game.user.targets]
 
@@ -41,13 +46,14 @@ await coverDialog.workflow()
 await coverDialog.workflow("mwak")
 
 // Test different settings.
-async function setSetting(settingName, value) {
-//   settingsCache.delete(settingName);
-  return game.settings.set(MODULE_ID, settingName, value);
-}
+
+
+await setSetting("cover-chat-message", true);
+await setSetting("cover-chat-message", false);
 
 await setSetting("midiqol-covercheck-if-changed", true);
 await setSetting("midiqol-covercheck-if-changed", false);
+
 await setSetting("midiqol-covercheck", "midiqol-covercheck-none");
 await setSetting("midiqol-covercheck", "midiqol-covercheck-user");
 await setSetting("midiqol-covercheck", "midiqol-covercheck-user-cancel");
