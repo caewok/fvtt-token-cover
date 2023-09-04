@@ -156,6 +156,7 @@ export class CoverDialog {
     opts.imageWidth ??= 30; // Smaller image for the chat.
     opts.applied ??= true; // Treat as applied instead of "may have".
     opts.displayIgnored ??= false; // Don't describe what cover is ignored by token.
+    opts.include3dDistance ??= false; // Save space by not including distance.
 
     // Construct the chat message.
     const html = this._htmlShowCover(opts);
