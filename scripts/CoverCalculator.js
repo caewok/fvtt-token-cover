@@ -17,7 +17,7 @@ VisionSource
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, COVER, MODULES_ACTIVE, DEBUG } from "./const.js";
+import { MODULE_ID, COVER, MODULES_ACTIVE, DEBUG, WEAPON_ATTACK_TYPES } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
@@ -263,17 +263,8 @@ export class CoverCalculator {
    * @param {string} type   all, mwak, msak, rwak, rsak
    * @returns {string}
    */
-  static attackNameForType(type) {
-    // TODO: localize
-    switch ( type ) {
-      case "all": return "all";
-      case "mwak": return "melee weapon";
-      case "msak": return "melee spell";
-      case "rwak": return "ranged weapon";
-      case "rsak": return "ranged spell";
-    }
-    return undefined;
-  }
+
+  static attackNameForType(type) { return game.i18n.localize(WEAPON_ATTACK_TYPES[type]); }
 
   static async disableAllCover(token) {
     if ( !(token instanceof Token) ) token = canvas.tokens.get(token);

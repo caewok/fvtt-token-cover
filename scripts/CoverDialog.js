@@ -160,8 +160,6 @@ export class CoverDialog {
     return Promise.all(promises);
   }
 
-
-
   /**
    * Display a dialog displaying cover tests to the user.
    * @param {object} opts     Options passed to htmlCoverTable.
@@ -207,12 +205,14 @@ ${html}
     const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
 
     let ignoresCoverLabel = "";
-    if ( allCoverIgnored > 0 ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(allCoverIgnored)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
-    if ( typeCoverIgnored > 0 ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(typeCoverIgnored)} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
-    if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = ` <em>Ignores:${ignoresCoverLabel}</em>`;
+    if ( allCoverIgnored > 0 ) ignoresCoverLabel += `<br> &le; ${CoverCalculator.coverNameForType(allCoverIgnored)} (${CoverCalculator.attackNameForType("all")})`;
+    if ( typeCoverIgnored > 0 && actionType !== "all" ) ignoresCoverLabel += `<br> &le; ${CoverCalculator.coverNameForType(typeCoverIgnored)} (${CoverCalculator.attackNameForType(actionType)}s)`;
+    if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = ` <br><em>Ignores:${ignoresCoverLabel}</em>`;
+
+    const actionDescription = actionType ? `${CoverCalculator.attackNameForType(actionType)}.` : "";
 
     let html =
-    `<b>${token.name}</b>. ${CoverCalculator.attackNameForType(actionType)} attack. ${ignoresCoverLabel}
+    `<b>${token.name}</b>. ${actionDescription} ${ignoresCoverLabel}
     `;
 
     const include3dDistance = true;

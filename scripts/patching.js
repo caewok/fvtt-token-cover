@@ -22,7 +22,7 @@ import {
 
 import { toggleActiveEffectTokenDocument, _onCreateDocumentsActiveEffect, rollAttackItem5e } from "./cover.js";
 
-import { MODULE_ID, MODULES_ACTIVE, DEBUG, COVER } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, DEBUG, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 
 import {
   testCollision3dPointSourcePolygon,
@@ -122,8 +122,7 @@ export function registerLibWrapperMethods() {
 }
 
 function cachedGetterIgnoresCover() {
-  return this._ignoresCoverType
-    || (this._ignoresCoverType = new (game.modules.get(MODULE_ID).api.IGNORES_COVER_HANDLER)(this));
+  return this._ignoresCoverType || (this._ignoresCoverType = new IGNORES_COVER_HANDLER(this));
 }
 
 function updateSourceToken(wrapper, ...args) {
