@@ -2,13 +2,16 @@
 canvas,
 CONFIG,
 CONST,
+Dialog,
 duplicate,
+fromUuidSync,
 game,
 Hooks,
 PIXI,
 PointSourcePolygon,
 Ray
 socketlib,
+Token,
 VisionSource
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -107,7 +110,7 @@ async function disableAllATVCover(tokenUUID) {
 async function enableATVCover(tokenUUID, type = COVER.TYPES.LOW) {
   // If enabling the "None" cover, remove all cover.
   // If TOTAL, this is used as a flag elsewhere to remove the token from targeting. Ignored here.
-  if ( type === COVER.TYPES.NONE ) return disableAllATVCover(uuid);
+  if ( type === COVER.TYPES.NONE ) return disableAllATVCover(tokenUUID);
   if ( type === COVER.TYPES.TOTAL ) return;
 
   // Confirm the token UUID is valid.
@@ -121,16 +124,16 @@ async function enableATVCover(tokenUUID, type = COVER.TYPES.LOW) {
 
   // Add the effect. (ActiveEffect hooks will prevent multiple additions.)
   const effectData = CONFIG.statusEffects.find(e => e.id === desiredCoverId);
-  return tokenD.toggleActiveEffect(effectData, { active: true })
+  return tokenD.toggleActiveEffect(effectData, { active: true });
 }
 
-async function enableATVCoverSocket(tokenUUID, type = COVER.TYPES.LOW) {
-  return SOCKETS.socket.executeAsGM("enableATVCover", tokenUUID, type);
-}
-
-async function disableAllATVCoverSocket(tokenUUID) {
-  return SOCKETS.socket.executeAsGM("disableAllATVCover",tokenUUID);
-}
+// async function enableATVCoverSocket(tokenUUID, type = COVER.TYPES.LOW) {
+//   return SOCKETS.socket.executeAsGM("enableATVCover", tokenUUID, type);
+// }
+//
+// async function disableAllATVCoverSocket(tokenUUID) {
+//   return SOCKETS.socket.executeAsGM("disableAllATVCover", tokenUUID);
+// }
 
 /**
  * Remove all ATV cover statuses (ActiveEffect) from a token.
@@ -164,7 +167,7 @@ async function disableAllDFredsCover(uuid) {
 async function enableDFredsCover(uuid, type = COVER.TYPES.LOW) {
   // If enabling the "None" cover, remove all cover.
   // If TOTAL, this is used as a flag elsewhere to remove the token from targeting. Ignored here.
-  if ( type === COVER.TYPES.NONE ) return disableAllDFredsCover(actorUUID);
+  if ( type === COVER.TYPES.NONE ) return disableAllDFredsCover(uuid);
   if ( type === COVER.TYPES.TOTAL ) return;
 
   // Check that actor exists to avoid error when calling addEffect below.
@@ -315,32 +318,22 @@ export class CoverCalculator {
   /**
    * Run cover calculations for all targets against all tokens.
    * Ignore when token equals target.
-   * @param {Token[]} tokens
+   * @param {Token} token
    * @param {Token[]} targets
-   * @returns {object{object{COVER_TYPE}}} Object with token ids, each with target id that has cover.
+   * @returns {Map<Token, COVER_TYPE>}
    */
-  static coverCalculations(tokens, targets) {
-    const calculations = {};
-
-    for ( const token of tokens ) {
-      const tokenCalcs = {};
-      calculations[`${token.id}`] = tokenCalcs;
-      for ( const target of targets ) {
-        if ( target.id === token.id ) {
-          tokenCalcs[`${target.id}`] = null;
-        } else {
-          const coverCalc = new CoverCalculator(token, target);
-          tokenCalcs[`${target.id}`] = coverCalc.targetCover();
-        }
-      }
+  static coverCalculations(token, targets, calcs) {
+    calcs ??= new Map();
+    for ( const target of targets ) {
+      const coverCalc = new CoverCalculator(token, target);
+      calcs.set(target, coverCalc.targetCover());
     }
-
-    return calculations;
+    return calcs;
   }
 
   /**
    * Construct an html table describing cover for various target(s) versus token(s).
-   * @param {Token[]} tokens    Array of tokens to measure cover from.
+   * @param {Token} token       Token to measure cover from.
    * @param {Token[]} targets   Target tokens that may have cover from one or more tokens.
    * @param {object} [options]  Options that affect the html creation
    * @param {boolean} [options.include3dDistance]   Include 3d distance calculation.
@@ -348,10 +341,10 @@ export class CoverCalculator {
    * @returns {object {html: {string}, nCover: {number}, coverResults: {COVER_TYPES[][]}}}
    *   String of html content that can be used in a Dialog or ChatMessage.
    */
-  static htmlCoverTable(tokens, targets, opts) {
+  static htmlCoverTable(token, targets, opts) {
     if ( DEBUG.cover ) Draw.clearDrawings();
-    const coverDialog = new CoverDialog(tokens, targets);
-    return coverDialog.htmlCoverTable(opts);
+    const coverDialog = new CoverDialog(token, targets);
+    return coverDialog._htmlShowCover(opts);
   }
 
   /**
@@ -874,6 +867,3 @@ export class CoverCalculator {
     }
   }
 }
-
-
-

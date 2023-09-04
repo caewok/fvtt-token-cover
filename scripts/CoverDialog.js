@@ -18,58 +18,41 @@ import { SETTINGS, getSetting } from "./settings.js";
 
 export class CoverDialog {
 
-  /** @type {Set<Token>} */
-  tokens = new Set();
+  /** @type {Token} */
+  token;
 
   /** @type {Set<Token>} */
   targets = new Set();
 
-  /**
-   * @typedef TokenCoverCalculations
-   * @type {object}
-   * @property {string: COVER_TYPE}
-   * Each property is the string of the token id, with the cover type for that token.
-   */
+  /** @type {Map<Token, COVER_TYPE>} */
+  #coverCalculations = new Map();
 
-  /** @type {{object{TokenCoverCalculations}} */
-  #coverCalculations;
-
-  constructor(tokens, targets) {
-    if ( !tokens ) tokens = [...canvas.tokens.controlled];
-    if ( !targets ) targets = [...game.user.targets];
-
-    if ( tokens instanceof Token ) tokens = [tokens];
+  constructor(token, targets) {
+    token ??= game.user._lastSelected;
+    targets ??= game.user.targets;
     if ( targets instanceof Token ) targets = [targets];
 
-    tokens.forEach(t => this.tokens.add(t));
+    // Store the provided token and targets.
+    this.token = token;
     targets.forEach(t => this.targets.add(t));
 
-    if ( this.tokens.size < 1 ) console.warn("CoverDialog|no tokens provided.");
+    // Mostly for debugging
+    if ( !token || !(token instanceof Token) ) console.error("CoverDialog|no token provided.");
     if ( this.targets.size < 1 ) console.warn("CoverDialog|no targets provided.");
   }
 
+  /** @type {Map<Token, COVER_TYPE} */
   get coverCalculations() {
-    return this.#coverCalculations
-      || (this.#coverCalculations = CoverCalculator.coverCalculations(this.tokens, this.targets));
+    if ( this.#coverCalculations.size === this.targets.length ) return this.#coverCalculations;
+    CoverCalculator.coverCalculations(this.token, this.targets, this.#coverCalculations);
+    return this.#coverCalculations;
   }
 
-  resetCoverCalculations() { this.#coverCalculations = undefined; }
-
-  /**
-   * If the token(s) are not present in the set, add them and refresh cover calculation.
-   * @param {Token[]} token
-   */
-  _addTokens(tokens) {
-    if ( tokens instanceof Token ) tokens = [tokens];
-    let recalc = false;
-    tokens.forEach(t => {
-      if ( !this.tokens.has(t) ) {
-        recalc = true;
-        this.tokens.add(t);
-      }
-    });
-    if ( recalc ) this.resetCoverCalculations();
+  copyTokenCoverCalculations() {
+    return new Map(this.#coverCalculations);
   }
+
+  resetCoverCalculations() { this.#coverCalculations.clear(); }
 
   /**
    * If the targets(s) are not present in the set, add them and refresh cover calculation.
@@ -88,126 +71,135 @@ export class CoverDialog {
   }
 
   /**
-   * Retrieve cover calculations for a specific token of those provided.
-   * If token ignores cover, apply that as well.
-   * @param {Token} token
-   * @param {string} actionType     "msak"|"mwak"|"rsak"|"rwak"
-   */
-  coverCalculationsForTokenAction(token, actionType) {
-    this._addTokens(token);
-    const COVER_TYPES = CoverCalculator.COVER_TYPES;
-    const ic = token.ignoresCoverType;
-    const allCoverIgnored = ic.all;
-    const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
-    const ignoresCover = allCoverIgnored ? COVER_TYPES.TOTAL : typeCoverIgnored;
-    const tokenCoverCalculations = duplicate(this.coverCalculations[token.id]);
-    const targets = this.targets;
-    for ( const target of targets ) {
-      const cover = tokenCoverCalculations[target.id];
-      const calcCover = cover <= ignoresCover ? COVER_TYPES.NONE : cover;
-      tokenCoverCalculations[target.id] = calcCover;
-    }
-    return tokenCoverCalculations;
-  }
-
-  /**
    * Determine if one or more calculated token covers vary from the current token cover.
+   * @param {Map<Token, COVER_TYPE>} [coverCalculations]
+   * @returns {boolean}
    */
-  _tokenCoverCalculationsMatchTargetCovers(tokenCoverCalculations, targets) {
-    for ( const target of targets ) {
-      if ( tokenCoverCalculations[target.id] !== target.coverType ) return false;
+  _targetCoversMatchCalculations(coverCalculations) {
+    coverCalculations ??= this.coverCalculations;
+    for ( const [target, cover] of coverCalculations ) {
+      if ( cover !== target.coverType ) return false;
     }
     return true;
   }
 
   /**
-   * Convert tokenCoverCalculations to coverCalculations by applying the same set of cover
-   * for each token.
-   */
-  static convertTokenCalculations(tokens, tokenCoverCalculations) {
-    if ( tokens instanceof Token ) tokens = [tokens];
-    const coverCalculations = {};
-    for ( const token of tokens ) coverCalculations[`${token.id}`] = tokenCoverCalculations;
-    return coverCalculations;
-  }
-
-  /**
    * Request that the user or GM confirm cover for a given token and targets
-   * @param {boolean} askGM   Should the GM get the cover confirmation dialog?
    * @param {object} [opts]   Optional parameters used to construct the dialog
-   * @param {Token} [opts.token]      Which token to use to test for cover. Default is this.tokens[0]
-   * @param {Token[]} [opts.targets]  Array of targets to test. Defaults to this.targets
-   * @param {string} [actionType]     "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
-   * @returns {TokenCoverCalculations}
+   * @param {boolean} [opts.askGM]      Should the GM get the cover confirmation dialog?
+   * @param {string} [opts.actionType]  "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
+   * @returns {Map<Token, COVER_TYPE>}
    */
-  async confirmCover({ askGM, token, targets, actionType, tokenCoverCalculations } = {}) {
+  async confirmCover({ askGM, actionType } = {}) {
     askGM ||= false;
-    const dialogData = this._coverCheckDialogContent({ token, targets, actionType, tokenCoverCalculations });
+    const html = this._htmlConfirmCover({ actionType });
+    const dialogData = { title: game.i18n.localize("tokenvisibility.phrases.ConfirmCover"), content: html };
     const res = askGM
       ? await SOCKETS.socket.executeAsGM("dialogPromise", dialogData)
       : await this.constructor.dialogPromise(dialogData);
     if ( "Close" === res ) return false;
 
     // Update the cover calculations with User or GM selections
-    tokenCoverCalculations = dialogData.tokenCoverCalculations;
+    const confirmedCalcs = dialogData.coverCalculations;
     const coverSelections = res.find("[class=CoverSelect]");
     for ( const selection of coverSelections ) {
       const id = selection.id.replace("CoverSelect.", "");
-      tokenCoverCalculations[id] = selection.selectedIndex;
+      const target = canvas.tokens.get(id);
+      confirmedCalcs.set(target, selection.selectedIndex);
     }
-    return tokenCoverCalculations;
+    return confirmedCalcs;
   }
 
-  async _confirmCoverCalculations(token, tokenCoverCalculations, actionType) {
+  /**
+   * Based on settings, present user/GM with the cover calculations.
+   * 1. GM confirms / cancels
+   * 2. User confirms / cancels
+   * 3. User accepts / cancels
+   * @param {string} [actionType]  "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
+   * @returns {Map<Token, COVER_TYPE>|false}
+   */
+  async presentCoverCalculations(actionType) {
     const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
     const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
     let askGM = true;
+    let coverCalculations;
     switch ( coverCheckOption ) {
       case choices.USER:
         askGM = false;
       case choices.GM:  // eslint-disable-line no-fallthrough
-        tokenCoverCalculations = await this.confirmCover({ askGM, actionType, tokenCoverCalculations });
+        coverCalculations = await this.confirmCover({ askGM, actionType });
         // Allow the GM or user to omit targets.
-        for ( const [targetId, targetCover] of Object.entries(tokenCoverCalculations)) {
-          if ( targetCover === COVER.TYPES.TOTAL ) delete tokenCoverCalculations[targetId];
-        }
+        coverCalculations.forEach(([token, cover]) => {
+          if ( cover === COVER.TYPES.TOTAL) coverCalculations.delete(token);
+        });
         break;
       case choices.USER_CANCEL: {
-        const coverCalculations = this.convertTokenCalculations(token, tokenCoverCalculations);
-        const dialogRes = this.htmlCoverTable({ coverCalculations, actionType });
+        const dialogRes = await this.showCoverResults();
         if ( "Close" === dialogRes ) return false;
       }
     }
-    return tokenCoverCalculations;
+    if ( !coverCalculations.size ) return false;
+    return coverCalculations;
   }
 
   async _sendCoverCalculationsToChat(options) {
-    const coverTable = this.htmlCoverTable(options);
+    const coverTable = this._htmlShowCover(options);
     if ( coverTable.nCoverTotal ) return ChatMessage.create({ content: coverTable.html });
   }
 
   /**
    * Update targets' cover based on token --> target cover calculations.
-   * @param {TokenCoverCalculations} tokenCoverCalculations
+   * @param {Map<Token, COVER_TYPE>} [coverCalculations]
    * @returns {Promise<>}
    */
-  async updateTargetsCover(tokenCoverCalculations) {
-    const promises = Object.entries(tokenCoverCalculations)
-      .map(([targetId, coverStatus]) => CoverCalculator.enableCover(targetId, coverStatus));
+  async updateTargetsCover(coverCalculations) {
+    coverCalculations ??= this.coverCalculations;
+    const promises = [];
+    coverCalculations.forEach((coverStatus, target) =>
+      promises.push(CoverCalculator.enableCover(target.id, coverStatus)));
     return Promise.all(promises);
   }
 
 
-  /**
-   * Build cover check dialog data to ask the user to confirm cover choices for targets.
-   */
-  _coverCheckDialogContent({ token, targets, tokenCoverCalculations, actionType } = {}) {
-    if ( token ) this._addTokens(token);
-    if ( targets ) this._addTargets(targets);
 
-    if ( !token ) [token] = this.tokens;
-    targets ??= this.targets;
-    tokenCoverCalculations ??= this.coverCalculationsForTokenAction(token, actionType);
+  /**
+   * Display a dialog displaying cover tests to the user.
+   * @param {object} opts     Options passed to htmlCoverTable.
+   */
+  async showCoverResults(opts) {
+    const coverAlgorithm = getSetting(SETTINGS.COVER.ALGORITHM);
+    const algorithmDescription = game.i18n.localize(`${MODULE_ID}.settings.${coverAlgorithm}`);
+    const html = this._htmlShowCover(opts);
+    const content =
+`
+${html}
+<em>Cover algorithm: ${algorithmDescription}</em>
+<br>
+<br>
+`;
+    const dialogData = {
+      title: game.i18n.localize(`${MODULE_ID}.phrases.CoverByTarget`),
+      content,
+      buttons: {
+        one: {
+          icon: '<i class="fas fa-times"></i>',
+          label: game.i18n.localize(`${MODULE_ID}.phrases.Done`)
+        }
+      },
+      default: game.i18n.localize(`${MODULE_ID}.phrases.Done`),
+      height: "100%"
+    };
+    return this.constructor.dialogPromise(dialogData);
+  }
+
+  /**
+   * Build html to ask user to confirm cover choices for targets.
+   * @param {object} [opts]     Options that affect the html output
+   * @param {string} [opts.actionType]    "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
+   * @returns {string}    HTML string
+   */
+  _htmlConfirmCover({ actionType } = {}) {
+    const { token, targets, coverCalculations } = this;
 
     const COVER_TYPES = CoverCalculator.COVER_TYPES;
     const ic = token.ignoresCoverType;
@@ -215,8 +207,8 @@ export class CoverDialog {
     const typeCoverIgnored = ic[actionType] || COVER_TYPES.NONE;
 
     let ignoresCoverLabel = "";
-    if ( allCoverIgnored > 0 ) ignoresCoverLabel += `<br>â‰¤ ${CoverCalculator.coverNameForType(allCoverIgnored)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
-    if ( typeCoverIgnored > 0 ) ignoresCoverLabel += `<br>â‰¤ ${CoverCalculator.coverNameForType(typeCoverIgnored)} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
+    if ( allCoverIgnored > 0 ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(allCoverIgnored)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
+    if ( typeCoverIgnored > 0 ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(typeCoverIgnored)} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
     if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = ` <em>Ignores:${ignoresCoverLabel}</em>`;
 
     let html = `<b>${token.name}</b>. ${CoverCalculator.attackNameForType(actionType)} attack. ${ignoresCoverLabel}`;
@@ -243,7 +235,7 @@ export class CoverDialog {
     for ( const [key, value] of Object.entries(coverNames) ) coverNames[key] = CoverCalculator.coverNameForType(value);
 
     for ( const target of targets ) {
-      const cover = tokenCoverCalculations[target.id];
+      const cover = coverCalculations.get(target);
 
       const target_center = new Point3d(
         target.center.x,
@@ -287,57 +279,21 @@ export class CoverDialog {
     <br>
     `;
 
-    const dialogData = {
-      content: html,
-      title: "Confirm cover",
-      tokenCoverCalculations,
-      token,
-      targets
-    };
-
-    return dialogData;
+    return html;
   }
 
   /**
-   * Display a dialog displaying cover tests to the user.
+   * Construct an html table describing cover for various target(s).
+   * @param {object} [opts]  Options that affect the html creation
+   * @param {boolean} [opts.include3dDistance]    Include 3d distance calculation
+   * @param {boolean} [opts.includeZeroCover]     Include targets that have no cover in the resulting html
+   * @param {number} [opts.imageWidth]            How wide to make the target images
+   * @param {string} [opts.actionType]            "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
+   * @param {boolean} [opts.applied]              The cover is as-applied by user/GM versus calculated
+   * @param {boolean} [opts.displayIgnored]       Display cover results for cover ignored by token
+   * @returns {string}    HTML string
    */
-  async showCoverResults() {
-    const coverAlgorithm = getSetting(SETTINGS.COVER.ALGORITHM);
-    const algorithmDescription = game.i18n.localize(`${MODULE_ID}.settings.${coverAlgorithm}`);
-    const coverTable = this.htmlCoverTable();
-    const content =
-`
-${coverTable.html}
-<em>Cover algorithm: ${algorithmDescription}</em>
-<br>
-<br>
-`;
-    const dialogData = {
-      title: game.i18n.localize(`${MODULE_ID}.phrases.CoverByTarget`),
-      content,
-      buttons: {
-        one: {
-          icon: '<i class="fas fa-times"></i>',
-          label: game.i18n.localize(`${MODULE_ID}.phrases.Done`)
-        }
-      },
-      default: game.i18n.localize(`${MODULE_ID}.phrases.Done`),
-      height: "100%"
-    };
-    return this.constructor.dialogPromise(dialogData);
-  }
-
-  /**
-   * Construct an html table describing cover for various target(s) versus token(s).
-   * @param {Token[]} tokens    Array of tokens to measure cover from.
-   * @param {Token[]} targets   Target tokens that may have cover from one or more tokens.
-   * @param {object} [options]  Options that affect the html creation
-   * @param {boolean} [options.include3dDistance]   Include 3d distance calculation.
-   * @param {boolean} [options.includeZeroCover]  Include targets that have no cover in the resulting html.
-   * @returns {object {html: {string}, nCover: {number}, coverResults: {COVER_TYPES[][]}}}
-   *   String of html content that can be used in a Dialog or ChatMessage.
-   */
-  htmlCoverTable({ tokens, targets,
+  _htmlShowCover({
     include3dDistance = true,
     includeZeroCover = true,
     imageWidth = 50,
@@ -346,119 +302,108 @@ ${coverTable.html}
     applied = false,
     displayIgnored = true } = {}) {
 
-    if ( tokens ) this._addTokens(tokens);
-    if ( targets ) this._addTargets(targets);
-    tokens ??= this.tokens;
-    targets ??= this.targets;
+    const { token, targets } = this;
+    coverCalculations ??= this.coverCalculations;
     const COVER_TYPES = CoverCalculator.COVER_TYPES;
-    coverCalculations ??= CoverCalculator.coverCalculations(tokens, targets);
+    const token_center = new Point3d(token.center.x, token.center.y, token.topZ); // Measure from token vision point.
 
     let html = "";
-    const coverResults = [];
-    let nCoverTotal = 0;
-    for ( const token of tokens ) {
-      let nCover = 0;
-      const targetCoverResults = [];
-      coverResults.push(targetCoverResults);
-      const token_center = new Point3d(token.center.x, token.center.y, token.topZ); // Measure from token vision point.
+    let nCover = 0;
 
-      const distHeader = include3dDistance ? '<th style="text-align: right"><b>Dist. (3d)</b></th>' : "";
-      let htmlTable =
-      `
-      <table id="${token.id}_table" class="table table-striped">
-      <thead>
-        <tr class="character-row">
-          <th colspan="2" ><b>Target</b></th>
-          <th style="text-align: left"><b>${applied ? "Applied Cover" : "Cover"}</b></th>
-          ${distHeader}
-        </tr>
-      </thead>
-      <tbody>
-      `;
+    // Add the distance column if requested.
+    const distHeader = include3dDistance ? '<th style="text-align: right"><b>Dist. (3d)</b></th>' : "";
 
-      for ( const target of targets ) {
-        if ( token.id === target.id ) {
-          // Skip targeting oneself.
-          targetCoverResults.push(COVER_TYPES.NONE);
-          continue;
-        }
+    // Build the table header
+    let htmlTable =
+    `
+    <table id="${token.id}_table" class="table table-striped">
+    <thead>
+      <tr class="character-row">
+        <th colspan="2" ><b>Target</b></th>
+        <th style="text-align: left"><b>${applied ? "Applied Cover" : "Cover"}</b></th>
+        ${distHeader}
+      </tr>
+    </thead>
+    <tbody>
+    `;
 
+    // Add a row to display the cover for each target.
+    for ( const target of targets ) {
+      // Determine the target cover.
+      const cover = coverCalculations.get(target);
+      if ( !includeZeroCover && cover === COVER_TYPES.NONE ) continue;
+      if ( cover !== COVER_TYPES.NONE ) nCover += 1;
+
+      // Pull the token canvas image.
+      const targetImage = target.document.texture.src;
+
+      // If needed, determine the target distance.
+      let distContent = "";
+      if ( include3dDistance ) {
         const target_center = new Point3d(
           target.center.x,
           target.center.y,
           CoverCalculator.averageTokenElevationZ(target));
-
-        const cover = coverCalculations[token.id][target.id];
-
-        targetCoverResults.push(cover);
-
-        if ( !includeZeroCover && cover === COVER_TYPES.NONE ) continue;
-        if ( cover !== COVER_TYPES.NONE ) nCover += 1;
-
-        const targetImage = target.document.texture.src; // Token canvas image.
         const dist = Point3d.distanceBetween(token_center, target_center);
-        const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
-
-        htmlTable +=
-        `
-        <tr>
-        <td><img src="${targetImage}" alt="${target.name} image" width="${imageWidth}" style="border:0px"></td>
-        <td>${target.name}</td>
-        <td>${CoverCalculator.coverNameForType(cover)}</td>
-        ${distContent}
-        </tr>
-        `;
+        distContent = `<td style="text-align: right">${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>`;
       }
 
+      // Add the table row.
       htmlTable +=
       `
-      </tbody>
-      </table>
-      <br>
+      <tr>
+      <td><img src="${targetImage}" alt="${target.name} image" width="${imageWidth}" style="border:0px"></td>
+      <td>${target.name}</td>
+      <td>${CoverCalculator.coverNameForType(cover)}</td>
+      ${distContent}
+      </tr>
       `;
-
-      // Describe the types of cover ignored by the token
-      // If actionType is defined, use that to limit the types
-      let ignoresCoverLabel = "";
-
-      if ( displayIgnored ) {
-        const ic = token.ignoresCoverType;
-        if ( ic.all > 0 ) ignoresCoverLabel += `<br>â‰¤ ${CoverCalculator.coverNameForType(ic.all)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
-        if ( actionType && ic[actionType] > 0 ) ignoresCoverLabel += `<br>â‰¤ ${CoverCalculator.coverNameForType(ic[actionType])} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
-
-        else { // Test them all...
-          if ( ic.mwak ) ignoresCoverLabel += `<br>â‰¤ ${CoverCalculator.coverNameForType(ic.mwak)} cover (${CoverCalculator.attackNameForType("mwak")} attacks)`;
-          if ( ic.msak ) ignoresCoverLabel += `<br>â‰¤ ${CoverCalculator.coverNameForType(ic.msak)} cover (${CoverCalculator.attackNameForType("msak")} attacks)`;
-          if ( ic.rwak ) ignoresCoverLabel += `<br>â‰¤ ${CoverCalculator.coverNameForType(ic.rwak)} cover (${CoverCalculator.attackNameForType("rwak")} attacks)`;
-          if ( ic.rsak ) ignoresCoverLabel += `<br>â‰¤ ${CoverCalculator.coverNameForType(ic.rsak)} cover (${CoverCalculator.attackNameForType("rsak")} attacks)`;
-        }
-
-        if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = `<br><em>${token.name} ignores:${ignoresCoverLabel}</em>`;
-      }
-
-      const targetLabel = `${nCover} target${nCover === 1 ? "" : "s"}`;
-      const numCoverLabel = applied
-        ? nCover === 1 ? "has" : "have"
-        : "may have";
-
-      htmlTable =
-      `
-      ${targetLabel} ${numCoverLabel} cover from <b>${token.name}</b>.
-      ${ignoresCoverLabel}
-      ${htmlTable}
-      `;
-
-      nCoverTotal += nCover;
-      if ( includeZeroCover || nCover ) html += htmlTable;
     }
 
-    return {
-      nCoverTotal,
-      html,
-      coverResults
-    };
-  }
+    // Finalize the table.
+    htmlTable +=
+    `
+    </tbody>
+    </table>
+    <br>
+    `;
 
+    // Describe the types of cover ignored by the token
+    // If actionType is defined, use that to limit the types
+    let ignoresCoverLabel = "";
+    if ( displayIgnored ) {
+      const ic = token.ignoresCoverType;
+      if ( ic.all > 0 ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(ic.all)} cover (${CoverCalculator.attackNameForType("all")} attacks)`;
+      if ( actionType && ic[actionType] > 0 ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(ic[actionType])} cover (${CoverCalculator.attackNameForType(actionType)} attacks)`;
+
+      else { // Test them all...
+        if ( ic.mwak ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(ic.mwak)} cover (${CoverCalculator.attackNameForType("mwak")} attacks)`;
+        if ( ic.msak ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(ic.msak)} cover (${CoverCalculator.attackNameForType("msak")} attacks)`;
+        if ( ic.rwak ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(ic.rwak)} cover (${CoverCalculator.attackNameForType("rwak")} attacks)`;
+        if ( ic.rsak ) ignoresCoverLabel += `<br>² ${CoverCalculator.coverNameForType(ic.rsak)} cover (${CoverCalculator.attackNameForType("rsak")} attacks)`;
+      }
+
+      if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = `<br><em>${token.name} ignores:${ignoresCoverLabel}</em>`;
+    }
+
+    // State how many targets have cover prior to the cover table.
+    const targetLabel = `${nCover} target${nCover === 1 ? "" : "s"}`;
+    const numCoverLabel = applied
+      ? nCover === 1 ? "has" : "have"
+      : "may have";
+
+    htmlTable =
+    `
+    ${targetLabel} ${numCoverLabel} cover from <b>${token.name}</b>.
+    ${ignoresCoverLabel}
+    ${htmlTable}
+    `;
+
+    // Add the table to the html only if there is at least one token with cover
+    // or we are including tokens with no cover.
+    if ( includeZeroCover || nCover ) html += htmlTable;
+    return html;
+  }
 }
 
 /**

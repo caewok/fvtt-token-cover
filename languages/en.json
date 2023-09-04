@@ -106,5 +106,6 @@
 
     "tokenvisibility.phrases.Total": "Total",
     "tokenvisibility.phrases.CoverByTarget": "Cover by Target",
-    "tokenvisibility.phrases.Done": "Done"
+    "tokenvisibility.phrases.Done": "Done",
+    "tokenvisibility.phrases.ConfirmCover": "Confirm Cover"
 }
