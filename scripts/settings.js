@@ -71,6 +71,7 @@ export const SETTINGS = {
     ALGORITHM: "los-algorithm",
     TYPES: {
       POINTS: "los-points",
+      CORNERS: "los-corners",
       AREA: "los-area",
       AREA3D: "los-area-3d"
     },
@@ -254,6 +255,7 @@ export function registerSettings() {
     type: String,
     choices: {
       [LTYPES.POINTS]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.POINTS}`),
+      [LTYPES.CORNERS]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.CORNERS}`),
       [LTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.AREA}`),
       [LTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.AREA3D}`)
     },

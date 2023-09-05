@@ -14,6 +14,7 @@ import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import { Draw } from "./geometry/Draw.js";
+import { CoverCalculator } from "./CoverCalculator.js";
 
 /* Visibility algorithm
 Three tests, increasing in difficulty and stringency. User can select between 0% and 100%
@@ -135,6 +136,9 @@ export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test)
       hasLOS = testLOSPoint(visionSource, target, test);
       debug && drawDebugPoint(visionSource, test.point, hasLOS); // eslint-disable-line no-unused-expressions
       break;
+    case types.CORNERS:
+      hasLOS = testLOSCorners(visionSource, target, test);
+      break;
     case types.AREA:
       hasLOS = testLOSArea(visionSource, target, test);
       break;
@@ -225,6 +229,34 @@ function testLOSPoint(visionSource, target, test) {
   // Test all non-infinite walls for collisions
   if ( MODULES_ACTIVE.LEVELS ) return !CONFIG.Levels.API.testCollision(origin, pt);
   else return !PointSourcePolygon.testCollision3d(origin, pt, { type: "sight", mode: "any", wallTypes: "limited" });
+}
+
+/**
+ * Test a target token for line-of-sight using corners of the token and corners of the target.
+ * (dnd5e DMG rule)
+ * Tests all corners and returns true if at least one corner->corner is unblocked.
+ * @param {VisionSource} visionSource
+ * @param {Token} target
+ * @param {object} test       Object containing Point to test
+ * @returns {boolean} True if source has line-of-sight to point
+ */
+function testLOSCorners(visionSource, target, test) {
+  if ( !(target instanceof Token) ) return testLOSPoint(visionSource, target, test);
+
+  // If this is not the center point, do not test.
+  if ( !testIsCenterPoint(target, test) ) return false;
+
+  const coverCalc = new CoverCalculator(visionSource, target, {
+    type: "sight",
+    deadTokensBlock: false,
+    liveTokensBlock: false,
+    liveForceHalfCover: false,
+    proneTokensBlock: false
+  });
+
+  coverCalc.debug = DEBUG.los;
+  const cover = targetCover(SETTINGS.COVER.TYPES.CORNER_CORNERS_GRID);
+  return cover < COVER.TYPES.HIGH;
 }
 
 /**
