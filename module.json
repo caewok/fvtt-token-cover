@@ -7,7 +7,7 @@
   "manifestPlusVersion": "1.0.0",
   "compatibility": {
     "minimum": "11.299",
-    "verified": "11.304"
+    "verified": "11.308"
   },
   "authors": [
     {
@@ -44,10 +44,19 @@
     {
       "name": "tokenvisionmacros",
       "label": "Alternative Token Vision Macros",
-      "path": "packs/macros.db",
+      "path": "packs/macros",
       "type": "Macro",
       "private": false
+    },
+    {
+      "name": "tokenvisionitems_sfrpg",
+      "label": "Alternative Token Vision Items",
+      "path": "packs/items/sfrpg",
+      "type": "Item",
+      "private": false,
+      "system": "sfrpg"
     }
+
   ],
   "languages": [
     {
