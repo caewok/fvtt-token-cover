@@ -3,7 +3,7 @@
     "tokenvisibility.settings.range-algorithm.Hint": "Number of points to use when testing whether a token is within range of another. Also controls number of points for line-of-sight points algorithm. See https://github.com/caewok/fvtt-token-visibility#settings for a full explanation.",
 
     "tokenvisibility.settings.range-points-center": "Token center only (1 point)",
-    "tokenvisibility.settings.range-points-five": "Token corners and center (5 points)",
+    "tokenvisibility.settings.range-points-five": "Token inset corners and center (5 points)",
     "tokenvisibility.settings.range-points-nine": "Foundry default (9 points)",
 
     "tokenvisibility.settings.range-points-3d.Name": "Test Bottom and Top Token Points",
@@ -19,6 +19,7 @@
     "tokenvisibility.settings.los-percent-area.Hint": "Percentage of the token hit area that must be viewable to another token to be considered visible by that other token. If set to 0, then if any part of the token is viewable, it is considered visible.",
 
     "tokenvisibility.settings.los-points": "Points on token",
+    "tokenvisibility.settings.los-corners": "Corners (dnd5e DMG)",
     "tokenvisibility.settings.los-area": "Token area",
     "tokenvisibility.settings.los-area-3d": "Token area 3d",
 

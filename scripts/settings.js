@@ -71,6 +71,7 @@ export const SETTINGS = {
     ALGORITHM: "los-algorithm",
     TYPES: {
       POINTS: "los-points",
+      CORNERS: "los-corners",
       AREA: "los-area",
       AREA3D: "los-area-3d"
     },
@@ -254,6 +255,7 @@ export function registerSettings() {
     type: String,
     choices: {
       [LTYPES.POINTS]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.POINTS}`),
+      [LTYPES.CORNERS]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.CORNERS}`),
       [LTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.AREA}`),
       [LTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.AREA3D}`)
     },
@@ -419,8 +421,6 @@ export function registerSettings() {
     type: Boolean,
     default: false
   });
-
-
 
   const LIVECHOICES = SETTINGS.COVER.LIVE_TOKENS.TYPES;
   game.settings.register(MODULE_ID, SETTINGS.COVER.LIVE_TOKENS.ALGORITHM, {
@@ -678,7 +678,9 @@ function losAlgorithmChanged(event) {
   const losAlgorithm = event.target.value;
   log(`los algorithm changed to ${losAlgorithm}`, event, this);
 
-  const displayArea = losAlgorithm === SETTINGS.LOS.TYPES.POINTS ? "none" : "block";
+  const displayArea = (losAlgorithm === SETTINGS.LOS.TYPES.AREA
+    || losAlgorithm === SETTINGS.LOS.TYPES.AREA3D) ? "block" : "none";
+
   const inputLOSArea = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.PERCENT_AREA}`);
   const divLOSArea = inputLOSArea[0].parentElement.parentElement;
   divLOSArea.style.display = displayArea;
