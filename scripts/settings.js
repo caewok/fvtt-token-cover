@@ -678,7 +678,9 @@ function losAlgorithmChanged(event) {
   const losAlgorithm = event.target.value;
   log(`los algorithm changed to ${losAlgorithm}`, event, this);
 
-  const displayArea = losAlgorithm === SETTINGS.LOS.TYPES.POINTS ? "none" : "block";
+  const displayArea = (losAlgorithm === SETTINGS.LOS.TYPES.AREA
+    || losAlgorithm === SETTINGS.LOS.TYPES.AREA3D) ? "block" : "none";
+
   const inputLOSArea = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.PERCENT_AREA}`);
   const divLOSArea = inputLOSArea[0].parentElement.parentElement;
   divLOSArea.style.display = displayArea;
