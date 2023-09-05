@@ -111,9 +111,14 @@ If enabled, all range measurements will be in three dimensions. Meaning that, fo
 By default, line-of-sight uses the "light" wall restriction when considering whether walls block. This is the same as default Foundry.
 
 Line of Sight Algorithm lets you select from:
-- Points on Token. If Range Points is set to 9, this would be the Foundry default.
+- Points on Token.
+- Corners.
 - Token Area
 - Token Area 3d
+
+Points on Token LOS uses the number of points set by the Range Points. If Range Points is set to 9, this would be the Foundry default.
+
+Corners LOS Mimics the DND5e DMG line-of-sight test, measured from corner of the token to corner of the target. The target is visible if it would have less than High cover (usually, if one or more corners are visible). (For dnd5e, this is usually described as "Total" cover.) The percent setting for High cover will affect this LOS option.
 
 #### Point on Token
 
@@ -139,7 +144,7 @@ This method is probably the most accurate way to determine if a token has visibi
 
 https://user-images.githubusercontent.com/1267134/199608396-22c017fc-2c58-4f5e-ace0-898ede8aa6fd.mov
 
-Here is another example with debug drawing on, to illustrate the token's viewing perspective. The token has limited angle vision, as seen by the blue shading, and there are two terrain walls, which cross each other, of different heights. The bright green is where the terrain walls cross and thus block vision. (The light green is only a single terrain wall and would not block vision.) The target in this case is the giant ape, displayed as a red box. The token is above the ground, but not above the giant ape. So it is looking down on the smaller terrain wall in front of it. 
+Here is another example with debug drawing on, to illustrate the token's viewing perspective. The token has limited angle vision, as seen by the blue shading, and there are two terrain walls, which cross each other, of different heights. The bright green is where the terrain walls cross and thus block vision. (The light green is only a single terrain wall and would not block vision.) The target in this case is the giant ape, displayed as a red box. The token is above the ground, but not above the giant ape. So it is looking down on the smaller terrain wall in front of it.
 
 ![Area3d Limited Angle Terrain Wall](https://user-images.githubusercontent.com/1267134/203361623-75e1e29f-0c7e-41e9-81ef-01ff67698328.jpg)
 
