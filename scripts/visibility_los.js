@@ -7,7 +7,7 @@ Token
 */
 "use strict";
 
-import { DEBUG, MODULES_ACTIVE } from "./const.js";
+import { DEBUG, MODULES_ACTIVE, COVER } from "./const.js";
 import { SETTINGS, getSetting } from "./settings.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Area2d } from "./Area2d.js";
@@ -255,7 +255,7 @@ function testLOSCorners(visionSource, target, test) {
   });
 
   coverCalc.debug = DEBUG.los;
-  const cover = targetCover(SETTINGS.COVER.TYPES.CORNER_CORNERS_GRID);
+  const cover = coverCalc.targetCover(SETTINGS.COVER.TYPES.CORNER_CORNERS_GRID);
   return cover < COVER.TYPES.HIGH;
 }
 

@@ -422,8 +422,6 @@ export function registerSettings() {
     default: false
   });
 
-
-
   const LIVECHOICES = SETTINGS.COVER.LIVE_TOKENS.TYPES;
   game.settings.register(MODULE_ID, SETTINGS.COVER.LIVE_TOKENS.ALGORITHM, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.LIVE_TOKENS.ALGORITHM}.Name`),
