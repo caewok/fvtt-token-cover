@@ -89,6 +89,7 @@ export class Area2d {
     config.tilesBlock ??= MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.EV;
     config.deadTokensBlock ??= false;
     config.liveTokensBlock ??= false;
+    config.proneTokensBlock ??= true;
 
     this.config = config;
   }

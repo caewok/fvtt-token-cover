@@ -222,6 +222,7 @@ export class CoverCalculator {
     config.deadTokensBlock ??= getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
     config.liveTokensBlock ??= liveTokenAlg !== liveTypes.NONE;
     config.liveForceHalfCover ??= liveTokenAlg === liveTypes.HALF;
+    config.proneTokensBlock ??= getSetting(SETTINGS.COVER.PRONE);
 
     this.config = config;
   }

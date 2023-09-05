@@ -78,6 +78,9 @@
     "tokenvisibility.settings.cover-token-dead-attribute.Name": "Token HP Attribute",
     "tokenvisibility.settings.cover-token-dead-attribute.Hint": "String indicating where the hit points for a `token.actor` can be found. Required to use dead tokens for cover.",
 
+    "tokenvisibility.settings.cover-prone.Name": "Prone Tokens Grant Cover",
+    "tokenvisibility.settings.cover-prone.Hint": "If the dead/live token is prone and could otherwise be cover, should it be considered cover?",
+
     "tokenvisibility.settings.cover-token-live.Name": "Live Tokens Grant Cover",
     "tokenvisibility.settings.cover-token-live.Hint": "'Cover': Token shape contributes to cover. 'Forced': Flat low cover for tokens; token shape not otherwise considered (dnd5e/pf2e). No cover: Tokens do not contribute to cover.",
     "tokenvisibility.settings.cover-token-live-none": "No cover",
