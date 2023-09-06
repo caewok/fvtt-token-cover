@@ -397,3 +397,20 @@ export function createItemHook(item, options, userId) {
   const coverIds = coverItems.map(i => i.id);
   actor.deleteEmbeddedDocuments("Item", coverIds);
 }
+
+/**
+ * For Starfinder, hook apply token status effect to add the cover item as needed.
+ * @param {Token} token           The token the status is being applied to
+ * @param {string} statusId       The status effect ID being applied, from CONFIG.specialStatusEffects
+ * @param {boolean} active        Is the special status effect now active?
+ */
+export function applyTokenStatusEffectHook(token, statusId, active) {
+  if ( game.system.id !== "sfrpg" ) return;
+
+  // Is this a cover status?
+  // statusId is all lowercase, at least in sfrpg.
+  const cover = COVER.TYPES_FOR_ID[MODULE_ID][statusId];
+  if ( !cover ) return;
+  return active ? CoverCalculator.enableCover(token, COVER.TYPES_FOR_ID[MODULE_ID][statusId])
+    :  CoverCalculator.disableAllCover(token);
+}

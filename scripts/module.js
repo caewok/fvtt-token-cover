@@ -15,7 +15,8 @@ import {
   midiqolPreambleCompleteHook,
   preCreateActiveEffectHook,
   preCreateItemHook,
-  createItemHook } from "./cover.js";
+  createItemHook,
+  applyTokenStatusEffectHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import {
   registerSettings,
@@ -147,6 +148,7 @@ function registerSystemHooks() {
   if ( game.system.id === "sfrpg" ) {
     Hooks.on("preCreateItem", preCreateItemHook);
     Hooks.on("createItem", createItemHook);
+    Hooks.on("applyTokenStatusEffect", applyTokenStatusEffectHook);
   }
 }
 
