@@ -7,6 +7,7 @@
 - Add setting to use or ignore token for cover when token is prone. Closes issue #46.
 - Add workflow option to notify user of cover calculations, and allow the user confirm/cancel only. Closes issue #45. Allow workflow to be used with dnd5e even without midiqol (workflow triggered on item attack roll).
 - Add LOS option to use corners-->corners to measure token visibility. Closes issue #44.
+- Added support for Starfinder RPG. Cover is added using items from the Compendium. Items with the flag `tokenvisibility.cover` are assumed to be cover, and the item folder for the system is checked before pulling from the compendium.
 
 # 0.5.3
 Fix the possibly borked v0.5.1 and v0.5.2. (Amazing what a stray ";" can do!)
