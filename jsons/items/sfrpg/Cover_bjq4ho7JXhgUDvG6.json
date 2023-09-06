@@ -79,7 +79,10 @@
   "effects": [],
   "folder": null,
   "flags": {
-    "core": {}
+    "core": {},
+    "tokenvisibility": {
+      "cover": 2
+    }
   },
   "_stats": {
     "systemId": "sfrpg",

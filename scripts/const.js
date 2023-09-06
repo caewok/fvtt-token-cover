@@ -38,6 +38,14 @@ COVER.TYPES = {
   TOTAL: 4
 };
 
+// Names of the SFRPG Cover items
+COVER.SFRPG = {
+  1: "Partial Cover",
+  2: "Cover",
+  3: "Improved Cover",
+  4: "Total Cover"
+};
+
 COVER.IDS = {};
 
 COVER.IDS[MODULE_ID] = new Set([

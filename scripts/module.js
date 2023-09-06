@@ -9,13 +9,21 @@ import { MODULE_ID, COVER, DEBUG, setCoverIgnoreHandler } from "./const.js";
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 
-import { targetTokenHook, combatTurnHook, midiqolPreambleCompleteHook, preCreateActiveEffectHook } from "./cover.js";
+import {
+  targetTokenHook,
+  combatTurnHook,
+  midiqolPreambleCompleteHook,
+  preCreateActiveEffectHook,
+  preCreateItemHook,
+  createItemHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import {
   registerSettings,
   updateSettingHook,
   renderSettingsConfigHook,
-  updateConfigStatusEffects } from "./settings.js";
+  updateConfigStatusEffects,
+  getSetting,
+  setSetting } from "./settings.js";
 
 // Rendering configs
 import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
@@ -81,6 +89,8 @@ Hooks.once("init", function() {
     HorizontalPoints3d,
     setCoverIgnoreHandler,
     SOCKETS,
+    getSetting,
+    setSetting,
 
     IgnoresCoverClasses: {
       IgnoresCover,
@@ -133,9 +143,15 @@ function registerSystemHooks() {
 
     setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
   }
+
+  if ( game.system.id === "sfrpg" ) {
+    Hooks.on("preCreateItem", preCreateItemHook);
+    Hooks.on("createItem", createItemHook);
+  }
 }
 
 Hooks.on("preCreateActiveEffect", preCreateActiveEffectHook);
+
 
 /**
  * A hook event that fires for every Document type after conclusion of an update workflow.

@@ -42,16 +42,16 @@
   ],
   "packs": [
     {
-      "name": "tokenvisionmacros",
-      "label": "Alternative Token Vision Macros",
+      "name": "tokenvision_macros",
+      "label": "ATV Macros",
       "path": "packs/macros",
       "type": "Macro",
       "private": false
     },
     {
-      "name": "tokenvisionitems_sfrpg",
-      "label": "Alternative Token Vision Items",
-      "path": "packs/items/sfrpg",
+      "name": "tokenvision_items_sfrpg",
+      "label": "ATV Items",
+      "path": "packs/items_sfrpg",
       "type": "Item",
       "private": false,
       "system": "sfrpg"

@@ -23,4 +23,8 @@ fvtt package pack --in ~/git/fvtt-token-visibility/jsons/macros --out ~/git/fvtt
 # Pull from a non-module location -- doesn't work
 # fvtt package unpack "atv-cover" --in ~/foundrydatav11/Data/worlds/test-starfinder/packs/atv-cover -t "Item" --out ~/git/fvtt-token-visibility/jsons/items/sfrpg
 
+# Starfinder items -- doesn't work with subfolders or --in path
+# fvtt package unpack "items/sfrpg" -t "Item" --out ~/git/fvtt-token-visibility/jsons/items
 
+fvtt package unpack "items_sfrpg" -t "Item" --out ~/git/fvtt-token-visibility/jsons/
+fvtt package pack --in ~/git/fvtt-token-visibility/jsons/items/sfrpg --type "Module" --compendiumType "Item" --compendiumName "items_sfrpg"

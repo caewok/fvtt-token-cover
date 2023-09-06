@@ -350,7 +350,7 @@ export function registerSettings() {
     type: Number
   });
 
-  if ( !MODULES_ACTIVE.DFREDS_CE ) {
+  if ( !MODULES_ACTIVE.DFREDS_CE && game.system.id !== "sfrpg" ) {
     game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.LOW, {
       name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Name`),
       label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Label`),
