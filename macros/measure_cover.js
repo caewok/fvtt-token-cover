@@ -1,6 +1,6 @@
 // Macro to measure cover between selected tokens and targets.
 // Determine token and targets.
-const token = game.user._lastSelected;
+const token = game.user._lastSelected || canvas.tokens.controlled[0];
 const targets = game.user.targets;
 if ( !token ) {
   ui.notifications.error("Please select a token.");
