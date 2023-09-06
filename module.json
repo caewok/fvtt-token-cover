@@ -7,7 +7,7 @@
   "manifestPlusVersion": "1.0.0",
   "compatibility": {
     "minimum": "11.299",
-    "verified": "11.304"
+    "verified": "11.308"
   },
   "authors": [
     {
@@ -42,12 +42,21 @@
   ],
   "packs": [
     {
-      "name": "tokenvisionmacros",
-      "label": "Alternative Token Vision Macros",
-      "path": "packs/macros.db",
+      "name": "tokenvision_macros",
+      "label": "ATV Macros",
+      "path": "packs/macros",
       "type": "Macro",
       "private": false
+    },
+    {
+      "name": "tokenvision_items_sfrpg",
+      "label": "ATV Items",
+      "path": "packs/items_sfrpg",
+      "type": "Item",
+      "private": false,
+      "system": "sfrpg"
     }
+
   ],
   "languages": [
     {

@@ -46,7 +46,7 @@ dnd5e: half, 3/4, full
 
 */
 
-import { COVER } from "./const.js";
+import { COVER, MODULE_ID } from "./const.js";
 import { getSetting, SETTINGS } from "./settings.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { CoverDialog } from "./CoverDialog.js";
@@ -346,4 +346,71 @@ export async function _onCreateDocumentsActiveEffect(wrapper, documents, context
     });
     await Promise.all(promises);
   }
+}
+
+/**
+ * For Starfinder, hook item creation to monitor cover added.
+ * If the cover already exists, do not add it again.
+ * @param {Document} document                     The pending document which is requested for creation
+ * @param {object} data                           The initial data object provided to the document creation request
+ * @param {DocumentModificationContext} options   Additional options which modify the creation request
+ * @param {string} userId                         The ID of the requesting user, always game.user.id
+ * @returns {boolean|void}                        Explicitly return false to prevent creation of this Document
+ */
+export function preCreateItemHook(item, data, options, userId) {
+  if ( game.system.id !== "sfrpg" || userId !== game.userId ) return;
+
+  // Is this item a cover status?
+  const coverType = item.getFlag(MODULE_ID, "cover");
+  if ( !coverType ) return;
+
+  // Does this actor already have this item?
+  const actor = item.parent;
+  if ( actor.items.some(i => i.getFlag(MODULE_ID, "cover") === coverType) ) return false;
+  return true;
+}
+
+/**
+ * For Starfinder, hook item creation to monitor cover added.
+ * When cover is added, remove all other cover items.
+ * @param {Document} document                     The pending document which is requested for creation
+ * @param {DocumentModificationContext} options   Additional options which modify the creation request
+ * @param {string} userId                         The ID of the requesting user, always game.user.id
+ */
+export function createItemHook(item, options, userId) {
+  if ( game.system.id !== "sfrpg" || userId !== game.userId ) return;
+
+  // Is this item a cover status?
+  const coverType = item.getFlag(MODULE_ID, "cover");
+  if ( !coverType ) return;
+
+  // Locate all other cover types on this actor.
+  const actor = item.parent;
+  const coverItems = actor.items.filter(i => {
+    const iCover = i.getFlag(MODULE_ID, "cover");
+    return iCover && iCover !== coverType;
+  });
+  if ( !coverItems.length ) return;
+
+  // Remove the other cover types.
+  // TODO: Is this a problem b/c it is async?
+  const coverIds = coverItems.map(i => i.id);
+  actor.deleteEmbeddedDocuments("Item", coverIds);
+}
+
+/**
+ * For Starfinder, hook apply token status effect to add the cover item as needed.
+ * @param {Token} token           The token the status is being applied to
+ * @param {string} statusId       The status effect ID being applied, from CONFIG.specialStatusEffects
+ * @param {boolean} active        Is the special status effect now active?
+ */
+export function applyTokenStatusEffectHook(token, statusId, active) {
+  if ( game.system.id !== "sfrpg" ) return;
+
+  // Is this a cover status?
+  // statusId is all lowercase, at least in sfrpg.
+  const cover = COVER.TYPES_FOR_ID[MODULE_ID][statusId];
+  if ( !cover ) return;
+  return active ? CoverCalculator.enableCover(token, COVER.TYPES_FOR_ID[MODULE_ID][statusId])
+    :  CoverCalculator.disableAllCover(token);
 }

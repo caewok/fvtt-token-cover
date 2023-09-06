@@ -38,6 +38,14 @@ COVER.TYPES = {
   TOTAL: 4
 };
 
+// Names of the SFRPG Cover items
+COVER.SFRPG = {
+  1: "Partial Cover",
+  2: "Cover",
+  3: "Improved Cover",
+  4: "Total Cover"
+};
+
 COVER.IDS = {};
 
 COVER.IDS[MODULE_ID] = new Set([
@@ -77,6 +85,25 @@ COVER.CATEGORIES = {
     [MODULE_ID]: `${MODULE_ID}.cover.HIGH`
   }
 };
+
+COVER.TYPES_FOR_ID = {
+  [MODULE_ID]: {
+    [`${MODULE_ID}.cover.LOW`]: COVER.TYPES.LOW,
+    [`${MODULE_ID}.cover.MEDIUM`]: COVER.TYPES.MEDIUM,
+    [`${MODULE_ID}.cover.HIGH`]: COVER.TYPES.HIGH,
+
+    // Sometimes the id is all lowercase.
+    [`${MODULE_ID}.cover.low`]: COVER.TYPES.LOW,
+    [`${MODULE_ID}.cover.medium`]: COVER.TYPES.MEDIUM,
+    [`${MODULE_ID}.cover.high`]: COVER.TYPES.HIGH
+  },
+
+  ["dfreds-convenient-effects"]: {
+    "Convenient Effect: Cover (Half)": COVER.TYPES.LOW,
+    "Convenient Effect: Cover (Three-Quarters)": COVER.TYPES.MEDIUM,
+    "Convenient Effect: Cover (Total)": COVER.TYPES.HIGH
+  }
+}
 
 COVER.MIN = Math.min(...Object.values(COVER.TYPES));
 COVER.MAX = Math.max(...Object.values(COVER.TYPES));

@@ -41,10 +41,22 @@ export const SOCKETS = {
 };
 
 Hooks.once("socketlib.ready", () => {
+  let disableAllATVCoverFn;
+  let enableATVCoverFn;
+  switch ( game.system.id ) {
+    case "sfrpg":
+      disableAllATVCoverFn = disableAllATVCoverSFRPG;
+      enableATVCoverFn = enableATVCoverSFRPG;
+      break;
+    default:
+      disableAllATVCoverFn = disableAllATVCover;
+      enableATVCoverFn = enableATVCover;
+  }
+
   SOCKETS.socket = socketlib.registerModule(MODULE_ID);
   SOCKETS.socket.register("coverDialog", coverDialog);
-  SOCKETS.socket.register("disableAllATVCover", disableAllATVCover);
-  SOCKETS.socket.register("enableATVCover", enableATVCover);
+  SOCKETS.socket.register("disableAllATVCover", disableAllATVCoverFn);
+  SOCKETS.socket.register("enableATVCover", enableATVCoverFn);
 });
 
 /**
@@ -83,6 +95,23 @@ async function disableAllATVCover(tokenUUID) {
 }
 
 /**
+ * Remove all ATV cover statuses (ActiveEffect) from a token in Starfinder RPG.
+ * Used in SOCKETS above.
+ * @param {string} tokenUUID         Token uuid
+ * @returns {Promise<boolean>} Return from toggleActiveEffect.
+ */
+async function disableAllATVCoverSFRPG(tokenUUID) {
+  // Confirm the token UUID is valid.
+  const tokenD = fromUuidSync(tokenUUID);
+  if ( !tokenD || !tokenD.actor ) return;
+
+  // Drop all cover statuses.
+  const coverIds = tokenD.actor.items.filter(i => i.getFlag(MODULE_ID, "cover")).map(i => i.id);
+  if ( !coverIds.length ) return;
+  return tokenD.actor.deleteEmbeddedDocuments("Item", coverIds);
+}
+
+/**
  * Enable a cover status (ActiveEffect) for a token.
  * Token can only have one cover status at a time, so all other ATV covers are removed.
  * Used in SOCKETS above.
@@ -108,6 +137,41 @@ async function enableATVCover(tokenUUID, type = COVER.TYPES.LOW) {
   // Add the effect. (ActiveEffect hooks will prevent multiple additions.)
   const effectData = CONFIG.statusEffects.find(e => e.id === desiredCoverId);
   return tokenD.toggleActiveEffect(effectData, { active: true });
+}
+
+/**
+ * Enable a cover status (ActiveEffect) for a token in Starfinder RPG.
+ * Token can only have one cover status at a time, so all other ATV covers are removed.
+ * Used in SOCKETS above.
+ * @param {string} tokenUUID    Token uuid
+ * @param {COVER_TYPE} type     Type of cover to apply
+ * @returns {Promise<boolean>} Return from toggleActiveEffect.
+ */
+async function enableATVCoverSFRPG(tokenUUID, type = COVER.TYPES.LOW) {
+  // If enabling the "None" cover, remove all cover.
+  // If TOTAL, this is used as a flag elsewhere to remove the token from targeting. Ignored here.
+  if ( type === COVER.TYPES.NONE ) return disableAllATVCover(tokenUUID);
+  // if ( type === COVER.TYPES.TOTAL ) return;
+
+  // Confirm the token UUID is valid.
+  const tokenD = fromUuidSync(tokenUUID);
+  if ( !tokenD || !tokenD.actor ) return;
+
+  // Confirm this is a valid cover type.
+  const key = keyForValue(COVER.TYPES, type);
+  if ( !key || !Object.hasOwn(COVER.CATEGORIES, key) ) return;
+
+  // Retrieve the cover item.
+  let coverItem = game.items.find(i => i.getFlag(MODULE_ID, "cover") === type)
+  if ( !coverItem ) {
+    // Pull from the compendium.
+    const coverName = COVER.SFRPG[type];
+    const documentIndex = game.packs.get("tokenvisibility.tokenvision_items_sfrpg").index.getName(coverName);
+    coverItem = await game.packs.get("tokenvisibility.tokenvision_items_sfrpg").getDocument(documentIndex._id);
+  }
+
+  // Add the effect. (ActiveEffect hooks will prevent multiple additions.)
+  return tokenD.actor.createEmbeddedDocuments("Item", [coverItem])
 }
 
 // async function enableATVCoverSocket(tokenUUID, type = COVER.TYPES.LOW) {
