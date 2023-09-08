@@ -33,6 +33,10 @@ export const PATCHER = new Patcher(PATCHES);
 export function initializePatching() {
   PATCHER.registerGroup("BASIC");
   PATCHER.registerGroup("ConstrainedTokenBorder");
+
+  if ( MODULES_ACTIVE.LEVELS ) PATCHER.registerGroup("LEVELS");
+  else PATCHER.registerGroup("NO_LEVELS");
+
 }
 
 
@@ -113,7 +117,6 @@ export function registerLibWrapperMethods() {
   if ( MODULES_ACTIVE.LEVELS ) {
     override("CONFIG.Levels.handlers.SightHandler.getTestPoints", getTestPointsSightHandlerLevels, {perf_mode: libWrapper.PERF_FAST});
   } else {
-    wrap("DetectionMode.prototype.testVisibility", testVisibilityDetectionMode, {perf_mode: libWrapper.PERF_FAST});
     wrap("LightSource.prototype.testVisibility", testVisibilityLightSource, {perf_mode: libWrapper.PERF_FAST});
   }
 
@@ -124,8 +127,6 @@ export function registerLibWrapperMethods() {
     { perf_mode: libWrapper.PERF_FAST }
   );
 
-  // ----- LOS Testing ----- //
-  mixed("DetectionMode.prototype._testLOS", _testLOSDetectionMode, {perf_mode: libWrapper.PERF_FAST});
 
   // ----- Cover status effects ----- //
 
