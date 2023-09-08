@@ -131,23 +131,7 @@ export function registerLibWrapperMethods() {
     override("VisionSource.prototype._createPolygon", _createPolygonVisionSource, {perf_mode: libWrapper.PERF_FAST});
   }
 
-  addClassGetter(CONFIG.Token.objectClass.prototype, "ignoresCoverType", cachedGetterIgnoresCover);
-  addClassGetter(CONFIG.Token.objectClass.prototype, "coverType", getTokenCoverType);
-
   addClassMethod(PointSourcePolygon, "testCollision3d", testCollision3dPointSourcePolygon);
   addClassMethod(PointSourcePolygon.prototype, "_testCollision3d", _testCollision3dPointSourcePolygon);
 }
 
-function cachedGetterIgnoresCover() {
-  return this._ignoresCoverType || (this._ignoresCoverType = new IGNORES_COVER_HANDLER(this));
-}
-
-
-
-// See also Token.prototype.toggleEffect and
-// TokenDocument.prototype.toggleActiveEffect
-
-export function patchHelperMethods() {
-  function setIntersect(b) { return new Set([...this].filter(x => b.has(x))); }
-  addClassMethod(Set.prototype, "intersect", setIntersect);
-}

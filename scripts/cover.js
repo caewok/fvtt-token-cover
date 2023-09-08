@@ -288,7 +288,7 @@ export function preCreateActiveEffectHook(activeEffect, data, options, userId) {
 
   // Does the status effect already exist?
   const actor = activeEffect.parent;
-  const coverStatuses = actor.statuses?.intersect(COVER.IDS.ALL) ?? new Set();
+  const coverStatuses = actor.statuses?.intersection(COVER.IDS.ALL) ?? new Set();
   if ( coverStatuses.intersects(activeEffect.statuses) ) return false;
   return true;
 }
@@ -307,7 +307,7 @@ export function preCreateActiveEffectHook(activeEffect, data, options, userId) {
 //
 //   // Do statuses need to be removed?
 //   const actor = activeEffect.parent;
-//   const coverStatuses = actor.statuses?.intersect(COVER.IDS.ALL) ?? new Set();
+//   const coverStatuses = actor.statuses?.intersection(COVER.IDS.ALL) ?? new Set();
 //   const toRemove = coverStatuses.difference(activeEffect.statuses);
 //   if ( !toRemove.size ) return;
 //
@@ -333,7 +333,7 @@ export async function _onCreateDocumentsActiveEffect(wrapper, documents, context
 
     // Do statuses need to be removed?
     const actor = effect.parent;
-    const coverStatuses = actor.statuses.intersect(COVER.IDS.ALL);
+    const coverStatuses = actor.statuses.intersection(COVER.IDS.ALL);
     const toRemove = coverStatuses.difference(effect.statuses);
     if ( !toRemove.size ) return effect;
 

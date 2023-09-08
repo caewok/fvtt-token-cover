@@ -89,7 +89,7 @@ async function disableAllATVCover(tokenUUID) {
   if ( !tokenD ) return;
 
   // Drop all cover statuses.
-  const coverStatuses = tokenD.actor.statuses?.intersect(COVER.IDS[MODULE_ID]) ?? new Set();
+  const coverStatuses = tokenD.actor.statuses?.intersection(COVER.IDS[MODULE_ID]) ?? new Set();
   const promises = coverStatuses.map(id => tokenD.toggleActiveEffect({ id }, { active: false }));
   return Promise.all(promises);
 }
@@ -194,7 +194,7 @@ async function disableAllDFredsCover(uuid) {
   if ( !actor ) return;
 
   // Determine what cover statuses are already applied.
-  const coverStatuses = actor.statuses?.intersect(COVER.IDS["dfreds-convenient-effects"]) ?? new Set();
+  const coverStatuses = actor.statuses?.intersection(COVER.IDS["dfreds-convenient-effects"]) ?? new Set();
 
   // Drop all cover statuses.
   const promises = coverStatuses.map(id => {

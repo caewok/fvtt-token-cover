@@ -116,11 +116,21 @@ function coverType() {
     : COVER.TYPES.NONE;
 }
 
+/**
+ * New getter: Token.prototype.ignoresCoverType
+ * Instantiate a IgnoresCover class to determine if cover can be ignored for different attack types.
+ * @type {boolean}
+ */
+function ignoresCoverType() {
+  return this._ignoresCoverType || (this._ignoresCoverType = new IGNORES_COVER_HANDLER(this));
+}
+
 PATCHES.BASIC.GETTERS = {
   constrainedTokenBorder,
   tokenBorder,
   tokenShape,
-  coverType
+  coverType,
+  ignoresCoverType
 };
 
 
