@@ -137,18 +137,10 @@ function registerSystemHooks() {
   }
 
   if ( game.system.id === "dnd5e" ) {
-    /**
-     * For midi, let GM or user decide on cover options. Or automatic.
-     */
-    Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHook);
 
     setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
   }
 
-  if ( game.system.id === "sfrpg" ) {
-
-    Hooks.on("applyTokenStatusEffect", applyTokenStatusEffectHook);
-  }
 }
 
 Hooks.on("preCreateActiveEffect", preCreateActiveEffectHook);

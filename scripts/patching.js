@@ -20,6 +20,8 @@ import { PATCHES as PATCHES_VisionSource } from "./VisionSource.js";
 // Levels
 import { PATCHES as PATCHES_Levels_SightHandler } from "./Levels_SightHandler.js";
 
+// Midiqol
+import { PATCHES as PATCHES_Midiqol } from "./Midiqol.js";
 
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
@@ -31,7 +33,8 @@ const PATCHES = {
   PointSourcePolygon: PATCHES_PointSourcePolygon,
   Token: PATCHES_Token,
   VisionSource: PATCHES_VisionSource,
-  "CONFIG.Levels.handlers.SightHandler": PATCHES_Levels_SightHandler
+  "CONFIG.Levels.handlers.SightHandler": PATCHES_Levels_SightHandler,
+  Midiqol: PATCHES_Midiqol
 };
 
 export const PATCHER = new Patcher(PATCHES);
@@ -43,8 +46,10 @@ export function initializePatching() {
   if ( MODULES_ACTIVE.LEVELS ) PATCHER.registerGroup("LEVELS");
   else PATCHER.registerGroup("NO_LEVELS");
 
-  if ( game.system.id === "dnd5e"
-    && !MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_NO_MIDI");
+  if ( game.system.id === "dnd5e" ) {
+    if ( MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_NO_MIDI")
+    else PATCHER.registerGroup("DND5E_MIDI");
+  }
 
   if ( game.system.id === "sfrpg" ) PATCHER.registerGroup("sfrpg");
 }

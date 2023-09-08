@@ -51,18 +51,6 @@ import { getSetting, SETTINGS } from "./settings.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { CoverDialog } from "./CoverDialog.js";
 
-/**
- * Hook event that fires after targeting (AoE) is complete.
- * Note: hook will be run by the user that executed the attack triggering this.
- */
-export async function midiqolPreambleCompleteHook(workflow) {
-  const { token, targets, item } = workflow;
-  if ( !targets?.size || !token ) return true;
-
-  // Construct dialogs, if applicable
-  const actionType = item?.system?.actionType;
-  return coverWorkflow(token, targets, actionType);
-}
 
 /**
  * Workflow to process cover for given token and targets.
