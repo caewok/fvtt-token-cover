@@ -9,6 +9,7 @@ PointSourcePolygon
 
 import { Patcher } from "./Patcher.js";
 
+import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
 import { PATCHES as PATCHES_CanvasVisibility } from "./CanvasVisibility.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
 import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
@@ -17,6 +18,7 @@ import { PATCHES as PATCHES_VisionSource } from "./VisionSource.js";
 
 
 const PATCHES = {
+  ActiveEffect: PATCHES_ActiveEffect,
   CanvasVisibility: PATCHES_CanvasVisibility,
   ConstrainedTokenBorder: PATCHES_ConstrainedTokenBorder,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
@@ -105,7 +107,6 @@ function addClassGetter(cl, name, fn) {
 
 export function registerLibWrapperMethods() {
   // ----- Token Visibility ----- //
-  mixed("CanvasVisibility.prototype.testVisibility", testVisibilityCanvasVisibility, {perf_mode: libWrapper.PERF_FAST});
 
   if ( MODULES_ACTIVE.LEVELS ) {
     override("CONFIG.Levels.handlers.SightHandler.getTestPoints", getTestPointsSightHandlerLevels, {perf_mode: libWrapper.PERF_FAST});
@@ -125,7 +126,6 @@ export function registerLibWrapperMethods() {
   mixed("DetectionMode.prototype._testLOS", _testLOSDetectionMode, {perf_mode: libWrapper.PERF_FAST});
 
   // ----- Cover status effects ----- //
-  wrap("ActiveEffect._onCreateDocuments", _onCreateDocumentsActiveEffect, {perf_mode: libWrapper.PERF_FAST});
 
   if ( game.system.id === "dnd5e" && !MODULES_ACTIVE.MIDI_QOL ) {
     mixed("CONFIG.Item.documentClass.prototype.rollAttack", rollAttackItem5e, {perf_mode: libWrapper.PERF_FAST});
