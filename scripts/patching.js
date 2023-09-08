@@ -11,11 +11,13 @@ import { Patcher } from "./Patcher.js";
 
 import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
 import { PATCHES as PATCHES_CanvasVisibility } from "./CanvasVisibility.js";
-import { PATCHES as PATCHES_DetectionMode } from "./DetectionMode.js";
-import { PATCHES as PATCHES_Token } from "./Token.js";
 import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+import { PATCHES as PATCHES_DetectionMode } from "./DetectionMode.js";
+import { PATCHES as PATCHES_LightSource } from "./LightSource.js";
 import { PATCHES as PATCHES_PointSourcePolygon } from "./PointSourcePolygon.js";
+import { PATCHES as PATCHES_Token } from "./Token.js";
 import { PATCHES as PATCHES_VisionSource } from "./VisionSource.js";
+
 import { PATCHES as PATCHES_Levels_SightHandler } from "./Levels_SightHandler.js";
 
 
@@ -24,10 +26,11 @@ const PATCHES = {
   CanvasVisibility: PATCHES_CanvasVisibility,
   ConstrainedTokenBorder: PATCHES_ConstrainedTokenBorder,
   DetectionMode: PATCHES_DetectionMode,
+  LightSource: PATCHES_LightSource,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
   Token: PATCHES_Token,
   VisionSource: PATCHES_VisionSource,
-  CONFIG.Levels.handlers.SightHandler: PATCHES_Levels_SightHandler
+  "CONFIG.Levels.handlers.SightHandler": PATCHES_Levels_SightHandler
 };
 
 export const PATCHER = new Patcher(PATCHES);
@@ -113,12 +116,7 @@ function addClassGetter(cl, name, fn) {
 }
 
 export function registerLibWrapperMethods() {
-  // ----- Token Visibility ----- //
 
-  if ( MODULES_ACTIVE.LEVELS ) {
-  } else {
-    wrap("LightSource.prototype.testVisibility", testVisibilityLightSource, {perf_mode: libWrapper.PERF_FAST});
-  }
 
 
   // ----- Cover status effects ----- //
