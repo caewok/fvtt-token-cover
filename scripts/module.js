@@ -8,8 +8,7 @@ import { MODULE_ID, COVER, DEBUG, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
-
-import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
+import { initializePatching, PATCHER } from "./patching.js";
 import {
   registerSettings,
   updateConfigStatusEffects,
@@ -51,8 +50,7 @@ import "./migration.js";
 
 Hooks.once("init", function() {
   registerGeometry();
-  registerLibWrapperMethods();
-  patchHelperMethods();
+  initializePatching();
   addDND5eCoverFeatFlags();
 
   game.modules.get(MODULE_ID).api = {
@@ -85,6 +83,8 @@ Hooks.once("init", function() {
 
     Area3dPopout,
     area3dPopoutData,
+
+    PATCHER,
 
     debug: DEBUG
   };
