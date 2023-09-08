@@ -131,8 +131,3 @@ Hooks.once("devModeReady", ({ registerPackageDebugFlag }) => {
  */
 Hooks.on("renderDrawingConfig", renderDrawingConfigHook);
 
-// Note: Settings hooks
-// Settings manipulations to hide unneeded settings
-// Wipe the settings cache on update
-Hooks.on("renderSettingsConfig", renderSettingsConfigHook);
-Hooks.on("updateSetting", updateSettingHook);
