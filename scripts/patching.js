@@ -12,11 +12,14 @@ import { Patcher } from "./Patcher.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
 import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import { PATCHES as PATCHES_PointSourcePolygon } from "./PointSourcePolygon.js";
+import { PATCHES as PATCHES_VisionSource } from "./VisionSource.js";
+
 
 const PATCHES = {
   ConstrainedTokenBorder: PATCHES_ConstrainedTokenBorder,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
-  Token: PATCHES_Token
+  Token: PATCHES_Token,
+  VisionSource: PATCHES_VisionSource
 };
 
 export const PATCHER = new Patcher(PATCHES);
