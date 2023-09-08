@@ -9,28 +9,12 @@ import { MODULE_ID, COVER, DEBUG, setCoverIgnoreHandler } from "./const.js";
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 
-import {
-  targetTokenHook,
-  combatTurnHook,
-  midiqolPreambleCompleteHook,
-  preCreateActiveEffectHook,
-  preCreateItemHook,
-  createItemHook,
-  applyTokenStatusEffectHook } from "./cover.js";
 import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
 import {
   registerSettings,
-  updateSettingHook,
-  renderSettingsConfigHook,
   updateConfigStatusEffects,
   getSetting,
   setSetting } from "./settings.js";
-
-// Rendering configs
-import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
-
-// Debugging
-import { Draw } from "./geometry/Draw.js";
 
 // For API
 import * as bench from "./benchmark.js";
