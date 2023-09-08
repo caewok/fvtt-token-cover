@@ -8,55 +8,47 @@ game
 */
 "use strict";
 
-Hooks.on("updateToken", updateTokenHook);
+export const PATCHES = {};
+PATCHES.ConstrainedTokenBorder = {};
 
-/**
- * If the token width/height changes, invalidate the tokenShape.
- */
-function updateTokenHook(document, change, options, userId) { // eslint-disable-line no-unused-vars
-  if ( Object.hasOwn(change, "width") || Object.hasOwn(change, "height") ) this._tokenShape = undefined;
-}
+// ----- NOTE: Hooks ----- //
 
-/**
- * Determine the constrained border shape for this token.
- * @returns {ConstrainedTokenShape|PIXI.Rectangle}
- */
-export function getConstrainedTokenBorder() {
-  return ConstrainedTokenBorder.get(this).constrainedBorder();
-}
+/** Hooks to increment wall ids. */
+function canvasInit() { ConstrainedTokenBorder._wallsID++; }
 
-/**
- * Determine the correct border shape for this token. Utilize the cached token shape.
- * @returns {PIXI.Polygon|PIXI.Rectangle}
- */
-export function getTokenBorder() {
-  return this.tokenShape.translate(this.x, this.y);
-}
+function createWall(wallD) { if ( wallD.rendered ) ConstrainedTokenBorder._wallsID++; }
 
-/**
- * Getter to cache the token shape.
- * @type {PIXI.Polygon|PIXI.Rectangle}
- */
-export function getTokenShape() {
-  return this._tokenShape || (this._tokenShape = calculateTokenShape(this));
-}
+function updateWall(wallD) { if ( document.rendered ) ConstrainedTokenBorder._wallsID++; }
 
-/**
- * Theoretical token shape at 0,0 origin.
- * @returns {PIXI.Polygon|PIXI.Rectangle}
- */
-function calculateTokenShape(token) {
-  // TODO: Use RegularPolygon shapes for use with WeilerAtherton
-  // Hexagon (for width .5 or 1)
-  // Square (for width === height)
-  let shape;
-  if ( canvas.grid.isHex ) {
-    const pts = canvas.grid.grid.getBorderPolygon(token.document.width, token.document.height, 0);
-    if ( pts ) shape = new PIXI.Polygon(pts);
-  }
+function deleteWall(wallD) { if ( document.rendered ) ConstrainedTokenBorder._wallsID++; }
 
-  return shape || new PIXI.Rectangle(0, 0, token.w, token.h);
-}
+
+PATCHES.ConstrainedTokenBorder.HOOKS = {
+  canvasInit,
+  createWall,
+  updateWall,
+  deleteWall
+};
+
+// Hooks.once("setup", () => {
+//   if ( game.settings.get("core", "noCanvas") ) return;
+//
+//   Hooks.on("canvasInit", () => { ConstrainedTokenBorder._wallsID++; });
+//
+//   Hooks.on("createWall", document => {
+//     if ( document.rendered ) ConstrainedTokenBorder._wallsID++;
+//   });
+//
+//   Hooks.on("updateWall", document => {
+//     if ( document.rendered ) ConstrainedTokenBorder._wallsID++;
+//   });
+//
+//   Hooks.on("deleteWall", document => {
+//     if ( document.rendered ) ConstrainedTokenBorder._wallsID++;
+//   });
+// });
+
+
 
 
 /**
@@ -238,20 +230,3 @@ export class ConstrainedTokenBorder extends ClockwiseSweepPolygon {
   }
 }
 
-Hooks.once("setup", () => {
-  if ( game.settings.get("core", "noCanvas") ) return;
-
-  Hooks.on("canvasInit", () => { ConstrainedTokenBorder._wallsID++; });
-
-  Hooks.on("createWall", document => {
-    if ( document.rendered ) ConstrainedTokenBorder._wallsID++;
-  });
-
-  Hooks.on("updateWall", document => {
-    if ( document.rendered ) ConstrainedTokenBorder._wallsID++;
-  });
-
-  Hooks.on("deleteWall", document => {
-    if ( document.rendered ) ConstrainedTokenBorder._wallsID++;
-  });
-});

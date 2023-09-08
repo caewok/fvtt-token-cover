@@ -21,7 +21,7 @@ import {
 
 // For caching to work, need to clean the cache whenever a setting below changes.
 // Need function for onChange.
-const settingsCache = new Map();
+export const settingsCache = new Map();
 export function getSetting(settingName) {
   const cached = settingsCache.get(settingName);
   if ( cached === undefined ) {
@@ -522,57 +522,11 @@ function getCoverNames() {
   };
 }
 
-/**
- * @param {Application} application     The Application instance being rendered
- * @param {jQuery} html                 The inner HTML of the document that will be displayed and may be modified
- * @param {object} data                 The object of data used when rendering the application
- */
-export function renderSettingsConfigHook(app, html, _data) {
-  activateListenersSettingsConfig(app, html);
 
-  const tvSettings = html.find(`section[data-tab="${MODULE_ID}"]`);
-  if ( !tvSettings || !tvSettings.length ) return;
 
-  const losAlgorithm = getSetting(SETTINGS.LOS.ALGORITHM);
-  const coverAlgorithm = getSetting(SETTINGS.COVER.ALGORITHM);
 
-  const displayArea = losAlgorithm === SETTINGS.LOS.TYPES.POINTS ? "none" : "block";
-  const inputLOSArea = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.LOS.PERCENT_AREA}"]`);
-  const divLOSArea = inputLOSArea.parent().parent();
-  divLOSArea[0].style.display = displayArea;
 
-  const [displayCoverTriggers, displayCenterCoverTrigger] = coverAlgorithm === SETTINGS.COVER.TYPES.CENTER_CENTER
-    ? ["none", "block"] : ["block", "none"];
 
-  const inputCenter = tvSettings.find(`select[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_CENTER}"]`);
-  const inputLow = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}"]`);
-  const inputMedium = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM}"]`);
-  const inputHigh = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}"]`);
-
-  const divInputCenter = inputCenter.parent().parent();
-  const divInputLow = inputLow.parent().parent();
-  const divInputMedium = inputMedium.parent().parent();
-  const divInputHigh = inputHigh.parent().parent();
-
-  if ( divInputCenter.length ) divInputCenter[0].style.display = displayCenterCoverTrigger;
-  if ( divInputLow.length ) divInputLow[0].style.display = displayCoverTriggers;
-  if ( divInputMedium.length ) divInputMedium[0].style.display = displayCoverTriggers;
-  if ( divInputHigh.length ) divInputHigh[0].style.display = displayCoverTriggers;
-}
-
-function activateListenersSettingsConfig(app, html) {
-  html.find(`[name="${MODULE_ID}.${SETTINGS.LOS.ALGORITHM}"]`).change(losAlgorithmChanged.bind(app));
-  html.find(`[name="${MODULE_ID}.${SETTINGS.COVER.ALGORITHM}"]`).change(coverAlgorithmChanged.bind(app));
-}
-
-/**
- * Wipe the settings cache on update
- */
-export function updateSettingHook(document, change, options, userId) {  // eslint-disable-line no-unused-vars
-  const [module, ...arr] = document.key.split(".");
-  const key = arr.join("."); // If the key has periods, multiple will be returned by split.
-  if ( module === MODULE_ID && settingsCache.has(key) ) settingsCache.delete(key);
-}
 
 
 /* Status effects
@@ -674,37 +628,6 @@ add a listener which toggles that CSS hidden state.
 
 */
 
-function losAlgorithmChanged(event) {
-  const losAlgorithm = event.target.value;
-  log(`los algorithm changed to ${losAlgorithm}`, event, this);
 
-  const displayArea = (losAlgorithm === SETTINGS.LOS.TYPES.AREA
-    || losAlgorithm === SETTINGS.LOS.TYPES.AREA3D) ? "block" : "none";
 
-  const inputLOSArea = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.PERCENT_AREA}`);
-  const divLOSArea = inputLOSArea[0].parentElement.parentElement;
-  divLOSArea.style.display = displayArea;
-}
 
-function coverAlgorithmChanged(event) {
-  const coverAlgorithm = event.target.value;
-  log(`cover algorithm changed to ${coverAlgorithm}`, event, this);
-
-  const [displayCoverTriggers, displayCenterCoverTrigger] = coverAlgorithm === SETTINGS.COVER.TYPES.CENTER_CENTER
-    ? ["none", "block"] : ["block", "none"];
-
-  const inputCenter = document.getElementsByName(`${MODULE_ID}.${SETTINGS.COVER.TRIGGER_CENTER}`);
-  const inputLow = document.getElementsByName(`${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}`);
-  const inputMedium = document.getElementsByName(`${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM}`);
-  const inputHigh = document.getElementsByName(`${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}`);
-
-  const divInputCenter = inputCenter[0].parentElement.parentElement;
-  const divInputLow = inputLow[0].parentElement.parentElement;
-  const divInputMedium = inputMedium[0].parentElement.parentElement;
-  const divInputHigh = inputHigh[0].parentElement.parentElement;
-
-  divInputCenter.style.display = displayCenterCoverTrigger;
-  divInputLow.style.display = displayCoverTriggers;
-  divInputMedium.style.display = displayCoverTriggers;
-  divInputHigh.style.display = displayCoverTriggers;
-}

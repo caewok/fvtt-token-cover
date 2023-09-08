@@ -5,12 +5,20 @@ foundry,
 PointSourcePolygon,
 Ray
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Plane } from "./geometry/3d/Plane.js";
 
+// Patches for the PointSourcePolygon class
+export const PATCHES = {};
+PATCHES.BASIC = {};
+
+// ----- NOTE: New static methods ----- //
+
 /**
+ * New method: PointSourcePolygon.prototype.testCollision3d
  * 3d version of ClockwiseSweepPolygon.testCollision
  * Test whether a Ray between the origin and destination points would collide with a boundary of this Polygon
  * @param {Point} origin                          An origin point
@@ -22,7 +30,7 @@ import { Plane } from "./geometry/3d/Plane.js";
  *                                                * all: returns a sorted array of Point3d instances
  *                                                * closest: returns a Point3d instance or null
  */
-export function testCollision3dPointSourcePolygon(origin, destination, {mode="all", wallTypes="all", ...config}={}) {
+function testCollision3d(origin, destination, {mode="all", wallTypes="all", ...config}={}) {
   const poly = new this();
   const ray = new Ray(origin, destination);
   config.boundaryShapes ||= [];
@@ -31,7 +39,15 @@ export function testCollision3dPointSourcePolygon(origin, destination, {mode="al
   return poly._testCollision3d(ray, mode, wallTypes);
 }
 
+PATCHES.BASIC.STATIC_METHODS = {
+  testCollision3d
+};
+
+
+// ----- NOTE: New methods ----- //
+
 /**
+ * New method: PointSourcePolygon.prototype._testCollision3d
  * Check whether a given ray intersects with walls.
  * This version considers rays with a z element
  *
@@ -47,7 +63,7 @@ export function testCollision3dPointSourcePolygon(origin, destination, {mode="al
  *                                    An array of collisions, if mode is "all"
  *                                    The closest collision, if mode is "closest"
  */
-export function _testCollision3dPointSourcePolygon(ray, mode, wallTypes = "all") {
+function _testCollision3d(ray, mode, wallTypes = "all") {
   // Identify candidate edges
   // Don't use this._identifyEdges b/c we need all edges, including those excluded by Wall Height
   const collisionTest = (o, rect) => originalTestWallInclusion.call(this, o.t, rect);
@@ -58,6 +74,12 @@ export function _testCollision3dPointSourcePolygon(ray, mode, wallTypes = "all")
 
   return testWallsForIntersections(ray.A, ray.B, walls, mode, this.config.type);
 }
+
+PATCHES.BASIC.METHODS = {
+  _testCollision3d
+};
+
+// ----- NOTE: Helper functions ----- //
 
 /**
  * Helper function to test walls for intersections in 3d.
@@ -92,7 +114,7 @@ function testWallsForIntersections(origin, destination, walls, mode, type) {
       wallPoints.A.top,
       wallPoints.A.bottom,
       wallPoints.B.bottom,
-      wallPoints.B.top)
+      wallPoints.B.top);
 
     if ( t === null || t < 0 || t > 1 ) continue;
 
