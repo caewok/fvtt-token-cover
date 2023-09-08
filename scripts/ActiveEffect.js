@@ -35,7 +35,7 @@ function preCreateActiveEffect(activeEffect, data, options, userId) {
 PATCHES.BASIC.HOOKS = { preCreateActiveEffect };
 
 
-// ----- NOTE: Wraps ----- //
+// ----- NOTE: Static Wraps ----- //
 
 /**
  * Wrap ActiveEffect._onCreateDocuments
@@ -66,4 +66,4 @@ async function _onCreateDocuments(wrapper, documents, context) {
   }
 }
 
-PATCHES.BASIC.WRAPS = { _onCreateDocuments };
+PATCHES.BASIC.STATIC_WRAPS = { _onCreateDocuments };

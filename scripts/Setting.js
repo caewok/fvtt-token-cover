@@ -21,5 +21,4 @@ function updateSetting(document, change, options, userId) {  // eslint-disable-l
   if ( module === MODULE_ID && settingsCache.has(key) ) settingsCache.delete(key);
 }
 
-
 PATCHES.BASIC.HOOKS = { updateSetting };

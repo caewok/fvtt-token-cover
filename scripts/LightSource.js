@@ -27,4 +27,4 @@ function testVisibility(wrapped, {tests, object}={}) {
   return wrapped({ object, tests });
 }
 
-PATCHES.BASIC.NO_LEVELS = { testVisibility };
+PATCHES.NO_LEVELS.WRAPS = { testVisibility };
