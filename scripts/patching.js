@@ -9,6 +9,7 @@ import { MODULES_ACTIVE } from "./const.js";
 
 import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
 import { PATCHES as PATCHES_CanvasVisibility } from "./CanvasVisibility.js";
+import { PATCHES as PATCHES_Combat } from "./Combat.js";
 import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import { PATCHES as PATCHES_DetectionMode } from "./DetectionMode.js";
 import { PATCHES as PATCHES_Item } from "./Item.js";
@@ -26,6 +27,7 @@ import { PATCHES as PATCHES_Midiqol } from "./Midiqol.js";
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
   CanvasVisibility: PATCHES_CanvasVisibility,
+  Combat: PATCHES_Combat,
   ConstrainedTokenBorder: PATCHES_ConstrainedTokenBorder,
   DetectionMode: PATCHES_DetectionMode,
   Item: PATCHES_Item,

@@ -105,7 +105,9 @@ Hooks.once("init", function() {
     debug: DEBUG
   };
 
-  registerSystemHooks();
+  if ( game.system.id === "dnd5e" ) {
+    setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
+  }
 });
 
 Hooks.once("setup", function() {
@@ -122,26 +124,7 @@ Hooks.once("devModeReady", ({ registerPackageDebugFlag }) => {
   registerPackageDebugFlag(MODULE_ID);
 });
 
-function registerSystemHooks() {
-  util.log(`Game system is ${game.system.id}`);
-  if ( game.system.id !== "pf2e" ) {
-    /**
-     * Hook whenever a token is targeted or un-targeted.
-     */
-    Hooks.on("targetToken", targetTokenHook);
 
-    /**
-     * Hook any change in combat turn.
-     */
-    Hooks.on("combatTurn", combatTurnHook);
-  }
-
-  if ( game.system.id === "dnd5e" ) {
-
-    setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
-  }
-
-}
 
 Hooks.on("preCreateActiveEffect", preCreateActiveEffectHook);
 
