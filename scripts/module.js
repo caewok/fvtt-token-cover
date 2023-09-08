@@ -123,11 +123,3 @@ Hooks.once("setup", function() {
 Hooks.once("devModeReady", ({ registerPackageDebugFlag }) => {
   registerPackageDebugFlag(MODULE_ID);
 });
-
-
-
-/**
- * Add controls to the measured template configuration
- */
-Hooks.on("renderDrawingConfig", renderDrawingConfigHook);
-

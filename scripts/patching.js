@@ -12,6 +12,7 @@ import { PATCHES as PATCHES_CanvasVisibility } from "./CanvasVisibility.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
 import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import { PATCHES as PATCHES_DetectionMode } from "./DetectionMode.js";
+import { PATCHES as PATCHES_DrawingConfig} from "./DrawingConfig.js";
 import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_LightSource } from "./LightSource.js";
 import { PATCHES as PATCHES_PointSourcePolygon } from "./PointSourcePolygon.js";
@@ -32,6 +33,7 @@ const PATCHES = {
   Combat: PATCHES_Combat,
   ConstrainedTokenBorder: PATCHES_ConstrainedTokenBorder,
   DetectionMode: PATCHES_DetectionMode,
+  DrawingConfig: PATCHES_DrawingConfig,
   Item: PATCHES_Item,
   LightSource: PATCHES_LightSource,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
