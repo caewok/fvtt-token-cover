@@ -10,9 +10,11 @@ PointSourcePolygon
 import { Patcher } from "./Patcher.js";
 
 import PATCHES as PATCHES_Token } from "./Token.js";
+import PATCHES as PATCHES_ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 
 const PATCHES = {
+  ConstrainedTokenBorder: PATCHES_ConstrainedTokenBorder
   Token: PATCHES_Token
 };
 
@@ -20,6 +22,7 @@ export const PATCHER = new Patcher(PATCHES);
 
 export function initializePatching() {
   PATCHER.registerGroup("BASIC");
+  PATCHER.registerGroup("ConstrainedTokenBorder");
 }
 
 
@@ -51,10 +54,6 @@ import {
   _testCollision3dPointSourcePolygon
 } from "./clockwise_sweep.js";
 
-import {
-  getTokenBorder,
-  getTokenShape,
-  getConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 
 /**
  * Helpers to wrap methods.
@@ -133,9 +132,6 @@ export function registerLibWrapperMethods() {
     override("VisionSource.prototype._createPolygon", _createPolygonVisionSource, {perf_mode: libWrapper.PERF_FAST});
   }
 
-  addClassGetter(CONFIG.Token.objectClass.prototype, "tokenShape", getTokenShape);
-  addClassGetter(CONFIG.Token.objectClass.prototype, "tokenBorder", getTokenBorder);
-  addClassGetter(CONFIG.Token.objectClass.prototype, "constrainedTokenBorder", getConstrainedTokenBorder);
   addClassGetter(CONFIG.Token.objectClass.prototype, "ignoresCoverType", cachedGetterIgnoresCover);
   addClassGetter(CONFIG.Token.objectClass.prototype, "coverType", getTokenCoverType);
 
@@ -169,14 +165,4 @@ function updateSourceToken(wrapper, ...args) {
 export function patchHelperMethods() {
   function setIntersect(b) { return new Set([...this].filter(x => b.has(x))); }
   addClassMethod(Set.prototype, "intersect", setIntersect);
-}
-
-function getTokenCoverType() {
-  const statuses = this.actor?.statuses;
-  if ( !statuses ) return COVER.TYPES.NONE;
-  const coverModule = MODULES_ACTIVE.DFREDS_CE ? "dfreds-convenient-effects" : "tokenvisibility";
-  return statuses.has(COVER.CATEGORIES.HIGH[coverModule]) ? COVER.TYPES.HIGH
-    : statuses.has(COVER.CATEGORIES.MEDIUM[coverModule]) ? COVER.TYPES.MEDIUM
-    : statuses.has(COVER.CATEGORIES.LOW[coverModule]) ? COVER.TYPES.LOW
-    : COVER.TYPES.NONE;
 }

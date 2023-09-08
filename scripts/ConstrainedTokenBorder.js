@@ -13,6 +13,40 @@ PATCHES.ConstrainedTokenBorder = {};
 
 // ----- NOTE: Hooks ----- //
 
+/** Hooks to increment wall ids. */
+function canvasInit() { ConstrainedTokenBorder._wallsID++; }
+
+function createWall(wallD) { if ( wallD.rendered ) ConstrainedTokenBorder._wallsID++; }
+
+function updateWall(wallD) { if ( document.rendered ) ConstrainedTokenBorder._wallsID++; }
+
+function deleteWall(wallD) { if ( document.rendered ) ConstrainedTokenBorder._wallsID++; }
+
+
+PATCHES.ConstrainedTokenBorder.HOOKS = {
+  canvasInit,
+  createWall,
+  updateWall,
+  deleteWall
+};
+
+// Hooks.once("setup", () => {
+//   if ( game.settings.get("core", "noCanvas") ) return;
+//
+//   Hooks.on("canvasInit", () => { ConstrainedTokenBorder._wallsID++; });
+//
+//   Hooks.on("createWall", document => {
+//     if ( document.rendered ) ConstrainedTokenBorder._wallsID++;
+//   });
+//
+//   Hooks.on("updateWall", document => {
+//     if ( document.rendered ) ConstrainedTokenBorder._wallsID++;
+//   });
+//
+//   Hooks.on("deleteWall", document => {
+//     if ( document.rendered ) ConstrainedTokenBorder._wallsID++;
+//   });
+// });
 
 
 
@@ -196,20 +230,3 @@ export class ConstrainedTokenBorder extends ClockwiseSweepPolygon {
   }
 }
 
-Hooks.once("setup", () => {
-  if ( game.settings.get("core", "noCanvas") ) return;
-
-  Hooks.on("canvasInit", () => { ConstrainedTokenBorder._wallsID++; });
-
-  Hooks.on("createWall", document => {
-    if ( document.rendered ) ConstrainedTokenBorder._wallsID++;
-  });
-
-  Hooks.on("updateWall", document => {
-    if ( document.rendered ) ConstrainedTokenBorder._wallsID++;
-  });
-
-  Hooks.on("deleteWall", document => {
-    if ( document.rendered ) ConstrainedTokenBorder._wallsID++;
-  });
-});
