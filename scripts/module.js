@@ -156,42 +156,6 @@ Hooks.on("preCreateActiveEffect", preCreateActiveEffectHook);
 
 
 /**
- * A hook event that fires for every Document type after conclusion of an update workflow.
- * Substitute the Document name in the hook event to target a specific Document type, for example "updateActor".
- * This hook fires for all connected clients after the update has been processed.
- *
- * @event updateDocument
- * @category Document
- * @param {Document} document                       The existing Document which was updated
- * @param {object} change                           Differential data that was used to update the document
- * @param {DocumentModificationContext} options     Additional options which modified the update request
- * @param {string} userId                           The ID of the User who triggered the update workflow
- */
-Hooks.on("updateToken", updateTokenHook);
-
-/**
- * If the token moves, clear all debug drawings.
- */
-function updateTokenHook(document, change, options, userId) { // eslint-disable-line no-unused-vars
-  if ( Object.hasOwn(change, "x")
-    || Object.hasOwn(change, "y")
-    || Object.hasOwn(change, "elevation") ) {
-
-    if ( DEBUG.once || DEBUG.range || DEBUG.area || DEBUG.cover || DEBUG.los ) {
-      Draw.clearDrawings();
-
-      if ( DEBUG.once ) {
-        DEBUG.range = false;
-        DEBUG.area = false;
-        DEBUG.cover = false;
-        DEBUG.los = false;
-        DEBUG.once = false;
-      }
-    }
-  }
-}
-
-/**
  * Add controls to the measured template configuration
  */
 Hooks.on("renderDrawingConfig", renderDrawingConfigHook);
