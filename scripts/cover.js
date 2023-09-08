@@ -164,41 +164,7 @@ On attack:
 
 */
 
-/**
- * Wrap TokenDocument.prototype.toggleActiveEffect
- * If adding a cover effect, remove other cover effects
- */
-export async function toggleActiveEffectTokenDocument(wrapper, effectData, { overlay=false, active}={}) {
-  const state = await wrapper(effectData, {overlay, active});
-  if ( !state ) return; // No new effect added.
 
-//   let id1;
-//   let id2;
-//   switch ( effectData.id ) {
-//     case `${MODULE_ID}.cover.LOW`:
-//       id1 = `${MODULE_ID}.cover.MEDIUM`;
-//       id2 = `${MODULE_ID}.cover.HIGH`;
-//       break;
-//     case `${MODULE_ID}.cover.MEDIUM`:
-//       id1 = `${MODULE_ID}.cover.LOW`;
-//       id2 = `${MODULE_ID}.cover.HIGH`;
-//       break;
-//     case `${MODULE_ID}.cover.HIGH`:
-//       id1 = `${MODULE_ID}.cover.LOW`;
-//       id2 = `${MODULE_ID}.cover.MEDIUM`;
-//       break;
-//     default:
-//       return state;
-//   }
-//
-//   const existing1 = this.actor.effects.find(e => e.getFlag("core", "statusId") === id1);
-//   const existing2 = this.actor.effects.find(e => e.getFlag("core", "statusId") === id2);
-//
-//   if ( existing1 ) await existing1.delete();
-//   if ( existing2 ) await existing2.delete();
-
-  return state;
-}
 export async function combatTurnHook(combat, updateData, updateOptions) { // eslint-disable-line no-unused-vars
   // Properties for updateData:
   //   updateData.round

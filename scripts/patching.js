@@ -120,7 +120,6 @@ export function registerLibWrapperMethods() {
   mixed("DetectionMode.prototype._testLOS", _testLOSDetectionMode, {perf_mode: libWrapper.PERF_FAST});
 
   // ----- Cover status effects ----- //
-  wrap("CONFIG.Token.documentClass.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument);
   wrap("ActiveEffect._onCreateDocuments", _onCreateDocumentsActiveEffect, {perf_mode: libWrapper.PERF_FAST});
 
   if ( game.system.id === "dnd5e" && !MODULES_ACTIVE.MIDI_QOL ) {
