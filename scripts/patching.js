@@ -120,7 +120,6 @@ export function registerLibWrapperMethods() {
 
   // ----- Cover status effects ----- //
   wrap("CONFIG.Token.documentClass.prototype.toggleActiveEffect", toggleActiveEffectTokenDocument);
-  wrap("CONFIG.Token.objectClass.prototype.updateSource", updateSourceToken, {perf_mode: libWrapper.PERF_FAST});
   wrap("ActiveEffect._onCreateDocuments", _onCreateDocumentsActiveEffect, {perf_mode: libWrapper.PERF_FAST});
 
   if ( game.system.id === "dnd5e" && !MODULES_ACTIVE.MIDI_QOL ) {
@@ -143,21 +142,7 @@ function cachedGetterIgnoresCover() {
   return this._ignoresCoverType || (this._ignoresCoverType = new IGNORES_COVER_HANDLER(this));
 }
 
-function updateSourceToken(wrapper, ...args) {
-  if ( DEBUG.once || DEBUG.range || DEBUG.area || DEBUG.cover || DEBUG.los ) {
-    CONFIG.GeometryLib.Draw.clearDrawings();
 
-    if ( DEBUG.once ) {
-      DEBUG.range = false;
-      DEBUG.area = false;
-      DEBUG.cover = false;
-      DEBUG.los = false;
-      DEBUG.once = false;
-    }
-  }
-
-  return wrapper(...args);
-}
 
 // See also Token.prototype.toggleEffect and
 // TokenDocument.prototype.toggleActiveEffect

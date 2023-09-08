@@ -47,12 +47,36 @@ function updateToken(tokenD, change, options, userId) {
   }
 }
 
-PATCHES.BASIC.HOOKS: {
+PATCHES.BASIC.HOOKS = {
   updateToken
 }
 
 
 // ----- NOTE: Wraps ----- //
+
+/**
+ * Wrap Token.prototype.updateSource
+ * Reset the debugging drawings.
+ */
+function updateSource(wrapper, ...args) {
+  if ( DEBUG.once || DEBUG.range || DEBUG.area || DEBUG.cover || DEBUG.los ) {
+    CONFIG.GeometryLib.Draw.clearDrawings();
+
+    if ( DEBUG.once ) {
+      DEBUG.range = false;
+      DEBUG.area = false;
+      DEBUG.cover = false;
+      DEBUG.los = false;
+      DEBUG.once = false;
+    }
+  }
+
+  return wrapper(...args);
+}
+
+PATCHES.BASIC.WRAPS = {
+  updateSource
+}
 
 // ----- NOTE: Getters ----- //
 
