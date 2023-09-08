@@ -1,12 +1,15 @@
 /* globals
-
+canvas,
+CONFIG,
+PIXI
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
 // Patches for the Token class
 
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
-import { MODULE_ID, MODULES_ACTIVE, DEBUG, COVER, IGNORES_COVER_HANDLER } from "./const.js";
+import { MODULES_ACTIVE, DEBUG, COVER, IGNORES_COVER_HANDLER } from "./const.js";
+import { Draw } from "./geometry/Draw.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
@@ -23,7 +26,7 @@ PATCHES.BASIC = {};
  * @param {string} userId                           The ID of the User who triggered the update workflow
 
  */
-function updateToken(tokenD, change, options, userId) {
+function updateToken(tokenD, change, _options, _userId) {
   // Token shape changed; invalidate cached shape.
   const token = tokenD.object;
   if ( (Object.hasOwn(change, "width") || Object.hasOwn(change, "height")) && token ) token._tokenShape = undefined;
@@ -49,8 +52,7 @@ function updateToken(tokenD, change, options, userId) {
 
 PATCHES.BASIC.HOOKS = {
   updateToken
-}
-
+};
 
 // ----- NOTE: Wraps ----- //
 
@@ -76,7 +78,7 @@ function updateSource(wrapper, ...args) {
 
 PATCHES.BASIC.WRAPS = {
   updateSource
-}
+};
 
 // ----- NOTE: Getters ----- //
 
@@ -112,8 +114,8 @@ function coverType() {
   const coverModule = MODULES_ACTIVE.DFREDS_CE ? "dfreds-convenient-effects" : "tokenvisibility";
   return statuses.has(COVER.CATEGORIES.HIGH[coverModule]) ? COVER.TYPES.HIGH
     : statuses.has(COVER.CATEGORIES.MEDIUM[coverModule]) ? COVER.TYPES.MEDIUM
-    : statuses.has(COVER.CATEGORIES.LOW[coverModule]) ? COVER.TYPES.LOW
-    : COVER.TYPES.NONE;
+      : statuses.has(COVER.CATEGORIES.LOW[coverModule]) ? COVER.TYPES.LOW
+        : COVER.TYPES.NONE;
 }
 
 /**
