@@ -156,50 +156,6 @@ export async function combatTurnHook(combat, updateData, updateOptions) { // esl
   }
 }
 
-/**
- * If a token is targeted, determine its cover status.
- *
- * A hook event that fires when a token is targeted or un-targeted.
- * @function targetToken
- * @memberof hookEvents
- * @param {User} user        The User doing the targeting
- * @param {Token} token      The targeted Token
- * @param {boolean} targeted Whether the Token has been targeted or untargeted
- */
-export async function targetTokenHook(user, target, targeted) {
-  if ( !getSetting(SETTINGS.COVER.COMBAT_AUTO) ) return;
-
-  // If not in combat, do nothing because it is unclear who is targeting what...
-  if ( !game.combat?.started ) return;
-
-  // Ignore targeting by other users
-  if ( !isUserCombatTurn(user) ) return;
-
-  if ( !targeted ) {
-    return await CoverCalculator.disableAllCover(target.id);
-  }
-
-  // Target from the current combatant to the target token
-  const c = game.combats.active;
-  const combatToken = c.combatant.token.object;
-  const coverCalc = new CoverCalculator(combatToken, target);
-  return await coverCalc.setTargetCoverEffect();
-}
-
-/**
- * Determine if the user's token is the current combatant in the active tracker.
- * @param {User} user
- * @returns {boolean}
- */
-function isUserCombatTurn(user) {
-  if ( !game.combat?.started ) return false;
-
-  const c = game.combats.active;
-  // If no players, than it must be a GM token
-  if ( !c.combatant.players.length ) return user.isGM;
-
-  return c.combatant.players.some(player => user.name === player.name);
-}
 
 /**
  * When considering creating an active cover effect, do not do so if it already exists.
