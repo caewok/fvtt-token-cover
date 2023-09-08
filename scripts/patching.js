@@ -13,11 +13,13 @@ import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
 import { PATCHES as PATCHES_CanvasVisibility } from "./CanvasVisibility.js";
 import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import { PATCHES as PATCHES_DetectionMode } from "./DetectionMode.js";
+import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_LightSource } from "./LightSource.js";
 import { PATCHES as PATCHES_PointSourcePolygon } from "./PointSourcePolygon.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
 import { PATCHES as PATCHES_VisionSource } from "./VisionSource.js";
 
+// Levels
 import { PATCHES as PATCHES_Levels_SightHandler } from "./Levels_SightHandler.js";
 
 
@@ -41,6 +43,9 @@ export function initializePatching() {
 
   if ( MODULES_ACTIVE.LEVELS ) PATCHER.registerGroup("LEVELS");
   else PATCHER.registerGroup("NO_LEVELS");
+
+  if ( game.system.id === "dnd5e"
+    && !MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_NO_MIDI");
 }
 
 
