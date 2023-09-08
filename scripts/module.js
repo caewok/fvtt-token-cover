@@ -146,8 +146,7 @@ function registerSystemHooks() {
   }
 
   if ( game.system.id === "sfrpg" ) {
-    Hooks.on("preCreateItem", preCreateItemHook);
-    Hooks.on("createItem", createItemHook);
+
     Hooks.on("applyTokenStatusEffect", applyTokenStatusEffectHook);
   }
 }

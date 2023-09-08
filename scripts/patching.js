@@ -45,4 +45,6 @@ export function initializePatching() {
 
   if ( game.system.id === "dnd5e"
     && !MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_NO_MIDI");
+
+  if ( game.system.id === "sfrpg" ) PATCHER.registerGroup("sfrpg");
 }
