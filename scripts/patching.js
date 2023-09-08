@@ -130,8 +130,5 @@ export function registerLibWrapperMethods() {
     wrap( "VisionSource.prototype.initialize", initializeVisionSource, {perf_mode: libWrapper.PERF_FAST});
     override("VisionSource.prototype._createPolygon", _createPolygonVisionSource, {perf_mode: libWrapper.PERF_FAST});
   }
-
-  addClassMethod(PointSourcePolygon, "testCollision3d", testCollision3dPointSourcePolygon);
-  addClassMethod(PointSourcePolygon.prototype, "_testCollision3d", _testCollision3dPointSourcePolygon);
 }
 
