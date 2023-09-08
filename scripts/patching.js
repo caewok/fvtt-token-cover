@@ -9,6 +9,7 @@ PointSourcePolygon
 
 import { Patcher } from "./Patcher.js";
 
+import { PATCHES as PATCHES_CanvasVisibility } from "./CanvasVisibility.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
 import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import { PATCHES as PATCHES_PointSourcePolygon } from "./PointSourcePolygon.js";
@@ -16,6 +17,7 @@ import { PATCHES as PATCHES_VisionSource } from "./VisionSource.js";
 
 
 const PATCHES = {
+  CanvasVisibility: PATCHES_CanvasVisibility,
   ConstrainedTokenBorder: PATCHES_ConstrainedTokenBorder,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
   Token: PATCHES_Token,
@@ -129,9 +131,6 @@ export function registerLibWrapperMethods() {
     mixed("CONFIG.Item.documentClass.prototype.rollAttack", rollAttackItem5e, {perf_mode: libWrapper.PERF_FAST});
   }
 
-  if ( !MODULES_ACTIVE.PERFECT_VISION ) {
-    wrap( "VisionSource.prototype.initialize", initializeVisionSource, {perf_mode: libWrapper.PERF_FAST});
-    override("VisionSource.prototype._createPolygon", _createPolygonVisionSource, {perf_mode: libWrapper.PERF_FAST});
-  }
+
 }
 
