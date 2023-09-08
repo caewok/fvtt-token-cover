@@ -16,6 +16,7 @@ import { PATCHES as PATCHES_Token } from "./Token.js";
 import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import { PATCHES as PATCHES_PointSourcePolygon } from "./PointSourcePolygon.js";
 import { PATCHES as PATCHES_VisionSource } from "./VisionSource.js";
+import { PATCHES as PATCHES_Levels_SightHandler } from "./Levels_SightHandler.js";
 
 
 const PATCHES = {
@@ -25,7 +26,8 @@ const PATCHES = {
   DetectionMode: PATCHES_DetectionMode,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
   Token: PATCHES_Token,
-  VisionSource: PATCHES_VisionSource
+  VisionSource: PATCHES_VisionSource,
+  CONFIG.Levels.handlers.SightHandler: PATCHES_Levels_SightHandler
 };
 
 export const PATCHER = new Patcher(PATCHES);
@@ -36,7 +38,6 @@ export function initializePatching() {
 
   if ( MODULES_ACTIVE.LEVELS ) PATCHER.registerGroup("LEVELS");
   else PATCHER.registerGroup("NO_LEVELS");
-
 }
 
 
@@ -115,17 +116,9 @@ export function registerLibWrapperMethods() {
   // ----- Token Visibility ----- //
 
   if ( MODULES_ACTIVE.LEVELS ) {
-    override("CONFIG.Levels.handlers.SightHandler.getTestPoints", getTestPointsSightHandlerLevels, {perf_mode: libWrapper.PERF_FAST});
   } else {
     wrap("LightSource.prototype.testVisibility", testVisibilityLightSource, {perf_mode: libWrapper.PERF_FAST});
   }
-
-  // ----- Range Testing ----- //
-  if ( !(MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.PERFECT_VISION) ) mixed(
-    "DetectionMode.prototype._testRange",
-    _testRangeDetectionMode,
-    { perf_mode: libWrapper.PERF_FAST }
-  );
 
 
   // ----- Cover status effects ----- //
