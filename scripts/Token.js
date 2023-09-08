@@ -1,6 +1,7 @@
 /* globals
 canvas,
 CONFIG,
+game,
 PIXI
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -8,13 +9,32 @@ PIXI
 // Patches for the Token class
 
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
-import { MODULES_ACTIVE, DEBUG, COVER, IGNORES_COVER_HANDLER } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, DEBUG, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 import { Draw } from "./geometry/Draw.js";
+import { CoverCalculator } from "./CoverCalculator.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
+PATCHES.sfrpg = {};
 
 // ----- NOTE: Hooks ----- //
+
+/**
+ * For Starfinder, hook apply token status effect to add the cover item as needed.
+ * @param {Token} token           The token the status is being applied to
+ * @param {string} statusId       The status effect ID being applied, from CONFIG.specialStatusEffects
+ * @param {boolean} active        Is the special status effect now active?
+ */
+function applyTokenStatusEffect(token, statusId, active) {
+  if ( game.system.id !== "sfrpg" ) return;
+
+  // Is this a cover status?
+  // statusId is all lowercase, at least in sfrpg.
+  const cover = COVER.TYPES_FOR_ID[MODULE_ID][statusId];
+  if ( !cover ) return;
+  return active ? CoverCalculator.enableCover(token, COVER.TYPES_FOR_ID[MODULE_ID][statusId])
+    : CoverCalculator.disableAllCover(token);
+}
 
 /**
  * Hook: updateToken
@@ -50,9 +70,8 @@ function updateToken(tokenD, change, _options, _userId) {
   }
 }
 
-PATCHES.BASIC.HOOKS = {
-  updateToken
-};
+PATCHES.BASIC.HOOKS = { updateToken };
+PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 
 // ----- NOTE: Wraps ----- //
 
