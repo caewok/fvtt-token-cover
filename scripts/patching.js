@@ -9,12 +9,13 @@ PointSourcePolygon
 
 import { Patcher } from "./Patcher.js";
 
-import PATCHES as PATCHES_Token } from "./Token.js";
-import PATCHES as PATCHES_ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
-
+import { PATCHES as PATCHES_Token } from "./Token.js";
+import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+import { PATCHES as PATCHES_PointSourcePolygon } from "./PointSourcePolygon.js";
 
 const PATCHES = {
-  ConstrainedTokenBorder: PATCHES_ConstrainedTokenBorder
+  ConstrainedTokenBorder: PATCHES_ConstrainedTokenBorder,
+  PointSourcePolygon: PATCHES_PointSourcePolygon,
   Token: PATCHES_Token
 };
 
