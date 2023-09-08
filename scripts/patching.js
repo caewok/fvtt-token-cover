@@ -5,6 +5,28 @@ libWrapper,
 PointSourcePolygon
 */
 "use strict";
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
+
+import { Patcher } from "./Patcher.js";
+
+import PATCHES as PATCHES_Token } from "./Token.js";
+
+
+const PATCHES = {
+  Token: PATCHES_Token
+};
+
+export const PATCHER = new Patcher(PATCHES);
+
+export function initializePatching() {
+  PATCHER.registerGroup("BASIC");
+}
+
+
+
+
+
+
 
 import {
   _testLOSDetectionMode,
