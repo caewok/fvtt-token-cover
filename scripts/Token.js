@@ -6,6 +6,7 @@
 // Patches for the Token class
 
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+import { MODULE_ID, MODULES_ACTIVE, DEBUG, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
@@ -16,10 +17,16 @@ PATCHES.BASIC = {};
  * Hook: updateToken
  * If the token width/height changes, invalidate the tokenShape.
  * If the token moves, clear all debug drawings.
+ * @param {Document} tokenD                         The existing Document which was updated
+ * @param {object} change                           Differential data that was used to update the document
+ * @param {DocumentModificationContext} options     Additional options which modified the update request
+ * @param {string} userId                           The ID of the User who triggered the update workflow
+
  */
-function updateToken(document, change, options, userId) {
+function updateToken(tokenD, change, options, userId) {
   // Token shape changed; invalidate cached shape.
-  if ( Object.hasOwn(change, "width") || Object.hasOwn(change, "height") ) this._tokenShape = undefined;
+  const token = tokenD.object;
+  if ( (Object.hasOwn(change, "width") || Object.hasOwn(change, "height")) && token ) token._tokenShape = undefined;
 
   // Token moved; clear drawings.
   if ( Object.hasOwn(change, "x")
@@ -41,12 +48,8 @@ function updateToken(document, change, options, userId) {
 }
 
 PATCHES.BASIC.HOOKS: {
-  updateToken,
-
+  updateToken
 }
-
-
-
 
 
 // ----- NOTE: Wraps ----- //
@@ -74,12 +77,26 @@ function tokenBorder() { return this.tokenShape.translate(this.x, this.y); }
  */
 function tokenShape() { return this._tokenShape || (this._tokenShape = calculateTokenShape(this)); }
 
+/**
+ * New getter: Token.prototype.coverType
+ * Determine what type of cover the token has, if any.
+ * @type {COVER_TYPES}
+ */
+function coverType() {
+  const statuses = this.actor?.statuses;
+  if ( !statuses ) return COVER.TYPES.NONE;
+  const coverModule = MODULES_ACTIVE.DFREDS_CE ? "dfreds-convenient-effects" : "tokenvisibility";
+  return statuses.has(COVER.CATEGORIES.HIGH[coverModule]) ? COVER.TYPES.HIGH
+    : statuses.has(COVER.CATEGORIES.MEDIUM[coverModule]) ? COVER.TYPES.MEDIUM
+    : statuses.has(COVER.CATEGORIES.LOW[coverModule]) ? COVER.TYPES.LOW
+    : COVER.TYPES.NONE;
+}
 
 PATCHES.BASIC.GETTERS = {
   constrainedTokenBorder,
   tokenBorder,
-  tokenShape
-
+  tokenShape,
+  coverType
 };
 
 
