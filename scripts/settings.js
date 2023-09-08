@@ -21,7 +21,7 @@ import {
 
 // For caching to work, need to clean the cache whenever a setting below changes.
 // Need function for onChange.
-const settingsCache = new Map();
+export const settingsCache = new Map();
 export function getSetting(settingName) {
   const cached = settingsCache.get(settingName);
   if ( cached === undefined ) {
@@ -565,14 +565,7 @@ function activateListenersSettingsConfig(app, html) {
   html.find(`[name="${MODULE_ID}.${SETTINGS.COVER.ALGORITHM}"]`).change(coverAlgorithmChanged.bind(app));
 }
 
-/**
- * Wipe the settings cache on update
- */
-export function updateSettingHook(document, change, options, userId) {  // eslint-disable-line no-unused-vars
-  const [module, ...arr] = document.key.split(".");
-  const key = arr.join("."); // If the key has periods, multiple will be returned by split.
-  if ( module === MODULE_ID && settingsCache.has(key) ) settingsCache.delete(key);
-}
+
 
 
 /* Status effects

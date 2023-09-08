@@ -126,9 +126,6 @@ Hooks.once("devModeReady", ({ registerPackageDebugFlag }) => {
 
 
 
-Hooks.on("preCreateActiveEffect", preCreateActiveEffectHook);
-
-
 /**
  * Add controls to the measured template configuration
  */

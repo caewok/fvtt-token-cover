@@ -9,6 +9,32 @@ import { COVER } from "./const.js";
 export const PATCHES = {};
 PATCHES.BASIC = {};
 
+// ----- NOTE: Hooks ----- //
+
+/**
+ * When considering creating an active cover effect, do not do so if it already exists.
+ * @param {Document} document                     The pending document which is requested for creation
+ * @param {object} data                           The initial data object provided to the document creation request
+ * @param {DocumentModificationContext} options   Additional options which modify the creation request
+ * @param {string} userId                         The ID of the requesting user, always game.user.id
+ * @returns {boolean|void}                        Explicitly return false to prevent creation of this Document
+ */
+function preCreateActiveEffect(activeEffect, data, options, userId) {
+  if ( userId !== game.userId ) return;
+
+  // Is the activeEffect a cover status?
+  if ( !activeEffect.statuses.intersects(COVER.IDS.ALL) ) return;
+
+  // Does the status effect already exist?
+  const actor = activeEffect.parent;
+  const coverStatuses = actor.statuses?.intersection(COVER.IDS.ALL) ?? new Set();
+  if ( coverStatuses.intersects(activeEffect.statuses) ) return false;
+  return true;
+}
+
+PATCHES.BASIC.HOOKS = { preCreateActiveEffect };
+
+
 // ----- NOTE: Wraps ----- //
 
 /**

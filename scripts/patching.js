@@ -15,6 +15,7 @@ import { PATCHES as PATCHES_DetectionMode } from "./DetectionMode.js";
 import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_LightSource } from "./LightSource.js";
 import { PATCHES as PATCHES_PointSourcePolygon } from "./PointSourcePolygon.js";
+import { PATCHES as PATCHES_Setting } from "./Setting.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
 import { PATCHES as PATCHES_VisionSource } from "./VisionSource.js";
 
@@ -33,6 +34,7 @@ const PATCHES = {
   Item: PATCHES_Item,
   LightSource: PATCHES_LightSource,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
+  Setting: PATCHES_Setting,
   Token: PATCHES_Token,
   VisionSource: PATCHES_VisionSource,
   "CONFIG.Levels.handlers.SightHandler": PATCHES_Levels_SightHandler,
