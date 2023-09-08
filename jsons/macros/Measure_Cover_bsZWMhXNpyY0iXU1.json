@@ -4,7 +4,7 @@
   "author": "nx29hoGineoQv9Bs",
   "img": "icons/svg/shield.svg",
   "scope": "global",
-  "command": "// Macro to measure cover between selected tokens and targets.\n// Determine token and targets.\nconst token = game.user._lastSelected || canvas.tokens.controlled[0];\nconst targets = game.user.targets;\nif ( !token ) {\n  ui.notifications.error(\"Please select a token.\");\n  return;\n}\nif ( !targets.size ) {\n  ui.notifications.error(\"Please target at least one target.\");\n  return;\n}\n\n// Display cover to user.\nconst api = game.modules.get(\"tokenvisibility\").api;\nconst coverDialog = new api.CoverDialog(token, targets);\ncoverDialog.showCoverResults();",
+  "command": "// Macro to measure cover between selected tokens and targets.\n// Determine token and targets.\n// If Walled Templates is present, we can use its' last selected.\nconst last = fromUuidSync(game.user._lastSelected)?.token;\nconst token = last || canvas.tokens.controlled[0];\nconst targets = game.user.targets;\nif ( !token ) {\n  ui.notifications.error(\"Please select a token.\");\n  return;\n}\nif ( !targets.size ) {\n  ui.notifications.error(\"Please target at least one target.\");\n  return;\n}\n\n// Display cover to user.\nconst api = game.modules.get(\"tokenvisibility\").api;\nconst coverDialog = new api.CoverDialog(token, targets);\ncoverDialog.showCoverResults();",
   "folder": null,
   "ownership": {
     "default": 0,
