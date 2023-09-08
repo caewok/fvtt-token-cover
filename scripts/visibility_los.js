@@ -8,7 +8,7 @@ Token
 "use strict";
 
 import { DEBUG, MODULES_ACTIVE, COVER } from "./const.js";
-import { SETTINGS, getSetting } from "./settings.js";
+import { SETTINGS } from "./settings.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
@@ -80,55 +80,13 @@ DetectionMode.prototype._testRange
 
 */
 
-
-// ***** WRAPPERS
-
-
-
-/**
- * Wrap DetectionMode.prototype._testLOS
- */
-export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test) {
-  // Only apply this test to tokens
-  if ( !(target instanceof Token) ) return wrapped(visionSource, mode, target, test);
-
-  // If not constrained by walls or no walls present, line-of-sight is guaranteed.
-  if ( !this.walls || !canvas.walls.placeables.length ) return true;
-
-  // Check the cached value; return if there.
-  let hasLOS = test.los.get(visionSource);
-  if ( hasLOS === true || hasLOS === false ) return hasLOS;
-
-  const debug = DEBUG.los;
-  const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
-  const types = SETTINGS.LOS.TYPES;
-  switch ( algorithm ) {
-    case types.POINTS:
-      hasLOS = testLOSPoint(visionSource, target, test);
-      debug && drawDebugPoint(visionSource, test.point, hasLOS); // eslint-disable-line no-unused-expressions
-      break;
-    case types.CORNERS:
-      hasLOS = testLOSCorners(visionSource, target, test);
-      break;
-    case types.AREA:
-      hasLOS = testLOSArea(visionSource, target, test);
-      break;
-    case types.AREA3D:
-      hasLOS = testLOSArea3d(visionSource, target, test);
-      break;
-  }
-
-  test.los.set(visionSource, hasLOS);
-  return hasLOS;
-}
-
 /**
  * Draw red or green test points for debugging.
  * @param {VisionSource} visionSource
  * @param {Point} pt
  * @param {boolean} hasLOS       Is there line-of-sight to the point?
  */
-function drawDebugPoint(visionSource, pt, hasLOS) {
+export function drawDebugPoint(visionSource, pt, hasLOS) {
   const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
   Draw.segment({A: origin, B: pt}, {
     color: hasLOS ? Draw.COLORS.green : Draw.COLORS.red,
@@ -159,7 +117,7 @@ function isConstrained(los) {
  * @param {object} test       Object containing Point to test
  * @returns {boolean} True if source has line-of-sight to point
  */
-function testLOSPoint(visionSource, target, test) {
+export function testLOSPoint(visionSource, target, test) {
   // Test for Levels to avoid vision between levels tiles
   const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
   const pt = test.point;
@@ -211,7 +169,7 @@ function testLOSPoint(visionSource, target, test) {
  * @param {object} test       Object containing Point to test
  * @returns {boolean} True if source has line-of-sight to point
  */
-function testLOSCorners(visionSource, target, test) {
+export function testLOSCorners(visionSource, target, test) {
   if ( !(target instanceof Token) ) return testLOSPoint(visionSource, target, test);
 
   // If this is not the center point, do not test.
@@ -237,7 +195,7 @@ function testLOSCorners(visionSource, target, test) {
  * @param {object} pt       Point to test
  * @returns {boolean} True if source has line-of-sight to point for center point, false otherwise.
  */
-function testLOSArea(visionSource, target, test) {
+export function testLOSArea(visionSource, target, test) {
   // If this is not the center point, do not test.
   if ( !testIsCenterPoint(target, test) ) return false;
 
@@ -267,7 +225,7 @@ function testLOSArea(visionSource, target, test) {
  * @param {object} pt       Point to test
  * @returns {boolean} True if source has line-of-sight for center point, false otherwise
  */
-function testLOSArea3d(visionSource, target, test) {
+export function testLOSArea3d(visionSource, target, test) {
   // If this is not the center point, do not test.
   if ( !testIsCenterPoint(target, test) ) return false;
 
