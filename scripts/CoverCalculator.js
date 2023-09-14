@@ -89,7 +89,7 @@ async function disableAllATVCover(tokenUUID) {
   if ( !tokenD ) return;
 
   // Drop all cover statuses.
-  const coverStatuses = tokenD.actor.statuses?.intersect(COVER.IDS[MODULE_ID]) ?? new Set();
+  const coverStatuses = tokenD.actor.statuses?.intersection(COVER.IDS[MODULE_ID]) ?? new Set();
   const promises = coverStatuses.map(id => tokenD.toggleActiveEffect({ id }, { active: false }));
   return Promise.all(promises);
 }
@@ -162,7 +162,7 @@ async function enableATVCoverSFRPG(tokenUUID, type = COVER.TYPES.LOW) {
   if ( !key || !Object.hasOwn(COVER.CATEGORIES, key) ) return;
 
   // Retrieve the cover item.
-  let coverItem = game.items.find(i => i.getFlag(MODULE_ID, "cover") === type)
+  let coverItem = game.items.find(i => i.getFlag(MODULE_ID, "cover") === type);
   if ( !coverItem ) {
     // Pull from the compendium.
     const coverName = COVER.SFRPG[type];
@@ -171,16 +171,8 @@ async function enableATVCoverSFRPG(tokenUUID, type = COVER.TYPES.LOW) {
   }
 
   // Add the effect. (ActiveEffect hooks will prevent multiple additions.)
-  return tokenD.actor.createEmbeddedDocuments("Item", [coverItem])
+  return tokenD.actor.createEmbeddedDocuments("Item", [coverItem]);
 }
-
-// async function enableATVCoverSocket(tokenUUID, type = COVER.TYPES.LOW) {
-//   return SOCKETS.socket.executeAsGM("enableATVCover", tokenUUID, type);
-// }
-//
-// async function disableAllATVCoverSocket(tokenUUID) {
-//   return SOCKETS.socket.executeAsGM("disableAllATVCover", tokenUUID);
-// }
 
 /**
  * Remove all ATV cover statuses (ActiveEffect) from a token.
@@ -194,7 +186,7 @@ async function disableAllDFredsCover(uuid) {
   if ( !actor ) return;
 
   // Determine what cover statuses are already applied.
-  const coverStatuses = actor.statuses?.intersect(COVER.IDS["dfreds-convenient-effects"]) ?? new Set();
+  const coverStatuses = actor.statuses?.intersection(COVER.IDS["dfreds-convenient-effects"]) ?? new Set();
 
   // Drop all cover statuses.
   const promises = coverStatuses.map(id => {
@@ -319,8 +311,8 @@ export class CoverCalculator {
     if ( !token ) return;
     const uuid = token.document.uuid;
 
-    if ( MODULES_ACTIVE.DFREDS_CE ) return disableAllDFredsCover(uuid);
-    else return SOCKETS.socket.executeAsGM("disableAllATVCover", uuid);
+    if ( MODULES_ACTIVE.DFREDS_CE ) await disableAllDFredsCover(uuid);
+    return SOCKETS.socket.executeAsGM("disableAllATVCover", uuid);
   }
 
   static async disableCoverStatus(tokenId) {
@@ -345,8 +337,18 @@ export class CoverCalculator {
     if ( !token ) return;
 
     const uuid = token.document.uuid;
-    if ( MODULES_ACTIVE.DFREDS_CE ) return enableDFredsCover(uuid, type);
+    if ( MODULES_ACTIVE.DFREDS_CE && this.dFredsHasCover(type) ) return enableDFredsCover(uuid, type);
     else return SOCKETS.socket.executeAsGM("enableATVCover", uuid, type);
+  }
+
+  static dFredsHasCover(type) {
+    // Confirm this is a valid cover type.
+    const key = keyForValue(COVER.TYPES, type);
+    if ( !key ) return;
+
+    // Find effect.
+    const effectName = COVER.DFRED_NAMES[key];
+    return Boolean(game.dfreds.effectInterface.findEffectByName(effectName));
   }
 
   static async setCoverStatus(tokenId, type = this.COVER_TYPES.NONE ) {
