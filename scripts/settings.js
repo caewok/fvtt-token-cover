@@ -7,14 +7,14 @@ CONFIG
 "use strict";
 
 import { log } from "./util.js";
-import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
 import { STATUS_EFFECTS } from "./status_effects.js";
 import {
   LowCoverEffectConfig,
   MediumCoverEffectConfig,
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
-
+// Non-caching alt:
 // export function getSetting(settingName) {
 //   return game.settings.get(MODULE_ID, settingName);
 // }
@@ -350,7 +350,13 @@ export function registerSettings() {
     type: Number
   });
 
-  if ( !MODULES_ACTIVE.DFREDS_CE && game.system.id !== "sfrpg" ) {
+
+  const skipCoverMenus = game.system.id === "sfrpg";
+  const skipLowMenu = skipCoverMenus || dFredsHasCover("LOW");
+  const skipMediumMenu = skipCoverMenus || dFredsHasCover("MEDIUM");
+  const skipHighMenu = skipCoverMenus || dFredsHasCover("HIGH");
+
+  if ( !skipLowMenu ) {
     game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.LOW, {
       name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Name`),
       label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Label`),
@@ -358,7 +364,9 @@ export function registerSettings() {
       type: LowCoverEffectConfig,
       restricted: true
     });
+  }
 
+  if ( !skipMediumMenu ) {
     game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.MEDIUM, {
       name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Name`),
       label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Label`),
@@ -366,7 +374,9 @@ export function registerSettings() {
       type: MediumCoverEffectConfig,
       restricted: true
     });
+  }
 
+  if ( !skipHighMenu ) {
     game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.HIGH, {
       name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Name`),
       hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Hint`),
@@ -522,13 +532,6 @@ function getCoverNames() {
   };
 }
 
-
-
-
-
-
-
-
 /* Status effects
 Stored in two places:
 - SETTINGS.COVER.EFFECTS[][LOW, MEDIUM, HIGH]
@@ -595,12 +598,22 @@ export async function setCoverEffect(type, value) {
 }
 
 /**
+ * Confirm if DFred's has the given cover type.
+ * @param {"LOW"|"MEDIUM"|"HIGH"} key
+ * @returns {boolean}
+ */
+function dFredsHasCover(key) {
+  if ( !MODULES_ACTIVE.DFREDS_CE ) return false;
+  return Boolean(game.dfreds.effectInterface.findEffectByName(COVER.DFRED_NAMES[key]));
+}
+
+/**
  * Update the CONFIG.statusEffects array with the provided type, taken from GM settings.
  * @type {string} type    LOW, MEDIUM, or HIGH. If not defined, will update all three.
  */
 export function updateConfigStatusEffects(type) {
   // Skip if using DFred's CE
-  if ( MODULES_ACTIVE.DFREDS_CE ) return;
+  if ( dFredsHasCover(type) ) return;
 
   if ( !type ) {
     // Update all types
@@ -627,7 +640,3 @@ then use a renderSettingsConfig hook to selectively hide the elements with CSS o
 add a listener which toggles that CSS hidden state.
 
 */
-
-
-
-

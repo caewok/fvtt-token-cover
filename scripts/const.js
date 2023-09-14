@@ -98,12 +98,12 @@ COVER.TYPES_FOR_ID = {
     [`${MODULE_ID}.cover.high`]: COVER.TYPES.HIGH
   },
 
-  ["dfreds-convenient-effects"]: {
+  "dfreds-convenient-effects": {
     "Convenient Effect: Cover (Half)": COVER.TYPES.LOW,
     "Convenient Effect: Cover (Three-Quarters)": COVER.TYPES.MEDIUM,
     "Convenient Effect: Cover (Total)": COVER.TYPES.HIGH
   }
-}
+};
 
 COVER.MIN = Math.min(...Object.values(COVER.TYPES));
 COVER.MAX = Math.max(...Object.values(COVER.TYPES));
@@ -131,11 +131,11 @@ export const DEBUG = {
 export let IGNORES_COVER_HANDLER = IgnoresCover;
 
 export const WEAPON_ATTACK_TYPES = {
-  "all": `${MODULE_ID}.phrases.AllAttacks`,
-  "mwak": "DND5E.ActionMWAK",
-  "msak": "DND5E.ActionMSAK",
-  "rwak": "DND5E.ActionRWAK",
-  "rsak": "DND5E.ActionRSAK"
+  all: `${MODULE_ID}.phrases.AllAttacks`,
+  mwak: "DND5E.ActionMWAK",
+  msak: "DND5E.ActionMSAK",
+  rwak: "DND5E.ActionRWAK",
+  rsak: "DND5E.ActionRSAK"
 };
 
 // Hook init b/c game.modules is not initialized at start.
