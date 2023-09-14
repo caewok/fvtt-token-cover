@@ -27,6 +27,30 @@ export function log(...args) {
 }
 
 /**
+ * Gets the actor object by the actor UUID
+ * Comparable to DFred's version.
+ * https://github.com/DFreds/dfreds-convenient-effects/blob/8feaede24d310a3fa231d320ae5d33ecb326897f/scripts/foundry-helpers.js#L41
+ * @param {string} uuid - the actor UUID
+ * @returns {Actor} the actor that was found via the UUID
+ */
+export function getActorByUuid(uuid) {
+  const actorToken = fromUuidSync(uuid);
+  return actorToken?.actor ?? actorToken;
+}
+
+export function getTokenByUUID(uuid) {
+  const token = fromUuidSync(uuid);
+  return token?.object;
+}
+
+/**
+ * Get the key for a given object value. Presumes unique values, otherwise returns first.
+ */
+export function keyForValue(object, value) {
+  return Object.keys(object).find(key => object[key] === value);
+}
+
+/**
  * Retrieve an embedded property from an object using a string.
  * @param {object} obj
  * @param {string} str
@@ -318,20 +342,21 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
  */
 export function buildTokenPoints(tokens, config) {
   if ( !tokens.length && !tokens.size ) return tokens;
-  const { liveTokensBlock, deadTokensBlock } = config;
+  const { liveTokensBlock, deadTokensBlock, proneTokensBlock } = config;
   const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
 
   // Filter live or dead tokens
-  if ( liveTokensBlock ^ deadTokensBlock ) {
-    tokens = tokens.filter(t => {
-      const hp = getObjectProperty(t.actor, hpAttribute);
-      if ( typeof hp !== "number" ) return true;
+  if ( liveTokensBlock ^ deadTokensBlock ) tokens = tokens.filter(t => {
+    const hp = getObjectProperty(t.actor, hpAttribute);
+    if ( typeof hp !== "number" ) return true;
 
-      if ( liveTokensBlock && hp > 0 ) return true;
-      if ( deadTokensBlock && hp <= 0 ) return true;
-      return false;
-    });
-  }
+    if ( liveTokensBlock && hp > 0 ) return true;
+    if ( deadTokensBlock && hp <= 0 ) return true;
+    return false;
+  });
+
+
+  if ( !proneTokensBlock ) tokens = tokens.filter(t => !t.isProne);
 
   return tokens.map(t => new TokenPoints3d(t));
 }

@@ -7,13 +7,14 @@ Token
 */
 "use strict";
 
-import { DEBUG, MODULES_ACTIVE } from "./const.js";
-import { SETTINGS, getSetting } from "./settings.js";
+import { DEBUG, MODULES_ACTIVE, COVER } from "./const.js";
+import { SETTINGS } from "./settings.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Area2d } from "./Area2d.js";
 import { Area3d } from "./Area3d.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
 import { Draw } from "./geometry/Draw.js";
+import { CoverCalculator } from "./CoverCalculator.js";
 
 /* Visibility algorithm
 Three tests, increasing in difficulty and stringency. User can select between 0% and 100%
@@ -79,81 +80,13 @@ DetectionMode.prototype._testRange
 
 */
 
-
-// ***** WRAPPERS
-
-/**
- * Wrap VisionSource.prototype.initialize
- * Clear the cache when initializing
- */
-export function initializeVisionSource(wrapper, data={}) {
-  this._losCache = {};
-  return wrapper(data);
-}
-
-/**
- * Override VisionSource.prototype._createPolygon()
- * Pass an optional type; store the resulting los for that type in the token.
- * Pass other options to affect the config.
- * @param {string} type   light, sight, sound, move
- */
-export function _createPolygonVisionSource(config) {
-  config ??= this._getPolygonConfiguration();
-  this._losCache ??= {};
-
-  // Vision source is destroyed on token move, so we can cache for the type.
-  if ( this._losCache[config.type] ) return this._losCache[config.type];
-
-  const origin = { x: this.data.x, y: this.data.y };
-
-  // See PointSource.prototype._createPolygon
-  const polygonClass = CONFIG.Canvas.polygonBackends[config.type];
-  const poly = polygonClass.create(origin, config);
-  this._losCache[config.type] = poly;
-  return poly;
-}
-
-/**
- * Wrap DetectionMode.prototype._testLOS
- */
-export function _testLOSDetectionMode(wrapped, visionSource, mode, target, test) {
-  // Only apply this test to tokens
-  if ( !(target instanceof Token) ) return wrapped(visionSource, mode, target, test);
-
-  // If not constrained by walls or no walls present, line-of-sight is guaranteed.
-  if ( !this.walls || !canvas.walls.placeables.length ) return true;
-
-  // Check the cached value; return if there.
-  let hasLOS = test.los.get(visionSource);
-  if ( hasLOS === true || hasLOS === false ) return hasLOS;
-
-  const debug = DEBUG.los;
-  const algorithm = getSetting(SETTINGS.LOS.ALGORITHM);
-  const types = SETTINGS.LOS.TYPES;
-  switch ( algorithm ) {
-    case types.POINTS:
-      hasLOS = testLOSPoint(visionSource, target, test);
-      debug && drawDebugPoint(visionSource, test.point, hasLOS); // eslint-disable-line no-unused-expressions
-      break;
-    case types.AREA:
-      hasLOS = testLOSArea(visionSource, target, test);
-      break;
-    case types.AREA3D:
-      hasLOS = testLOSArea3d(visionSource, target, test);
-      break;
-  }
-
-  test.los.set(visionSource, hasLOS);
-  return hasLOS;
-}
-
 /**
  * Draw red or green test points for debugging.
  * @param {VisionSource} visionSource
  * @param {Point} pt
  * @param {boolean} hasLOS       Is there line-of-sight to the point?
  */
-function drawDebugPoint(visionSource, pt, hasLOS) {
+export function drawDebugPoint(visionSource, pt, hasLOS) {
   const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
   Draw.segment({A: origin, B: pt}, {
     color: hasLOS ? Draw.COLORS.green : Draw.COLORS.red,
@@ -184,7 +117,7 @@ function isConstrained(los) {
  * @param {object} test       Object containing Point to test
  * @returns {boolean} True if source has line-of-sight to point
  */
-function testLOSPoint(visionSource, target, test) {
+export function testLOSPoint(visionSource, target, test) {
   // Test for Levels to avoid vision between levels tiles
   const origin = new Point3d(visionSource.x, visionSource.y, visionSource.elevationZ);
   const pt = test.point;
@@ -228,13 +161,41 @@ function testLOSPoint(visionSource, target, test) {
 }
 
 /**
+ * Test a target token for line-of-sight using corners of the token and corners of the target.
+ * (dnd5e DMG rule)
+ * Tests all corners and returns true if at least one corner->corner is unblocked.
+ * @param {VisionSource} visionSource
+ * @param {Token} target
+ * @param {object} test       Object containing Point to test
+ * @returns {boolean} True if source has line-of-sight to point
+ */
+export function testLOSCorners(visionSource, target, test) {
+  if ( !(target instanceof Token) ) return testLOSPoint(visionSource, target, test);
+
+  // If this is not the center point, do not test.
+  if ( !testIsCenterPoint(target, test) ) return false;
+
+  const coverCalc = new CoverCalculator(visionSource, target, {
+    type: "sight",
+    deadTokensBlock: false,
+    liveTokensBlock: false,
+    liveForceHalfCover: false,
+    proneTokensBlock: false
+  });
+
+  coverCalc.debug = DEBUG.los;
+  const cover = coverCalc.targetCover(SETTINGS.COVER.TYPES.CORNER_CORNERS_GRID);
+  return cover < COVER.TYPES.HIGH;
+}
+
+/**
  * Test a target token for line-of-sight using top/bottom token areas.
  * @param {VisionSource} visionSource
  * @param {Token} target
  * @param {object} pt       Point to test
  * @returns {boolean} True if source has line-of-sight to point for center point, false otherwise.
  */
-function testLOSArea(visionSource, target, test) {
+export function testLOSArea(visionSource, target, test) {
   // If this is not the center point, do not test.
   if ( !testIsCenterPoint(target, test) ) return false;
 
@@ -264,7 +225,7 @@ function testLOSArea(visionSource, target, test) {
  * @param {object} pt       Point to test
  * @returns {boolean} True if source has line-of-sight for center point, false otherwise
  */
-function testLOSArea3d(visionSource, target, test) {
+export function testLOSArea3d(visionSource, target, test) {
   // If this is not the center point, do not test.
   if ( !testIsCenterPoint(target, test) ) return false;
 

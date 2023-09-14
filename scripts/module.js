@@ -4,24 +4,16 @@ Hooks
 */
 "use strict";
 
-import { MODULE_ID, COVER_TYPES, DEBUG, IGNORES_COVER_HANDLER, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, COVER, DEBUG, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
-
-import { targetTokenHook, combatTurnHook, dnd5ePreRollAttackHook, midiqolPreambleCompleteHook } from "./cover.js";
-import { registerLibWrapperMethods, patchHelperMethods } from "./patching.js";
+import { initializePatching, PATCHER } from "./patching.js";
 import {
   registerSettings,
   updateConfigStatusEffects,
-  updateSettingHook,
-  renderSettingsConfigHook } from "./settings.js";
-
-// Rendering configs
-import { renderDrawingConfigHook } from "./renderDrawingConfig.js";
-
-// Debugging
-import { Draw } from "./geometry/Draw.js";
+  getSetting,
+  setSetting } from "./settings.js";
 
 // For API
 import * as bench from "./benchmark.js";
@@ -37,8 +29,9 @@ import { HorizontalPoints3d } from "./PlaceablesPoints/HorizontalPoints3d.js";
 
 import { Area3d } from "./Area3d.js";
 import { Area2d } from "./Area2d.js";
-import { CoverCalculator } from "./CoverCalculator.js";
+import { CoverCalculator, SOCKETS } from "./CoverCalculator.js";
 import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+import { CoverDialog } from "./CoverDialog.js";
 
 import { Area3dPopout, area3dPopoutData } from "./Area3dPopout.js";
 
@@ -53,11 +46,11 @@ import {
 
 // Other self-executing hooks
 import "./changelog.js";
+import "./migration.js";
 
 Hooks.once("init", function() {
   registerGeometry();
-  registerLibWrapperMethods();
-  patchHelperMethods();
+  initializePatching();
   addDND5eCoverFeatFlags();
 
   game.modules.get(MODULE_ID).api = {
@@ -66,7 +59,8 @@ Hooks.once("init", function() {
     Area3d,
     util,
     CoverCalculator,
-    COVER_TYPES,
+    CoverDialog,
+    COVER,
     ConstrainedTokenBorder,
     los,
     PlanePoints3d,
@@ -76,8 +70,10 @@ Hooks.once("init", function() {
     TilePoints3d,
     VerticalPoints3d,
     HorizontalPoints3d,
-    IGNORES_COVER_HANDLER,
     setCoverIgnoreHandler,
+    SOCKETS,
+    getSetting,
+    setSetting,
 
     IgnoresCoverClasses: {
       IgnoresCover,
@@ -88,16 +84,21 @@ Hooks.once("init", function() {
     Area3dPopout,
     area3dPopoutData,
 
+    PATCHER,
+
     debug: DEBUG
   };
 
-  registerSystemHooks();
+  if ( game.system.id === "dnd5e" ) {
+    setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
+  }
 });
 
-Hooks.once("setup", async function() {
+Hooks.once("setup", function() {
   registerSettings();
   updateConfigStatusEffects();
 });
+
 
 /**
  * Tell DevMode that we want a flag for debugging this module.
@@ -106,77 +107,3 @@ Hooks.once("setup", async function() {
 Hooks.once("devModeReady", ({ registerPackageDebugFlag }) => {
   registerPackageDebugFlag(MODULE_ID);
 });
-
-function registerSystemHooks() {
-  util.log(`Game system is ${game.system.id}`);
-  if ( game.system.id !== "pf2e" ) {
-    /**
-     * Hook whenever a token is targeted or un-targeted.
-     */
-    Hooks.on("targetToken", targetTokenHook);
-
-    /**
-     * Hook any change in combat turn.
-     */
-    Hooks.on("combatTurn", combatTurnHook);
-  }
-
-  if ( game.system.id === "dnd5e" ) {
-    /**
-     * For dnd5e, hook the attack roll to set cover.
-     */
-    Hooks.on("dnd5e.preRollAttack", dnd5ePreRollAttackHook);
-
-    /**
-     * For midi, let GM or user decide on cover options. Or automatic.
-     */
-    Hooks.on("midi-qol.preambleComplete", midiqolPreambleCompleteHook);
-  }
-}
-
-/**
- * A hook event that fires for every Document type after conclusion of an update workflow.
- * Substitute the Document name in the hook event to target a specific Document type, for example "updateActor".
- * This hook fires for all connected clients after the update has been processed.
- *
- * @event updateDocument
- * @category Document
- * @param {Document} document                       The existing Document which was updated
- * @param {object} change                           Differential data that was used to update the document
- * @param {DocumentModificationContext} options     Additional options which modified the update request
- * @param {string} userId                           The ID of the User who triggered the update workflow
- */
-Hooks.on("updateToken", updateTokenHook);
-
-/**
- * If the token moves, clear all debug drawings.
- */
-function updateTokenHook(document, change, options, userId) { // eslint-disable-line no-unused-vars
-  if ( Object.hasOwn(change, "x")
-    || Object.hasOwn(change, "y")
-    || Object.hasOwn(change, "elevation") ) {
-
-    if ( DEBUG.once || DEBUG.range || DEBUG.area || DEBUG.cover || DEBUG.los ) {
-      Draw.clearDrawings();
-
-      if ( DEBUG.once ) {
-        DEBUG.range = false;
-        DEBUG.area = false;
-        DEBUG.cover = false;
-        DEBUG.los = false;
-        DEBUG.once = false;
-      }
-    }
-  }
-}
-
-/**
- * Add controls to the measured template configuration
- */
-Hooks.on("renderDrawingConfig", renderDrawingConfigHook);
-
-// Note: Settings hooks
-// Settings manipulations to hide unneeded settings
-// Wipe the settings cache on update
-Hooks.on("renderSettingsConfig", renderSettingsConfigHook);
-Hooks.on("updateSetting", updateSettingHook);

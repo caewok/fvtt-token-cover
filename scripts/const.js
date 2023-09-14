@@ -1,5 +1,4 @@
 /* globals
-duplicate,
 Hooks,
 game,
 canvas
@@ -7,13 +6,7 @@ canvas
 "use strict";
 
 // Ignores Cover
-import {
-  IgnoresCover,
-  IgnoresCoverSimbuls,
-  IgnoresCoverDND5e } from "./IgnoresCover.js";
-
-import { getSetting, SETTINGS } from "./settings.js";
-
+import { IgnoresCover } from "./IgnoresCover.js";
 
 export const MODULE_ID = "tokenvisibility";
 export const EPSILON = 1e-08;
@@ -35,7 +28,9 @@ export const FLAGS = {
   }
 };
 
-export const COVER_TYPES = {
+export const COVER = {};
+
+COVER.TYPES = {
   NONE: 0,
   LOW: 1,
   MEDIUM: 2,
@@ -43,8 +38,75 @@ export const COVER_TYPES = {
   TOTAL: 4
 };
 
-export const MIN_COVER = Math.min(...Object.values(COVER_TYPES));
-export const MAX_COVER = Math.max(...Object.values(COVER_TYPES));
+// Names of the SFRPG Cover items
+COVER.SFRPG = {
+  1: "Partial Cover",
+  2: "Cover",
+  3: "Improved Cover",
+  4: "Total Cover"
+};
+
+COVER.IDS = {};
+
+COVER.IDS[MODULE_ID] = new Set([
+  `${MODULE_ID}.cover.LOW`,
+  `${MODULE_ID}.cover.MEDIUM`,
+  `${MODULE_ID}.cover.HIGH`
+]);
+
+COVER.IDS["dfreds-convenient-effects"] = new Set([
+  "Convenient Effect: Cover (Half)",
+  "Convenient Effect: Cover (Three-Quarters)",
+  "Convenient Effect: Cover (Total)"
+]);
+
+COVER.IDS.ALL = COVER.IDS[MODULE_ID].union(COVER.IDS["dfreds-convenient-effects"]);
+
+COVER.DFRED_NAMES = {
+  LOW: "Cover (Half)",
+  MEDIUM: "Cover (Three-Quarters)",
+  HIGH: "Cover (Total)"
+};
+
+
+COVER.CATEGORIES = {
+  LOW: {
+    "dfreds-convenient-effects": "Convenient Effect: Cover (Half)",
+    [MODULE_ID]: `${MODULE_ID}.cover.LOW`
+  },
+
+  MEDIUM: {
+    "dfreds-convenient-effects": "Convenient Effect: Cover (Three-Quarters)",
+    [MODULE_ID]: `${MODULE_ID}.cover.MEDIUM`
+  },
+
+  HIGH: {
+    "dfreds-convenient-effects": "Convenient Effect: Cover (Total)",
+    [MODULE_ID]: `${MODULE_ID}.cover.HIGH`
+  }
+};
+
+COVER.TYPES_FOR_ID = {
+  [MODULE_ID]: {
+    [`${MODULE_ID}.cover.LOW`]: COVER.TYPES.LOW,
+    [`${MODULE_ID}.cover.MEDIUM`]: COVER.TYPES.MEDIUM,
+    [`${MODULE_ID}.cover.HIGH`]: COVER.TYPES.HIGH,
+
+    // Sometimes the id is all lowercase.
+    [`${MODULE_ID}.cover.low`]: COVER.TYPES.LOW,
+    [`${MODULE_ID}.cover.medium`]: COVER.TYPES.MEDIUM,
+    [`${MODULE_ID}.cover.high`]: COVER.TYPES.HIGH
+  },
+
+  "dfreds-convenient-effects": {
+    "Convenient Effect: Cover (Half)": COVER.TYPES.LOW,
+    "Convenient Effect: Cover (Three-Quarters)": COVER.TYPES.MEDIUM,
+    "Convenient Effect: Cover (Total)": COVER.TYPES.HIGH
+  }
+};
+
+COVER.MIN = Math.min(...Object.values(COVER.TYPES));
+COVER.MAX = Math.max(...Object.values(COVER.TYPES));
 
 export const MODULES_ACTIVE = {
   WALL_HEIGHT: false,
@@ -67,6 +129,14 @@ export const DEBUG = {
 };
 
 export let IGNORES_COVER_HANDLER = IgnoresCover;
+
+export const WEAPON_ATTACK_TYPES = {
+  all: `${MODULE_ID}.phrases.AllAttacks`,
+  mwak: "DND5E.ActionMWAK",
+  msak: "DND5E.ActionMSAK",
+  rwak: "DND5E.ActionRWAK",
+  rsak: "DND5E.ActionRSAK"
+};
 
 // Hook init b/c game.modules is not initialized at start.
 Hooks.once("init", function() {
@@ -91,106 +161,6 @@ export function setCoverIgnoreHandler(handler) {
   IGNORES_COVER_HANDLER = handler;
 
   // Simplest just to revert any existing.
+  if ( !canvas.tokens?.placeables ) return;
   canvas.tokens.placeables.forEach(t => t._ignoresCoverType = undefined);
 }
-
-Hooks.once("canvasReady", async function() {
-  // Version 0.3.2: "ignoreCover" flag becomes "ignoreCoverAll"
-  migrateIgnoreCoverFlag();
-
-  // Set the ignores cover handler based on what systems and modules are active
-  const handler = MODULES_ACTIVE.SIMBULS_CC ? IgnoresCoverSimbuls
-    : game.system.id === "dnd5e" ? IgnoresCoverDND5e : IgnoresCover;
-
-  setCoverIgnoreHandler(handler);
-});
-
-
-/**
- * Cover flag was originally "ignoreCover".
- * As of v0.3.2, all, mwak, etc. were introduced. So migrate the "ignoreCover" to "ignoreCoverAll"
- */
-function migrateIgnoreCoverFlag() {
-  if ( getSetting(SETTINGS.MIGRATION.v032) ) return;
-
-  // Confirm that actor flags are updated to newest version
-  // IGNORE: "ignoreCover" --> "ignoreCoverAll"
-  game.actors.forEach(a => {
-    const allCover = a.getFlag(MODULE_ID, "ignoreCover");
-    if ( allCover ) {
-      a.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.ALL, allCover);
-      a.unsetFlag(MODULE_ID, "ignoreCover");
-    }
-  });
-
-  // Unlinked tokens may not otherwise get updated.
-  canvas.tokens.placeables.forEach(t => {
-    const allCover = t.actor.getFlag(MODULE_ID, "ignoreCover");
-    if ( allCover ) {
-      t.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.ALL, allCover);
-      t.actor.unsetFlag(MODULE_ID, "ignoreCover");
-    }
-  });
-}
-
-// Default status effects for different systems.
-export const STATUS_EFFECTS = {
-  generic: {
-    LOW: {
-      id: `${MODULE_ID}.cover.LOW`,
-      label: "Low",
-      icon: `modules/${MODULE_ID}/assets/shield_low_gray.svg`
-    },
-
-    MEDIUM: {
-      id: `${MODULE_ID}.cover.MEDIUM`,
-      label: "Medium",
-      icon: `modules/${MODULE_ID}/assets/shield_medium_gray.svg`
-    },
-
-    HIGH: {
-      id: `${MODULE_ID}.cover.HIGH`,
-      label: "High",
-      icon: `modules/${MODULE_ID}/assets/shield_high_gray.svg`
-    }
-  }
-};
-
-STATUS_EFFECTS.dnd5e = duplicate(STATUS_EFFECTS.generic);
-STATUS_EFFECTS.dnd5e.LOW.label = "Half";
-STATUS_EFFECTS.dnd5e.MEDIUM.label = "Three-quarters";
-STATUS_EFFECTS.dnd5e.HIGH.label = "Total";
-
-STATUS_EFFECTS.dnd5e.LOW.changes = [
-  {
-    key: "system.attributes.ac.bonus",
-    mode: 2,
-    value: "+2"
-  },
-
-  {
-    key: "system.attributes.dex.saveBonus",
-    mode: 2,
-    value: "+2"
-  }
-];
-
-
-STATUS_EFFECTS.dnd5e.MEDIUM.changes = [
-  {
-    key: "system.attributes.ac.bonus",
-    mode: 2,
-    value: "+5"
-  },
-
-  {
-    key: "system.attributes.dex.saveBonus",
-    mode: 2,
-    value: "+5"
-  }
-];
-
-STATUS_EFFECTS.pf2e = duplicate(STATUS_EFFECTS.generic);
-STATUS_EFFECTS.pf2e.LOW.label = "Lesser";
-STATUS_EFFECTS.pf2e.MEDIUM.label = "Standard";
-STATUS_EFFECTS.pf2e.HIGH.label = "Greater";

@@ -7,13 +7,21 @@ CONFIG
 "use strict";
 
 import { log } from "./util.js";
-import { MODULE_ID, STATUS_EFFECTS, MODULES_ACTIVE } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
+import { STATUS_EFFECTS } from "./status_effects.js";
 import {
   LowCoverEffectConfig,
   MediumCoverEffectConfig,
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
-const settingsCache = new Map();
+// Non-caching alt:
+// export function getSetting(settingName) {
+//   return game.settings.get(MODULE_ID, settingName);
+// }
+
+// For caching to work, need to clean the cache whenever a setting below changes.
+// Need function for onChange.
+export const settingsCache = new Map();
 export function getSetting(settingName) {
   const cached = settingsCache.get(settingName);
   if ( cached === undefined ) {
@@ -42,7 +50,7 @@ await api.bench.QBenchmarkLoopFn(N, fnDefault, "default","cover-token-live")
 
 export async function setSetting(settingName, value) {
   settingsCache.delete(settingName);
-  return await game.settings.set(MODULE_ID, settingName, value);
+  return game.settings.set(MODULE_ID, settingName, value);
 }
 
 export const SETTINGS = {
@@ -63,6 +71,7 @@ export const SETTINGS = {
     ALGORITHM: "los-algorithm",
     TYPES: {
       POINTS: "los-points",
+      CORNERS: "los-corners",
       AREA: "los-area",
       AREA3D: "los-area-3d"
     },
@@ -103,9 +112,11 @@ export const SETTINGS = {
       COVERCHECK_CHOICES: {
         NONE: "midiqol-covercheck-none",
         USER: "midiqol-covercheck-user",
+        USER_CANCEL: "midiqol-covercheck-user-cancel",
         GM: "midiqol-covercheck-gm",
         AUTO: "midiqol-covercheck-auto"
-      }
+      },
+      COVERCHECK_IF_CHANGED: "midiqol-covercheck-if-changed"
     },
 
     COMBAT_AUTO: "cover-combat-auto",
@@ -124,7 +135,9 @@ export const SETTINGS = {
         HALF: "cover-token-live-half",
         FULL: "cover-token-live-full"
       }
-    }
+    },
+
+    PRONE: "cover-prone"
   },
 
   CHANGELOG: "changelog",
@@ -135,7 +148,8 @@ export const SETTINGS = {
   },
 
   MIGRATION: {
-    v032: "migration-v032"
+    v032: "migration-v032",
+    v054: "migration-v054"
   }
 };
 
@@ -241,6 +255,7 @@ export function registerSettings() {
     type: String,
     choices: {
       [LTYPES.POINTS]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.POINTS}`),
+      [LTYPES.CORNERS]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.CORNERS}`),
       [LTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.AREA}`),
       [LTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.AREA3D}`)
     },
@@ -335,19 +350,25 @@ export function registerSettings() {
     type: Number
   });
 
-  if ( !MODULES_ACTIVE.DFREDS_CE ) {
+
+  const skipCoverMenus = game.system.id === "sfrpg";
+  const skipLowMenu = skipCoverMenus || dFredsHasCover("LOW");
+  const skipMediumMenu = skipCoverMenus || dFredsHasCover("MEDIUM");
+  const skipHighMenu = skipCoverMenus || dFredsHasCover("HIGH");
+
+  if ( !skipLowMenu ) {
     game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.LOW, {
       name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Name`),
-      hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Hint`),
       label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.LOW}.Label`),
       icon: "fas fa-shield-halved",
       type: LowCoverEffectConfig,
       restricted: true
     });
+  }
 
+  if ( !skipMediumMenu ) {
     game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.MEDIUM, {
       name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Name`),
-      hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Hint`),
       label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.MEDIUM}.Label`),
       icon: "fas fa-shield-heart",
       type: MediumCoverEffectConfig,
@@ -355,14 +376,16 @@ export function registerSettings() {
     });
   }
 
-  game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.HIGH, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Hint`),
-    label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Label`),
-    icon: "fas fa-shield",
-    type: HighCoverEffectConfig,
-    restricted: true
-  });
+  if ( !skipHighMenu ) {
+    game.settings.registerMenu(MODULE_ID, SETTINGS.COVER.MENU.HIGH, {
+      name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Name`),
+      hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Hint`),
+      label: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MENU.HIGH}.Label`),
+      icon: "fas fa-shield",
+      type: HighCoverEffectConfig,
+      restricted: true
+    });
+  }
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.COMBAT_AUTO, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.COMBAT_AUTO}.Name`),
@@ -383,28 +406,30 @@ export function registerSettings() {
   });
 
   const MIDICHOICES = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
+  const useCoverCheck = game.system.id === "dnd5e" || MODULES_ACTIVE.MIDI_QOL;
   game.settings.register(MODULE_ID, SETTINGS.COVER.MIDIQOL.COVERCHECK, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK}.Name`),
     hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK}.Hint`),
     scope: "world",
-    config: MODULES_ACTIVE.MIDI_QOL,
+    config: useCoverCheck,
     type: String,
     choices: {
       [MIDICHOICES.NONE]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.NONE}`),
       [MIDICHOICES.USER]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.USER}`),
+      [MIDICHOICES.USER_CANCEL]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.USER_CANCEL}`),
       [MIDICHOICES.GM]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.GM}`),
       [MIDICHOICES.AUTO]: game.i18n.localize(`${MODULE_ID}.settings.${MIDICHOICES.AUTO}`)
     },
     default: MIDICHOICES.NONE
   });
 
-  game.settings.register(MODULE_ID, SETTINGS.COVER.DEAD_TOKENS.ALGORITHM, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ALGORITHM}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ALGORITHM}.Hint`),
+  game.settings.register(MODULE_ID, SETTINGS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED}.Hint`),
     scope: "world",
-    config: true,
+    config: useCoverCheck,
     type: Boolean,
-    default: true
+    default: false
   });
 
   const LIVECHOICES = SETTINGS.COVER.LIVE_TOKENS.TYPES;
@@ -420,6 +445,24 @@ export function registerSettings() {
       [LIVECHOICES.HALF]: game.i18n.localize(`${MODULE_ID}.settings.${LIVECHOICES.HALF}`)
     },
     default: LIVECHOICES.FULL
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.DEAD_TOKENS.ALGORITHM, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ALGORITHM}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.DEAD_TOKENS.ALGORITHM}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.COVER.PRONE, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.PRONE}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.PRONE}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
   });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE, {
@@ -469,6 +512,13 @@ export function registerSettings() {
     type: Boolean
   });
 
+  game.settings.register(MODULE_ID, SETTINGS.MIGRATION.v054, {
+    scope: "world",
+    config: false,
+    default: false,
+    type: Boolean
+  });
+
   log("Done registering settings.");
 }
 
@@ -481,59 +531,6 @@ function getCoverNames() {
     HIGH: statusEffects.HIGH.label
   };
 }
-
-/**
- * @param {Application} application     The Application instance being rendered
- * @param {jQuery} html                 The inner HTML of the document that will be displayed and may be modified
- * @param {object} data                 The object of data used when rendering the application
- */
-export function renderSettingsConfigHook(app, html, _data) {
-  activateListenersSettingsConfig(app, html);
-
-  const tvSettings = html.find(`section[data-tab="${MODULE_ID}"]`);
-  if ( !tvSettings || !tvSettings.length ) return;
-
-  const losAlgorithm = getSetting(SETTINGS.LOS.ALGORITHM);
-  const coverAlgorithm = getSetting(SETTINGS.COVER.ALGORITHM);
-
-  const displayArea = losAlgorithm === SETTINGS.LOS.TYPES.POINTS ? "none" : "block";
-  const inputLOSArea = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.LOS.PERCENT_AREA}"]`);
-  const divLOSArea = inputLOSArea.parent().parent();
-  divLOSArea[0].style.display = displayArea;
-
-  const [displayCoverTriggers, displayCenterCoverTrigger] = coverAlgorithm === SETTINGS.COVER.TYPES.CENTER_CENTER
-    ? ["none", "block"] : ["block", "none"];
-
-  const inputCenter = tvSettings.find(`select[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_CENTER}"]`);
-  const inputLow = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}"]`);
-  const inputMedium = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM}"]`);
-  const inputHigh = tvSettings.find(`input[name="${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}"]`);
-
-  const divInputCenter = inputCenter.parent().parent();
-  const divInputLow = inputLow.parent().parent();
-  const divInputMedium = inputMedium.parent().parent();
-  const divInputHigh = inputHigh.parent().parent();
-
-  if ( divInputCenter.length ) divInputCenter[0].style.display = displayCenterCoverTrigger;
-  if ( divInputLow.length ) divInputLow[0].style.display = displayCoverTriggers;
-  if ( divInputMedium.length ) divInputMedium[0].style.display = displayCoverTriggers;
-  if ( divInputHigh.length ) divInputHigh[0].style.display = displayCoverTriggers;
-}
-
-function activateListenersSettingsConfig(app, html) {
-  html.find(`[name="${MODULE_ID}.${SETTINGS.LOS.ALGORITHM}"]`).change(losAlgorithmChanged.bind(app));
-  html.find(`[name="${MODULE_ID}.${SETTINGS.COVER.ALGORITHM}"]`).change(coverAlgorithmChanged.bind(app));
-}
-
-/**
- * Wipe the settings cache on update
- */
-export function updateSettingHook(document, change, options, userId) {  // eslint-disable-line no-unused-vars
-  const [module, ...arr] = document.key.split(".");
-  const key = arr.join("."); // If the key has periods, multiple will be returned by split.
-  if ( module === MODULE_ID && settingsCache.has(key) ) settingsCache.delete(key);
-}
-
 
 /* Status effects
 Stored in two places:
@@ -569,8 +566,11 @@ export function getCoverEffect(type = "LOW") {
  * @returns {string} Label for the cover effect
  */
 export function getCoverName(type = "LOW") {
+  if ( type === "NONE" ) return game.i18n.localize("None");
+  if ( type === "TOTAL" ) return game.i18n.localize("tokenvisibility.phrases.Total");
+
   const effect = getCoverEffect(type);
-  return effect.label;
+  return game.i18n.localize(effect.name ?? effect.label);
 }
 
 /**
@@ -586,13 +586,25 @@ export async function setCoverEffect(type, value) {
   }
 
   const allStatusEffects = getSetting(SETTINGS.COVER.EFFECTS);
-  if ( !Object.hasOwn(allStatusEffects, game.system.id) ) {
-    allStatusEffects[game.system.id] = duplicate(allStatusEffects.generic);
-  }
+  let systemId = game.system.id;
+  if ( (systemId === "dnd5e" || systemId === "sw5e")
+    && game.modules.get("midi-qol")?.active ) systemId = `${systemId}_midiqol`;
 
-  allStatusEffects[game.system.id][type] = value;
+  if ( !Object.hasOwn(allStatusEffects, systemId) ) allStatusEffects[systemId] = duplicate(allStatusEffects.generic);
+
+  allStatusEffects[systemId][type] = value;
   await setSetting(SETTINGS.COVER.EFFECTS, allStatusEffects);
   updateConfigStatusEffects(type);
+}
+
+/**
+ * Confirm if DFred's has the given cover type.
+ * @param {"LOW"|"MEDIUM"|"HIGH"} key
+ * @returns {boolean}
+ */
+function dFredsHasCover(key) {
+  if ( !MODULES_ACTIVE.DFREDS_CE ) return false;
+  return Boolean(game.dfreds.effectInterface.findEffectByName(COVER.DFRED_NAMES[key]));
 }
 
 /**
@@ -601,21 +613,20 @@ export async function setCoverEffect(type, value) {
  */
 export function updateConfigStatusEffects(type) {
   // Skip if using DFred's CE
-  const dfActive = MODULES_ACTIVE.DFREDS_CE;
+  if ( dFredsHasCover(type) ) return;
 
   if ( !type ) {
     // Update all types
-    if ( !dfActive ) updateConfigStatusEffects("LOW");
-    if ( !dfActive ) updateConfigStatusEffects("MEDIUM");
+    updateConfigStatusEffects("LOW");
+    updateConfigStatusEffects("MEDIUM");
     updateConfigStatusEffects("HIGH");
     return;
   }
 
-  if ( dfActive && (type === "LOW" || type === "MEDIUM") ) return;
-
   const coverEffect = getCoverEffect(type);
   coverEffect.id = `${MODULE_ID}.cover.${type}`;
   const currIdx = CONFIG.statusEffects.findIndex(effect => effect.id === coverEffect.id);
+  coverEffect.name ??= coverEffect.label ?? coverEffect.id; // Ensure name is always present.
 
   if ( !~currIdx ) CONFIG.statusEffects.push(coverEffect);
   else CONFIG.statusEffects[currIdx] = coverEffect;
@@ -629,36 +640,3 @@ then use a renderSettingsConfig hook to selectively hide the elements with CSS o
 add a listener which toggles that CSS hidden state.
 
 */
-
-function losAlgorithmChanged(event) {
-  const losAlgorithm = event.target.value;
-  log(`los algorithm changed to ${losAlgorithm}`, event, this);
-
-  const displayArea = losAlgorithm === SETTINGS.LOS.TYPES.POINTS ? "none" : "block";
-  const inputLOSArea = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.PERCENT_AREA}`);
-  const divLOSArea = inputLOSArea[0].parentElement.parentElement;
-  divLOSArea.style.display = displayArea;
-}
-
-function coverAlgorithmChanged(event) {
-  const coverAlgorithm = event.target.value;
-  log(`cover algorithm changed to ${coverAlgorithm}`, event, this);
-
-  const [displayCoverTriggers, displayCenterCoverTrigger] = coverAlgorithm === SETTINGS.COVER.TYPES.CENTER_CENTER
-    ? ["none", "block"] : ["block", "none"];
-
-  const inputCenter = document.getElementsByName(`${MODULE_ID}.${SETTINGS.COVER.TRIGGER_CENTER}`);
-  const inputLow = document.getElementsByName(`${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.LOW}`);
-  const inputMedium = document.getElementsByName(`${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM}`);
-  const inputHigh = document.getElementsByName(`${MODULE_ID}.${SETTINGS.COVER.TRIGGER_PERCENT.HIGH}`);
-
-  const divInputCenter = inputCenter[0].parentElement.parentElement;
-  const divInputLow = inputLow[0].parentElement.parentElement;
-  const divInputMedium = inputMedium[0].parentElement.parentElement;
-  const divInputHigh = inputHigh[0].parentElement.parentElement;
-
-  divInputCenter.style.display = displayCenterCoverTrigger;
-  divInputLow.style.display = displayCoverTriggers;
-  divInputMedium.style.display = displayCoverTriggers;
-  divInputHigh.style.display = displayCoverTriggers;
-}

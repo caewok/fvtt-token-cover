@@ -45,6 +45,28 @@ Hooks.once("ready", () => {
           - **Updated Settings:** Settings have been updated accordingly.
             You may need to update your preferred default settings accordingly.`
     })
+
+    .addEntry({
+      version: "0.5.4",
+      title: "DFred's compatibility and new features",
+      body: `\
+          - **DFred's:** If DFred's Convenient Effects module is loaded, all three cover effects from DFred's
+            (half, three-quarters, total) will be used instead of this module's defaults. Requires
+            DFred's version 5.1.1.
+          - **Macros:** Existing macros were improved and new macros added. If you were previously using
+            the Alternative Token Visibility macros, you will need to reinstall them from the compendium.
+            Added a Set Cover macro to allow the user to confirm or change cover choices and apply
+            the active effects for the chosen cover(s) for targets. Added a Vision Debug that
+            displays debug lines similar to the Cover Debug Tester.
+          - **Ignore Prone:** New setting will ignore prone tokens for purposes of cover.
+          - **Modified Cover Workflow:** You can now choose to have a dialog appear for the GM or the
+            user when the attack button is used for an item. Previously, this workflow was limited to
+            when the midiqol module was present.
+          - **New Vision Option:** You can now select "Corner to Corner" as a line-of-sight vision option.
+            This will allow tokens to be seen by other tokens if the corner of a token has line-of-sight to
+            the corner of another token, which mimics the dnd5e DMG rule. This is equivalent to the corner-to-corner
+            cover option.`
+    })
     .build()
     ?.render(true);
 });

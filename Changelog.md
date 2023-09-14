@@ -1,3 +1,15 @@
+# 0.5.4
+- Fixes to how cover status data id is handled. Switch from label to name to accommodate Foundry change. Migrate old cover status data objects.
+- Better tests to prevent multiple cover statuses on a single token.
+- Improve compatibility with DFred's Convenient Effects. Use DFred's total cover status.
+- Added a CoverDialog class to handle various user dialogs.
+- Change cover macros to only accept a single token from which to test cover, for simplicity.
+- Add setting to use or ignore token for cover when token is prone. Closes issue #46.
+- Add workflow option to notify user of cover calculations, and allow the user confirm/cancel only. Closes issue #45. Allow workflow to be used with dnd5e even without midiqol (workflow triggered on item attack roll).
+- Add LOS option to use corners-->corners to measure token visibility. Closes issue #44.
+- Added support for Starfinder RPG. Cover is added using items from the Compendium. Items with the flag `tokenvisibility.cover` are assumed to be cover, and the item folder for the system is checked before pulling from the compendium. Closes issue #43.
+- Update geometry lib to v0.2.7.
+
 # 0.5.3
 Fix the possibly borked v0.5.1 and v0.5.2. (Amazing what a stray ";" can do!)
 

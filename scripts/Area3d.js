@@ -229,6 +229,7 @@ export class Area3d {
     config.tilesBlock ??= MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.EV;
     config.deadTokensBlock ??= false;
     config.liveTokensBlock ??= false;
+    config.proneTokensBlock ??= true;
 
     // Not user-facing. For debugging and benchmarking shadows
     config.useShadows ??= getSetting(SETTINGS.AREA3D_USE_SHADOWS);
