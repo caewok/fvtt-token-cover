@@ -51,7 +51,7 @@
     {
       "name": "tokenvision_items_sfrpg",
       "label": "ATV Items",
-      "path": "packs/items_sfrpg",
+      "path": "packs/items/sfrpg",
       "type": "Item",
       "private": false,
       "system": "sfrpg"
