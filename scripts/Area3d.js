@@ -850,7 +850,11 @@ export class Area3d {
     tokenPoints.forEach(pts => tokens.add(pts));
 
     // Add Walls
-    blockingObjs.walls.forEach(w => walls.add(new WallPoints3d(w)));
+    blockingObjs.walls.forEach(w => {
+      // Sometimes w can be WallPoints3d. See issue #48.
+      if ( w instanceof WallPoints3d ) walls.add(w);
+      else walls.add(new WallPoints3d(w))
+    });
 
     // Add Terrain Walls
     blockingObjs.terrainWalls.forEach(w => terrainWalls.add(new WallPoints3d(w)));

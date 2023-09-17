@@ -12,7 +12,7 @@ fvtt package workon "tokenvisibility"
 # We actually would prefer to unpack the macro JSONs to the local git folder, so use this instead:
 fvtt package unpack "macros" -t "Macro" --out ~/git/fvtt-token-visibility/jsons/macros
 
-# To repack
+# To repack (must be logged out of world)
 fvtt package pack --in ~/git/fvtt-token-visibility/jsons/macros --type "Module" --compendiumType "Macro" --compendiumName "macros"
 
 # To repack for release
@@ -27,4 +27,7 @@ fvtt package pack --in ~/git/fvtt-token-visibility/jsons/macros --out ~/git/fvtt
 # fvtt package unpack "items/sfrpg" -t "Item" --out ~/git/fvtt-token-visibility/jsons/items
 
 fvtt package unpack "items_sfrpg" -t "Item" --out ~/git/fvtt-token-visibility/jsons/
-fvtt package pack --in ~/git/fvtt-token-visibility/jsons/items/sfrpg --type "Module" --compendiumType "Item" --compendiumName "items_sfrpg"
+fvtt package pack --in ~/git/fvtt-token-visibility/jsons/items/sfrpg --type "Module" --compendiumType "Item" --compendiumName "sfrpg"
+
+# To repack for release
+fvtt package pack --in ~/git/fvtt-token-visibility/jsons/items/sfrpg --out ~/git/fvtt-token-visibility/packs/items --type "Module" --compendiumType "Item" --compendiumName "sfrpg"

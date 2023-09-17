@@ -358,5 +358,6 @@ export function buildTokenPoints(tokens, config) {
 
   if ( !proneTokensBlock ) tokens = tokens.filter(t => !t.isProne);
 
-  return tokens.map(t => new TokenPoints3d(t));
+  // Pad (inset) to avoid triggering cover at corners. See issue 49.
+  return tokens.map(t => new TokenPoints3d(t, { pad: -1 }));
 }

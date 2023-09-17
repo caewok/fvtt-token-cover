@@ -1,3 +1,10 @@
+# 0.5.5
+- Slightly inset the token shape to avoid triggering cover when the cover line hits only the exact corner of a token square. Closes issue #49.
+- Fix typo in `module.json` that prevented Starfinder cover items from loading. Closes issue #53.
+- Add checks for when `actor.statuses` is undefined. Closes issue #52.
+- Fix occasional error when tokens have limited angle vision. Closes issue #48.
+- Update geometry lib to v0.2.9.
+
 # 0.5.4
 - Fixes to how cover status data id is handled. Switch from label to name to accommodate Foundry change. Migrate old cover status data objects.
 - Better tests to prevent multiple cover statuses on a single token.
