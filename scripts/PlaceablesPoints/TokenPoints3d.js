@@ -17,7 +17,8 @@ export class TokenPoints3d {
 
   /** @type {object} */
   config = {
-    type: "sight" /** @type {string} */
+    type: "sight",  /** @type {string} */
+    pad: 0        /** @type {number} */
   };
 
   /* @type {boolean} */
@@ -43,10 +44,13 @@ export class TokenPoints3d {
    * @param {object} [options]
    * @param {string} [options.type]         Wall restriction type, for constructing the
    *                                        constrained token shape
+   * @param {number} [options.pad]          How many pixels to add to (or subtract from)
+   *                                        the token shape. See issue #49.
    */
-  constructor(token, { type = "sight" } = {}) {
+  constructor(token, { type = "sight", pad = 0 } = {}) {
     this.token = token;
     this.config.type = type;
+    this.config.pad = pad;
 
     this._setTokenBorder();
     this._setTopBottomPoints();
@@ -59,6 +63,8 @@ export class TokenPoints3d {
     const constrainedTokenBorder = ConstrainedTokenBorder.get(this.token, this.config.type).constrainedBorder();
     this.borderPolygon = constrainedTokenBorder instanceof PIXI.Rectangle
       ? constrainedTokenBorder.toPolygon() : constrainedTokenBorder;
+
+    if ( this.config.pad ) this.borderPolygon = this.borderPolygon.pad(this.config.pad);
   }
 
   /**
