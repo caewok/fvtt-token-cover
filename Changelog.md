@@ -1,3 +1,6 @@
+# 0.5.6
+- Fix for Levels incompatibility error on startup. Closes issue #54.
+
 # 0.5.5
 - Slightly inset the token shape to avoid triggering cover when the cover line hits only the exact corner of a token square. Closes issue #49.
 - Fix typo in `module.json` that prevented Starfinder cover items from loading. Closes issue #53.

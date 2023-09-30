@@ -78,4 +78,4 @@ function getTestPoints(token, tol = 4) {
   return tests;
 }
 
-PATCHES.LEVELS.OVERRIDES = { getTestPoints };
+PATCHES.LEVELS.STATIC_OVERRIDES = { getTestPoints };

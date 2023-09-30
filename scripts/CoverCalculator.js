@@ -258,6 +258,16 @@ export class CoverCalculator {
    * @param {Token} target
    */
   constructor(viewer, target, config = {}) {
+    if ( viewer instanceof Array ) {
+      if ( viewer.length > 1 ) console.warn("You should pass a single token or vision source as the viewer to CoverCalculator, not an array. Using the first object in the array.");
+      viewer = viewer[0];
+    }
+
+    if ( target instanceof Array ) {
+      if ( target.length > 1 ) console.warn("You should pass a single target to CoverCalculator, not an array. Using the first object in the array.");
+      target = target[0];
+    }
+
     this.viewer = viewer instanceof VisionSource ? viewer.object : viewer;
     this.target = target;
     this.#configure(config);
@@ -363,10 +373,16 @@ export class CoverCalculator {
    * @param {Token[]} targets
    * @returns {Map<Token, COVER_TYPE>}
    */
-  static coverCalculations(token, targets, calcs) {
+  static coverCalculations(viewer, targets, calcs) {
+    if ( viewer instanceof Array ) {
+      if ( viewer.length > 1 ) console.warn("You should pass a single token or vision source to CoverCalculator, not an array. Using the first object in the array.");
+      viewer = viewer[0];
+    }
+    if ( targets instanceof Token ) targets = [targets];
+
     calcs ??= new Map();
     for ( const target of targets ) {
-      const coverCalc = new CoverCalculator(token, target);
+      const coverCalc = new CoverCalculator(viewer, target);
       calcs.set(target, coverCalc.targetCover());
     }
     return calcs;
