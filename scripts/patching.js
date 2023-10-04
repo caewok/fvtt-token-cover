@@ -55,8 +55,8 @@ export function initializePatching() {
   else PATCHER.registerGroup("NO_LEVELS");
 
   if ( game.system.id === "dnd5e" ) {
-    if ( MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_NO_MIDI")
-    else PATCHER.registerGroup("DND5E_MIDI");
+    if ( MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_MIDI")
+    else PATCHER.registerGroup("DND5E_NO_MIDI");
   }
 
   if ( game.system.id === "sfrpg" ) PATCHER.registerGroup("sfrpg");
