@@ -1,3 +1,7 @@
+# 0.5.7
+- Fix for midiqol workflow not triggering.
+- Fix for some "id not found" errors when deleting active effects.
+
 # 0.5.6
 - Fix for Levels incompatibility error on startup. Closes issue #54.
 
