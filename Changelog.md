@@ -1,3 +1,6 @@
+# 0.5.8
+- Correctly ignore tokens if the token cover settings do not consider tokens to be cover. Closes issue #58.
+
 # 0.5.7
 - Fix for midiqol workflow not triggering.
 - Fix for some "id not found" errors when deleting active effects.
