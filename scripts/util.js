@@ -343,6 +343,8 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
 export function buildTokenPoints(tokens, config) {
   if ( !tokens.length && !tokens.size ) return tokens;
   const { liveTokensBlock, deadTokensBlock, proneTokensBlock } = config;
+  if ( !(liveTokensBlock || deadTokensBlock) ) return [];
+
   const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
 
   // Filter live or dead tokens

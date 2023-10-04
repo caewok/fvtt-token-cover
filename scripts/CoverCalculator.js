@@ -497,12 +497,14 @@ export class CoverCalculator {
   }
 
   _hasWallCollision(tokenPoint, targetPoint) {
+    if ( !this.config.wallsBlock ) return false;
     const mode = "any";
     const type = this.config.type;
     return PointSourcePolygon.testCollision3d(tokenPoint, targetPoint, { type, mode });
   }
 
   _hasTileCollision(tokenPoint, targetPoint) {
+    if ( !this.config.tilesBlock ) return false;
     const ray = new Ray(tokenPoint, targetPoint);
 
     // Ignore non-overhead tiles
@@ -546,6 +548,9 @@ export class CoverCalculator {
   }
 
   _hasTokenCollision(tokenPoint, targetPoint) {
+    const { liveTokensBlock, deadTokensBlock } = this.config;
+    if ( !(liveTokensBlock || deadTokensBlock) ) return false;
+
     const ray = new Ray(tokenPoint, targetPoint);
     let tokens = canvas.tokens.quadtree.getObjects(ray.bounds);
 
