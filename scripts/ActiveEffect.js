@@ -4,6 +4,7 @@
 "use strict";
 
 import { COVER } from "./const.js";
+import { CoverCalculator } from "./CoverCalculator.js";
 
 // Patches for the ActiveEffect class
 export const PATCHES = {};
@@ -45,15 +46,20 @@ PATCHES.BASIC.HOOKS = { preCreateActiveEffect };
  */
 async function _onCreateDocuments(wrapper, documents, context) {
   const res = await wrapper(documents, context);
+
   for ( const effect of documents ) {
     // If the effect already exists (or cannot be found) effect might be undefined.
     if ( !effect || !effect.statuses || !effect.parent ) continue;
 
-    // Do statuses need to be removed?
+    // Are there cover effects present for this document?
+    const docCoverStatuses = effect.statuses.intersection(COVER.IDS.ALL);
+    if ( !docCoverStatuses.size ) continue;
+
+    // Do the existing actor statuses need to be removed?
     const actor = effect.parent;
     const coverStatuses = actor.statuses?.intersection(COVER.IDS.ALL) ?? new Set();
-    const toRemove = coverStatuses.difference(effect.statuses);
-    if ( !toRemove.size ) return effect;
+    const toRemove = docCoverStatuses.difference(docCoverStatuses);
+    if ( !toRemove.size ) continue;;
 
     // Remove all cover statuses except the activeEffect status
     // ActiveEffect actor does not point to specific token for linked so use getActiveTokens
