@@ -24,4 +24,4 @@ async function midiqolPreambleComplete(workflow) {
   return coverWorkflow(token, targets, actionType);
 }
 
-PATCHES.DND5E_MIDI.HOOKS = { midiqolPreambleComplete };
+PATCHES.DND5E_MIDI.HOOKS = { "midi-qol.preambleComplete": midiqolPreambleComplete };
