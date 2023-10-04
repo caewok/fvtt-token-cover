@@ -32,6 +32,7 @@ import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { squaresUnderToken, hexesUnderToken } from "./shapes_under_token.js";
 import { CoverDialog } from "./CoverDialog.js";
+import { Lock } from "./Lock.js";
 
 // ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
 // Don't pass complex classes through the socket. Use token ids instead.
@@ -90,8 +91,11 @@ async function disableAllATVCover(tokenUUID) {
 
   // Drop all cover statuses.
   const coverStatuses = tokenD.actor.statuses?.intersection(COVER.IDS[MODULE_ID]) ?? new Set();
+  if ( !coverStatuses.size ) return;
+  await CoverCalculator.lock.acquire();
   const promises = coverStatuses.map(id => tokenD.toggleActiveEffect({ id }, { active: false }));
-  return Promise.all(promises);
+  await Promise.allSettled(promises);
+  await CoverCalculator.lock.release();
 }
 
 /**
@@ -108,7 +112,9 @@ async function disableAllATVCoverSFRPG(tokenUUID) {
   // Drop all cover statuses.
   const coverIds = tokenD.actor.items.filter(i => i.getFlag(MODULE_ID, "cover")).map(i => i.id);
   if ( !coverIds.length ) return;
-  return tokenD.actor.deleteEmbeddedDocuments("Item", coverIds);
+  await CoverCalculator.lock.acquire();
+  await tokenD.actor.deleteEmbeddedDocuments("Item", coverIds);
+  await CoverCalculator.lock.release();
 }
 
 /**
@@ -136,7 +142,7 @@ async function enableATVCover(tokenUUID, type = COVER.TYPES.LOW) {
 
   // Add the effect. (ActiveEffect hooks will prevent multiple additions.)
   const effectData = CONFIG.statusEffects.find(e => e.id === desiredCoverId);
-  return tokenD.toggleActiveEffect(effectData, { active: true });
+  await tokenD.toggleActiveEffect(effectData, { active: true });
 }
 
 /**
@@ -187,13 +193,16 @@ async function disableAllDFredsCover(uuid) {
 
   // Determine what cover statuses are already applied.
   const coverStatuses = actor.statuses?.intersection(COVER.IDS["dfreds-convenient-effects"]) ?? new Set();
+  if ( !coverStatuses.size ) return;
 
   // Drop all cover statuses.
+  await CoverCalculator.lock.acquire();
   const promises = coverStatuses.map(id => {
     const effectName = id.replace("Convenient Effect: ", "");
     return game.dfreds.effectInterface.removeEffect({ effectName, uuid });
   });
-  return Promise.all(promises);
+  await Promise.allSettled(promises);
+  await CoverCalculator.lock.release();
 }
 
 /**
@@ -226,6 +235,8 @@ async function enableDFredsCover(uuid, type = COVER.TYPES.LOW) {
  * Calculate cover between a token and target, based on different algorithms.
  */
 export class CoverCalculator {
+  /** @type {Lock} */
+  static lock = new Lock();
 
   /** @type {object} */
   static COVER_TYPES = COVER.TYPES;
@@ -322,7 +333,7 @@ export class CoverCalculator {
     const uuid = token.document.uuid;
 
     if ( MODULES_ACTIVE.DFREDS_CE ) await disableAllDFredsCover(uuid);
-    return SOCKETS.socket.executeAsGM("disableAllATVCover", uuid);
+    else await SOCKETS.socket.executeAsGM("disableAllATVCover", uuid);
   }
 
   static async disableCoverStatus(tokenId) {
@@ -347,8 +358,8 @@ export class CoverCalculator {
     if ( !token ) return;
 
     const uuid = token.document.uuid;
-    if ( MODULES_ACTIVE.DFREDS_CE && this.dFredsHasCover(type) ) return enableDFredsCover(uuid, type);
-    else return SOCKETS.socket.executeAsGM("enableATVCover", uuid, type);
+    if ( MODULES_ACTIVE.DFREDS_CE && this.dFredsHasCover(type) ) await enableDFredsCover(uuid, type);
+    else await SOCKETS.socket.executeAsGM("enableATVCover", uuid, type);
   }
 
   static dFredsHasCover(type) {
