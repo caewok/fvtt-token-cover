@@ -75,10 +75,8 @@ Hooks.once("ready", () => {
           To simplify the module and improve my ability to debug issues, I have split out token cover from
           token visibility. There are now two modules: [Alternative Token Visibility](https://github.com/caewok/fvtt-token-visibility) and
           [Alternative Token Cover](https://github.com/caewok/fvtt-token-cover). You can use one module without
-          the other, or both in combination.
-          `
+          the other, or both in combination.`
     })
-
 
     .build()
     ?.render(true);
