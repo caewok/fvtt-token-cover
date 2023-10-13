@@ -28,7 +28,7 @@ export const SETTINGS = {
 
   LOS: {
     PERCENT_AREA: "los-percent-area"
-  }
+  },
 
   COVER: {
     ALGORITHM: "cover-algorithm",
