@@ -25,6 +25,7 @@ export async function setSetting(settingName, value) {
 export const SETTINGS = {
   AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
 
+  // For Area2d and Area3d
   LOS: {
     PERCENT_AREA: "los-percent-area"
   },
