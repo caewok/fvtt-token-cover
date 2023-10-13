@@ -56,29 +56,6 @@ export async function setSetting(settingName, value) {
 export const SETTINGS = {
   AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
 
-  RANGE: {
-    ALGORITHM: "range-algorithm",
-    TYPES: {
-      CENTER: "range-points-center",
-      FIVE: "range-points-five",
-      NINE: "range-points-nine"
-    },
-    POINTS3D: "range-points-3d",
-    DISTANCE3D: "range-distance-3d"
-  },
-
-  LOS: {
-    ALGORITHM: "los-algorithm",
-    TYPES: {
-      POINTS: "los-points",
-      CORNERS: "los-corners",
-      AREA: "los-area",
-      AREA3D: "los-area-3d"
-    },
-
-    PERCENT_AREA: "los-percent-area"
-  },
-
   COVER: {
     ALGORITHM: "cover-algorithm",
     TYPES: {
@@ -208,73 +185,10 @@ dnd5e: half, 3/4, full
 */
 
 export function registerSettings() {
-  log("Registering token visibility settings.");
+  log("Registering token cover settings.");
 
-  const RTYPES = SETTINGS.RANGE.TYPES;
-  const LTYPES = SETTINGS.LOS.TYPES;
   const CTYPES = SETTINGS.COVER.TYPES;
   const coverNames = getCoverNames();
-
-  game.settings.register(MODULE_ID, SETTINGS.RANGE.ALGORITHM, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.ALGORITHM}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.ALGORITHM}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    choices: {
-      [RTYPES.CENTER]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.CENTER}`),
-      [RTYPES.FIVE]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.FIVE}`),
-      [RTYPES.NINE]: game.i18n.localize(`${MODULE_ID}.settings.${RTYPES.NINE}`)
-    },
-    default: RTYPES.NINE
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.RANGE.POINTS3D, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.POINTS3D}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.POINTS3D}.Hint`),
-    scope: "world",
-    config: true,
-    type: Boolean,
-    default: true
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.RANGE.DISTANCE3D, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.DISTANCE3D}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.RANGE.DISTANCE3D}.Hint`),
-    scope: "world",
-    config: !MODULES_ACTIVE.LEVELS && !MODULES_ACTIVE.PERFECT_VISION,
-    type: Boolean,
-    default: true
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.LOS.ALGORITHM, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.ALGORITHM}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.ALGORITHM}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    choices: {
-      [LTYPES.POINTS]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.POINTS}`),
-      [LTYPES.CORNERS]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.CORNERS}`),
-      [LTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.AREA}`),
-      [LTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${LTYPES.AREA3D}`)
-    },
-    default: LTYPES.POINTS
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.LOS.PERCENT_AREA, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.PERCENT_AREA}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.PERCENT_AREA}.Hint`),
-    range: {
-      max: 1,
-      min: 0,
-      step: 0.05
-    },
-    scope: "world",
-    config: true, // () => getSetting(SETTINGS.LOS.ALGORITHM) !== LTYPES.POINTS,
-    default: 0,
-    type: Number
-  });
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.ALGORITHM, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.ALGORITHM}.Name`),

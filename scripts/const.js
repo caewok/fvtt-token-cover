@@ -8,7 +8,7 @@ canvas
 // Ignores Cover
 import { IgnoresCover } from "./IgnoresCover.js";
 
-export const MODULE_ID = "tokenvisibility";
+export const MODULE_ID = "tokencover";
 export const EPSILON = 1e-08;
 
 export const FLAGS = {
