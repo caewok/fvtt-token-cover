@@ -14,39 +14,9 @@ import {
   MediumCoverEffectConfig,
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
-// Non-caching alt:
-// export function getSetting(settingName) {
-//   return game.settings.get(MODULE_ID, settingName);
-// }
-
-// For caching to work, need to clean the cache whenever a setting below changes.
-// Need function for onChange.
-export const settingsCache = new Map();
 export function getSetting(settingName) {
-  const cached = settingsCache.get(settingName);
-  if ( cached === undefined ) {
-    const value = game.settings.get(MODULE_ID, settingName);
-    settingsCache.set(settingName, value);
-    return value;
-  }
-  return cached;
-}
-
-/* Testing cached settings
-function fnDefault(settingName) {
   return game.settings.get(MODULE_ID, settingName);
 }
-
-N = 1000
-await api.bench.QBenchmarkLoopFn(N, getSetting, "cached", "cover-algorithm")
-await api.bench.QBenchmarkLoopFn(N, fnDefault, "default", "cover-algorithm")
-
-await api.bench.QBenchmarkLoopFn(N, getSetting, "cached","cover-token-dead")
-await api.bench.QBenchmarkLoopFn(N, fnDefault, "default","cover-token-dead")
-
-await api.bench.QBenchmarkLoopFn(N, getSetting, "cached","cover-token-live")
-await api.bench.QBenchmarkLoopFn(N, fnDefault, "default","cover-token-live")
-*/
 
 export async function setSetting(settingName, value) {
   settingsCache.delete(settingName);
