@@ -1,6 +1,6 @@
 {
-  "id": "tokenvisibility",
-  "title": "Alternative Token Visibility",
+  "id": "tokencover",
+  "title": "Alternative Token Cover",
   "version": "This is auto replaced",
   "library": false,
   "socket": true,
@@ -42,14 +42,14 @@
   ],
   "packs": [
     {
-      "name": "tokenvision_macros",
+      "name": "tokencover_macros",
       "label": "ATV Macros",
       "path": "packs/macros",
       "type": "Macro",
       "private": false
     },
     {
-      "name": "tokenvision_items_sfrpg",
+      "name": "tokencover_items_sfrpg",
       "label": "ATV Items",
       "path": "packs/items/sfrpg",
       "type": "Item",
@@ -63,8 +63,8 @@
       "lang": "en",
       "name": "English",
       "path": "languages/en.json",
-      "title": "Alternative Token Visibility",
-      "description": "Alternative token visibility rules"
+      "title": "Alternative Token Cover",
+      "description": "Alternative token cover rules"
     }
   ],
   "url": "This is auto replaced",
