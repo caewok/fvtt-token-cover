@@ -19,7 +19,6 @@ export function getSetting(settingName) {
 }
 
 export async function setSetting(settingName, value) {
-  settingsCache.delete(settingName);
   return game.settings.set(MODULE_ID, settingName, value);
 }
 
