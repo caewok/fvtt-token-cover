@@ -19,7 +19,6 @@ import { PATCHES as PATCHES_PointSourcePolygon } from "./PointSourcePolygon.js";
 import { PATCHES as PATCHES_Setting } from "./Setting.js";
 import { PATCHES as PATCHES_SettingsConfig } from "./SettingsConfig.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
-import { PATCHES as PATCHES_VisionSource } from "./VisionSource.js";
 
 // Levels
 import { PATCHES as PATCHES_Levels_SightHandler } from "./Levels_SightHandler.js";
@@ -40,7 +39,6 @@ const PATCHES = {
   Setting: PATCHES_Setting,
   SettingsConfig: PATCHES_SettingsConfig,
   Token: PATCHES_Token,
-  VisionSource: PATCHES_VisionSource,
   "CONFIG.Levels.handlers.SightHandler": PATCHES_Levels_SightHandler,
   Midiqol: PATCHES_Midiqol
 };
