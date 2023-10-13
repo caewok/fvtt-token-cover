@@ -67,6 +67,17 @@ Hooks.once("ready", () => {
             the corner of another token, which mimics the dnd5e DMG rule. This is equivalent to the corner-to-corner
             cover option.`
     })
+
+    .addEntry({
+      version: "0.6.0",
+      title: "Split Token Visibility from Token Cover",
+      body: `\
+          To simplify the module and improve my ability to debug issues, I have split out token cover from
+          token visibility. There are now two modules: [Alternative Token Visibility](https://github.com/caewok/fvtt-token-visibility) and
+          [Alternative Token Cover](https://github.com/caewok/fvtt-token-cover). You can use one module without
+          the other, or both in combination.`
+    })
+
     .build()
     ?.render(true);
 });
@@ -122,13 +133,13 @@ class ChangelogBuilder {
     }
 
     return new Dialog({
-      title: "Alt Token Visibility: Changelog",
+      title: "Alt Token Cover: Changelog",
       content,
       buttons: {
         view_documentation: {
           icon: `<i class="fas fa-book"></i>`,
           label: "View documentation",
-          callback: () => window.open("https://github.com/caewok/fvtt-token-visibility/blob/master/README.md")
+          callback: () => window.open("https://github.com/caewok/fvtt-token-cover/blob/master/README.md")
         },
         dont_show_again: {
           icon: `<i class="fas fa-times"></i>`,

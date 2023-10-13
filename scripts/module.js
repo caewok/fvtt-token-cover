@@ -35,8 +35,6 @@ import { CoverDialog } from "./CoverDialog.js";
 
 import { Area3dPopout, area3dPopoutData } from "./Area3dPopout.js";
 
-import * as los from "./visibility_los.js";
-
 // Ignores Cover
 import {
   IgnoresCover,
@@ -62,7 +60,6 @@ Hooks.once("init", function() {
     CoverDialog,
     COVER,
     ConstrainedTokenBorder,
-    los,
     PlanePoints3d,
     TokenPoints3d,
     DrawingPoints3d,

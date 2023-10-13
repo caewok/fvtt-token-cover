@@ -113,14 +113,11 @@ PATCHES.NOT_PF2E.HOOKS = { targetToken };
  * Reset the debugging drawings.
  */
 function updateSource(wrapper, ...args) {
-  if ( DEBUG.once || DEBUG.range || DEBUG.area || DEBUG.cover || DEBUG.los ) {
+  if ( DEBUG.once || DEBUG.cover ) {
     CONFIG.GeometryLib.Draw.clearDrawings();
 
     if ( DEBUG.once ) {
-      DEBUG.range = false;
-      DEBUG.area = false;
       DEBUG.cover = false;
-      DEBUG.los = false;
       DEBUG.once = false;
     }
   }
