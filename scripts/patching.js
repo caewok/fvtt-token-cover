@@ -13,7 +13,6 @@ import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./ConstrainedTokenBor
 import { PATCHES as PATCHES_DrawingConfig} from "./DrawingConfig.js";
 import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_PointSourcePolygon } from "./PointSourcePolygon.js";
-import { PATCHES as PATCHES_Setting } from "./Setting.js";
 import { PATCHES as PATCHES_SettingsConfig } from "./SettingsConfig.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
 
@@ -27,7 +26,6 @@ const PATCHES = {
   DrawingConfig: PATCHES_DrawingConfig,
   Item: PATCHES_Item,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
-  Setting: PATCHES_Setting,
   SettingsConfig: PATCHES_SettingsConfig,
   Token: PATCHES_Token,
   Midiqol: PATCHES_Midiqol
