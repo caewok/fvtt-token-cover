@@ -56,6 +56,10 @@ export async function setSetting(settingName, value) {
 export const SETTINGS = {
   AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
 
+  LOS: {
+    PERCENT_AREA: "los-percent-area"
+  }
+
   COVER: {
     ALGORITHM: "cover-algorithm",
     TYPES: {
@@ -186,6 +190,20 @@ dnd5e: half, 3/4, full
 
 export function registerSettings() {
   log("Registering token cover settings.");
+
+  game.settings.register(MODULE_ID, SETTINGS.LOS.PERCENT_AREA, {
+    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.PERCENT_AREA}.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.PERCENT_AREA}.Hint`),
+    range: {
+      max: 1,
+      min: 0,
+      step: 0.05
+    },
+    scope: "world",
+    config: false, // () => getSetting(SETTINGS.LOS.ALGORITHM) !== LTYPES.POINTS,
+    default: 0,
+    type: Number
+  });
 
   const CTYPES = SETTINGS.COVER.TYPES;
   const coverNames = getCoverNames();
