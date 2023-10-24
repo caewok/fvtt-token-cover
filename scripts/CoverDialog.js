@@ -203,7 +203,7 @@ export class CoverDialog {
    * @param {object} opts     Options passed to htmlCoverTable.
    */
   async showCoverResults(opts) {
-    const coverAlgorithm = getSetting(SETTINGS.COVER.ALGORITHM);
+    const coverAlgorithm = getSetting(SETTINGS.LOS.ALGORITHM);
     const algorithmDescription = game.i18n.localize(`${MODULE_ID}.settings.${coverAlgorithm}`);
     const html = this._htmlShowCover(opts);
     const content =
@@ -270,11 +270,7 @@ ${html}
     for ( const target of targets ) {
       const cover = coverCalculations.get(target);
 
-      const target_center = new Point3d(
-        target.center.x,
-        target.center.y,
-        CoverCalculator.averageTokenElevationZ(target));
-
+      const target_center = Point3d.fromTokenCenter(target);
       const targetImage = target.document.texture.src; // Token canvas image.
       const dist = Point3d.distanceBetween(token_center, target_center);
       const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
@@ -375,10 +371,7 @@ ${html}
       // If needed, determine the target distance.
       let distContent = "";
       if ( include3dDistance ) {
-        const target_center = new Point3d(
-          target.center.x,
-          target.center.y,
-          CoverCalculator.averageTokenElevationZ(target));
+        const target_center = Point3d.fromTokenCenter(target);
         const dist = Point3d.distanceBetween(token_center, target_center);
         distContent = `<td style="text-align: right">${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>`;
       }

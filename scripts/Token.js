@@ -92,11 +92,10 @@ function updateToken(tokenD, change, _options, _userId) {
   if ( (Object.hasOwn(change, "width") || Object.hasOwn(change, "height")) && token ) token._tokenShape = undefined;
 
   // Token moved; clear drawings.
-  if ( (getSetting(SETTINGS.DEBUG.RANGE) || getSetting(SETTINGS.DEBUG.LOS))
+  if ( getSetting(SETTINGS.DEBUG.LOS)
     && (Object.hasOwn(change, "x")
       || Object.hasOwn(change, "y")
       || Object.hasOwn(change, "elevation")) ) {
-    DEBUG_GRAPHICS.RANGE.clear();
     DEBUG_GRAPHICS.LOS.clear();
   }
 }
@@ -112,7 +111,6 @@ PATCHES.NOT_PF2E.HOOKS = { targetToken };
  * Reset the debugging drawings.
  */
 function updateSource(wrapper, ...args) {
-  if ( getSetting(SETTINGS.DEBUG.RANGE) ) DEBUG_GRAPHICS.RANGE.clear();
   if ( getSetting(SETTINGS.DEBUG.LOS) ) DEBUG_GRAPHICS.LOS.clear();
   return wrapper(...args);
 }
