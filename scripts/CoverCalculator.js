@@ -18,19 +18,23 @@ VisionSource
 
 import { MODULE_ID, COVER, MODULES_ACTIVE, DEBUG, WEAPON_ATTACK_TYPES } from "./const.js";
 import { getSetting, SETTINGS, getCoverName } from "./settings.js";
-import { Area2d } from "./Area2d.js";
-import { Area3d } from "./Area3d.js";
+import { PointsLOS } from "./LOS/PointsLOS.js";
+import { Area2d } from "./LOS/Area2dLOS.js";
+import { Area3d } from "./LOS/Area3dLOS.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 import {
   lineSegmentIntersectsQuadrilateral3d,
   lineIntersectionQuadrilateral3d,
-  buildTokenPoints,
+  buildTokenPoints
+} from "./LOS/util.js";
+
+import {
   getActorByUuid,
   keyForValue } from "./util.js";
 
 import { ClipperPaths } from "./geometry/ClipperPaths.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
-import { squaresUnderToken, hexesUnderToken } from "./shapes_under_token.js";
+import { squaresUnderToken, hexesUnderToken } from "./LOS/shapes_under_token.js";
 import { CoverDialog } from "./CoverDialog.js";
 import { Lock } from "./Lock.js";
 
