@@ -5,7 +5,7 @@ renderTemplate
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, DOCUMENTATION_URL } from "./const.js";
 import { SETTINGS, getSetting } from "./settings.js";
 
 // Patches for the VisionSource class
@@ -69,19 +69,27 @@ function losViewerPointsChanged(event) {
   updateViewerInsetDisplay(viewerPoints);
 }
 
-function updateViewerInsetDisplay(numPoints) {
-  const displayInsetOpts = numPoints !== SETTINGS.POINT_TYPES.CENTER ? "block" : "none";
-  const elem = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.VIEWER.INSET}`);
-  const div = elem[0].parentElement.parentElement;
-  div.style.display = displayInsetOpts;
-}
-
 function losAlgorithmChanged(event) {
   const losAlgorithm = event.target.value;
   const elem = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.POINT_OPTIONS.NUM_POINTS}`);
   const targetNumPoints = elem[0].value;
   updatePointOptionDisplay(losAlgorithm);
   updateCoverPercentageDisplay(targetNumPoints, losAlgorithm);
+}
+
+function losTargetPointsChanged(event) {
+  const targetNumPoints = event.target.value;
+  const elem = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.ALGORITHM}`);
+  const losAlgorithm = elem[0].value;
+  updateTargetInsetDisplay(targetNumPoints, losAlgorithm);
+  updateCoverPercentageDisplay(targetNumPoints, losAlgorithm);
+}
+
+function updateViewerInsetDisplay(numPoints) {
+  const displayInsetOpts = numPoints !== SETTINGS.POINT_TYPES.CENTER ? "block" : "none";
+  const elem = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.VIEWER.INSET}`);
+  const div = elem[0].parentElement.parentElement;
+  div.style.display = displayInsetOpts;
 }
 
 function updatePointOptionDisplay(losAlgorithm) {
@@ -111,19 +119,13 @@ function updateCoverPercentageDisplay(targetNumPoints, coverAlgorithm) {
   const divInputMedium = inputMedium.parentElement.parentElement;
   const divInputHigh = inputHigh.parentElement.parentElement;
 
-  if ( divInputCenter.length ) divInputCenter.style.display = displayCenterCoverTrigger;
-  if ( divInputLow.length ) divInputLow.style.display = displayCoverTriggers;
-  if ( divInputMedium.length ) divInputMedium.style.display = displayCoverTriggers;
-  if ( divInputHigh.length ) divInputHigh.style.display = displayCoverTriggers;
+  divInputCenter.style.display = displayCenterCoverTrigger;
+  divInputLow.style.display = displayCoverTriggers;
+  divInputMedium.style.display = displayCoverTriggers;
+  divInputHigh.style.display = displayCoverTriggers;
 }
 
-function losTargetPointsChanged(event) {
-  const targetPoints = event.target.value;
 
-  const elem = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.ALGORITHM}`);
-  const losAlgorithm = elem[0].value;
-  updateTargetInsetDisplay(targetPoints, losAlgorithm);
-}
 
 function updateTargetInsetDisplay(numPoints, losAlgorithm) {
   const hasMultiplePoints = losAlgorithm === SETTINGS.LOS.TYPES.POINTS
@@ -244,6 +246,8 @@ function threeDSettings(event) {
 }
 
 function documentation(event) {
-  window.open(DOCUMENTATION_URL, "_blank");
+  event.preventDefault();
+  event.stopPropagation();
+  window.open(DOCUMENTATION_URL);
 }
 

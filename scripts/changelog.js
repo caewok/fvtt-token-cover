@@ -72,7 +72,7 @@ Hooks.once("ready", () => {
       version: "0.6.0",
       title: "Split Token Visibility from Token Cover",
       body: `\
-          To simplify the module and improve my ability to debug issues, I have split out token cover from
+          To simplify the module and improve debugging, I have split out token cover from
           token visibility. There are now two modules: [Alternative Token Visibility](https://github.com/caewok/fvtt-token-visibility) and
           [Alternative Token Cover](https://github.com/caewok/fvtt-token-cover). You can use one module without
           the other, or both in combination.`

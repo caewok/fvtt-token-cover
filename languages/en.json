@@ -111,6 +111,7 @@
     "tokencover.settings.button-three-d.Label": "Reset to 3-D",
     "tokencover.settings.button-three-d.Notification": "Alt. Cover settings changed to 3D defaults",
 
+    "tokencover.settings.button-documentation.Label": "Open Documenttion",
 
     "tokencover.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
     "tokencover.DrawingConfiguration.isHole.Name": "Drawing is Hole",
