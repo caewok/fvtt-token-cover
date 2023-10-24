@@ -116,6 +116,13 @@ export const SETTINGS = {
     PRONE: "cover-prone"
   },
 
+  BUTTONS: {
+    PF2E: "button-pf2e",
+    DND_5E_DMG: "button-dnd5e-dmg",
+    THREE_D: "button-three-d",
+    DOCUMENTATION: "button-documentation"
+  },
+
   CHANGELOG: "changelog",
 
   WELCOME_DIALOG: {
@@ -133,104 +140,7 @@ export function registerSettings() {
   const localize = key => game.i18n.localize(`${MODULE_ID}.settings.${key}`);
   const coverNames = getCoverNames();
 
-  // ----- NOTE: Line-of-sight (Cover mechanics) ----- //
-  const PT_OPTS = SETTINGS.LOS.POINT_OPTIONS;
-  const PT_TYPES = SETTINGS.POINT_TYPES;
-  const LTYPES = SETTINGS.LOS.TYPES;
-  const losChoices = {};
-  const ptChoices = {};
-  Object.values(LTYPES).forEach(type => losChoices[type] = localize(type));
-  Object.values(PT_TYPES).forEach(type => ptChoices[type] = localize(type));
-
-  game.settings.register(MODULE_ID, SETTINGS.LOS.VIEWER.NUM_POINTS, {
-    name: localize(`${SETTINGS.LOS.VIEWER.NUM_POINTS}.Name`),
-    hint: localize(`${SETTINGS.LOS.VIEWER.NUM_POINTS}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    choices: ptChoices,
-    default: PT_TYPES.CENTER
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.LOS.VIEWER.INSET, {
-    name: localize(`${SETTINGS.LOS.VIEWER.INSET}.Name`),
-    hint: localize(`${SETTINGS.LOS.VIEWER.INSET}.Hint`),
-    range: {
-      max: 0.99,
-      min: 0,
-      step: 0.01
-    },
-    scope: "world",
-    config: true,
-    default: 0.75,
-    type: Number
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.LOS.ALGORITHM, {
-    name: localize(`${SETTINGS.LOS.ALGORITHM}.Name`),
-    hint: localize(`${SETTINGS.LOS.ALGORITHM}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    choices: losChoices,
-    default: LTYPES.NINE
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.LOS.PERCENT, {
-    name: localize(`${SETTINGS.LOS.PERCENT}.Name`),
-    hint: localize(`${SETTINGS.LOS.PERCENT}.Hint`),
-    range: {
-      max: 1,
-      min: 0,
-      step: 0.05
-    },
-    scope: "world",
-    config: true, // () => getSetting(SETTINGS.LOS.ALGORITHM) !== LTYPES.POINTS,
-    default: 0,
-    type: Number
-  });
-
-  game.settings.register(MODULE_ID, PT_OPTS.NUM_POINTS, {
-    name: localize(`${PT_OPTS.NUM_POINTS}.Name`),
-    hint: localize(`${PT_OPTS.NUM_POINTS}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    choices: ptChoices,
-    default: PT_TYPES.NINE
-  });
-
-  game.settings.register(MODULE_ID, PT_OPTS.INSET, {
-    name: localize(`${PT_OPTS.INSET}.Name`),
-    hint: localize(`${PT_OPTS.INSET}.Hint`),
-    range: {
-      max: 0.99,
-      min: 0,
-      step: 0.01
-    },
-    scope: "world",
-    config: true, // () => getSetting(SETTINGS.LOS.ALGORITHM) !== LTYPES.POINTS,
-    default: 0.75,
-    type: Number
-  });
-
-  game.settings.register(MODULE_ID, PT_OPTS.POINTS3D, {
-    name: localize(`${PT_OPTS.POINTS3D}.Name`),
-    hint: localize(`${PT_OPTS.POINTS3D}.Hint`),
-    scope: "world",
-    config: true,
-    type: Boolean,
-    default: true
-  });
-
-  game.settings.register(MODULE_ID, SETTINGS.LOS.LARGE_TARGET, {
-    name: localize(`${SETTINGS.LOS.LARGE_TARGET}.Name`),
-    hint: localize(`${SETTINGS.LOS.LARGE_TARGET}.Hint`),
-    scope: "world",
-    config: true,
-    type: Boolean,
-    default: true
-  });
+  // ----- NOTE: Cover Percent Triggers ----- //
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_CENTER, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CENTER}.Name`),
@@ -287,6 +197,93 @@ export function registerSettings() {
     default: 1,
     type: Number
   });
+
+  // ----- NOTE: Line-of-sight (Cover mechanics) ----- //
+  const PT_OPTS = SETTINGS.LOS.POINT_OPTIONS;
+  const PT_TYPES = SETTINGS.POINT_TYPES;
+  const LTYPES = SETTINGS.LOS.TYPES;
+  const losChoices = {};
+  const ptChoices = {};
+  Object.values(LTYPES).forEach(type => losChoices[type] = localize(type));
+  Object.values(PT_TYPES).forEach(type => ptChoices[type] = localize(type));
+
+  game.settings.register(MODULE_ID, SETTINGS.LOS.ALGORITHM, {
+    name: localize(`${SETTINGS.LOS.ALGORITHM}.Name`),
+    hint: localize(`${SETTINGS.LOS.ALGORITHM}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: losChoices,
+    default: LTYPES.NINE
+  });
+
+  game.settings.register(MODULE_ID, PT_OPTS.NUM_POINTS, {
+    name: localize(`${PT_OPTS.NUM_POINTS}.Name`),
+    hint: localize(`${PT_OPTS.NUM_POINTS}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: ptChoices,
+    default: PT_TYPES.NINE
+  });
+
+  game.settings.register(MODULE_ID, PT_OPTS.INSET, {
+    name: localize(`${PT_OPTS.INSET}.Name`),
+    hint: localize(`${PT_OPTS.INSET}.Hint`),
+    range: {
+      max: 0.99,
+      min: 0,
+      step: 0.01
+    },
+    scope: "world",
+    config: true, // () => getSetting(SETTINGS.LOS.ALGORITHM) !== LTYPES.POINTS,
+    default: 0.75,
+    type: Number
+  });
+
+  game.settings.register(MODULE_ID, PT_OPTS.POINTS3D, {
+    name: localize(`${PT_OPTS.POINTS3D}.Name`),
+    hint: localize(`${PT_OPTS.POINTS3D}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.LOS.VIEWER.NUM_POINTS, {
+    name: localize(`${SETTINGS.LOS.VIEWER.NUM_POINTS}.Name`),
+    hint: localize(`${SETTINGS.LOS.VIEWER.NUM_POINTS}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: ptChoices,
+    default: PT_TYPES.CENTER
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.LOS.VIEWER.INSET, {
+    name: localize(`${SETTINGS.LOS.VIEWER.INSET}.Name`),
+    hint: localize(`${SETTINGS.LOS.VIEWER.INSET}.Hint`),
+    range: {
+      max: 0.99,
+      min: 0,
+      step: 0.01
+    },
+    scope: "world",
+    config: true,
+    default: 0.75,
+    type: Number
+  });
+
+
+  game.settings.register(MODULE_ID, SETTINGS.LOS.LARGE_TARGET, {
+    name: localize(`${SETTINGS.LOS.LARGE_TARGET}.Name`),
+    hint: localize(`${SETTINGS.LOS.LARGE_TARGET}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+
 
   // ----- NOTE: Menus (Cover effects) ----- //
 
@@ -480,9 +477,9 @@ function getCoverNames() {
   const statusEffects = STATUS_EFFECTS[game.system.id] || STATUS_EFFECTS.generic;
 
   return {
-    LOW: statusEffects.LOW.label,
-    MEDIUM: statusEffects.MEDIUM.label,
-    HIGH: statusEffects.HIGH.label
+    LOW: statusEffects.LOW.id,
+    MEDIUM: statusEffects.MEDIUM.id,
+    HIGH: statusEffects.HIGH.id
   };
 }
 
