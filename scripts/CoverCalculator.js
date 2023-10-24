@@ -18,6 +18,19 @@ import { Area2dLOS } from "./LOS/Area2dLOS.js";
 import { Area3dLOS } from "./LOS/Area3dLOS.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 
+/* Testing
+Draw = CONFIG.GeometryLib.Draw
+Point3d = CONFIG.GeometryLib.threeD.Point3d;
+api = game.modules.get("tokencover").api;
+PointsLOS = api.PointsLOS;
+CoverCalculator = api.CoverCalculator
+
+let [viewer] = canvas.tokens.controlled;
+let [target] = game.user.targets;
+
+
+*/
+
 import {
   getActorByUuid,
   keyForValue } from "./util.js";
@@ -412,7 +425,7 @@ export class CoverCalculator {
    */
   percentCover() {
     let percent = 1;
-    const minPercent = SETTINGS.COVER.TRIGGER_PERCENT.LOW;
+    const minPercent = getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
     const viewerPoints = PointsLOS.constructViewerPoints(this.viewer);
     for ( const viewerPoint of viewerPoints ) {
       percent = Math.min(percent, this._percentCover(viewerPoint));
