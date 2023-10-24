@@ -4,7 +4,7 @@ Hooks
 */
 "use strict";
 
-import { MODULE_ID, COVER, DEBUG, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, COVER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
@@ -65,9 +65,7 @@ Hooks.once("init", function() {
     Area3dPopout,
     area3dPopoutData,
 
-    PATCHER,
-
-    debug: DEBUG
+    PATCHER
   };
 
   if ( game.system.id === "dnd5e" ) {

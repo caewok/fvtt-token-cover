@@ -25,8 +25,7 @@ export async function setSetting(settingName, value) {
 }
 
 export const DEBUG_GRAPHICS = {
-  LOS: new PIXI.Graphics(),
-  RANGE: new PIXI.Graphics()
+  LOS: new PIXI.Graphics()
 };
 
 export const SETTINGS = {

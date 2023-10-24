@@ -119,16 +119,6 @@ export const MODULES_ACTIVE = {
   EV: false
 };
 
-export const DEBUG = {
-  range: false,
-  los: false,
-  cover: false,
-  area: false,
-  once: false,
-  forceLiveTokensBlock: false,
-  forceDeadTokensBlock: false
-};
-
 export let IGNORES_COVER_HANDLER = IgnoresCover;
 
 export const WEAPON_ATTACK_TYPES = {
