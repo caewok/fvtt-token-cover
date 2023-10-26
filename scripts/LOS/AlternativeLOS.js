@@ -88,8 +88,9 @@ export class AlternativeLOS {
     cfg.deadTokensBlock = config.deadTokensBlock || false;
     cfg.liveTokensBlock = config.liveTokensBlock || false;
     cfg.proneTokensBlock = config.proneTokensBlock || true;
-    cfg.debug = config.debug || getSetting(SETTINGS.DEBUG.LOS);
+    cfg.debug = config.debug || Settings.get(SETTINGS.DEBUG.LOS);
     cfg.visibleTargetShape = config.visibleTargetShape ?? undefined;
+    cfg.largeTarget = config.largeTarget || Settings.get(SETTINGS.LOS.TARGET.LARGE);
   }
 
   // ------ NOTE: Primary methods to be overridden by subclass -----

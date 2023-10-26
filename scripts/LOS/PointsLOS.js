@@ -142,9 +142,8 @@ export class PointsLOS extends AlternativeLOS {
 
   #configure(config = {}) {
     const cfg = this.config;
-    cfg.pointAlgorithm = config.pointAlgorithm ?? getSetting(SETTINGS.LOS.POINT_OPTIONS.NUM_POINTS);
-    cfg.inset = config.inset ?? getSetting(SETTINGS.LOS.POINT_OPTIONS.INSET);
-    cfg.grid = config.grid ?? getSetting(SETTINGS.LOS.LARGE_TARGET);
+    cfg.pointAlgorithm = config.pointAlgorithm ?? Settings.get(SETTINGS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS);
+    cfg.inset = config.inset ?? Settings.get(SETTINGS.LOS.TARGET.POINT_OPTIONS.INSET);
     cfg.points3d = config.points3d;
   }
 
@@ -199,8 +198,8 @@ export class PointsLOS extends AlternativeLOS {
    * @returns {Points3d[]}
    */
   static constructViewerPoints(viewer, { pointAlgorithm, inset } = {}) {
-    pointAlgorithm ??= getSetting(SETTINGS.LOS.VIEWER.NUM_POINTS);
-    inset ??= getSetting(SETTINGS.LOS.VIEWER.INSET);
+    pointAlgorithm ??= Settings.get(SETTINGS.LOS.VIEWER.NUM_POINTS);
+    inset ??= Settings.get(SETTINGS.LOS.VIEWER.INSET);
     return this.constructTokenPoints(
       pointAlgorithm,
       viewer.constrainedTokenBorder,
@@ -217,7 +216,7 @@ export class PointsLOS extends AlternativeLOS {
     const targetElevation = this.targetAvgElevationZ;
     const cfg = this.config;
 
-    if ( cfg.grid ) {
+    if ( cfg.largeTarget ) {
       // Construct points for each target subshape, defined by grid spaces under the target.
       const targetShapes = this.constructor.constrainedGridShapesUnderToken(this.target);
       const targetPointsArray = targetShapes.map(targetShape => this.constructor.constructTokenPoints(
