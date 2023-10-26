@@ -1,13 +1,15 @@
 /* globals
-game,
+canvas,
+CONFIG,
 duplicate,
-CONFIG
+game,
+PIXI
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { log } from "./util.js";
 import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
+import { Draw } from "./geometry/Draw.js";
 import { STATUS_EFFECTS } from "./status_effects.js";
 import {
   LowCoverEffectConfig,
@@ -22,26 +24,48 @@ export async function setSetting(settingName, value) {
   return game.settings.set(MODULE_ID, settingName, value);
 }
 
+export const DEBUG_GRAPHICS = {
+  LOS: new PIXI.Graphics()
+};
+
 export const SETTINGS = {
   AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
 
-  // For Area2d and Area3d
+  // Taken from Alt. Token Visibility
+  POINT_TYPES: {
+    CENTER: "points-center",
+    FOUR: "points-four", // Five without center
+    FIVE: "points-five", // Corners + center
+    EIGHT: "points-eight", // Nine without center
+    NINE: "points-nine" // Corners, midpoints, center
+  },
+
   LOS: {
-    PERCENT_AREA: "los-percent-area"
+    ALGORITHM: "los-algorithm",
+    LARGE_TARGET: "los-large-target",
+    TYPES: {
+      POINTS: "los-points",
+      AREA2D: "los-area-2d",
+      AREA3D: "los-area-3d"
+    },
+
+    VIEWER: {
+      NUM_POINTS: "los-points-viewer",
+      INSET: "los-inset-viewer"
+    },
+
+    POINT_OPTIONS: {
+      NUM_POINTS: "los-points-target",
+      INSET: "los-inset-target",
+      POINTS3D: "los-points-3d"
+    }
+  },
+
+  DEBUG: {
+    LOS: "debug-los"
   },
 
   COVER: {
-    ALGORITHM: "cover-algorithm",
-    TYPES: {
-      CENTER_CORNERS_TARGET: "cover-center-to-target-corners",
-      CORNER_CORNERS_TARGET: "cover-corner-to-target-corners",
-      CENTER_CORNERS_GRID: "cover-center-to-target-grid-corners",
-      CORNER_CORNERS_GRID: "cover-corner-to-target-grid-corners",
-      CENTER_CENTER: "cover-center-to-center",
-      AREA: "cover-area",
-      AREA3D: "cover-area-3d"
-    },
-
     EFFECTS: "cover-effects",
 
     MENU: {
@@ -91,6 +115,13 @@ export const SETTINGS = {
     PRONE: "cover-prone"
   },
 
+  BUTTONS: {
+    PF2E: "button-pf2e",
+    DND_5E_DMG: "button-dnd5e-dmg",
+    THREE_D: "button-three-d",
+    DOCUMENTATION: "button-documentation"
+  },
+
   CHANGELOG: "changelog",
 
   WELCOME_DIALOG: {
@@ -104,97 +135,11 @@ export const SETTINGS = {
   }
 };
 
-
-/* Range testing types:
-1. Center point -- Only test the center point of tokens.
-2. Foundry -- Use the Foundry 8 points.
-3. 3d Foundry -- Add additional points to top and bottom, 27 total
-
-For 3d, test points in 3 dimensions.
-*/
-
-/* LOS testing types:
-1. Points --- Use the same points from range, test if contained in LOS polygon.
-3. Area -- Use token area.
-
-For area, provide a slider for 0–100% of token area.
-Each token should have a setting for bounds scale for vision.
-
-For 3d points, don't test los contains for extra 3d Foundry points. (They would obv. be the same. )
-For 3d points, do test wall collisions for non-infinite walls.
-(Infinite walls included in LOS.)
-*/
-
-/* Cover testing types:
-1. Center to 4 Corners -- from the center point of the token to 4 corners
-Half trigger: 1 (hex: 1)
-3/4 trigger: 3 (hex: 4)
-2. Corner to Four Corner -- DMG rules; vision from each occupied grid point
-Half trigger: 1 (hex: 1)
-3/4 trigger: 3 (hex: 4)
-3. Center to Center -- PF2e version
-3/4 (standard)
-4. Area
-Half trigger: % area
-3/4 trigger: % area
-full trigger: % area
-
-3D versions ( same triggers )
-5. Center to cube corners
-6. Cube corner to cube corners
-7. 3d Area
-
-
-Other settings:
-GM can provide the name of an active effect to apply when covered. Applies to the token with cover.
-- low active effect
-- medium active effect
-- high active effect
-
-Cover Names:
-Generic: low, medium, high
-PF2e: lesser, standard, greater
-dnd5e: half, 3/4, full
-
-*/
-
 export function registerSettings() {
-  log("Registering token cover settings.");
-
-  game.settings.register(MODULE_ID, SETTINGS.LOS.PERCENT_AREA, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.PERCENT_AREA}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.LOS.PERCENT_AREA}.Hint`),
-    range: {
-      max: 1,
-      min: 0,
-      step: 0.05
-    },
-    scope: "world",
-    config: false, // () => getSetting(SETTINGS.LOS.ALGORITHM) !== LTYPES.POINTS,
-    default: 0,
-    type: Number
-  });
-
-  const CTYPES = SETTINGS.COVER.TYPES;
+  const localize = key => game.i18n.localize(`${MODULE_ID}.settings.${key}`);
   const coverNames = getCoverNames();
 
-  game.settings.register(MODULE_ID, SETTINGS.COVER.ALGORITHM, {
-    name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.ALGORITHM}.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.ALGORITHM}.Hint`),
-    scope: "world",
-    config: true,
-    type: String,
-    choices: {
-      [CTYPES.CENTER_CENTER]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CENTER}`),
-      [CTYPES.CENTER_CORNERS_TARGET]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CORNERS_TARGET}`),
-      [CTYPES.CORNER_CORNERS_TARGET]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CORNER_CORNERS_TARGET}`),
-      [CTYPES.CENTER_CORNERS_GRID]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CENTER_CORNERS_GRID}`),
-      [CTYPES.CORNER_CORNERS_GRID]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.CORNER_CORNERS_GRID}`),
-      [CTYPES.AREA]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA}`),
-      [CTYPES.AREA3D]: game.i18n.localize(`${MODULE_ID}.settings.${CTYPES.AREA3D}`)
-    },
-    default: game.system.id === "pf2e" ? CTYPES.CENTER_CENTER : CTYPES.CORNER_CORNERS_TARGET
-  });
+  // ----- NOTE: Cover Percent Triggers ----- //
 
   game.settings.register(MODULE_ID, SETTINGS.COVER.TRIGGER_CENTER, {
     name: game.i18n.localize(`${MODULE_ID}.settings.${SETTINGS.COVER.TRIGGER_CENTER}.Name`),
@@ -252,6 +197,94 @@ export function registerSettings() {
     type: Number
   });
 
+  // ----- NOTE: Line-of-sight (Cover mechanics) ----- //
+  const PT_OPTS = SETTINGS.LOS.POINT_OPTIONS;
+  const PT_TYPES = SETTINGS.POINT_TYPES;
+  const LTYPES = SETTINGS.LOS.TYPES;
+  const losChoices = {};
+  const ptChoices = {};
+  Object.values(LTYPES).forEach(type => losChoices[type] = localize(type));
+  Object.values(PT_TYPES).forEach(type => ptChoices[type] = localize(type));
+
+  game.settings.register(MODULE_ID, SETTINGS.LOS.ALGORITHM, {
+    name: localize(`${SETTINGS.LOS.ALGORITHM}.Name`),
+    hint: localize(`${SETTINGS.LOS.ALGORITHM}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: losChoices,
+    default: LTYPES.NINE
+  });
+
+  game.settings.register(MODULE_ID, PT_OPTS.NUM_POINTS, {
+    name: localize(`${PT_OPTS.NUM_POINTS}.Name`),
+    hint: localize(`${PT_OPTS.NUM_POINTS}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: ptChoices,
+    default: PT_TYPES.NINE
+  });
+
+  game.settings.register(MODULE_ID, PT_OPTS.INSET, {
+    name: localize(`${PT_OPTS.INSET}.Name`),
+    hint: localize(`${PT_OPTS.INSET}.Hint`),
+    range: {
+      max: 0.99,
+      min: 0,
+      step: 0.01
+    },
+    scope: "world",
+    config: true, // () => getSetting(SETTINGS.LOS.ALGORITHM) !== LTYPES.POINTS,
+    default: 0.75,
+    type: Number
+  });
+
+  game.settings.register(MODULE_ID, PT_OPTS.POINTS3D, {
+    name: localize(`${PT_OPTS.POINTS3D}.Name`),
+    hint: localize(`${PT_OPTS.POINTS3D}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.LOS.VIEWER.NUM_POINTS, {
+    name: localize(`${SETTINGS.LOS.VIEWER.NUM_POINTS}.Name`),
+    hint: localize(`${SETTINGS.LOS.VIEWER.NUM_POINTS}.Hint`),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: ptChoices,
+    default: PT_TYPES.CENTER
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.LOS.VIEWER.INSET, {
+    name: localize(`${SETTINGS.LOS.VIEWER.INSET}.Name`),
+    hint: localize(`${SETTINGS.LOS.VIEWER.INSET}.Hint`),
+    range: {
+      max: 0.99,
+      min: 0,
+      step: 0.01
+    },
+    scope: "world",
+    config: true,
+    default: 0.75,
+    type: Number
+  });
+
+
+  game.settings.register(MODULE_ID, SETTINGS.LOS.LARGE_TARGET, {
+    name: localize(`${SETTINGS.LOS.LARGE_TARGET}.Name`),
+    hint: localize(`${SETTINGS.LOS.LARGE_TARGET}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+
+
+  // ----- NOTE: Menus (Cover effects) ----- //
 
   const skipCoverMenus = game.system.id === "sfrpg";
   const skipLowMenu = skipCoverMenus || dFredsHasCover("LOW");
@@ -386,6 +419,23 @@ export function registerSettings() {
     onChange: value => CONFIG.GeometryLib.proneStatusId = value
   });
 
+  game.settings.register(MODULE_ID, SETTINGS.DEBUG.LOS, {
+    name: localize(`${SETTINGS.DEBUG.LOS}.Name`),
+    hint: localize(`${SETTINGS.DEBUG.LOS}.Hint`),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: value => {
+      if ( value ) canvas.stage.addChild(DEBUG_GRAPHICS.LOS);
+      else {
+        const draw = new Draw(DEBUG_GRAPHICS.LOS);
+        draw.clearDrawings();
+        canvas.stage.removeChild(DEBUG_GRAPHICS.LOS);
+      }
+    }
+  });
+
   // ----- HIDDEN SETTINGS ----- //
   game.settings.register(MODULE_ID, SETTINGS.COVER.EFFECTS, {
     scope: "world",
@@ -420,17 +470,15 @@ export function registerSettings() {
     default: false,
     type: Boolean
   });
-
-  log("Done registering settings.");
 }
 
 function getCoverNames() {
   const statusEffects = STATUS_EFFECTS[game.system.id] || STATUS_EFFECTS.generic;
 
   return {
-    LOW: statusEffects.LOW.label,
-    MEDIUM: statusEffects.MEDIUM.label,
-    HIGH: statusEffects.HIGH.label
+    LOW: statusEffects.LOW.id,
+    MEDIUM: statusEffects.MEDIUM.id,
+    HIGH: statusEffects.HIGH.id
   };
 }
 

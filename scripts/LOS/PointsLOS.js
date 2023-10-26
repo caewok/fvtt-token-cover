@@ -10,7 +10,7 @@ import { AlternativeLOS } from "./AlternativeLOS.js";
 
 // Base folder
 import { SETTINGS, getSetting, DEBUG_GRAPHICS } from "../settings.js";
-import { insetPoints } from "../util.js";
+import { insetPoints } from "./util.js";
 
 // Geometry folder
 import { Point3d } from "../geometry/3d/Point3d.js";
@@ -232,7 +232,7 @@ export class PointsLOS extends AlternativeLOS {
       cfg.pointAlgorithm,
       this.target.constrainedTokenBorder,
       targetElevation,
-      cfg.target.inset);
+      cfg.inset);
 
     return [targetPoints];
   }

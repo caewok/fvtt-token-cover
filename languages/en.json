@@ -1,19 +1,48 @@
 {
-    "tokencover.settings.los-percent-area.Name": "Percent Token Area",
-    "tokencover.settings.los-percent-area.Hint": "Percentage of the token hit area that must be viewable to another token to be considered visible by that other token. If set to 0, then if any part of the token is viewable, it is considered visible.",
+    "tokencover.settings.points-center": "Token center only (1 point)",
+    "tokencover.settings.points-four": "Token corners (4 points)",
+    "tokencover.settings.points-five": "Token corners and center (5 points)",
+    "tokencover.settings.points-eight": "Token midpoints and corners (8 points)",
+    "tokencover.settings.points-nine": "Token midpoints, corners, center (9 points)",
 
-    "tokencover.settings.cover-algorithm.Name": "Cover Algorithm",
-    "tokencover.settings.cover-algorithm.Hint": "How to test whether a token has cover in relation to another. Algorithms loosely sorted from least to most performance-intensive. See https://github.com/caewok/fvtt-token-visibility#settings for a full explanation.",
+    "tokencover.settings.los-algorithm.Name": "Target Algorithm",
+    "tokencover.settings.los-algorithm.Hint": "How to test whether a target token has cover with respect to a viewing token.",
 
-    "tokencover.settings.cover-center-to-target-corners": "Center to target corners",
-    "tokencover.settings.cover-corner-to-target-corners": "Corner to target corners",
-    "tokencover.settings.cover-center-to-target-grid-corners": "Center to corners of select target square",
-    "tokencover.settings.cover-corner-to-target-grid-corners": "Corner to corners of select target square (dnd5e DMG)",
-    "tokencover.settings.cover-center-to-center": "Center to center (PF2e)",
-    "tokencover.settings.cover-area": "Area",
-    "tokencover.settings.cover-center-to-cube": "Center to corners 3d",
-    "tokencover.settings.cover-cube-to-cube": "Corner to corners 3d",
-    "tokencover.settings.cover-area-3d": "Area 3d",
+    "tokencover.settings.los-percent.Name": "Target Percent Threshold",
+    "tokencover.settings.los-percent.Hint": "Percentage of the token hit area that must be viewable to another token to be considered visible by that other token. For points, this is the percentage of target points that must be visible. If set to 0, then if any part of the token (or any point) is viewable, it is considered visible.",
+
+    "tokencover.settings.los-large-target.Name": "Large Target Subtargeting",
+    "tokencover.settings.los-large-target.Hint": "If the target token is larger than the grid square, test each grid square under the token separately for cover. Least cover wins. Useful for large targets that should not have cover if the viewer has line-of-sight to a substantial portion of the target. When using the points algorithm, this generally follows the dnd5e DMG cover rule for grid squares.",
+
+    "tokencover.settings.los-points": "Target points",
+    "tokencover.settings.los-area-2d": "Target area 2d",
+    "tokencover.settings.los-area-3d": "Target area 3d",
+
+    "tokencover.settings.los-points-viewer.Name": "Viewer Points",
+    "tokencover.settings.los-points-viewer.Hint": "How many points on the viewer to test for line-of-sight to the target. Each viewer point is considered independently; least cover wins. Beware that this can dramatically increase the number of tests needed to determine cover.",
+
+    "tokencover.settings.los-inset-viewer.Name": "Viewer Inset",
+    "tokencover.settings.los-inset-viewer.Hint": "For viewer points other than the center, what percentage to inset the point from the token border towards the token center.",
+
+    "tokencover.settings.los-points-target.Name": "Target Points",
+    "tokencover.settings.los-points-target.Hint": "How many points on the target to test for cover from the viewer's line-of-sight.",
+
+    "tokencover.settings.los-inset-target.Name": "Target Inset",
+    "tokencover.settings.los-inset-target.Hint": "For target points other than the center, what percentage to inset the point from the token border towards the token center.",
+
+    "tokencover.settings.los-points-3d.Name": "Target 3d points",
+    "tokencover.settings.los-points-3d.Hint": "Test the top and bottom of the target token in addition to the points in the middle of the token vertically.",
+
+    "tokencover.settings.debug-los.Name": "Debug Cover",
+    "tokencover.settings.debug-los.Hint": "If enabled, will draw representation on the canvas of the cover between viewer and target(s). If Area3d is enabled, you must target a single token to make the debug window appear.",
+
+    "tokencover.settings.button-foundry-default.Name": "Change settings to",
+    "tokencover.settings.button-foundry-default.Label": "Reset to Foundry Defaults",
+    "tokencover.settings.button-foundry-default.Notification": "Settings changed to Foundry defaults",
+
+    "tokencover.settings.button-dnd5e-dmg.Name": "",
+    "tokencover.settings.button-dnd5e-dmg.Label": "Reset to DND5e DMG",
+    "tokencover.settings.button-dnd5e-dmg.Notification": "Settings changed to D&D 5e",
 
     "tokencover.settings.cover-trigger-percent-low.Name": "Low Cover Trigger",
     "tokencover.settings.cover-trigger-percent-low.Hint": "If greater than or equal to this percent of the corners or token area (depending on algorithm) is not viewable, the token will have low cover.",
@@ -70,6 +99,20 @@
     "tokencover.settings.cover-token-prone-attribute.Name": "'Prone' Status Id",
     "tokencover.settings.cover-token-prone-attribute.Hint": "String indicating the id for the token 'prone' status. If set, prone tokens will be considered half-height for all vision and cover calculations. Requires Wall Height module.",
 
+    "tokencover.settings.button-pf2e.Name": "Change settings to",
+    "tokencover.settings.button-pf2e.Label": "Reset to PF2e",
+    "tokencover.settings.button-pf2e.Notification": "Alt. Cover settings changed to PF2e defaults",
+
+    "tokencover.settings.button-dnd5e-dmg.Name": "",
+    "tokencover.settings.button-dnd5e-dmg.Label": "Reset to DND5e DMG",
+    "tokencover.settings.button-dnd5e-dmg.Notification": "Alt. Cover settings changed to D&D 5e DMG defaults",
+
+    "tokencover.settings.button-three-d.Name": "",
+    "tokencover.settings.button-three-d.Label": "Reset to 3-D",
+    "tokencover.settings.button-three-d.Notification": "Alt. Cover settings changed to 3D defaults",
+
+    "tokencover.settings.button-documentation.Label": "Open Documenttion",
+
     "tokencover.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
     "tokencover.DrawingConfiguration.isHole.Name": "Drawing is Hole",
     "tokencover.DrawingConfiguration.isHole.Hint": "For area algorithms, treat the space indicated by the drawing (including elevation) as a hole for tiles. Only applicable when Levels is active.",
@@ -81,11 +124,17 @@
     "tokencover.dnd5e.feats.cover.OptionThreeQuarters": "Ignore half and three-quarters cover.",
     "tokencover.dnd5e.feats.cover.OptionFull": "Ignore all cover.",
 
-    "tokencover.Cover.None": "No Cover",
-    "tokencover.Cover.Low": "Low Cover",
-    "tokencover.Cover.Medium": "Medium Cover",
-    "tokencover.Cover.High": "High Cover",
-    "tokencover.Cover.Total": "Total Cover",
+    "tokencover.cover.None": "No Cover",
+    "tokencover.cover.Low": "Low Cover",
+    "tokencover.cover.Medium": "Medium Cover",
+    "tokencover.cover.High": "High Cover",
+    "tokencover.cover.Total": "Total Cover",
+
+    "tokencover.cover.NONE": "No Cover",
+    "tokencover.cover.LOW": "Low Cover",
+    "tokencover.cover.MEDIUM": "Medium Cover",
+    "tokencover.cover.HIGH": "High Cover",
+    "tokencover.cover.TOTAL": "Total Cover",
 
     "tokencover.phrases.Total": "Total",
     "tokencover.phrases.CoverByTarget": "Cover by Target",

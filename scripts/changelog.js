@@ -6,7 +6,7 @@ Dialog
 */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, DOCUMENTATION_URL } from "./const.js";
 import { SETTINGS, getSetting, setSetting } from "./settings.js";
 const CHANGELOG = SETTINGS.CHANGELOG;
 
@@ -72,7 +72,7 @@ Hooks.once("ready", () => {
       version: "0.6.0",
       title: "Split Token Visibility from Token Cover",
       body: `\
-          To simplify the module and improve my ability to debug issues, I have split out token cover from
+          To simplify the module and improve debugging, I have split out token cover from
           token visibility. There are now two modules: [Alternative Token Visibility](https://github.com/caewok/fvtt-token-visibility) and
           [Alternative Token Cover](https://github.com/caewok/fvtt-token-cover). You can use one module without
           the other, or both in combination.`
@@ -139,7 +139,7 @@ class ChangelogBuilder {
         view_documentation: {
           icon: `<i class="fas fa-book"></i>`,
           label: "View documentation",
-          callback: () => window.open("https://github.com/caewok/fvtt-token-cover/blob/master/README.md")
+          callback: () => window.open(DOCUMENTATION_URL)
         },
         dont_show_again: {
           icon: `<i class="fas fa-times"></i>`,

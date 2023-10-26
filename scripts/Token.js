@@ -8,11 +8,11 @@ PIXI
 
 // Patches for the Token class
 
-import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
-import { MODULE_ID, MODULES_ACTIVE, DEBUG, COVER, IGNORES_COVER_HANDLER } from "./const.js";
+import { ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
+import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 import { Draw } from "./geometry/Draw.js";
 import { CoverCalculator } from "./CoverCalculator.js";
-import { SETTINGS, getSetting } from "./settings.js";
+import { DEBUG_GRAPHICS, SETTINGS, getSetting } from "./settings.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
@@ -69,6 +69,14 @@ function applyTokenStatusEffect(token, statusId, active) {
 }
 
 /**
+ * Hook controlToken
+ * If the token is controlled or uncontrolled, clear debug drawings.
+ */
+function controlToken(_token, _controlled) {
+  if ( getSetting(SETTINGS.DEBUG.LOS) ) DEBUG_GRAPHICS.LOS.clear();
+}
+
+/**
  * Hook: updateToken
  * If the token width/height changes, invalidate the tokenShape.
  * If the token moves, clear all debug drawings.
@@ -84,25 +92,15 @@ function updateToken(tokenD, change, _options, _userId) {
   if ( (Object.hasOwn(change, "width") || Object.hasOwn(change, "height")) && token ) token._tokenShape = undefined;
 
   // Token moved; clear drawings.
-  if ( Object.hasOwn(change, "x")
-    || Object.hasOwn(change, "y")
-    || Object.hasOwn(change, "elevation") ) {
-
-    if ( DEBUG.once || DEBUG.range || DEBUG.area || DEBUG.cover || DEBUG.los ) {
-      Draw.clearDrawings();
-
-      if ( DEBUG.once ) {
-        DEBUG.range = false;
-        DEBUG.area = false;
-        DEBUG.cover = false;
-        DEBUG.los = false;
-        DEBUG.once = false;
-      }
-    }
+  if ( getSetting(SETTINGS.DEBUG.LOS)
+    && (Object.hasOwn(change, "x")
+      || Object.hasOwn(change, "y")
+      || Object.hasOwn(change, "elevation")) ) {
+    DEBUG_GRAPHICS.LOS.clear();
   }
 }
 
-PATCHES.BASIC.HOOKS = { updateToken };
+PATCHES.BASIC.HOOKS = { controlToken, updateToken };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 PATCHES.NOT_PF2E.HOOKS = { targetToken };
 
@@ -113,15 +111,7 @@ PATCHES.NOT_PF2E.HOOKS = { targetToken };
  * Reset the debugging drawings.
  */
 function updateSource(wrapper, ...args) {
-  if ( DEBUG.once || DEBUG.cover ) {
-    CONFIG.GeometryLib.Draw.clearDrawings();
-
-    if ( DEBUG.once ) {
-      DEBUG.cover = false;
-      DEBUG.once = false;
-    }
-  }
-
+  if ( getSetting(SETTINGS.DEBUG.LOS) ) DEBUG_GRAPHICS.LOS.clear();
   return wrapper(...args);
 }
 
