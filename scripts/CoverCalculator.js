@@ -451,6 +451,26 @@ export class CoverCalculator {
    */
   static attackNameForType(type) { return game.i18n.localize(WEAPON_ATTACK_TYPES[type]); }
 
+  /**
+   * Set the target cover effect.
+   * If cover is none, disables any cover effects.
+   * @param {COVER.TYPE} type   Cover type. Default to calculating.
+   */
+  setTargetCoverEffect(type = this.targetCover()) {
+    const COVER_TYPES = this.constructor.COVER_TYPES;
+    switch ( type ) {
+      case COVER_TYPES.NONE:
+      case COVER_TYPES.FULL:
+        this.constructor.disableAllCover(this.target.id);
+        break;
+      case COVER_TYPES.LOW:
+      case COVER_TYPES.MEDIUM:
+      case COVER_TYPES.HIGH:
+        this.constructor.enableCover(this.target.id, type);
+    }
+  }
+
+
   // ----- NOTE: Helper methods ----- //
 
   /**
