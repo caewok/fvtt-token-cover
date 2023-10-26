@@ -203,7 +203,7 @@ export class CoverDialog {
    * @param {object} opts     Options passed to htmlCoverTable.
    */
   async showCoverResults(opts) {
-    const coverAlgorithm = Settings.get(SETTINGS.LOS.ALGORITHM);
+    const coverAlgorithm = Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
     const algorithmDescription = game.i18n.localize(`${MODULE_ID}.settings.${coverAlgorithm}`);
     const html = this._htmlShowCover(opts);
     const content =

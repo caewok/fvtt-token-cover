@@ -245,9 +245,9 @@ export class CoverCalculator {
 
   /** @type {object<class>} */
   static COVER_LOS_CLASSES = {
-    [SETTINGS.LOS.TYPES.POINTS]: PointsLOS,
-    [SETTINGS.LOS.TYPES.AREA2D]: Area2dLOS,
-    [SETTINGS.LOS.TYPES.AREA3D]: Area3dLOS
+    [SETTINGS.LOS.TARGETS.TYPES.POINTS]: PointsLOS,
+    [SETTINGS.LOS.TARGETS.TYPES.AREA2D]: Area2dLOS,
+    [SETTINGS.LOS.TARGETS.TYPES.AREA3D]: Area3dLOS
   };
 
   /**
@@ -296,7 +296,7 @@ export class CoverCalculator {
     cfg.liveForceHalfCover = config.liveForceHalfCover || liveTokenAlg === liveTypes.HALF;
     cfg.proneTokensBlock = config.proneTokensBlock || Settings.get(SETTINGS.COVER.PRONE);
     cfg.debug = config.debug || Settings.get(SETTINGS.DEBUG.LOS);
-    cfg.losAlgorithm = config.losAlgorithm ??= Settings.get(SETTINGS.LOS.ALGORITHM);
+    cfg.losAlgorithm = config.losAlgorithm ??= Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
   }
 
   // ----- NOTE: Getters / Setters ----- //
@@ -469,6 +469,7 @@ export class CoverCalculator {
   #configureLOS(config = {}) {
     config = {...config}; // Shallow copy to avoid modifying the original group.
     const cfg = this.config;
+    const TARGET = SETTINGS.LOS.TARGET;
 
     // AlternativeLOS base config
     config.debug ??= cfg.debug;
@@ -480,13 +481,13 @@ export class CoverCalculator {
     // Area2d and Area3d; can keep for Points without issue.
     config.visionSource ??= this.viewer.object;
 
-    if ( this.config.losAlgorithm !== SETTINGS.LOS.TYPES.POINTS ) return config;
+    if ( this.config.losAlgorithm !== TARGET.TYPES.POINTS ) return config;
 
     // Points config
-    config.pointAlgorithm ??= Settings.get(SETTINGS.LOS.POINT_OPTIONS.NUM_POINTS);
-    config.inset ??= Settings.get(SETTINGS.LOS.POINT_OPTIONS.INSET);
-    config.points3d ??= Settings.get(SETTINGS.LOS.POINT_OPTIONS.POINTS3D);
-    config.grid ??= Settings.get(SETTINGS.LOS.LARGE_TARGET);
+    config.pointAlgorithm ??= Settings.get(TARGET.POINT_OPTIONS.NUM_POINTS);
+    config.inset ??= Settings.get(TARGET.POINT_OPTIONS.INSET);
+    config.points3d ??= Settings.get(TARGET.POINT_OPTIONS.POINTS3D);
+    config.grid ??= Settings.get(TARGET.LARGE);
 
     // Keep undefined: config.visibleTargetShape
     return config;
