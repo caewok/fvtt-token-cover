@@ -19,7 +19,6 @@ export class DefaultSettings {
       VIEWER.INSET,
 
       TARGET.ALGORITHM,
-      TARGET.PERCENT,
       TARGET.LARGE,
 
       TARGET.POINT_OPTIONS.NUM_POINTS,
@@ -40,7 +39,6 @@ export class DefaultSettings {
 
       // LOS Target
       [TARGET.ALGORITHM]: TARGET.TYPES.POINTS,
-      [TARGET.PERCENT]: 0,
       [TARGET.LARGE]: false,
 
       // LOS Point options
@@ -57,18 +55,12 @@ export class DefaultSettings {
   static get dnd5e() {
     const { VIEWER, TARGET, COVER } = SETTINGS.LOS;
     return {
-      // Range
-      [RANGE.ALGORITHM]: SETTINGS.POINT_TYPES.NINE,
-      [RANGE.POINTS3D]: false,
-      [RANGE.DISTANCE3D]: false,
-
       // LOS Viewer
       [VIEWER.NUM_POINTS]: SETTINGS.POINT_TYPES.FOUR,
       [VIEWER.INSET]: 0,
 
       // LOS Target
       [TARGET.ALGORITHM]: TARGET.TYPES.POINTS,
-      [TARGET.PERCENT]: 0,
       [TARGET.LARGE]: true,
 
       // LOS Point options

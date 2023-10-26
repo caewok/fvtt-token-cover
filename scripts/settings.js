@@ -58,7 +58,6 @@ export const SETTINGS = {
 
     TARGET: {
       ALGORITHM: "los-algorithm",
-      PERCENT: "los-percent",
       LARGE: "los-large-target",
       TYPES: {
         POINTS: "los-points",
@@ -482,21 +481,6 @@ export class Settings {
       type: String,
       choices: losChoices,
       default: LTYPES.NINE,
-      tab: "losTarget"
-    });
-
-    register(TARGET.PERCENT, {
-      name: localize(`${TARGET.PERCENT}.Name`),
-      hint: localize(`${TARGET.PERCENT}.Hint`),
-      range: {
-        max: 1,
-        min: 0,
-        step: 0.05
-      },
-      scope: "world",
-      config: false, // () => getSetting(KEYS.LOS.ALGORITHM) !== LTYPES.POINTS,
-      default: 0,
-      type: Number,
       tab: "losTarget"
     });
 
