@@ -169,6 +169,8 @@ export class Settings {
 
   */
 
+  static clearCache() { this.cache.clear(); }
+
   /** @type {object} */
   static get coverNames() {
     const statusEffects = STATUS_EFFECTS[game.system.id] || STATUS_EFFECTS.generic;

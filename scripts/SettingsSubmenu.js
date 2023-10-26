@@ -126,13 +126,18 @@ export class SettingsSubmenu extends FormApplication {
     html.find(`[name="${MODULE_ID}-button-threeD"]`).click(this.submitSettingUpdates.bind(this, "threeD"));
   }
 
-  async _onSubmit(event, opts) {
-    await super._onSubmit(event, opts);
+//   async _onSubmit(event, opts) {
+//     await super._onSubmit(event, opts);
+//   }
 
-    // Refresh the underlying settings config.
-    const openApps = Object.values(ui.windows);
-    const app = openApps.find(app => app instanceof SettingsConfig);
-    app.render(true);
+  async close(opts) {
+    await super.close(opts);
+
+    // Update the underlying setting sheet view.
+    const TARGET = SETTINGS.LOS.TARGET;
+    const centerOnly = Settings.get(TARGET.POINT_OPTIONS.NUM_POINTS) === SETTINGS.POINT_TYPES.CENTER
+      && Settings.get(TARGET.ALGORITHM) === TARGET.TYPES.POINTS;
+    game.settings._sheet._coverAlgorithmChanged(centerOnly);
   }
 
   /**
@@ -151,6 +156,7 @@ export class SettingsSubmenu extends FormApplication {
       promises.push(game.settings.set(s.namespace, s.key, v));
     }
     await Promise.allSettled(promises);
+    Settings.clearCache();
     if ( requiresClientReload || requiresWorldReload ) SettingsConfig.reloadConfirm({world: requiresWorldReload});
   }
 
@@ -223,6 +229,13 @@ export class SettingsSubmenu extends FormApplication {
     const losAlgorithm = event.target.value;
     this.#updatePointOptionDisplay(losAlgorithm);
     this.setPosition(this.position);
+
+    // Update the underlying setting sheet view.
+    const TARGET = SETTINGS.LOS.TARGET;
+    const targetPoints = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS}`).value;
+    const centerOnly = targetPoints === SETTINGS.POINT_TYPES.CENTER
+      && losAlgorithm === TARGET.TYPES.POINTS;
+    game.settings._sheet._coverAlgorithmChanged(centerOnly);
   }
 
   #updatePointOptionDisplay(losAlgorithm) {
@@ -245,6 +258,11 @@ export class SettingsSubmenu extends FormApplication {
     const losAlgorithm = elem[0].value;
     this.#updateTargetInsetDisplay(targetPoints, losAlgorithm);
     this.setPosition(this.position);
+
+    // Update the underlying setting sheet view.
+    const TARGET = SETTINGS.LOS.TARGET;
+    const centerOnly = targetPoints === SETTINGS.POINT_TYPES.CENTER && losAlgorithm === TARGET.TYPES.POINTS;
+    game.settings._sheet._coverAlgorithmChanged(centerOnly);
   }
 
   #updateTargetInsetDisplay(numPoints, losAlgorithm) {
