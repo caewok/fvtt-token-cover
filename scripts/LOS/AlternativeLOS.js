@@ -17,7 +17,7 @@ VisionSource
 // Base folder
 import { MODULES_ACTIVE, MODULE_ID, FLAGS } from "../const.js";
 import { lineIntersectionQuadrilateral3d, buildTokenPoints, lineSegmentIntersectsQuadrilateral3d } from "./util.js";
-import { SETTINGS, getSetting, DEBUG_GRAPHICS } from "../settings.js";
+import { Settings, SETTINGS, DEBUG_GRAPHICS } from "../settings.js";
 
 // Geometry folder
 import { Point3d } from "../geometry/3d/Point3d.js";

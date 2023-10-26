@@ -9,7 +9,7 @@ import { squaresUnderToken, hexesUnderToken } from "./shapes_under_token.js";
 import { AlternativeLOS } from "./AlternativeLOS.js";
 
 // Base folder
-import { SETTINGS, getSetting, DEBUG_GRAPHICS } from "../settings.js";
+import { Settings, SETTINGS, DEBUG_GRAPHICS } from "../settings.js";
 import { insetPoints } from "./util.js";
 
 // Geometry folder
