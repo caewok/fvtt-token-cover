@@ -410,7 +410,7 @@ export class CoverCalculator {
    * @returns {number} Percent between 0 and 1.
    */
   _percentCover(viewerPoint) {
-    const calc = this._newLOSCalc(viewerPoint);
+    const calc = this._newLOSCalc({ viewer: viewerPoint });
     let percent = 1 - calc.percentVisible();
     if ( this.config.liveForceHalfCover ) {
       const calcNoTokens = this._newLOSCalc({ liveTokensBlock: false });
@@ -478,7 +478,7 @@ export class CoverCalculator {
    * @param {PointsLOSConfig|Area2dLOSConfig|Area3dLOSConfig} config
    *   Configuration parameters to pass to the LOS class.
    */
-  _newLOSCalc(viewer, target, config) {
+  _newLOSCalc({ viewer, target, ...config } = {}) {
     viewer ??= this.viewer;
     target ??= this.target;
     return new this.coverLOS(viewer, target, this.#configureLOS(config));
