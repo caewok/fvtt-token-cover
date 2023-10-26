@@ -13,7 +13,8 @@ import { Settings, SETTINGS } from "./Settings.js";
 
 export class DefaultSettings {
   static get changeableSettings() {
-    const { VIEWER, TARGET, COVER } = SETTINGS.LOS;
+    const COVER = SETTINGS.COVER;
+    const { VIEWER, TARGET } = SETTINGS.LOS;
     return [
       VIEWER.NUM_POINTS,
       VIEWER.INSET,
@@ -31,7 +32,8 @@ export class DefaultSettings {
   }
 
   static get pf2e() {
-    const { VIEWER, TARGET, COVER } = SETTINGS.LOS;
+    const COVER = SETTINGS.COVER;
+    const { VIEWER, TARGET } = SETTINGS.LOS;
     return {
       // LOS Viewer
       [VIEWER.NUM_POINTS]: SETTINGS.POINT_TYPES.CENTER,
@@ -53,7 +55,8 @@ export class DefaultSettings {
   }
 
   static get dnd5e() {
-    const { VIEWER, TARGET, COVER } = SETTINGS.LOS;
+    const COVER = SETTINGS.COVER;
+    const { VIEWER, TARGET } = SETTINGS.LOS;
     return {
       // LOS Viewer
       [VIEWER.NUM_POINTS]: SETTINGS.POINT_TYPES.FOUR,

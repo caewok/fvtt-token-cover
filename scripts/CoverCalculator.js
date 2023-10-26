@@ -245,11 +245,11 @@ export class CoverCalculator {
 
   /** @type {object<class>} */
   static get COVER_LOS_CLASSES() {
-    const TYPES = SETTINGS.LOS.TARGETS.TYPES;
+    const TYPES = SETTINGS.LOS.TARGET.TYPES;
     return {
-      [POINTS]: PointsLOS,
-      [AREA2D]: Area2dLOS,
-      [AREA3D]: Area3dLOS
+      [TYPES.POINTS]: PointsLOS,
+      [TYPES.AREA2D]: Area2dLOS,
+      [TYPES.AREA3D]: Area3dLOS
     };
   }
 
@@ -482,7 +482,7 @@ export class CoverCalculator {
     config.liveTokensBlock ??= cfg.liveTokensBlock;
 
     // Area2d and Area3d; can keep for Points without issue.
-    config.visionSource ??= this.viewer.object;
+    config.visionSource ??= this.viewer.vision;
 
     if ( this.config.losAlgorithm !== TARGET.TYPES.POINTS ) return config;
 
