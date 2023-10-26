@@ -13,13 +13,8 @@ import { Settings, SETTINGS } from "./Settings.js";
 
 export class DefaultSettings {
   static get changeableSettings() {
-    const { RANGE, LOS } = SETTINGS;
-    const { VIEWER, TARGET } = LOS;
+    const { VIEWER, TARGET, COVER } = SETTINGS.LOS;
     return [
-      RANGE.ALGORITHM,
-      RANGE.POINTS3D,
-      RANGE.DISTANCE3D,
-
       VIEWER.NUM_POINTS,
       VIEWER.INSET,
 
@@ -29,19 +24,16 @@ export class DefaultSettings {
 
       TARGET.POINT_OPTIONS.NUM_POINTS,
       TARGET.POINT_OPTIONS.INSET,
-      TARGET.POINT_OPTIONS.POINTS3D
+      TARGET.POINT_OPTIONS.POINTS3D,
+
+      COVER.DEAD_TOKENS.ALGORITHM,
+      COVER.LIVE_TOKENS.ALGORITHM
     ];
   }
 
-  static get foundry() {
-    const { RANGE, LOS } = SETTINGS;
-    const { VIEWER, TARGET } = LOS;
+  static get pf2e() {
+    const { VIEWER, TARGET, COVER } = SETTINGS.LOS;
     return {
-      // Range
-      [RANGE.ALGORITHM]: SETTINGS.POINT_TYPES.NINE,
-      [RANGE.POINTS3D]: false,
-      [RANGE.DISTANCE3D]: false,
-
       // LOS Viewer
       [VIEWER.NUM_POINTS]: SETTINGS.POINT_TYPES.CENTER,
       // Unused: [SETTINGS.LOS.VIEWER.INSET]: 0
@@ -54,13 +46,16 @@ export class DefaultSettings {
       // LOS Point options
       [TARGET.POINT_OPTIONS.NUM_POINTS]: SETTINGS.POINT_TYPES.NINE,
       [TARGET.POINT_OPTIONS.INSET]: 0.75,
-      [TARGET.POINT_OPTIONS.POINTS3D]: false
+      [TARGET.POINT_OPTIONS.POINTS3D]: false,
+
+      // Cover options
+      COVER.DEAD_TOKENS.ALGORITHM: false,
+      COVER.LIVE_TOKENS.ALGORITHM: COVER.LIVE_TOKENS.TYPES.FULL
     };
   }
 
   static get dnd5e() {
-    const { RANGE, LOS } = SETTINGS;
-    const { VIEWER, TARGET } = LOS;
+    const { VIEWER, TARGET, COVER } = SETTINGS.LOS;
     return {
       // Range
       [RANGE.ALGORITHM]: SETTINGS.POINT_TYPES.NINE,
@@ -80,6 +75,10 @@ export class DefaultSettings {
       [TARGET.POINT_OPTIONS.NUM_POINTS]: SETTINGS.POINT_TYPES.FOUR,
       [TARGET.POINT_OPTIONS.INSET]: 0,
       [TARGET.POINT_OPTIONS.POINTS3D]: false
+
+      // Cover options
+      COVER.DEAD_TOKENS.ALGORITHM: false,
+      COVER.LIVE_TOKENS.ALGORITHM: COVER.LIVE_TOKENS.TYPES.HALF
     };
   }
 
@@ -87,11 +86,6 @@ export class DefaultSettings {
     const { RANGE, LOS } = SETTINGS;
     const { VIEWER, TARGET } = LOS;
     return {
-      // Range
-      [RANGE.ALGORITHM]: SETTINGS.POINT_TYPES.NINE,
-      [RANGE.POINTS3D]: true,
-      [RANGE.DISTANCE3D]: true,
-
       // LOS Viewer
       [VIEWER.NUM_POINTS]: SETTINGS.POINT_TYPES.CENTER,
 
