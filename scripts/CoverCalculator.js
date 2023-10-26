@@ -12,7 +12,7 @@ VisionSource
 "use strict";
 
 import { MODULE_ID, COVER, MODULES_ACTIVE, WEAPON_ATTACK_TYPES } from "./const.js";
-import { getSetting, SETTINGS, getCoverName } from "./settings.js";
+import { SETTINGS, Settings } from "./settings.js";
 import { PointsLOS } from "./LOS/PointsLOS.js";
 import { Area2dLOS } from "./LOS/Area2dLOS.js";
 import { Area3dLOS } from "./LOS/Area3dLOS.js";
@@ -285,18 +285,18 @@ export class CoverCalculator {
    */
   #configure(config) {
     const cfg = this.config;
-    const liveTokenAlg = getSetting(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
+    const liveTokenAlg = Settings.get(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
     const liveTypes = SETTINGS.COVER.LIVE_TOKENS.TYPES;
 
     cfg.type = config.type ?? "move";
     cfg.wallsBlock = config.type || true;
     cfg.tilesBlock = config.tilesBlock || MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.EV;
-    cfg.deadTokensBlock = config.deadTokensBlock || getSetting(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
+    cfg.deadTokensBlock = config.deadTokensBlock || Settings.get(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
     cfg.liveTokensBlock = config.liveTokensBlock || liveTokenAlg !== liveTypes.NONE;
     cfg.liveForceHalfCover = config.liveForceHalfCover || liveTokenAlg === liveTypes.HALF;
-    cfg.proneTokensBlock = config.proneTokensBlock || getSetting(SETTINGS.COVER.PRONE);
-    cfg.debug = config.debug || getSetting(SETTINGS.DEBUG.LOS);
-    cfg.losAlgorithm = config.losAlgorithm ??= getSetting(SETTINGS.LOS.ALGORITHM);
+    cfg.proneTokensBlock = config.proneTokensBlock || Settings.get(SETTINGS.COVER.PRONE);
+    cfg.debug = config.debug || Settings.get(SETTINGS.DEBUG.LOS);
+    cfg.losAlgorithm = config.losAlgorithm ??= Settings.get(SETTINGS.LOS.ALGORITHM);
   }
 
   // ----- NOTE: Getters / Setters ----- //
@@ -311,9 +311,9 @@ export class CoverCalculator {
    */
   static typeForPercentage(percentCover) {
     const COVER_TYPES = this.COVER_TYPES;
-    if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
-    if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
-    if ( percentCover >= getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
+    if ( percentCover >= Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.HIGH) ) return COVER_TYPES.HIGH;
+    if ( percentCover >= Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.MEDIUM) ) return COVER_TYPES.MEDIUM;
+    if ( percentCover >= Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW) ) return COVER_TYPES.LOW;
     return COVER_TYPES.NONE;
   }
 
@@ -350,7 +350,7 @@ export class CoverCalculator {
    *   String of html content that can be used in a Dialog or ChatMessage.
    */
   static htmlCoverTable(token, targets, opts) {
-    if ( getSetting(SETTINGS.DEBUG.LOS) ) Draw.clearDrawings();
+    if ( Settings.get(SETTINGS.DEBUG.LOS) ) Draw.clearDrawings();
     const coverDialog = new CoverDialog(token, targets);
     return coverDialog._htmlShowCover(opts);
   }
@@ -397,7 +397,7 @@ export class CoverCalculator {
    */
   static coverNameForType(type) {
     const key = keyForValue(this.COVER_TYPES, type);
-    return getCoverName(key);
+    return Settings.getCoverName(key);
   }
 
   // ----- NOTE: Calculation methods ----- //
@@ -412,7 +412,7 @@ export class CoverCalculator {
     if ( this.config.liveForceHalfCover ) {
       const calcNoTokens = this._newLOSCalc({ liveTokensBlock: false });
       const percentNoTokens = 1 - calcNoTokens.percentVisible();
-      const minPercent = getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
+      const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
       percent = Math.max(percentNoTokens, Math.min(minPercent, percent));
     }
     return percent;
@@ -425,7 +425,7 @@ export class CoverCalculator {
    */
   percentCover() {
     let percent = 1;
-    const minPercent = getSetting(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
+    const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
     const viewerPoints = PointsLOS.constructViewerPoints(this.viewer);
     for ( const viewerPoint of viewerPoints ) {
       percent = Math.min(percent, this._percentCover(viewerPoint));
@@ -483,10 +483,10 @@ export class CoverCalculator {
     if ( this.config.losAlgorithm !== SETTINGS.LOS.TYPES.POINTS ) return config;
 
     // Points config
-    config.pointAlgorithm ??= getSetting(SETTINGS.LOS.POINT_OPTIONS.NUM_POINTS);
-    config.inset ??= getSetting(SETTINGS.LOS.POINT_OPTIONS.INSET);
-    config.points3d ??= getSetting(SETTINGS.LOS.POINT_OPTIONS.POINTS3D);
-    config.grid ??= getSetting(SETTINGS.LOS.LARGE_TARGET);
+    config.pointAlgorithm ??= Settings.get(SETTINGS.LOS.POINT_OPTIONS.NUM_POINTS);
+    config.inset ??= Settings.get(SETTINGS.LOS.POINT_OPTIONS.INSET);
+    config.points3d ??= Settings.get(SETTINGS.LOS.POINT_OPTIONS.POINTS3D);
+    config.grid ??= Settings.get(SETTINGS.LOS.LARGE_TARGET);
 
     // Keep undefined: config.visibleTargetShape
     return config;

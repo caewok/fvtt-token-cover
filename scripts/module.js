@@ -9,11 +9,7 @@ import { MODULE_ID, COVER, setCoverIgnoreHandler } from "./const.js";
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 import { initializePatching, PATCHER } from "./patching.js";
-import {
-  registerSettings,
-  updateConfigStatusEffects,
-  getSetting,
-  setSetting } from "./settings.js";
+import { Settings } from "./settings.js";
 
 // For API
 import { PointsLOS } from "./LOS/PointsLOS.js";
@@ -53,8 +49,7 @@ Hooks.once("init", function() {
     ConstrainedTokenBorder,
     setCoverIgnoreHandler,
     SOCKETS,
-    getSetting,
-    setSetting,
+    Settings,
 
     IgnoresCoverClasses: {
       IgnoresCover,
@@ -74,6 +69,6 @@ Hooks.once("init", function() {
 });
 
 Hooks.once("setup", function() {
-  registerSettings();
-  updateConfigStatusEffects();
+  Settings.registerAll();
+  Settings.updateConfigStatusEffects();
 });

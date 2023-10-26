@@ -17,14 +17,6 @@ import {
   MediumCoverEffectConfig,
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
-export function getSetting(settingName) {
-  return game.settings.get(MODULE_ID, settingName);
-}
-
-export async function setSetting(settingName, value) {
-  return game.settings.set(MODULE_ID, settingName, value);
-}
-
 export const DEBUG_GRAPHICS = {
   LOS: new PIXI.Graphics()
 };
