@@ -13,7 +13,7 @@ Token
 import { MODULE_ID, COVER } from "./const.js";
 import { CoverCalculator, SOCKETS } from "./CoverCalculator.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
-import { SETTINGS, Settings } from "./settings.js";
+import { SETTINGS, Settings } from "./Settings.js";
 
 // Helper class to construct dialogs related to cover between token(s) and target(s).
 

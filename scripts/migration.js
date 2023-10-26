@@ -8,7 +8,7 @@ canvas
 // Migrations from older data.
 
 import { MODULE_ID, MODULES_ACTIVE, FLAGS, setCoverIgnoreHandler } from "./const.js";
-import { Settings, SETTINGS } from "./settings.js";
+import { Settings, SETTINGS } from "./Settings.js";
 import {
   IgnoresCover,
   IgnoresCoverSimbuls,

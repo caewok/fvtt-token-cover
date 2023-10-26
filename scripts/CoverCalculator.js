@@ -12,7 +12,7 @@ VisionSource
 "use strict";
 
 import { MODULE_ID, COVER, MODULES_ACTIVE, WEAPON_ATTACK_TYPES } from "./const.js";
-import { SETTINGS, Settings } from "./settings.js";
+import { SETTINGS, Settings } from "./Settings.js";
 import { PointsLOS } from "./LOS/PointsLOS.js";
 import { Area2dLOS } from "./LOS/Area2dLOS.js";
 import { Area3dLOS } from "./LOS/Area3dLOS.js";

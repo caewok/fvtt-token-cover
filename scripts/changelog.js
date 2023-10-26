@@ -7,7 +7,7 @@ Dialog
 "use strict";
 
 import { MODULE_ID, DOCUMENTATION_URL } from "./const.js";
-import { SETTINGS, Settings } from "./settings.js";
+import { SETTINGS, Settings } from "./Settings.js";
 
 // From Perfect Vision
 // https://github.com/dev7355608/perfect-vision/blob/cdf03ae7e4b5969efaee8e742bf9dd11d18ba8b7/scripts/changelog.js

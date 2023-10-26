@@ -10,7 +10,7 @@ PIXI
 import { ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
 import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
-import { DEBUG_GRAPHICS, SETTINGS, Settings } from "./settings.js";
+import { DEBUG_GRAPHICS, SETTINGS, Settings } from "./Settings.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};

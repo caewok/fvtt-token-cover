@@ -9,7 +9,7 @@ import { MODULE_ID, COVER, setCoverIgnoreHandler } from "./const.js";
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 import { initializePatching, PATCHER } from "./patching.js";
-import { Settings } from "./settings.js";
+import { Settings } from "./Settings.js";
 
 // For API
 import { PointsLOS } from "./LOS/PointsLOS.js";

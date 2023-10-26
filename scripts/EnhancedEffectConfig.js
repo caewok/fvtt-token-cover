@@ -5,7 +5,7 @@ game,
 ActiveEffect
 */
 
-import { Settings } from "./settings.js";
+import { Settings } from "./Settings.js";
 
 // Adapted from https://github.com/death-save/combat-utility-belt/blob/master/modules/enhanced-conditions/enhanced-effect-config.js
 // @example

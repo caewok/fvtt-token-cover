@@ -47,7 +47,7 @@ dnd5e: half, 3/4, full
 */
 
 import { COVER, MODULE_ID } from "./const.js";
-import { SETTINGS, Settings } from "./settings.js";
+import { SETTINGS, Settings } from "./Settings.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { CoverDialog } from "./CoverDialog.js";
 
