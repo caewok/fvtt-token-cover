@@ -362,7 +362,7 @@ export class Settings {
       name: localize(`${KEYS.COVER.TRIGGER_CENTER}.Name`),
       hint: localize(`${KEYS.COVER.TRIGGER_CENTER}.Hint`),
       scope: "world",
-      config: true, // () => getSetting(KEYS.COVER.ALGORITHM) === CTYPES.CENTER_CENTER,
+      config: true,
       default: coverNames.MEDIUM,
       type: String,
       choices: {
@@ -661,13 +661,6 @@ export class Settings {
     });
 
     register(KEYS.MIGRATION.v054, {
-      scope: "world",
-      config: false,
-      default: false,
-      type: Boolean
-    });
-
-    register(KEYS.MIGRATION.v060, {
       scope: "world",
       config: false,
       default: false,

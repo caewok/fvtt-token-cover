@@ -32,7 +32,7 @@ Hooks.once("ready", async function() {
  * As of v0.3.2, all, mwak, etc. were introduced. So migrate the "ignoreCover" to "ignoreCoverAll"
  */
 async function migrateIgnoreCoverFlag() {
-  if ( Settings.get(g.MIGRATION.v032) ) return;
+  if ( Settings.get(SETTINGS.MIGRATION.v032) ) return;
 
   // Confirm that actor flags are updated to newest version
   // IGNORE: "ignoreCover" --> "ignoreCoverAll"

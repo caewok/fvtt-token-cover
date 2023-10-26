@@ -47,8 +47,8 @@ export class DefaultSettings {
       [TARGET.POINT_OPTIONS.POINTS3D]: false,
 
       // Cover options
-      COVER.DEAD_TOKENS.ALGORITHM: false,
-      COVER.LIVE_TOKENS.ALGORITHM: COVER.LIVE_TOKENS.TYPES.FULL
+      [COVER.DEAD_TOKENS.ALGORITHM]: false,
+      [COVER.LIVE_TOKENS.ALGORITHM]: COVER.LIVE_TOKENS.TYPES.FULL
     };
   }
 
@@ -66,17 +66,16 @@ export class DefaultSettings {
       // LOS Point options
       [TARGET.POINT_OPTIONS.NUM_POINTS]: SETTINGS.POINT_TYPES.FOUR,
       [TARGET.POINT_OPTIONS.INSET]: 0,
-      [TARGET.POINT_OPTIONS.POINTS3D]: false
+      [TARGET.POINT_OPTIONS.POINTS3D]: false,
 
       // Cover options
-      COVER.DEAD_TOKENS.ALGORITHM: false,
-      COVER.LIVE_TOKENS.ALGORITHM: COVER.LIVE_TOKENS.TYPES.HALF
+      [COVER.DEAD_TOKENS.ALGORITHM]: false,
+      [COVER.LIVE_TOKENS.ALGORITHM]: COVER.LIVE_TOKENS.TYPES.HALF
     };
   }
 
   static get threeD() {
-    const { RANGE, LOS } = SETTINGS;
-    const { VIEWER, TARGET } = LOS;
+    const { VIEWER, TARGET } = SETTINGS.LOS;
     return {
       // LOS Viewer
       [VIEWER.NUM_POINTS]: SETTINGS.POINT_TYPES.CENTER,
@@ -125,6 +124,15 @@ export class SettingsSubmenu extends FormApplication {
     html.find(`[name="${MODULE_ID}-button-foundry"]`).click(this.submitSettingUpdates.bind(this, "foundry"));
     html.find(`[name="${MODULE_ID}-button-dnd5e"]`).click(this.submitSettingUpdates.bind(this, "dnd5e"));
     html.find(`[name="${MODULE_ID}-button-threeD"]`).click(this.submitSettingUpdates.bind(this, "threeD"));
+  }
+
+  async _onSubmit(event, opts) {
+    await super._onSubmit(event, opts);
+
+    // Refresh the underlying settings config.
+    const openApps = Object.values(ui.windows);
+    const app = openApps.find(app => app instanceof SettingsConfig);
+    app.render(true);
   }
 
   /**
