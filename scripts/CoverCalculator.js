@@ -244,11 +244,14 @@ export class CoverCalculator {
   static COVER_TYPES = COVER.TYPES;
 
   /** @type {object<class>} */
-  static COVER_LOS_CLASSES = {
-    [SETTINGS.LOS.TARGETS.TYPES.POINTS]: PointsLOS,
-    [SETTINGS.LOS.TARGETS.TYPES.AREA2D]: Area2dLOS,
-    [SETTINGS.LOS.TARGETS.TYPES.AREA3D]: Area3dLOS
-  };
+  static get COVER_LOS_CLASSES() {
+    const TYPES = SETTINGS.LOS.TARGETS.TYPES;
+    return {
+      [POINTS]: PointsLOS,
+      [AREA2D]: Area2dLOS,
+      [AREA3D]: Area3dLOS
+    };
+  }
 
   /**
    * @typedef CoverConfig  Configuration settings for this class.
