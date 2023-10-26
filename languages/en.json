@@ -53,7 +53,7 @@
 
     "tokencover.settings.midiqol-covercheck.Name": "Cover: Attack Workflow",
     "tokencover.settings.midiqol-covercheck.Hint": "When rolling an attack in dnd5e with targeted tokens, should cover be applied automatically or require a confirmation dialog from the GM or user?",
-    "tokencover.settings.midiqol-covercheck-none": "Do not test for cover",
+    "tokencover.settings.midiqol-covercheck-none": "Do not apply cover",
     "tokencover.settings.midiqol-covercheck-user": "Ask user to confirm",
     "tokencover.settings.midiqol-covercheck-user-cancel": "Ask user (cancel only)",
     "tokencover.settings.midiqol-covercheck-gm": "Ask GM to confirm",

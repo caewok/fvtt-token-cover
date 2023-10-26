@@ -94,7 +94,7 @@ export class CoverDialog {
   async confirmCover({ askGM, actionType } = {}) {
     askGM ||= false;
     const html = this._htmlConfirmCover({ actionType });
-    const dialogData = { title: game.i18n.localize("tokenvisibility.phrases.ConfirmCover"), content: html };
+    const dialogData = { title: game.i18n.localize(`${MODULE_ID}.phrases.ConfirmCover`), content: html };
 
     let coverSelections;
     if ( askGM ) {
