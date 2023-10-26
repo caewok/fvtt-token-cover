@@ -10,7 +10,8 @@ import { IgnoresCover } from "./IgnoresCover.js";
 
 export const MODULE_ID = "tokencover";
 export const EPSILON = 1e-08;
-export const DOCUMENTATION_URL = "https://github.com/caewok/fvtt-token-cover/blob/master/README.md";
+export const DOCUMENTATION_URL = "https://github.com/caewok/fvtt-token-visibility/blob/master/README.md";
+export const ISSUE_URL = "https://github.com/caewok/fvtt-token-visibility/issues";
 
 export const FLAGS = {
   DRAWING: { IS_HOLE: "isHole" },

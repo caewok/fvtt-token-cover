@@ -13,7 +13,7 @@ Token
 import { MODULE_ID, COVER } from "./const.js";
 import { CoverCalculator, SOCKETS } from "./CoverCalculator.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
-import { SETTINGS, getSetting } from "./settings.js";
+import { SETTINGS, Settings } from "./Settings.js";
 
 // Helper class to construct dialogs related to cover between token(s) and target(s).
 
@@ -140,7 +140,7 @@ export class CoverDialog {
    * @returns {Map<Token, COVER_TYPE>|false}
    */
   async workflow(actionType) {
-    const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
+    const coverCheckOption = Settings.get(SETTINGS.COVER.MIDIQOL.COVERCHECK);
     const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
     let askGM = true;
     switch ( coverCheckOption ) {
@@ -203,7 +203,7 @@ export class CoverDialog {
    * @param {object} opts     Options passed to htmlCoverTable.
    */
   async showCoverResults(opts) {
-    const coverAlgorithm = getSetting(SETTINGS.LOS.ALGORITHM);
+    const coverAlgorithm = Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
     const algorithmDescription = game.i18n.localize(`${MODULE_ID}.settings.${coverAlgorithm}`);
     const html = this._htmlShowCover(opts);
     const content =

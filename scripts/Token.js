@@ -1,6 +1,5 @@
 /* globals
 canvas,
-CONFIG,
 game,
 PIXI
 */
@@ -10,9 +9,8 @@ PIXI
 
 import { ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
 import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const.js";
-import { Draw } from "./geometry/Draw.js";
 import { CoverCalculator } from "./CoverCalculator.js";
-import { DEBUG_GRAPHICS, SETTINGS, getSetting } from "./settings.js";
+import { DEBUG_GRAPHICS, SETTINGS, Settings } from "./Settings.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
@@ -32,7 +30,7 @@ PATCHES.NOT_PF2E = {};
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
 async function targetToken(user, target, targeted) {
-  if ( !getSetting(SETTINGS.COVER.COMBAT_AUTO) ) return;
+  if ( !Settings.get(SETTINGS.COVER.COMBAT_AUTO) ) return;
 
   // If not in combat, do nothing because it is unclear who is targeting what...
   if ( !game.combat?.started ) return;
@@ -73,7 +71,7 @@ function applyTokenStatusEffect(token, statusId, active) {
  * If the token is controlled or uncontrolled, clear debug drawings.
  */
 function controlToken(_token, _controlled) {
-  if ( getSetting(SETTINGS.DEBUG.LOS) ) DEBUG_GRAPHICS.LOS.clear();
+  if ( Settings.get(SETTINGS.DEBUG.LOS) ) DEBUG_GRAPHICS.LOS.clear();
 }
 
 /**
@@ -92,7 +90,7 @@ function updateToken(tokenD, change, _options, _userId) {
   if ( (Object.hasOwn(change, "width") || Object.hasOwn(change, "height")) && token ) token._tokenShape = undefined;
 
   // Token moved; clear drawings.
-  if ( getSetting(SETTINGS.DEBUG.LOS)
+  if ( Settings.get(SETTINGS.DEBUG.LOS)
     && (Object.hasOwn(change, "x")
       || Object.hasOwn(change, "y")
       || Object.hasOwn(change, "elevation")) ) {
@@ -111,7 +109,7 @@ PATCHES.NOT_PF2E.HOOKS = { targetToken };
  * Reset the debugging drawings.
  */
 function updateSource(wrapper, ...args) {
-  if ( getSetting(SETTINGS.DEBUG.LOS) ) DEBUG_GRAPHICS.LOS.clear();
+  if ( Settings.get(SETTINGS.DEBUG.LOS) ) DEBUG_GRAPHICS.LOS.clear();
   return wrapper(...args);
 }
 

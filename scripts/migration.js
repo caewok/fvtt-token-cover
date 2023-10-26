@@ -8,7 +8,7 @@ canvas
 // Migrations from older data.
 
 import { MODULE_ID, MODULES_ACTIVE, FLAGS, setCoverIgnoreHandler } from "./const.js";
-import { getSetting, SETTINGS, setSetting, updateConfigStatusEffects } from "./settings.js";
+import { Settings, SETTINGS } from "./Settings.js";
 import {
   IgnoresCover,
   IgnoresCoverSimbuls,
@@ -32,7 +32,7 @@ Hooks.once("ready", async function() {
  * As of v0.3.2, all, mwak, etc. were introduced. So migrate the "ignoreCover" to "ignoreCoverAll"
  */
 async function migrateIgnoreCoverFlag() {
-  if ( getSetting(SETTINGS.MIGRATION.v032) ) return;
+  if ( Settings.get(SETTINGS.MIGRATION.v032) ) return;
 
   // Confirm that actor flags are updated to newest version
   // IGNORE: "ignoreCover" --> "ignoreCoverAll"
@@ -53,14 +53,14 @@ async function migrateIgnoreCoverFlag() {
     }
   });
 
-  await setSetting(SETTINGS.MIGRATION.v032, true);
+  await Settings.set(SETTINGS.MIGRATION.v032, true);
 }
 
 async function migrateCoverStatusData() {
-  if ( getSetting(SETTINGS.MIGRATION.v054) ) return;
+  if ( Settings.get(SETTINGS.MIGRATION.v054) ) return;
 
   // Update config status effects.
-  const allStatusEffects = getSetting(SETTINGS.COVER.EFFECTS);
+  const allStatusEffects = Settings.get(SETTINGS.COVER.EFFECTS);
   for ( const systemId of Object.keys(allStatusEffects) ) {
     const systemStatusEffects = allStatusEffects[systemId];
     for ( const type of Object.keys(systemStatusEffects) ) {
@@ -81,7 +81,7 @@ async function migrateCoverStatusData() {
 
         case "dnd5e_midiqol":
           if ( type === "HIGH" ) updateDND5eMidiQolHighChange(effectData);
-        case "dnd5e":
+        case "dnd5e":  // eslint-disable-line no-fallthrough
           if ( type === "LOW" && effectData.name === "Half" ) effectData.name = "DND5E.CoverHalf";
           if ( type === "MEDIUM" && effectData.name === "Three-Quarters" ) effectData.name = "DND5E.CoverThreeQuarters";
           if ( type === "HIGH" && effectData.name === "Total" ) effectData.name = "DND5E.CoverTotal";
@@ -99,9 +99,9 @@ async function migrateCoverStatusData() {
     }
   }
 
-  await setSetting(SETTINGS.COVER.EFFECTS, allStatusEffects);
-  updateConfigStatusEffects();
-  await setSetting(SETTINGS.MIGRATION.v054, true);
+  await Settings.set(SETTINGS.COVER.EFFECTS, allStatusEffects);
+  Settings.updateConfigStatusEffects();
+  await Settings.set(SETTINGS.MIGRATION.v054, true);
 }
 
 

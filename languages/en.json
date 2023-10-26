@@ -5,32 +5,29 @@
     "tokencover.settings.points-eight": "Token midpoints and corners (8 points)",
     "tokencover.settings.points-nine": "Token midpoints, corners, center (9 points)",
 
-    "tokencover.settings.los-algorithm.Name": "Target Algorithm",
+    "tokencover.settings.los-algorithm.Name": "Algorithm",
     "tokencover.settings.los-algorithm.Hint": "How to test whether a target token has cover with respect to a viewing token.",
 
-    "tokencover.settings.los-percent.Name": "Target Percent Threshold",
-    "tokencover.settings.los-percent.Hint": "Percentage of the token hit area that must be viewable to another token to be considered visible by that other token. For points, this is the percentage of target points that must be visible. If set to 0, then if any part of the token (or any point) is viewable, it is considered visible.",
-
-    "tokencover.settings.los-large-target.Name": "Large Target Subtargeting",
+    "tokencover.settings.los-large-target.Name": "Large Token Subtargeting",
     "tokencover.settings.los-large-target.Hint": "If the target token is larger than the grid square, test each grid square under the token separately for cover. Least cover wins. Useful for large targets that should not have cover if the viewer has line-of-sight to a substantial portion of the target. When using the points algorithm, this generally follows the dnd5e DMG cover rule for grid squares.",
 
-    "tokencover.settings.los-points": "Target points",
-    "tokencover.settings.los-area-2d": "Target area 2d",
-    "tokencover.settings.los-area-3d": "Target area 3d",
+    "tokencover.settings.los-points": "Points",
+    "tokencover.settings.los-area-2d": "Area 2d",
+    "tokencover.settings.los-area-3d": "Area 3d",
 
-    "tokencover.settings.los-points-viewer.Name": "Viewer Points",
+    "tokencover.settings.los-points-viewer.Name": "Points",
     "tokencover.settings.los-points-viewer.Hint": "How many points on the viewer to test for line-of-sight to the target. Each viewer point is considered independently; least cover wins. Beware that this can dramatically increase the number of tests needed to determine cover.",
 
-    "tokencover.settings.los-inset-viewer.Name": "Viewer Inset",
+    "tokencover.settings.los-inset-viewer.Name": " Inset",
     "tokencover.settings.los-inset-viewer.Hint": "For viewer points other than the center, what percentage to inset the point from the token border towards the token center.",
 
-    "tokencover.settings.los-points-target.Name": "Target Points",
+    "tokencover.settings.los-points-target.Name": "Points",
     "tokencover.settings.los-points-target.Hint": "How many points on the target to test for cover from the viewer's line-of-sight.",
 
-    "tokencover.settings.los-inset-target.Name": "Target Inset",
+    "tokencover.settings.los-inset-target.Name": "Inset",
     "tokencover.settings.los-inset-target.Hint": "For target points other than the center, what percentage to inset the point from the token border towards the token center.",
 
-    "tokencover.settings.los-points-3d.Name": "Target 3d points",
+    "tokencover.settings.los-points-3d.Name": "3d points",
     "tokencover.settings.los-points-3d.Hint": "Test the top and bottom of the target token in addition to the points in the middle of the token vertically.",
 
     "tokencover.settings.debug-los.Name": "Debug Cover",
@@ -99,19 +96,26 @@
     "tokencover.settings.cover-token-prone-attribute.Name": "'Prone' Status Id",
     "tokencover.settings.cover-token-prone-attribute.Hint": "String indicating the id for the token 'prone' status. If set, prone tokens will be considered half-height for all vision and cover calculations. Requires Wall Height module.",
 
-    "tokencover.settings.button-pf2e.Name": "Change settings to",
     "tokencover.settings.button-pf2e.Label": "Reset to PF2e",
     "tokencover.settings.button-pf2e.Notification": "Alt. Cover settings changed to PF2e defaults",
 
-    "tokencover.settings.button-dnd5e-dmg.Name": "",
-    "tokencover.settings.button-dnd5e-dmg.Label": "Reset to DND5e DMG",
-    "tokencover.settings.button-dnd5e-dmg.Notification": "Alt. Cover settings changed to D&D 5e DMG defaults",
+    "tokencover.settings.button-dnd5e.Label": "Reset to DND5e DMG",
+    "tokencover.settings.button-dnd5e.Notification": "Alt. Cover settings changed to D&D 5e DMG defaults",
 
-    "tokencover.settings.button-three-d.Name": "",
-    "tokencover.settings.button-three-d.Label": "Reset to 3-D",
-    "tokencover.settings.button-three-d.Notification": "Alt. Cover settings changed to 3D defaults",
+    "tokencover.settings.button-threeD.Label": "Reset to 3-D",
+    "tokencover.settings.button-threeD.Notification": "Alt. Cover settings changed to 3D defaults",
 
-    "tokencover.settings.button-documentation.Label": "Open Documenttion",
+    "tokencover.settings.button-documentation.Label": "Open Documentation",
+    "tokencover.settings.button-issue.Label": "Report Issue",
+
+    "tokencover.template.settings-config.tabs.los_viewer": "Viewer",
+    "tokencover.template.settings-config.tabs.los_target": "Target",
+    "tokencover.template.settings-config.tabs.workflow": "Cover Workflow",
+    "tokencover.template.settings-config.tabs.other": "Cover Options",
+
+    "tokencover.settings.submenu.Name": "",
+    "tokencover.settings.submenu.Label": "Cover Settings",
+    "tokencover.settings.submenu.title": "Alternative Token Cover Settings",
 
     "tokencover.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
     "tokencover.DrawingConfiguration.isHole.Name": "Drawing is Hole",
@@ -123,6 +127,18 @@
     "tokencover.dnd5e.feats.cover.OptionHalf": "Ignore half cover.",
     "tokencover.dnd5e.feats.cover.OptionThreeQuarters": "Ignore half and three-quarters cover.",
     "tokencover.dnd5e.feats.cover.OptionFull": "Ignore all cover.",
+
+    "tokencover.template.settings-config.viewer": "Viewing Token",
+    "tokencover.template.settings-config.viewerDescription": "Settings relevant to the token viewing/targeting another token that may have cover",
+
+    "tokencover.template.settings-config.target": "Target Token",
+    "tokencover.template.settings-config.targetDescription": "Settings relevant to the targeted token (the one for which cover would be applied).",
+
+    "tokencover.template.settings-config.workflow": "Cover Workflow",
+    "tokencover.template.settings-config.workflowDescription": "Settings to adjust how cover is determined during token movement and combat.",
+
+    "tokencover.template.settings-config.other": "Cover Options",
+    "tokencover.template.settings-config.otherDescription": "Settings to adjust other cover rules and to set system-specific cover properties.",
 
     "tokencover.cover.None": "No Cover",
     "tokencover.cover.Low": "Low Cover",
