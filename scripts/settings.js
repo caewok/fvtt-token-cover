@@ -18,8 +18,7 @@ import {
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
 export const DEBUG_GRAPHICS = {
-  LOS: undefined,
-  RANGE: undefined
+  LOS: undefined
 };
 
 // Patches for the Setting class
@@ -151,6 +150,35 @@ export class Settings {
   /** @type {object} */
   static KEYS = SETTINGS;
 
+  /** @type {PIXI.Graphics} */
+  static #DEBUG_LOS = new PIXI.Graphics();
+
+  get DEBUG_LOS() {
+    return canvas.tokens.children.find(c => c[`${MODULE_ID}_losDebug`]);
+  }
+
+  static initializeDebugGraphics() {
+    if ( this.#DEBUG_LOS.destroyed ) this.#DEBUG_LOS = new PIXI.Graphics();
+    if ( this.get(SETTINGS.DEBUG.LOS ) ) this.registerDebugLOS();
+  }
+
+  static destroyDebugGraphics() {
+    this.deregisterDebugLOS();
+    this.#DEBUG_LOS.destroy();
+  }
+
+  static registerDebugLOS() {
+    this.#DEBUG_LOS[`${MODULE_ID}_losDebug`] = true;
+    canvas.tokens.addChild(this.#DEBUG_LOS);
+  }
+
+  static deregisterDebugLOS() {
+    canvas.tokens.removeChild(this.#DEBUG_LOS);
+    this.#DEBUG_LOS.clear();
+  }
+
+
+
   // ----- NOTE: Cover helper static methods ---- //
 
   /* Status effects
@@ -169,8 +197,6 @@ export class Settings {
   - Update CONFIG.statusEffects
 
   */
-
-  static clearCache() { this.cache.clear(); }
 
   /** @type {object} */
   static get coverNames() {
@@ -270,7 +296,16 @@ export class Settings {
    */
   static get(key) {
     const cached = this.cache.get(key);
-    if ( typeof cached !== "undefined" ) return cached;
+    if ( typeof cached !== "undefined" ) {
+      const origValue = game.settings.get(MODULE_ID, key);
+      if ( origValue !== cached ) {
+        console.debug(`Settings cache fail: ${origValue} !== ${cached} for key ${key}`);
+        return origValue;
+      }
+
+      return cached;
+
+    }
     const value = game.settings.get(MODULE_ID, key);
     this.cache.set(key, value);
     return value;
@@ -425,12 +460,8 @@ export class Settings {
       type: Boolean,
       default: false,
       onChange: value => {
-        if ( value ) canvas.stage.addChild(DEBUG_GRAPHICS.LOS);
-        else {
-          const draw = new Draw(DEBUG_GRAPHICS.LOS);
-          draw.clearDrawings();
-          canvas.stage.removeChild(DEBUG_GRAPHICS.LOS);
-        }
+        if ( value ) Settings.registerDebugGraphics();
+        else Settings.deregisterDebugGraphics();
       }
     });
 
