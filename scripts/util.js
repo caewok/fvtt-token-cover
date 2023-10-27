@@ -10,6 +10,12 @@ import { EPSILON } from "./const.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 
 /**
+ * Determine if this user is the first active GM.
+ * So that effects are applied only once.
+ */
+export function isFirstGM() { return game.user === game.users.find((u) => u.isGM && u.active); }
+
+/**
  * Gets the actor object by the actor UUID
  * Comparable to DFred's version.
  * https://github.com/DFreds/dfreds-convenient-effects/blob/8feaede24d310a3fa231d320ae5d33ecb326897f/scripts/foundry-helpers.js#L41

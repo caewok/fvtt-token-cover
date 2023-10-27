@@ -48,5 +48,5 @@ export function initializePatching() {
 
   if ( game.system.id === "sfrpg" ) PATCHER.registerGroup("sfrpg");
 
-  if ( game.system.id !== "pf2e" ) PATCHER.registerGroup("NOT_PF2E");
+  if ( game.system.id !== "pf2e" ) PATCHER.registerGroup("NO_PF2E");
 }
