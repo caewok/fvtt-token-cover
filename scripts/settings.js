@@ -18,7 +18,8 @@ import {
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
 export const DEBUG_GRAPHICS = {
-  LOS: new PIXI.Graphics()
+  LOS: undefined,
+  RANGE: undefined
 };
 
 // Patches for the Setting class

@@ -9,7 +9,7 @@ import { MODULE_ID, COVER, setCoverIgnoreHandler } from "./const.js";
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 import { initializePatching, PATCHER } from "./patching.js";
-import { Settings } from "./Settings.js";
+import { Settings, DEBUG_GRAPHICS, SETTINGS } from "./Settings.js";
 
 // For API
 import { PointsLOS } from "./LOS/PointsLOS.js";
@@ -72,3 +72,17 @@ Hooks.once("setup", function() {
   Settings.registerAll();
   Settings.updateConfigStatusEffects();
 });
+
+Hooks.on("canvasReady", function() {
+  console.debug("tokenvisibility|canvasReady")
+  DEBUG_GRAPHICS.LOS = new PIXI.Graphics();
+  if ( Settings.get(SETTINGS.DEBUG.LOS ) ) canvas.tokens.addChild(DEBUG_GRAPHICS.LOS);
+});
+
+Hooks.on("canvasTearDown", function() {
+  console.debug("tokenvisibility|canvasTearDown");
+  canvas.tokens.removeChild(DEBUG_GRAPHICS.LOS);
+  DEBUG_GRAPHICS.LOS.destroy();
+});
+
+
