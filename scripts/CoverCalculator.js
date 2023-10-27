@@ -1,22 +1,22 @@
 /* globals
 canvas,
-CONFIG,
-fromUuidSync,
 game,
-Hooks,
-socketlib,
 Token,
 VisionSource
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, COVER, MODULES_ACTIVE, WEAPON_ATTACK_TYPES } from "./const.js";
+import { COVER, MODULES_ACTIVE, WEAPON_ATTACK_TYPES } from "./const.js";
 import { SETTINGS, Settings } from "./Settings.js";
 import { PointsLOS } from "./LOS/PointsLOS.js";
 import { Area2dLOS } from "./LOS/Area2dLOS.js";
 import { Area3dLOS } from "./LOS/Area3dLOS.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
+import { SOCKETS } from "./cover_application.js";
+import { keyForValue } from "./util.js";
+import { CoverDialog } from "./CoverDialog.js";
+
 
 /* Testing
 Draw = CONFIG.GeometryLib.Draw
@@ -31,214 +31,8 @@ let [target] = game.user.targets;
 
 */
 
-import {
-  getActorByUuid,
-  keyForValue } from "./util.js";
-
-import { CoverDialog } from "./CoverDialog.js";
-import { Lock } from "./Lock.js";
-
-// ----- Set up sockets for changing effects on tokens and creating a dialog ----- //
-// Don't pass complex classes through the socket. Use token ids instead.
-
-export const SOCKETS = {
-  socket: null
-};
-
-Hooks.once("socketlib.ready", () => {
-  let disableAllATVCoverFn;
-  let enableATVCoverFn;
-  switch ( game.system.id ) {
-    case "sfrpg":
-      disableAllATVCoverFn = disableAllATVCoverSFRPG;
-      enableATVCoverFn = enableATVCoverSFRPG;
-      break;
-    default:
-      disableAllATVCoverFn = disableAllATVCover;
-      enableATVCoverFn = enableATVCover;
-  }
-
-  SOCKETS.socket = socketlib.registerModule(MODULE_ID);
-  SOCKETS.socket.register("coverDialog", coverDialog);
-  SOCKETS.socket.register("disableAllATVCover", disableAllATVCoverFn);
-  SOCKETS.socket.register("enableATVCover", enableATVCoverFn);
-});
-
-/**
- * Create a dialog, await it, and return the result.
- * For use with sockets.
- */
-async function coverDialog(data, options = {}) {
-  const res = await CoverDialog.dialogPromise(data, options);
-  if ( res === "Close" ) return res;
-
-  // Pull the relevant data before returning so that the class is not lost.
-  const obj = {};
-  const coverSelections = res.find("[class=CoverSelect]");
-  for ( const selection of coverSelections ) {
-    const id = selection.id.replace("CoverSelect.", "");
-    obj[id] = selection.selectedIndex;
-  }
-  return obj;
-}
-
-/**
- * Remove all ATV cover statuses (ActiveEffect) from a token.
- * Used in SOCKETS above.
- * @param {string} tokenUUID         Token uuid
- * @returns {Promise<boolean>} Return from toggleActiveEffect.
- */
-async function disableAllATVCover(tokenUUID) {
-  // Confirm the token UUID is valid.
-  const tokenD = fromUuidSync(tokenUUID);
-  if ( !tokenD ) return;
-
-  // Drop all cover statuses.
-  const coverStatuses = tokenD.actor.statuses?.intersection(COVER.IDS[MODULE_ID]) ?? new Set();
-  if ( !coverStatuses.size ) return;
-  await CoverCalculator.lock.acquire();
-  const promises = coverStatuses.map(id => tokenD.toggleActiveEffect({ id }, { active: false }));
-  await Promise.allSettled(promises);
-  await CoverCalculator.lock.release();
-}
-
-/**
- * Remove all ATV cover statuses (ActiveEffect) from a token in Starfinder RPG.
- * Used in SOCKETS above.
- * @param {string} tokenUUID         Token uuid
- * @returns {Promise<boolean>} Return from toggleActiveEffect.
- */
-async function disableAllATVCoverSFRPG(tokenUUID) {
-  // Confirm the token UUID is valid.
-  const tokenD = fromUuidSync(tokenUUID);
-  if ( !tokenD || !tokenD.actor ) return;
-
-  // Drop all cover statuses.
-  const coverIds = tokenD.actor.items.filter(i => i.getFlag(MODULE_ID, "cover")).map(i => i.id);
-  if ( !coverIds.length ) return;
-  await CoverCalculator.lock.acquire();
-  await tokenD.actor.deleteEmbeddedDocuments("Item", coverIds);
-  await CoverCalculator.lock.release();
-}
-
-/**
- * Enable a cover status (ActiveEffect) for a token.
- * Token can only have one cover status at a time, so all other ATV covers are removed.
- * Used in SOCKETS above.
- * @param {string} tokenUUID    Token uuid
- * @param {COVER_TYPE} type     Type of cover to apply
- * @returns {Promise<boolean>} Return from toggleActiveEffect.
- */
-async function enableATVCover(tokenUUID, type = COVER.TYPES.LOW) {
-  // If enabling the "None" cover, remove all cover.
-  // If TOTAL, this is used as a flag elsewhere to remove the token from targeting. Ignored here.
-  if ( type === COVER.TYPES.NONE ) return disableAllATVCover(tokenUUID);
-  if ( type === COVER.TYPES.TOTAL ) return;
-
-  // Confirm the token UUID is valid.
-  const tokenD = fromUuidSync(tokenUUID);
-  if ( !tokenD ) return;
-
-  // Confirm this is a valid cover type.
-  const key = keyForValue(COVER.TYPES, type);
-  if ( !key ) return;
-  const desiredCoverId = COVER.CATEGORIES[key][MODULE_ID];
-
-  // Add the effect. (ActiveEffect hooks will prevent multiple additions.)
-  const effectData = CONFIG.statusEffects.find(e => e.id === desiredCoverId);
-  await tokenD.toggleActiveEffect(effectData, { active: true });
-}
-
-/**
- * Enable a cover status (ActiveEffect) for a token in Starfinder RPG.
- * Token can only have one cover status at a time, so all other ATV covers are removed.
- * Used in SOCKETS above.
- * @param {string} tokenUUID    Token uuid
- * @param {COVER_TYPE} type     Type of cover to apply
- * @returns {Promise<boolean>} Return from toggleActiveEffect.
- */
-async function enableATVCoverSFRPG(tokenUUID, type = COVER.TYPES.LOW) {
-  // If enabling the "None" cover, remove all cover.
-  // If TOTAL, this is used as a flag elsewhere to remove the token from targeting. Ignored here.
-  if ( type === COVER.TYPES.NONE ) return disableAllATVCover(tokenUUID);
-  // Unneeded? if ( type === COVER.TYPES.TOTAL ) return;
-
-  // Confirm the token UUID is valid.
-  const tokenD = fromUuidSync(tokenUUID);
-  if ( !tokenD || !tokenD.actor ) return;
-
-  // Confirm this is a valid cover type.
-  const key = keyForValue(COVER.TYPES, type);
-  if ( !key || !Object.hasOwn(COVER.CATEGORIES, key) ) return;
-
-  // Retrieve the cover item.
-  let coverItem = game.items.find(i => i.getFlag(MODULE_ID, "cover") === type);
-  if ( !coverItem ) {
-    // Pull from the compendium.
-    const coverName = COVER.SFRPG[type];
-    const documentIndex = game.packs.get("tokenvisibility.tokenvision_items_sfrpg").index.getName(coverName);
-    coverItem = await game.packs.get("tokenvisibility.tokenvision_items_sfrpg").getDocument(documentIndex._id);
-  }
-
-  // Add the effect. (ActiveEffect hooks will prevent multiple additions.)
-  return tokenD.actor.createEmbeddedDocuments("Item", [coverItem]);
-}
-
-/**
- * Remove all ATV cover statuses (ActiveEffect) from a token.
- * Used in SOCKETS above.
- * @param {string} uuid         Actor or token uuid
- * @returns {Promise<boolean>} Return from toggleActiveEffect.
- */
-async function disableAllDFredsCover(uuid) {
-  // Drop all cover statuses.
-  const actor = getActorByUuid(uuid);
-  if ( !actor ) return;
-
-  // Determine what cover statuses are already applied.
-  const coverStatuses = actor.statuses?.intersection(COVER.IDS["dfreds-convenient-effects"]) ?? new Set();
-  if ( !coverStatuses.size ) return;
-
-  // Drop all cover statuses.
-  await CoverCalculator.lock.acquire();
-  const promises = coverStatuses.map(id => {
-    const effectName = id.replace("Convenient Effect: ", "");
-    return game.dfreds.effectInterface.removeEffect({ effectName, uuid });
-  });
-  await Promise.allSettled(promises);
-  await CoverCalculator.lock.release();
-}
-
-/**
- * Enable a cover status (ActiveEffect) for a token.
- * Token can only have one cover status at a time, so all other DFred covers are removed.
- * @param {string} uuid       Actor or Token uuid
- * @param {COVER_TYPE} type
- * @returns {Promise<boolean>} Return from toggleActiveEffect.
- */
-async function enableDFredsCover(uuid, type = COVER.TYPES.LOW) {
-  // If enabling the "None" cover, remove all cover.
-  // If TOTAL, this is used as a flag elsewhere to remove the token from targeting. Ignored here.
-  if ( type === COVER.TYPES.NONE ) return disableAllDFredsCover(uuid);
-  if ( type === COVER.TYPES.TOTAL ) return;
-
-  // Check that actor exists to avoid error when calling addEffect below.
-  const actor = getActorByUuid(uuid);
-  if ( !actor ) return;
-
-  // Confirm this is a valid cover type.
-  const key = keyForValue(COVER.TYPES, type);
-  if ( !key ) return;
-
-  // Add the effect. (ActiveEffect hooks will prevent multiple additions.)
-  const effectName = COVER.DFRED_NAMES[key];
-  return game.dfreds.effectInterface.addEffect({ effectName, uuid });
-}
-
 
 export class CoverCalculator {
-  /** @type {Lock} */
-  static lock = new Lock();
 
   /** @type {object} */
   static COVER_TYPES = COVER.TYPES;
@@ -363,15 +157,11 @@ export class CoverCalculator {
    * Use DFred's if active; ATV otherwise.
    * @param {Token|string} tokenId
    */
-  static async enableCover(token, type = this.COVER_TYPES.LOW ) {
-    if ( type === this.COVER_TYPES.TOTAL ) return;
-    if ( type === this.COVER_TYPES.NONE ) return this.disableAllCover(token);
+  static async enableCover(token, coverType = this.COVER_TYPES.LOW ) {
     if ( !(token instanceof Token) ) token = canvas.tokens.get(token);
     if ( !token ) return;
-
     const uuid = token.document.uuid;
-    if ( MODULES_ACTIVE.DFREDS_CE && this.dFredsHasCover(type) ) await enableDFredsCover(uuid, type);
-    else await SOCKETS.socket.executeAsGM("enableATVCover", uuid, type);
+    await SOCKETS.socket.executeAsGM("applyCover", uuid, coverType);
   }
 
   static dFredsHasCover(type) {
@@ -388,9 +178,7 @@ export class CoverCalculator {
     if ( !(token instanceof Token) ) token = canvas.tokens.get(token);
     if ( !token ) return;
     const uuid = token.document.uuid;
-
-    if ( MODULES_ACTIVE.DFREDS_CE ) await disableAllDFredsCover(uuid);
-    else await SOCKETS.socket.executeAsGM("disableAllATVCover", uuid);
+    await SOCKETS.socket.executeAsGM("applyCover", uuid, this.COVER_TYPES.NONE);
   }
 
   /**
@@ -460,7 +248,7 @@ export class CoverCalculator {
     const COVER_TYPES = this.constructor.COVER_TYPES;
     switch ( type ) {
       case COVER_TYPES.NONE:
-      case COVER_TYPES.FULL:
+      // case COVER_TYPES.FULL:
         this.constructor.disableAllCover(this.target.id);
         break;
       case COVER_TYPES.LOW:
