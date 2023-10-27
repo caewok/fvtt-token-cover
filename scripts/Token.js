@@ -11,11 +11,12 @@ import { ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
 import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { DEBUG_GRAPHICS, SETTINGS, Settings } from "./Settings.js";
+import { isFirstGM } from "./util.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
 PATCHES.sfrpg = {};
-PATCHES.NOT_PF2E = {};
+PATCHES.NO_PF2E = {};
 
 // ----- NOTE: Hooks ----- //
 
@@ -30,17 +31,13 @@ PATCHES.NOT_PF2E = {};
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
 async function targetToken(user, target, targeted) {
-  if ( !Settings.get(SETTINGS.COVER.COMBAT_AUTO) ) return;
+  if ( !isFirstGM()
+    || !Settings.get(SETTINGS.COVER.COMBAT_AUTO)
+    || !game.combat?.started // If not in combat, do nothing because it is unclear who is targeting what...
+    || !isUserCombatTurn(user)  // Ignore targeting by other users
+  ) return;
 
-  // If not in combat, do nothing because it is unclear who is targeting what...
-  if ( !game.combat?.started ) return;
-
-  // Ignore targeting by other users
-  if ( !isUserCombatTurn(user) ) return;
-
-  if ( !targeted ) {
-    return await CoverCalculator.disableAllCover(target.id);
-  }
+  if ( !targeted ) return await CoverCalculator.disableAllCover(target.id);
 
   // Target from the current combatant to the target token
   const c = game.combats.active;
@@ -100,7 +97,7 @@ function updateToken(tokenD, change, _options, _userId) {
 
 PATCHES.BASIC.HOOKS = { controlToken, updateToken };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
-PATCHES.NOT_PF2E.HOOKS = { targetToken };
+PATCHES.NO_PF2E.HOOKS = { targetToken };
 
 // ----- NOTE: Wraps ----- //
 
