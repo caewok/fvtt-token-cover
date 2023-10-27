@@ -18,7 +18,7 @@ import { Area2d, Area2dLOS } from "./LOS/Area2dLOS.js";
 import { ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
 import { Area3dPopout, area3dPopoutData } from "./LOS/Area3dPopout.js";
 
-import { CoverCalculator, SOCKETS } from "./CoverCalculator.js";
+import { CoverCalculator } from "./CoverCalculator.js";
 import { CoverDialog } from "./CoverDialog.js";
 
 // Ignores Cover
@@ -31,6 +31,7 @@ import {
 // Other self-executing hooks
 import "./changelog.js";
 import "./migration.js";
+import "./cover_application.js";
 
 Hooks.once("init", function() {
   registerGeometry();
@@ -48,7 +49,6 @@ Hooks.once("init", function() {
     COVER,
     ConstrainedTokenBorder,
     setCoverIgnoreHandler,
-    SOCKETS,
     Settings,
 
     IgnoresCoverClasses: {
