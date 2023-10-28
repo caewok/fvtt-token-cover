@@ -10,7 +10,7 @@ PIXI
 import { ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
 import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
-import { DEBUG_GRAPHICS, SETTINGS, Settings } from "./Settings.js";
+import { SETTINGS, Settings } from "./Settings.js";
 import { isFirstGM } from "./util.js";
 
 export const PATCHES = {};
@@ -68,7 +68,7 @@ function applyTokenStatusEffect(token, statusId, active) {
  * If the token is controlled or uncontrolled, clear debug drawings.
  */
 function controlToken(_token, _controlled) {
-  if ( Settings.get(SETTINGS.DEBUG.LOS) ) DEBUG_GRAPHICS.LOS.clear();
+  Settings.clearDebugGraphics();
 }
 
 /**
@@ -87,12 +87,9 @@ function updateToken(tokenD, change, _options, _userId) {
   if ( (Object.hasOwn(change, "width") || Object.hasOwn(change, "height")) && token ) token._tokenShape = undefined;
 
   // Token moved; clear drawings.
-  if ( Settings.get(SETTINGS.DEBUG.LOS)
-    && (Object.hasOwn(change, "x")
-      || Object.hasOwn(change, "y")
-      || Object.hasOwn(change, "elevation")) ) {
-    DEBUG_GRAPHICS.LOS.clear();
-  }
+  if ( Object.hasOwn(change, "x")
+    || Object.hasOwn(change, "y")
+    || Object.hasOwn(change, "elevation") ) Settings.clearDebugGraphics();
 }
 
 PATCHES.BASIC.HOOKS = { controlToken, updateToken };
@@ -106,7 +103,7 @@ PATCHES.NO_PF2E.HOOKS = { targetToken };
  * Reset the debugging drawings.
  */
 function updateSource(wrapper, ...args) {
-  if ( Settings.get(SETTINGS.DEBUG.LOS) ) DEBUG_GRAPHICS.LOS.clear();
+  Settings.clearDebugGraphics();
   return wrapper(...args);
 }
 

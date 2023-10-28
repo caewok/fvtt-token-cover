@@ -17,10 +17,6 @@ import {
   MediumCoverEffectConfig,
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
-export const DEBUG_GRAPHICS = {
-  LOS: new PIXI.Graphics()
-};
-
 // Patches for the Setting class
 export const PATCHES = {};
 PATCHES.BASIC = {};
@@ -73,7 +69,8 @@ export const SETTINGS = {
   },
 
   DEBUG: {
-    LOS: "debug-los"
+    LOS: "debug-los",
+    ONCE: "debug-once"
   },
 
   // Other cover settings
@@ -142,13 +139,43 @@ export const SETTINGS = {
   }
 };
 
-
 export class Settings {
   /** @type {Map<string, *>} */
   static cache = new Map();
 
   /** @type {object} */
   static KEYS = SETTINGS;
+
+  /** @type {PIXI.Graphics} */
+  static #DEBUG_LOS;
+
+  static get DEBUG_LOS() { return canvas.tokens.children.find(c => c[`${MODULE_ID}_losDebug`]); }
+
+  static get DEBUG_COVER() { return this.DEBUG_LOS; }
+
+  static #debugOnce = false;
+
+  static async debugOnce() {
+    this.#debugOnce = true;
+    return this.set(this.KEYS.DEBUG.LOS, true);
+  }
+
+  static initializeDebugGraphics() {
+    this.#DEBUG_LOS = new PIXI.Graphics();
+    this.#DEBUG_LOS[`${MODULE_ID}_losDebug`] = true;
+    canvas.tokens.addChild(this.#DEBUG_LOS);
+  }
+
+  // Don't need to destroy b/c they are destroyed as part of canvas.tokens.
+  //   static destroyDebugGraphics() {
+  //     if ( !this.#DEBUG_LOS.destroyed() ) this.#DEBUG_LOS.destroy();
+  //     if ( !this.#DEBUG_RANGE.destroyed() ) this.#DEBUG_RANGE.destroy();
+  //   }
+
+  static clearDebugGraphics() {
+    this.DEBUG_LOS.clear(); // Nearly as fast, possibly faster depending on if setting was cached.
+    this.#debugOnce &&= false;
+  }
 
   // ----- NOTE: Cover helper static methods ---- //
 
@@ -168,8 +195,6 @@ export class Settings {
   - Update CONFIG.statusEffects
 
   */
-
-  static clearCache() { this.cache.clear(); }
 
   /** @type {object} */
   static get coverNames() {
@@ -269,7 +294,16 @@ export class Settings {
    */
   static get(key) {
     const cached = this.cache.get(key);
-    if ( typeof cached !== "undefined" ) return cached;
+    if ( typeof cached !== "undefined" ) {
+      const origValue = game.settings.get(MODULE_ID, key);
+      if ( origValue !== cached ) {
+        console.debug(`Settings cache fail: ${origValue} !== ${cached} for key ${key}`);
+        return origValue;
+      }
+
+      return cached;
+
+    }
     const value = game.settings.get(MODULE_ID, key);
     this.cache.set(key, value);
     return value;
@@ -423,14 +457,7 @@ export class Settings {
       config: true,
       type: Boolean,
       default: false,
-      onChange: value => {
-        if ( value ) canvas.stage.addChild(DEBUG_GRAPHICS.LOS);
-        else {
-          const draw = new Draw(DEBUG_GRAPHICS.LOS);
-          draw.clearDrawings();
-          canvas.stage.removeChild(DEBUG_GRAPHICS.LOS);
-        }
-      }
+      onChange: value => Settings.clearDebugGraphics()
     });
 
     // ----- NOTE: Submenu ---- //
@@ -634,7 +661,6 @@ export class Settings {
 
 
     // ----- NOTE: Hidden settings ----- //
-
     register(KEYS.AREA3D_USE_SHADOWS, {
       scope: "world",
       config: false,

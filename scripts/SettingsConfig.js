@@ -39,7 +39,16 @@ async function renderSettingsConfig(app, html, data) {
   app._coverAlgorithmChanged(centerOnly);
 }
 
-PATCHES.BASIC.HOOKS = { renderSettingsConfig };
+/**
+ * Update setting hook.
+ * Wipe cache on update.
+ */
+function updateSetting(setting, _changes, _options, _userId) {
+  const [module, key] = setting.key.split(".");
+  if ( module === MODULE_ID ) Settings.cache.delete(key);
+}
+
+PATCHES.BASIC.HOOKS = { renderSettingsConfig, updateSetting };
 
 // ----- NOTE: Method ----- //
 /**
