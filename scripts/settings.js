@@ -17,10 +17,6 @@ import {
   MediumCoverEffectConfig,
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
-export const DEBUG_GRAPHICS = {
-  LOS: undefined
-};
-
 // Patches for the Setting class
 export const PATCHES = {};
 PATCHES.BASIC = {};
@@ -73,7 +69,8 @@ export const SETTINGS = {
   },
 
   DEBUG: {
-    LOS: "debug-los"
+    LOS: "debug-los",
+    ONCE: "debug-once"
   },
 
   // Other cover settings
@@ -142,7 +139,6 @@ export const SETTINGS = {
   }
 };
 
-
 export class Settings {
   /** @type {Map<string, *>} */
   static cache = new Map();
@@ -151,33 +147,35 @@ export class Settings {
   static KEYS = SETTINGS;
 
   /** @type {PIXI.Graphics} */
-  static #DEBUG_LOS = new PIXI.Graphics();
+  static #DEBUG_LOS;
 
-  get DEBUG_LOS() {
-    return canvas.tokens.children.find(c => c[`${MODULE_ID}_losDebug`]);
+  static get DEBUG_LOS() { return canvas.tokens.children.find(c => c[`${MODULE_ID}_losDebug`]); }
+
+  static get DEBUG_COVER() { return this.DEBUG_LOS; }
+
+  static #debugOnce = false;
+
+  static async debugOnce() {
+    this.#debugOnce = true;
+    return this.set(this.KEYS.DEBUG.LOS, true);
   }
 
   static initializeDebugGraphics() {
-    if ( this.#DEBUG_LOS.destroyed ) this.#DEBUG_LOS = new PIXI.Graphics();
-    if ( this.get(SETTINGS.DEBUG.LOS ) ) this.registerDebugLOS();
-  }
-
-  static destroyDebugGraphics() {
-    this.deregisterDebugLOS();
-    this.#DEBUG_LOS.destroy();
-  }
-
-  static registerDebugLOS() {
+    this.#DEBUG_LOS = new PIXI.Graphics();
     this.#DEBUG_LOS[`${MODULE_ID}_losDebug`] = true;
     canvas.tokens.addChild(this.#DEBUG_LOS);
   }
 
-  static deregisterDebugLOS() {
-    canvas.tokens.removeChild(this.#DEBUG_LOS);
-    this.#DEBUG_LOS.clear();
+  // Don't need to destroy b/c they are destroyed as part of canvas.tokens.
+  //   static destroyDebugGraphics() {
+  //     if ( !this.#DEBUG_LOS.destroyed() ) this.#DEBUG_LOS.destroy();
+  //     if ( !this.#DEBUG_RANGE.destroyed() ) this.#DEBUG_RANGE.destroy();
+  //   }
+
+  static clearDebugGraphics() {
+    this.DEBUG_LOS.clear(); // Nearly as fast, possibly faster depending on if setting was cached.
+    this.#debugOnce &&= false;
   }
-
-
 
   // ----- NOTE: Cover helper static methods ---- //
 
@@ -459,10 +457,7 @@ export class Settings {
       config: true,
       type: Boolean,
       default: false,
-      onChange: value => {
-        if ( value ) Settings.registerDebugGraphics();
-        else Settings.deregisterDebugGraphics();
-      }
+      onChange: value => Settings.clearDebugGraphics()
     });
 
     // ----- NOTE: Submenu ---- //
@@ -666,7 +661,6 @@ export class Settings {
 
 
     // ----- NOTE: Hidden settings ----- //
-
     register(KEYS.AREA3D_USE_SHADOWS, {
       scope: "world",
       config: false,
