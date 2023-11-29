@@ -6,8 +6,7 @@ game,
 
 import { Patcher } from "./Patcher.js";
 import { MODULES_ACTIVE } from "./const.js";
-
-import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
+import { WallGeometryHandler, TileGeometryHandler, TokenGeometryHandler } from "./LOS/Placeable3dGeometry.js";
 
 import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
@@ -16,6 +15,12 @@ import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_PointSourcePolygon } from "./PointSourcePolygon.js";
 import { PATCHES as PATCHES_SettingsConfig } from "./SettingsConfig.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
+
+// LOS
+import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
+import { PATCHES as PATCHES_PointSourcePolygon } from "./LOS/PointSourcePolygon.js";
+import { PATCHES as PATCHES_Tile } from "./LOS/Tile.js";
+import { PATCHES as PATCHES_TokenLOS } from "./LOS/Token.js";
 
 // Midiqol
 import { PATCHES as PATCHES_Midiqol } from "./Midiqol.js";
@@ -28,6 +33,7 @@ const PATCHES = {
   Item: PATCHES_Item,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
   SettingsConfig: PATCHES_SettingsConfig,
+  Tile: PATCHES_Tile,
   Token: PATCHES_Token,
   Midiqol: PATCHES_Midiqol
 };
