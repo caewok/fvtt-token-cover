@@ -8,6 +8,7 @@ import { MODULE_ID, COVER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
+import { registerElevationConfig } from "./geometry/elevation_configs.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings, SETTINGS } from "./settings.js";
 
@@ -98,9 +99,6 @@ Hooks.once("init", function() {
       IgnoresCoverDND5e,
       IgnoresCoverSimbuls
     },
-
-    Area3dPopout,
-    area3dPopoutData,
 
     PATCHER
   };
