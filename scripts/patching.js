@@ -6,16 +6,21 @@ game,
 
 import { Patcher } from "./Patcher.js";
 import { MODULES_ACTIVE } from "./const.js";
-
-import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
+import { WallGeometryHandler, TileGeometryHandler, TokenGeometryHandler } from "./LOS/Placeable3dGeometry.js";
 
 import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
-import { PATCHES as PATCHES_DrawingConfig} from "./DrawingConfig.js";
 import { PATCHES as PATCHES_Item } from "./Item.js";
-import { PATCHES as PATCHES_PointSourcePolygon } from "./PointSourcePolygon.js";
 import { PATCHES as PATCHES_SettingsConfig } from "./SettingsConfig.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
+
+// LOS
+import { PATCHES as PATCHES_ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
+import { PATCHES as PATCHES_PointSourcePolygon } from "./LOS/PointSourcePolygon.js";
+import { PATCHES as PATCHES_Tile } from "./LOS/Tile.js";
+import { PATCHES as PATCHES_TokenLOS } from "./LOS/Token.js";
+import { PATCHES as PATCHES_VisionSource } from "./LOS/VisionSource.js";
+import { PATCHES as PATCHES_Wall } from "./LOS/Wall.js";
 
 // Midiqol
 import { PATCHES as PATCHES_Midiqol } from "./Midiqol.js";
@@ -24,11 +29,14 @@ const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
   Combat: PATCHES_Combat,
   ConstrainedTokenBorder: PATCHES_ConstrainedTokenBorder,
-  DrawingConfig: PATCHES_DrawingConfig,
   Item: PATCHES_Item,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
   SettingsConfig: PATCHES_SettingsConfig,
-  Token: PATCHES_Token,
+  Tile: PATCHES_Tile,
+  Token: foundry.utils.mergeObject(PATCHES_Token, PATCHES_TokenLOS),
+  VisionSource: PATCHES_VisionSource,
+  Wall: PATCHES_Wall,
+
   Midiqol: PATCHES_Midiqol
 };
 
@@ -36,7 +44,12 @@ export const PATCHER = new Patcher(PATCHES);
 
 export function initializePatching() {
   PATCHER.registerGroup("BASIC");
-  PATCHER.registerGroup("ConstrainedTokenBorder");
+
+  // If ATV is not active, handle the LOS patches needed to run the calculator.
+  if ( !MODULES_ACTIVE.TOKEN_VISIBILITY ) {
+    PATCHER.registerGroup("LOS");
+    PATCHER.registerGroup("ConstrainedTokenBorder");
+  }
 
   if ( MODULES_ACTIVE.LEVELS ) PATCHER.registerGroup("LEVELS");
   else PATCHER.registerGroup("NO_LEVELS");

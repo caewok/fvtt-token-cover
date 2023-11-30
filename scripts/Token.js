@@ -1,13 +1,10 @@
 /* globals
-canvas,
-game,
-PIXI
+game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
 // Patches for the Token class
 
-import { ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
 import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { SETTINGS, Settings } from "./Settings.js";
@@ -19,6 +16,22 @@ PATCHES.sfrpg = {};
 PATCHES.NO_PF2E = {};
 
 // ----- NOTE: Hooks ----- //
+
+/**
+ * Hook: drawToken
+ * Create a token cover calculator.
+ * @param {PlaceableObject} object    The object instance being drawn
+ */
+function drawToken(token) {
+  const obj = token[MODULE_ID] ??= {};
+  obj.coverCalc = new CoverCalculator(token);
+}
+
+/**
+ * Hook: destroyToken
+ * @param {PlaceableObject} object    The object instance being destroyed
+ */
+function destroyToken(token) { token[MODULE_ID].coverCalc.destroy(); }
 
 /**
  * If a token is targeted, determine its cover status.
@@ -42,8 +55,9 @@ async function targetToken(user, target, targeted) {
   // Target from the current combatant to the target token
   const c = game.combats.active;
   const combatToken = c.combatant.token.object;
-  const coverCalc = new CoverCalculator(combatToken, target);
-  return await coverCalc.setTargetCoverEffect();
+  const coverCalc = combatToken[MODULE_ID].coverCalc;
+  coverCalc.target = target;
+  return await coverCalc.setTargetCoverEffect()
 }
 
 /**
@@ -92,7 +106,7 @@ function updateToken(tokenD, change, _options, _userId) {
     || Object.hasOwn(change, "elevation") ) Settings.clearDebugGraphics();
 }
 
-PATCHES.BASIC.HOOKS = { controlToken, updateToken };
+PATCHES.BASIC.HOOKS = { controlToken, updateToken,  drawToken, destroyToken };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 PATCHES.NO_PF2E.HOOKS = { targetToken };
 
@@ -112,27 +126,6 @@ PATCHES.BASIC.WRAPS = {
 };
 
 // ----- NOTE: Getters ----- //
-
-/**
- * New getter: Token.prototype.constrainedTokenBorder
- * Determine the constrained border shape for this token.
- * @returns {ConstrainedTokenShape|PIXI.Rectangle}
- */
-function constrainedTokenBorder() { return ConstrainedTokenBorder.get(this).constrainedBorder(); }
-
-/**
- * New getter: Token.prototype.tokenBorder
- * Determine the correct border shape for this token. Utilize the cached token shape.
- * @returns {PIXI.Polygon|PIXI.Rectangle}
- */
-function tokenBorder() { return this.tokenShape.translate(this.x, this.y); }
-
-/**
- * New getter: Token.prototype.tokenShape
- * Cache the token shape.
- * @type {PIXI.Polygon|PIXI.Rectangle}
- */
-function tokenShape() { return this._tokenShape || (this._tokenShape = calculateTokenShape(this)); }
 
 /**
  * New getter: Token.prototype.coverType
@@ -159,31 +152,11 @@ function ignoresCoverType() {
 }
 
 PATCHES.BASIC.GETTERS = {
-  constrainedTokenBorder,
-  tokenBorder,
-  tokenShape,
   coverType,
   ignoresCoverType
 };
 
-
 // ----- NOTE: Helper functions ----- //
-/**
- * Theoretical token shape at 0,0 origin.
- * @returns {PIXI.Polygon|PIXI.Rectangle}
- */
-function calculateTokenShape(token) {
-  // TODO: Use RegularPolygon shapes for use with WeilerAtherton
-  // Hexagon (for width .5 or 1)
-  // Square (for width === height)
-  let shape;
-  if ( canvas.grid.isHex ) {
-    const pts = canvas.grid.grid.getBorderPolygon(token.document.width, token.document.height, 0);
-    if ( pts ) shape = new PIXI.Polygon(pts);
-  }
-
-  return shape || new PIXI.Rectangle(0, 0, token.w, token.h);
-}
 
 /**
  * Determine if the user's token is the current combatant in the active tracker.
