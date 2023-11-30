@@ -11,7 +11,10 @@ import { COVER, MODULES_ACTIVE, WEAPON_ATTACK_TYPES } from "./const.js";
 import { SETTINGS, Settings } from "./Settings.js";
 import { PointsLOS } from "./LOS/PointsLOS.js";
 import { Area2dLOS } from "./LOS/Area2dLOS.js";
-import { Area3dLOS } from "./LOS/Area3dLOS.js";
+import { Area3dLOSGeometric } from "./LOS/Area3dLOSGeometric.js";
+import { Area3dLOSWebGL } from "./LOS/Area3dLOSWebGL1.js";
+import { Area3dLOSWebGL2 } from "./LOS/Area3dLOSWebGL2.js";
+import { Area3dLOSHybrid } from "./LOS/Area3dLOSHybrid.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 import { SOCKETS } from "./cover_application.js";
 import { keyForValue } from "./util.js";
@@ -33,6 +36,28 @@ let [target] = game.user.targets;
 
 
 export class CoverCalculator {
+
+  /** @enum {string: AlternativeLOS} */
+  static ALGORITHM_CLASS = {
+    "los-points": PointsLOS,
+    "los-area-2d": Area2dLOS,
+    "los-area-3d": Area3dLOSHybrid,
+    "los-area-3d-geometric": Area3dLOSGeometric,
+    "los-area-3d-webgl1": Area3dLOSWebGL,
+    "los-area-3d-webgl2": Area3dLOSWebGL2,
+    "los-area-3d-hybrid": Area3dLOSHybrid
+  };
+
+  /** @enum {string} */
+  static ALGORITHM_CLASS_NAME = {
+    "los-points": "PointsLOS",
+    "los-area-2d": "Area2dLOS",
+    "los-area-3d": "Area3dLOSHybrid",
+    "los-area-3d-geometric": "Area3dLOSGeometric",
+    "los-area-3d-webgl1": "Area3dLOSWebGL",
+    "los-area-3d-webgl2": "Area3dLOSWebGL2",
+    "los-area-3d-hybrid": "Area3dLOSHybrid"
+  };
 
   /** @type {object} */
   static COVER_TYPES = COVER.TYPES;
@@ -59,11 +84,8 @@ export class CoverCalculator {
    */
   config = {};
 
-  /** @type {Token} */
-  viewer;
-
-  /** @type {Token} */
-  target;
+  /** @type {AlternativeLOS} */
+  calc;
 
   /**
    * @param {Token|VisionSource} viewer
@@ -71,10 +93,21 @@ export class CoverCalculator {
    * @param {CoverConfig} [config]
    */
   constructor(viewer, target, config = {}) {
-    this.viewer = viewer instanceof VisionSource ? viewer.object : viewer;
-    this.target = target;
     this.#configure(config);
+    this.calc = new this.constructor.ALGORITHM_CLASS[this.config.algorithm](viewer, target, this.config);
   }
+
+  /** @type {Token} */
+  get viewer() { return this.calc.viewer; }
+
+  set viewer(value) { this.calc.viewer = value; }
+
+  /** @type {Token} */
+  get target() { return this.calc.target; }
+
+  set target(value) { this.calc.target = value; }
+
+  destroy() { this.calc.destroy(); }
 
   /**
    * Configure cover options, most of which are passed to the cover LOS class.
@@ -128,9 +161,10 @@ export class CoverCalculator {
     }
     if ( targets instanceof Token ) targets = [targets];
 
+    const coverCalc = viewer[MODULE_ID].coverCalc;
     calcs ??= new Map();
     for ( const target of targets ) {
-      const coverCalc = new CoverCalculator(viewer, target);
+      coverCalc.target = target;
       calcs.set(target, coverCalc.targetCover());
     }
     return calcs;
@@ -194,15 +228,16 @@ export class CoverCalculator {
   // ----- NOTE: Calculation methods ----- //
 
   /**
-   * Calculate the percentage cover for a single viewer point.
+   * Calculate the percentage cover for the current viewer point.
    * @returns {number} Percent between 0 and 1.
    */
-  _percentCover(viewerPoint) {
-    const calc = this._newLOSCalc({ viewer: viewerPoint });
+  _percentCover() {
+    const calc = this.calc;
     let percent = 1 - calc.percentVisible();
-    if ( this.config.liveForceHalfCover ) {
-      const calcNoTokens = this._newLOSCalc({ liveTokensBlock: false });
-      const percentNoTokens = 1 - calcNoTokens.percentVisible();
+    if ( this.config.liveForceHalfCover && calc.config.liveTokensBlock ) {
+      calc._updateConfiguration({ liveTokensBlock: false });
+      const percentNoTokens = 1 - calc.percentVisible();
+      calc._updateConfiguration({ liveTokensBlock: true });
       const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
       percent = Math.max(percentNoTokens, Math.min(minPercent, percent));
     }
@@ -210,16 +245,21 @@ export class CoverCalculator {
   }
 
   /**
-   * Calculate the percentage cover over all viewer points.
+   * Calculate the percentage cover over all viewer points if more than one in settings.
+   * @param {Token} [target]    Optional target if not already set.
    * @returns {number} Percent between 0 and 1.
    *   Only guaranteed to return less than the lowest cover percentage.
    */
-  percentCover() {
+  percentCover(target) {
+    const { viewer, calc } = this;
+    calc.target = target;
+    const center = Point3d.fromTokenCenter(viewer);
+    const viewerPoints = calc.constructor.constructViewerPoints(viewer);
     let percent = 1;
     const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
-    const viewerPoints = PointsLOS.constructViewerPoints(this.viewer);
     for ( const viewerPoint of viewerPoints ) {
-      percent = Math.min(percent, this._percentCover(viewerPoint));
+      calc.visionOffset = viewerPoint.subtract(center);
+      percent = Math.min(percent, this._percentCover());
       if ( percent < minPercent ) return percent;
     }
     return percent;
@@ -229,7 +269,7 @@ export class CoverCalculator {
    * Calculate the target's cover.
    * @returns {COVER_TYPES}
    */
-  targetCover() { return this.constructor.typeForPercentage(this.percentCover()); }
+  targetCover(target) { return this.constructor.typeForPercentage(this.percentCover()); }
 
   // ----- NOTE: Token cover application ----- //
   /**
@@ -262,45 +302,34 @@ export class CoverCalculator {
   // ----- NOTE: Helper methods ----- //
 
   /**
-   * Construct a new LOS calculator based on settings provided or setting defaults.
-   * @param {PointsLOSConfig|Area2dLOSConfig|Area3dLOSConfig} config
-   *   Configuration parameters to pass to the LOS class.
-   */
-  _newLOSCalc({ viewer, target, ...config } = {}) {
-    viewer ??= this.viewer;
-    target ??= this.target;
-    return new this.coverLOS(viewer, target, this.#configureLOS(config));
-  }
-
-  /**
    * Set up configuration object to pass to the cover algorithm.
    * @param {PointsLOSConfig|Area2dLOSConfig|Area3dLOSConfig}
    * @returns {PointsLOSConfig|Area2dLOSConfig|Area3dLOSConfig}
    */
-  #configureLOS(config = {}) {
-    config = {...config}; // Shallow copy to avoid modifying the original group.
-    const cfg = this.config;
-    const TARGET = SETTINGS.LOS.TARGET;
-
-    // AlternativeLOS base config
-    config.debug ??= cfg.debug;
-    config.type ??= cfg.type;
-    config.wallsBlock ??= cfg.wallsBlock;
-    config.deadTokensBlock ??= cfg.deadTokensBlock;
-    config.liveTokensBlock ??= cfg.liveTokensBlock;
-
-    // Area2d and Area3d; can keep for Points without issue.
-    config.visionSource ??= this.viewer.vision;
-
-    if ( this.config.losAlgorithm !== TARGET.TYPES.POINTS ) return config;
-
-    // Points config
-    config.pointAlgorithm ??= Settings.get(TARGET.POINT_OPTIONS.NUM_POINTS);
-    config.inset ??= Settings.get(TARGET.POINT_OPTIONS.INSET);
-    config.points3d ??= Settings.get(TARGET.POINT_OPTIONS.POINTS3D);
-    config.grid ??= Settings.get(TARGET.LARGE);
-
-    // Keep undefined: config.visibleTargetShape
-    return config;
-  }
+//   #configureLOS(config = {}) {
+//     config = {...config}; // Shallow copy to avoid modifying the original group.
+//     const cfg = this.config;
+//     const TARGET = SETTINGS.LOS.TARGET;
+//
+//     // AlternativeLOS base config
+//     config.debug ??= cfg.debug;
+//     config.type ??= cfg.type;
+//     config.wallsBlock ??= cfg.wallsBlock;
+//     config.deadTokensBlock ??= cfg.deadTokensBlock;
+//     config.liveTokensBlock ??= cfg.liveTokensBlock;
+//
+//     // Area2d and Area3d; can keep for Points without issue.
+//     config.visionSource ??= this.viewer.vision;
+//
+//     if ( this.config.losAlgorithm !== TARGET.TYPES.POINTS ) return config;
+//
+//     // Points config
+//     config.pointAlgorithm ??= Settings.get(TARGET.POINT_OPTIONS.NUM_POINTS);
+//     config.inset ??= Settings.get(TARGET.POINT_OPTIONS.INSET);
+//     config.points3d ??= Settings.get(TARGET.POINT_OPTIONS.POINTS3D);
+//     config.grid ??= Settings.get(TARGET.LARGE);
+//
+//     // Keep undefined: config.visibleTargetShape
+//     return config;
+//   }
 }

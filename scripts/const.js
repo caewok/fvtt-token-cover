@@ -112,7 +112,7 @@ COVER.MAX = Math.max(...Object.values(COVER.TYPES));
 
 export const MODULES_ACTIVE = {
   WALL_HEIGHT: false,
-  PERFECT_VISION: false,
+  TOKEN_VISIBILITY: false,
   LEVELS: false,
   DFREDS_CE: false,
   SIMBULS_CC: false,
@@ -133,7 +133,7 @@ export const WEAPON_ATTACK_TYPES = {
 // Hook init b/c game.modules is not initialized at start.
 Hooks.once("init", function() {
   MODULES_ACTIVE.WALL_HEIGHT = game.modules.get("wall-height")?.active;
-  MODULES_ACTIVE.PERFECT_VISION = game.modules.get("perfect-vision")?.active;
+  MODULES_ACTIVE.TOKEN_VISIBILITY = game.modules.get("tokenvisibility")?.active;
   MODULES_ACTIVE.LEVELS = game.modules.get("levels")?.active;
   MODULES_ACTIVE.DFREDS_CE = game.modules.get("dfreds-convenient-effects")?.active;
   MODULES_ACTIVE.SIMBULS_CC = game.modules.get("simbuls-cover-calculator")?.active;
