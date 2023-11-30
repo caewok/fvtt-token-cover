@@ -69,7 +69,7 @@ export const SETTINGS = {
   },
 
   DEBUG: {
-    LOS: "debug-los",
+    COVER: "debug-cover",
     ONCE: "debug-once"
   },
 
@@ -147,23 +147,25 @@ export class Settings {
   static KEYS = SETTINGS;
 
   /** @type {PIXI.Graphics} */
-  static #DEBUG_LOS;
+  static #DEBUG_COVER;
 
-  static get DEBUG_LOS() { return canvas.tokens.children.find(c => c[`${MODULE_ID}_losDebug`]); }
+  static get DEBUG_COVER() { return canvas.tokens.children.find(c => c[`${MODULE_ID}_debug`]); }
 
-  static get DEBUG_COVER() { return this.DEBUG_LOS; }
+  // The LOS Calculator uses DEBUG_LOS, so alias it here.
+  static get DEBUG_LOS() { return this.DEBUG_COVER; }
 
   static #debugOnce = false;
 
   static async debugOnce() {
     this.#debugOnce = true;
-    return this.set(this.KEYS.DEBUG.LOS, true);
+    return this.set(this.KEYS.DEBUG.COVER, true);
   }
 
   static initializeDebugGraphics() {
-    this.#DEBUG_LOS = new PIXI.Graphics();
-    this.#DEBUG_LOS[`${MODULE_ID}_losDebug`] = true;
-    canvas.tokens.addChild(this.#DEBUG_LOS);
+    this.#DEBUG_COVER = new PIXI.Graphics();
+    this.#DEBUG_COVER.eventMode = "passive"; // Allow targeting, selection to pass through.
+    this.#DEBUG_COVER[`${MODULE_ID}_debug`] = true;
+    canvas.tokens.addChild(this.#DEBUG_COVER);
   }
 
   // Don't need to destroy b/c they are destroyed as part of canvas.tokens.
@@ -173,8 +175,24 @@ export class Settings {
   //   }
 
   static clearDebugGraphics() {
-    this.DEBUG_LOS.clear(); // Nearly as fast, possibly faster depending on if setting was cached.
+    this.DEBUG_COVER.clear(); // Nearly as fast, possibly faster depending on if setting was cached.
+
+    for ( const token of canvas.tokens.placeables ) {
+      const coverCalc = token[MODULE_ID]?.coverCalc;
+      if ( !coverCalc ) continue;
+      coverCalc.calc.clearDebug();
+    }
+
     this.#debugOnce &&= false;
+  }
+
+  static updateDebugGraphics(enable) {
+    for ( const token of canvas.tokens.placeables ) {
+      const coverCalc = token[MODULE_ID]?.coverCalc;
+      if ( !coverCalc ) continue;
+      if ( enable ) coverCalc.calc.enableDebug();
+      else coverCalc.calc.disableDebug();
+    }
   }
 
   // ----- NOTE: Cover helper static methods ---- //
@@ -450,14 +468,14 @@ export class Settings {
       type: Number
     });
 
-    register(KEYS.DEBUG.LOS, {
-      name: localize(`${KEYS.DEBUG.LOS}.Name`),
-      hint: localize(`${KEYS.DEBUG.LOS}.Hint`),
+    register(KEYS.DEBUG.COVER, {
+      name: localize(`${KEYS.DEBUG.COVER}.Name`),
+      hint: localize(`${KEYS.DEBUG.COVER}.Hint`),
       scope: "world",
       config: true,
       type: Boolean,
       default: false,
-      onChange: value => Settings.clearDebugGraphics()
+      onChange: value => this.updateDebugGraphics(value)
     });
 
     // ----- NOTE: Submenu ---- //

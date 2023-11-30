@@ -30,8 +30,8 @@
     "tokencover.settings.los-points-3d.Name": "3d points",
     "tokencover.settings.los-points-3d.Hint": "Test the top and bottom of the target token in addition to the points in the middle of the token vertically.",
 
-    "tokencover.settings.debug-los.Name": "Debug Cover",
-    "tokencover.settings.debug-los.Hint": "If enabled, will draw representation on the canvas of the cover between viewer and target(s). If Area3d is enabled, you must target a single token to make the debug window appear.",
+    "tokencover.settings.debug-cover.Name": "Debug Cover",
+    "tokencover.settings.debug-cover.Hint": "If enabled, will draw representation on the canvas of the cover between viewer and target(s). If Area3d is enabled, you must target a single token to make the debug window appear.",
 
     "tokencover.settings.button-foundry-default.Name": "Change settings to",
     "tokencover.settings.button-foundry-default.Label": "Reset to Foundry Defaults",
