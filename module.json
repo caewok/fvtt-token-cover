@@ -40,6 +40,12 @@
   "esmodules": [
     "scripts/module.js"
   ],
+
+  "scripts": [
+    "scripts/LOS/pixi_projection/pixi-projection.js",
+    "scripts/LOS/gl_matrix/gl-matrix.js "
+  ],
+
   "packs": [
     {
       "name": "tokencover_macros",

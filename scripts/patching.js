@@ -29,7 +29,6 @@ const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
   Combat: PATCHES_Combat,
   ConstrainedTokenBorder: PATCHES_ConstrainedTokenBorder,
-  DrawingConfig: PATCHES_DrawingConfig,
   Item: PATCHES_Item,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
   SettingsConfig: PATCHES_SettingsConfig,

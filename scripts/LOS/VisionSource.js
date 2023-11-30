@@ -6,7 +6,8 @@ CONFIG
 
 // Patches for the VisionSource class
 export const PATCHES = {};
-PATCHES.BASIC = {};
+PATCHES.LOS = {};
+
 
 // ----- NOTE: Wraps ----- //
 
@@ -19,7 +20,7 @@ function initialize(wrapper, data={}) {
   return wrapper(data);
 }
 
-PATCHES.BASIC.WRAPS = { initialize };
+PATCHES.LOS.WRAPS = { initialize };
 
 // ----- NOTE: Overrides ----- //
 
@@ -45,4 +46,4 @@ function _createPolygon(config) {
   return poly;
 }
 
-PATCHES.BASIC.OVERRIDES = { _createPolygon };
+PATCHES.LOS.OVERRIDES = { _createPolygon };
