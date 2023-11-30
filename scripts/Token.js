@@ -17,8 +17,6 @@ PATCHES.NO_PF2E = {};
 
 // ----- NOTE: Hooks ----- //
 
-// ----- NOTE: Area3d Hooks ----- //
-
 /**
  * Hook: drawToken
  * Create a token cover calculator.
@@ -34,12 +32,6 @@ function drawToken(token) {
  * @param {PlaceableObject} object    The object instance being destroyed
  */
 function destroyToken(token) { token[MODULE_ID].coverCalc.destroy(); }
-
-PATCHES.BASIC.HOOKS = {
-  drawToken,
-  destroyToken
-};
-
 
 /**
  * If a token is targeted, determine its cover status.
@@ -114,7 +106,7 @@ function updateToken(tokenD, change, _options, _userId) {
     || Object.hasOwn(change, "elevation") ) Settings.clearDebugGraphics();
 }
 
-PATCHES.BASIC.HOOKS = { controlToken, updateToken };
+PATCHES.BASIC.HOOKS = { controlToken, updateToken,  drawToken, destroyToken };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 PATCHES.NO_PF2E.HOOKS = { targetToken };
 

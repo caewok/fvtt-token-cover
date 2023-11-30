@@ -1,14 +1,14 @@
 /* globals
 canvas,
 game,
-Token,
-VisionSource
+Token
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { COVER, MODULES_ACTIVE, WEAPON_ATTACK_TYPES } from "./const.js";
+import { COVER, MODULES_ACTIVE, WEAPON_ATTACK_TYPES, MODULE_ID } from "./const.js";
 import { SETTINGS, Settings } from "./Settings.js";
+import { Point3d } from "./geometry/3d/Point3d.js";
 import { PointsLOS } from "./LOS/PointsLOS.js";
 import { Area2dLOS } from "./LOS/Area2dLOS.js";
 import { Area3dLOSGeometric } from "./LOS/Area3dLOSGeometric.js";
@@ -30,8 +30,6 @@ CoverCalculator = api.CoverCalculator
 
 let [viewer] = canvas.tokens.controlled;
 let [target] = game.user.targets;
-
-
 */
 
 
@@ -62,16 +60,6 @@ export class CoverCalculator {
   /** @type {object} */
   static COVER_TYPES = COVER.TYPES;
 
-  /** @type {object<class>} */
-  static get COVER_LOS_CLASSES() {
-    const TYPES = SETTINGS.LOS.TARGET.TYPES;
-    return {
-      [TYPES.POINTS]: PointsLOS,
-      [TYPES.AREA2D]: Area2dLOS,
-      [TYPES.AREA3D]: Area3dLOS
-    };
-  }
-
   /**
    * @typedef CoverConfig  Configuration settings for this class.
    * @type {object}
@@ -94,8 +82,10 @@ export class CoverCalculator {
    */
   constructor(viewer, target, config = {}) {
     this.#configure(config);
-    this.calc = new this.constructor.ALGORITHM_CLASS[this.config.algorithm](viewer, target, this.config);
+    this.calc = new this.constructor.ALGORITHM_CLASS[this.config.losAlgorithm](viewer, target, this.config);
   }
+
+  // ----- NOTE: Getters / Setters ----- //
 
   /** @type {Token} */
   get viewer() { return this.calc.viewer; }
@@ -129,9 +119,27 @@ export class CoverCalculator {
     cfg.losAlgorithm = config.losAlgorithm ??= Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
   }
 
-  // ----- NOTE: Getters / Setters ----- //
-  /** @type {class} */
-  get coverLOS() { return this.constructor.COVER_LOS_CLASSES[this.config.losAlgorithm]; }
+  /**
+   * Update the calculator algorithm.
+   */
+  _updateAlgorithm(algorithm) {
+    algorithm ??= Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
+    const clName = this.calc.constructor.name;
+    if ( clName === this.constructor.ALGORITHM_CLASS_NAME[algorithm] ) return;
+
+    const cl = this.constructor.ALGORITHM_CLASS[algorithm];
+    this.calc.destroy();
+    this.calc = new cl(this.viewer, this.target, this.config);
+  }
+
+  /**
+   * Update the calculator settings.
+   */
+  _updateConfigurationSettings() {
+    this.calc._configure();
+    this.calc._clearCache();
+  }
+
 
   // ----- NOTE: Static methods ----- //
   /**
@@ -252,7 +260,7 @@ export class CoverCalculator {
    */
   percentCover(target) {
     const { viewer, calc } = this;
-    calc.target = target;
+    if ( target ) calc.target = target;
     const center = Point3d.fromTokenCenter(viewer);
     const viewerPoints = calc.constructor.constructViewerPoints(viewer);
     let percent = 1;
@@ -269,7 +277,7 @@ export class CoverCalculator {
    * Calculate the target's cover.
    * @returns {COVER_TYPES}
    */
-  targetCover(target) { return this.constructor.typeForPercentage(this.percentCover()); }
+  targetCover(target) { return this.constructor.typeForPercentage(this.percentCover(target)); }
 
   // ----- NOTE: Token cover application ----- //
   /**
@@ -288,7 +296,6 @@ export class CoverCalculator {
     const COVER_TYPES = this.constructor.COVER_TYPES;
     switch ( type ) {
       case COVER_TYPES.NONE:
-      // case COVER_TYPES.FULL:
         this.constructor.disableAllCover(this.target.id);
         break;
       case COVER_TYPES.LOW:
