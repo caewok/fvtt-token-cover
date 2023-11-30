@@ -115,7 +115,6 @@ export class CoverCalculator {
     cfg.liveTokensBlock = config.liveTokensBlock || liveTokenAlg !== liveTypes.NONE;
     cfg.liveForceHalfCover = config.liveForceHalfCover || liveTokenAlg === liveTypes.HALF;
     cfg.proneTokensBlock = config.proneTokensBlock || Settings.get(SETTINGS.COVER.PRONE);
-    cfg.debug = config.debug || Settings.get(SETTINGS.DEBUG.LOS);
     cfg.losAlgorithm = config.losAlgorithm ??= Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
   }
 
@@ -265,11 +264,16 @@ export class CoverCalculator {
     const viewerPoints = calc.constructor.constructViewerPoints(viewer);
     let percent = 1;
     const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
+    const useDebug = Settings.get(SETTINGS.DEBUG.COVER);
     for ( const viewerPoint of viewerPoints ) {
       calc.visionOffset = viewerPoint.subtract(center);
       percent = Math.min(percent, this._percentCover());
-      if ( percent < minPercent ) return percent;
+      if ( percent < minPercent ) {
+        if ( useDebug ) calc.debug(true);
+        return percent;
+      }
     }
+    if ( useDebug ) calc.debug(true);
     return percent;
   }
 

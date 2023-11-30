@@ -2,7 +2,6 @@
 // This version turns on debugging for the cover.
 // Determine token and targets.
 const token = game.user._lastSelected || canvas.tokens.controlled[0];
-const targets = game.user.targets;
 if ( !token ) {
   ui.notifications.error("Please select a token.");
   return;
@@ -20,10 +19,13 @@ if ( !targets.size ) {
 }
 
 // Turn on debugging just for this macro; turns off at next token move.
-const api = game.modules.get("tokencover").api;
-api.debug.cover = true;
-api.debug.once = true;
 
-// Display cover to user.
+// api.debug.cover = true;
+// api.debug.once = true;
+
+// Display cover debug to user.
+const api = game.modules.get("tokencover").api;
+await api.Settings.set(api.Settings.KEYS.DEBUG.COVER, true);
 const coverDialog = new api.CoverDialog(token, targets);
 coverDialog.showCoverResults();
+await api.Settings.set(api.Settings.KEYS.DEBUG.COVER, false);
