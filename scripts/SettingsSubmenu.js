@@ -102,7 +102,7 @@ export class SettingsSubmenu extends FormApplication {
         {
           navSelector: ".tabs",
           contentSelector: "form",
-          initial: "range"
+          initial: "los_target"
         }
       ]
     });
