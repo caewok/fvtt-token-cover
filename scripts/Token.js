@@ -17,6 +17,30 @@ PATCHES.NO_PF2E = {};
 
 // ----- NOTE: Hooks ----- //
 
+// ----- NOTE: Area3d Hooks ----- //
+
+/**
+ * Hook: drawToken
+ * Create a token cover calculator.
+ * @param {PlaceableObject} object    The object instance being drawn
+ */
+function drawToken(token) {
+  const obj = token[MODULE_ID] ??= {};
+  obj.coverCalc = new CoverCalculator(token);
+}
+
+/**
+ * Hook: destroyToken
+ * @param {PlaceableObject} object    The object instance being destroyed
+ */
+function destroyToken(token) { token[MODULE_ID].coverCalc.destroy(); }
+
+PATCHES.BASIC.HOOKS = {
+  drawToken,
+  destroyToken
+};
+
+
 /**
  * If a token is targeted, determine its cover status.
  *
@@ -39,8 +63,9 @@ async function targetToken(user, target, targeted) {
   // Target from the current combatant to the target token
   const c = game.combats.active;
   const combatToken = c.combatant.token.object;
-  const coverCalc = new CoverCalculator(combatToken, target);
-  return await coverCalc.setTargetCoverEffect();
+  const coverCalc = combatToken[MODULE_ID].coverCalc;
+  coverCalc.target = target;
+  return await coverCalc.setTargetCoverEffect()
 }
 
 /**
