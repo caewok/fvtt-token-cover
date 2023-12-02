@@ -101,7 +101,11 @@ export class CoverCalculator {
 
   clearDebug() { this.calc.clearDebug(); }
 
-  closeDebugPopout() { this.calc.closeDebugPopout(); }
+  debug(hasLOS) { return this.calc.debug(hasLOS); }
+
+  async closeDebugPopout() { return this.calc.closeDebugPopout(); }
+
+  async openDebugPopout() { return this.calc.openDebugPopout(); }
 
   /**
    * Configure cover options, most of which are passed to the cover LOS class.

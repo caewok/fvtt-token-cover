@@ -18,6 +18,24 @@ PATCHES.NO_PF2E = {};
 // ----- NOTE: Hooks ----- //
 
 /**
+ * Hook: targetToken
+ * If the debug popout is active, redraw the 3d debug if the target changes.
+ * @param {User} user        The User doing the targeting
+ * @param {Token} token      The targeted Token
+ * @param {boolean} targeted Whether the Token has been targeted or untargeted
+ */
+function targetTokenDebug(user, target, targeted) {
+  if ( !targeted || game.user !== user ) return;
+  for ( const token of canvas.tokens.controlled ) {
+    const calc = token[MODULE_ID].coverCalc.calc;
+    if ( !calc.popoutIsRendered ) continue;
+    calc.target = target;
+    calc.percentVisible();
+    calc._draw3dDebug();
+  }
+}
+
+/**
  * Hook: drawToken
  * Create a token cover calculator.
  * @param {PlaceableObject} object    The object instance being drawn
@@ -78,7 +96,7 @@ function applyTokenStatusEffect(token, statusId, active) {
 }
 
 
-PATCHES.BASIC.HOOKS = { drawToken, destroyToken };
+PATCHES.BASIC.HOOKS = { drawToken, destroyToken, targetToken: targetTokenDebug };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 PATCHES.NO_PF2E.HOOKS = { targetToken };
 

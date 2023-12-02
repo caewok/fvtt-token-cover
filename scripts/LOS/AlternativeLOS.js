@@ -239,6 +239,7 @@ export class AlternativeLOS {
     this._clearCache();
 
     threshold ??= Settings.get(SETTINGS.LOS.TARGET.PERCENT);
+    this._lastThreshold = threshold;
     const percentVisible = this.percentVisible();
     if ( printResult ) console.debug(`${this.viewer.name} sees ${Math.round(percentVisible * 100 * 10) / 10}% of ${this.target.name}.`);
 
@@ -921,8 +922,7 @@ export class AlternativeLOS {
     console.debug(`refreshed ${this.viewer.name} debug`, {...flags});
   }
 
-  async debug(hasLOS) {
-    hasLOS ??= this.hasLOS();
+  debug(hasLOS) {
     this._drawCanvasDebug(hasLOS);
   }
 
@@ -955,14 +955,12 @@ export class AlternativeLOS {
     console.debug(`Cleared ${this.viewer.name} debug`);
   }
 
-  async closeDebugPopout() { return; }
-
   /**
    * For debugging.
    * Draw debugging objects on the main canvas.
    * @param {boolean} hasLOS    Is there line-of-sight to this target?
    */
-  _drawCanvasDebug(hasLOS = true) {
+  _drawCanvasDebug(hasLOS) {
     this._drawLineOfSight();
     this._drawVisionTriangle();
     this._drawVisibleTokenBorder(hasLOS);
@@ -983,9 +981,10 @@ export class AlternativeLOS {
    * Draw the constrained token border and visible shape, if any.
    * @param {boolean} hasLOS    Is there line-of-sight to this target?
    */
-  _drawVisibleTokenBorder(hasLOS = true) {
+  _drawVisibleTokenBorder(hasLOS) {
     const draw = this.debugDraw;
-    const color = hasLOS ? Draw.COLORS.green : Draw.COLORS.red;
+    let color = Draw.COLORS.blue;
+    if ( typeof hasLOS !== "undefined" ) color = hasLOS ? Draw.COLORS.green : Draw.COLORS.red;
 
     // Fill in the constrained border on canvas
     draw.shape(this.target.constrainedTokenBorder, { color, fill: color, fillAlpha: 0.2});
