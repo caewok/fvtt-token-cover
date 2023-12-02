@@ -20,7 +20,7 @@ import { Area3dLOSGeometric } from "./LOS/Area3dLOSGeometric.js";
 import { Area3dLOSWebGL } from "./LOS/Area3dLOSWebGL1.js";
 import { Area3dLOSWebGL2 } from "./LOS/Area3dLOSWebGL2.js";
 import { Area3dLOSHybrid } from "./LOS/Area3dLOSHybrid.js";
-import { AREA3D_POPOUTS } from "./LOS/Area3dPopout.js";
+import { OPEN_POPOUTS } from "./LOS/Area3dPopout.js";
 import { ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
 import { Token3dGeometry, Wall3dGeometry, DirectionalWall3dGeometry, ConstrainedToken3dGeometry } from "./LOS/Placeable3dGeometry.js";
 import { Placeable3dShader, Tile3dShader, Placeable3dDebugShader, Tile3dDebugShader } from "./LOS/Placeable3dShader.js";
@@ -42,7 +42,6 @@ import "./cover_application.js";
 
 Hooks.once("init", function() {
   registerGeometry();
-  initializePatching();
   addDND5eCoverFeatFlags();
 
   // Set CONFIGS used by this module.
@@ -79,7 +78,7 @@ Hooks.once("init", function() {
       Area3dLOSHybrid
     },
 
-    AREA3D_POPOUTS,
+    OPEN_POPOUTS,
 
     webgl: {
       Token3dGeometry, Wall3dGeometry, DirectionalWall3dGeometry, ConstrainedToken3dGeometry,
@@ -110,11 +109,7 @@ Hooks.once("init", function() {
 
 Hooks.once("setup", function() {
   Settings.registerAll();
+  initializePatching();
   registerElevationConfig("Tile", "Alt. Token Cover");
   Settings.updateConfigStatusEffects();
-});
-
-Hooks.on("canvasReady", function() {
-  console.debug("tokenvisibility|canvasReady")
-  Settings.initializeDebugGraphics();
 });

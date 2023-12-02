@@ -57,7 +57,7 @@ async function targetToken(user, target, targeted) {
   const combatToken = c.combatant.token.object;
   const coverCalc = combatToken[MODULE_ID].coverCalc;
   coverCalc.target = target;
-  return await coverCalc.setTargetCoverEffect()
+  return await coverCalc.setTargetCoverEffect();
 }
 
 /**
@@ -77,53 +77,10 @@ function applyTokenStatusEffect(token, statusId, active) {
     : CoverCalculator.disableAllCover(token);
 }
 
-/**
- * Hook controlToken
- * If the token is controlled or uncontrolled, clear debug drawings.
- */
-function controlToken(_token, _controlled) {
-  Settings.clearDebugGraphics();
-}
 
-/**
- * Hook: updateToken
- * If the token width/height changes, invalidate the tokenShape.
- * If the token moves, clear all debug drawings.
- * @param {Document} tokenD                         The existing Document which was updated
- * @param {object} change                           Differential data that was used to update the document
- * @param {DocumentModificationContext} options     Additional options which modified the update request
- * @param {string} userId                           The ID of the User who triggered the update workflow
-
- */
-function updateToken(tokenD, change, _options, _userId) {
-  // Token shape changed; invalidate cached shape.
-  const token = tokenD.object;
-  if ( (Object.hasOwn(change, "width") || Object.hasOwn(change, "height")) && token ) token._tokenShape = undefined;
-
-  // Token moved; clear drawings.
-  if ( Object.hasOwn(change, "x")
-    || Object.hasOwn(change, "y")
-    || Object.hasOwn(change, "elevation") ) Settings.clearDebugGraphics();
-}
-
-PATCHES.BASIC.HOOKS = { controlToken, updateToken,  drawToken, destroyToken };
+PATCHES.BASIC.HOOKS = { drawToken, destroyToken };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 PATCHES.NO_PF2E.HOOKS = { targetToken };
-
-// ----- NOTE: Wraps ----- //
-
-/**
- * Wrap Token.prototype.updateSource
- * Reset the debugging drawings.
- */
-function updateSource(wrapper, ...args) {
-  Settings.clearDebugGraphics();
-  return wrapper(...args);
-}
-
-PATCHES.BASIC.WRAPS = {
-  updateSource
-};
 
 // ----- NOTE: Getters ----- //
 

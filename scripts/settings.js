@@ -12,6 +12,7 @@ import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
 import { Draw } from "./geometry/Draw.js";
 import { STATUS_EFFECTS } from "./status_effects.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
+import { registerArea3d, deregisterArea3d } from "./patching.js";
 import {
   LowCoverEffectConfig,
   MediumCoverEffectConfig,
@@ -68,10 +69,7 @@ export const SETTINGS = {
     }
   },
 
-  DEBUG: {
-    COVER: "debug-cover",
-    ONCE: "debug-once"
-  },
+  DEBUG: "debug-cover",
 
   // Other cover settings
   COVER: {
@@ -146,52 +144,12 @@ export class Settings {
   /** @type {object} */
   static KEYS = SETTINGS;
 
-  /** @type {PIXI.Graphics} */
-  static #DEBUG_COVER;
-
-  static get DEBUG_COVER() { return canvas.tokens.children.find(c => c[`${MODULE_ID}_debug`]); }
-
-  // The LOS Calculator uses DEBUG_LOS, so alias it here.
-  static get DEBUG_LOS() { return this.DEBUG_COVER; }
-
-  static #debugOnce = false;
-
-  static async debugOnce() {
-    this.#debugOnce = true;
-    return this.set(this.KEYS.DEBUG.COVER, true);
-  }
-
-  static initializeDebugGraphics() {
-    this.#DEBUG_COVER = new PIXI.Graphics();
-    this.#DEBUG_COVER.eventMode = "passive"; // Allow targeting, selection to pass through.
-    this.#DEBUG_COVER[`${MODULE_ID}_debug`] = true;
-    canvas.tokens.addChild(this.#DEBUG_COVER);
-  }
-
-  // Don't need to destroy b/c they are destroyed as part of canvas.tokens.
-  //   static destroyDebugGraphics() {
-  //     if ( !this.#DEBUG_LOS.destroyed() ) this.#DEBUG_LOS.destroy();
-  //     if ( !this.#DEBUG_RANGE.destroyed() ) this.#DEBUG_RANGE.destroy();
-  //   }
-
-  static clearDebugGraphics() {
-    this.DEBUG_COVER.clear(); // Nearly as fast, possibly faster depending on if setting was cached.
-
+  static toggleDebugGraphics(enabled = false) {
     for ( const token of canvas.tokens.placeables ) {
-      const coverCalc = token[MODULE_ID]?.coverCalc;
+      const coverCalc = token?.[MODULE_ID]?.losCalc;
       if ( !coverCalc ) continue;
-      coverCalc.calc.clearDebug();
-    }
-
-    this.#debugOnce &&= false;
-  }
-
-  static updateDebugGraphics(enable) {
-    for ( const token of canvas.tokens.placeables ) {
-      const coverCalc = token[MODULE_ID]?.coverCalc;
-      if ( !coverCalc ) continue;
-      if ( enable ) coverCalc.calc.enableDebug();
-      else coverCalc.calc.disableDebug();
+      coverCalc.clearDebug();
+      if ( !enabled ) coverCalc.closeDebugPopout();
     }
   }
 
@@ -468,14 +426,14 @@ export class Settings {
       type: Number
     });
 
-    register(KEYS.DEBUG.COVER, {
-      name: localize(`${KEYS.DEBUG.COVER}.Name`),
-      hint: localize(`${KEYS.DEBUG.COVER}.Hint`),
+    register(KEYS.DEBUG, {
+      name: localize(`${KEYS.DEBUG}.Name`),
+      hint: localize(`${KEYS.DEBUG}.Hint`),
       scope: "world",
       config: true,
       type: Boolean,
       default: false,
-      onChange: value => this.updateDebugGraphics(value)
+      onChange: value => this.toggleDebugGraphics(value)
     });
 
     // ----- NOTE: Submenu ---- //
@@ -712,5 +670,23 @@ export class Settings {
       default: false,
       type: Boolean
     });
+  }
+
+  static typesWebGL2 = new Set([
+    SETTINGS.LOS.TARGET.TYPES.AREA3D,
+    SETTINGS.LOS.TARGET.TYPES.AREA3D_WEBGL2,
+    SETTINGS.LOS.TARGET.TYPES.AREA3D_HYBRID]);
+
+  static losAlgorithmChange(key, value) {
+    this.cache.delete(key);
+    if ( this.typesWebGL2.has(value) ) registerArea3d();
+    else deregisterArea3d();
+
+    canvas.tokens.placeables.forEach(token => token[MODULE_ID]?.coverCalc._updateAlgorithm());
+  }
+
+  static losSettingChange(key, _value) {
+    this.cache.delete(key);
+    canvas.tokens.placeables.forEach(token => token[MODULE_ID]?.coverCalc._updateConfigurationSettings());
   }
 }

@@ -63,3 +63,36 @@ export function initializePatching() {
 
   if ( game.system.id !== "pf2e" ) PATCHER.registerGroup("NO_PF2E");
 }
+
+export function registerArea3d() {
+  PATCHER.registerGroup("AREA3D");
+
+  // Create placeable geometry handlers.
+  if ( canvas.walls ) {
+    canvas.walls.placeables
+      .filter(wall => !wall[MODULE_ID])
+      .forEach(wall => wall[MODULE_ID] = { geomHandler: new WallGeometryHandler(wall) });
+
+    canvas.tiles.placeables
+      .filter(tile => !tile[MODULE_ID])
+      .forEach(tile => tile[MODULE_ID] = { geomHandler: new TileGeometryHandler(tile) });
+
+    canvas.tokens.placeables
+      .filter(token => !token[MODULE_ID])
+      .forEach(token => token[MODULE_ID] = { geomHandler: new TokenGeometryHandler(token) });
+  }
+}
+
+export function deregisterArea3d() {
+  // Destroy all the placeable geometries.
+  if ( canvas.walls ) {
+    const placeables = [
+      ...canvas.walls.placeables,
+      ...canvas.tiles.placeables,
+      ...canvas.tokens.placeables];
+    for ( const placeable of placeables ) placeable[MODULE_ID]?.geomHandler.destroy();
+  }
+
+  // Remove the unused methods, getters.
+  PATCHER.deregisterGroup("AREA3D");
+}
