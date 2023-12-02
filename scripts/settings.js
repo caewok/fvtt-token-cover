@@ -12,7 +12,7 @@ import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
 import { Draw } from "./geometry/Draw.js";
 import { STATUS_EFFECTS } from "./status_effects.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
-import { registerArea3d, deregisterArea3d } from "./patching.js";
+import { registerArea3d } from "./patching.js";
 import {
   LowCoverEffectConfig,
   MediumCoverEffectConfig,
@@ -144,12 +144,15 @@ export class Settings {
   /** @type {object} */
   static KEYS = SETTINGS;
 
+  debugOnce = false;
+
   static toggleDebugGraphics(enabled = false) {
     for ( const token of canvas.tokens.placeables ) {
       const coverCalc = token?.[MODULE_ID]?.losCalc;
       if ( !coverCalc ) continue;
       coverCalc.clearDebug();
-      if ( !enabled ) coverCalc.closeDebugPopout();
+      if ( !enabled && !this.debugOnce ) coverCalc.closeDebugPopout();
+      this.debugOnce &&= false;
     }
   }
 
@@ -475,7 +478,8 @@ export class Settings {
       config: false,
       type: Boolean,
       default: true,
-      tab: "losTarget"
+      tab: "losTarget",
+      onChange: value => this.losSettingChange(TARGET.LARGE, value)
     });
 
     register(TARGET.ALGORITHM, {
@@ -486,8 +490,13 @@ export class Settings {
       type: String,
       choices: losChoices,
       default: LTYPES.NINE,
-      tab: "losTarget"
+      tab: "losTarget",
+      onChange: value => this.losAlgorithmChange(TARGET.ALGORITHM, value)
     });
+
+    // Register the Area3D methods on initial load.
+    if ( this.typesWebGL2.has(this.get(TARGET.ALGORITHM)) ) registerArea3d();
+
 
     register(PT_OPTS.NUM_POINTS, {
       name: localize(`${PT_OPTS.NUM_POINTS}.Name`),
@@ -497,7 +506,8 @@ export class Settings {
       type: String,
       choices: ptChoices,
       default: PT_TYPES.NINE,
-      tab: "losTarget"
+      tab: "losTarget",
+      onChange: value => this.losSettingChange(PT_OPTS.NUM_POINTS, value)
     });
 
     register(PT_OPTS.INSET, {
@@ -512,7 +522,8 @@ export class Settings {
       config: false, // () => getSetting(KEYS.LOS.ALGORITHM) !== LTYPES.POINTS,
       default: 0.75,
       type: Number,
-      tab: "losTarget"
+      tab: "losTarget",
+      onChange: value => this.losSettingChange(PT_OPTS.INSET, value)
     });
 
     register(PT_OPTS.POINTS3D, {
@@ -522,7 +533,8 @@ export class Settings {
       config: false,
       type: Boolean,
       default: true,
-      tab: "losTarget"
+      tab: "losTarget",
+      onChange: value => this.losSettingChange(PT_OPTS.POINTS3D, value)
     });
 
     // ----- NOTE: Workflow tab ----- //
@@ -680,8 +692,6 @@ export class Settings {
   static losAlgorithmChange(key, value) {
     this.cache.delete(key);
     if ( this.typesWebGL2.has(value) ) registerArea3d();
-    else deregisterArea3d();
-
     canvas.tokens.placeables.forEach(token => token[MODULE_ID]?.coverCalc._updateAlgorithm());
   }
 

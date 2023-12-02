@@ -25,7 +25,8 @@ if ( !targets.size ) {
 
 // Display cover debug to user.
 const api = game.modules.get("tokencover").api;
-await api.Settings.set(api.Settings.KEYS.DEBUG.COVER, true);
+await api.Settings.set(api.Settings.KEYS.DEBUG, true);
+api.Settings.debugOnce = true;
 const coverDialog = new api.CoverDialog(token, targets);
 coverDialog.showCoverResults();
-await api.Settings.set(api.Settings.KEYS.DEBUG.COVER, false);
+await api.Settings.set(api.Settings.KEYS.DEBUG, false);

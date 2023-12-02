@@ -44,6 +44,7 @@ export const PATCHER = new Patcher(PATCHES);
 
 export function initializePatching() {
   PATCHER.registerGroup("BASIC");
+  PATCHER.registerGroup("TILE");
 
   // If ATV is not active, handle the LOS patches needed to run the calculator.
   if ( !MODULES_ACTIVE.TOKEN_VISIBILITY ) {
@@ -65,6 +66,13 @@ export function initializePatching() {
 }
 
 export function registerArea3d() {
+  if ( MODULES_ACTIVE.TOKEN_VISIBILITY ) {
+    // Use the ATV hooks instead, to avoid potentially updating twice.
+    const api = game.modules.get("tokenvisibility").api;
+    api.PATCHER.registerGroup("AREA3D");
+    return;
+  }
+
   PATCHER.registerGroup("AREA3D");
 
   // Create placeable geometry handlers.
@@ -81,18 +89,4 @@ export function registerArea3d() {
       .filter(token => !token[MODULE_ID])
       .forEach(token => token[MODULE_ID] = { geomHandler: new TokenGeometryHandler(token) });
   }
-}
-
-export function deregisterArea3d() {
-  // Destroy all the placeable geometries.
-  if ( canvas.walls ) {
-    const placeables = [
-      ...canvas.walls.placeables,
-      ...canvas.tiles.placeables,
-      ...canvas.tokens.placeables];
-    for ( const placeable of placeables ) placeable[MODULE_ID]?.geomHandler.destroy();
-  }
-
-  // Remove the unused methods, getters.
-  PATCHER.deregisterGroup("AREA3D");
 }
