@@ -90,3 +90,7 @@ export function registerArea3d() {
       .forEach(token => token[MODULE_ID] = { geomHandler: new TokenGeometryHandler(token) });
   }
 }
+
+export function registerDebug() { PATCHER.registerGroup("DEBUG"); }
+
+export function deregisterDebug() { PATCHER.deregisterGroup("DEBUG"); }

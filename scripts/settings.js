@@ -12,7 +12,7 @@ import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
 import { Draw } from "./geometry/Draw.js";
 import { STATUS_EFFECTS } from "./status_effects.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
-import { registerArea3d } from "./patching.js";
+import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
 import {
   LowCoverEffectConfig,
   MediumCoverEffectConfig,
@@ -148,15 +148,18 @@ export class Settings {
   /** @type {object} */
   static KEYS = SETTINGS;
 
-  debugOnce = false;
 
   static toggleDebugGraphics(enabled = false) {
-    for ( const token of canvas.tokens.placeables ) {
-      const coverCalc = token?.[MODULE_ID]?.losCalc;
-      if ( !coverCalc ) continue;
-      coverCalc.clearDebug();
-      if ( !enabled && !this.debugOnce ) coverCalc.closeDebugPopout();
-      this.debugOnce &&= false;
+    if ( enabled ) registerDebug();
+    else {
+      if ( canvas.tokens?.placeables ) {
+        canvas.tokens.placeables.forEach(token => {
+          const calc = token[MODULE_ID]?.coverCalc.calc;
+          if ( !calc ) return;
+          calc.clearDebug();
+        });
+      }
+      deregisterDebug();
     }
   }
 
@@ -326,7 +329,7 @@ export class Settings {
     const PT_TYPES = KEYS.POINT_TYPES;
     const RTYPES = [PT_TYPES.CENTER, PT_TYPES.FIVE, PT_TYPES.NINE];
     const PT_OPTS = KEYS.LOS.TARGET.POINT_OPTIONS;
-    const LTYPES = KEYS.LOS.TARGET.TYPES;
+    const LTYPES = foundry.utils.filterObject(KEYS.LOS.TARGET.TYPES, { POINTS: 0, AREA2D: 0, AREA3D: 0 });
     const losChoices = {};
     const ptChoices = {};
     const rangeChoices = {};
@@ -497,10 +500,6 @@ export class Settings {
       tab: "losTarget",
       onChange: value => this.losAlgorithmChange(TARGET.ALGORITHM, value)
     });
-
-    // Register the Area3D methods on initial load.
-    if ( this.typesWebGL2.has(this.get(TARGET.ALGORITHM)) ) registerArea3d();
-
 
     register(PT_OPTS.NUM_POINTS, {
       name: localize(`${PT_OPTS.NUM_POINTS}.Name`),
@@ -686,6 +685,14 @@ export class Settings {
       default: false,
       type: Boolean
     });
+
+    // ----- NOTE: Triggers based on starting settings ---- //
+    // Start debug
+    if ( this.get(this.KEYS.DEBUG) ) registerDebug();
+
+    // Register the Area3D methods on initial load.
+    if ( this.typesWebGL2.has(this.get(TARGET.ALGORITHM)) ) registerArea3d();
+
   }
 
   static typesWebGL2 = new Set([

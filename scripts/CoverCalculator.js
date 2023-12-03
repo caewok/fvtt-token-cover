@@ -272,16 +272,11 @@ export class CoverCalculator {
     const viewerPoints = calc.constructor.constructViewerPoints(viewer);
     let percent = 1;
     const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
-    const useDebug = Settings.get(SETTINGS.DEBUG);
     for ( const viewerPoint of viewerPoints ) {
       calc.visionOffset = viewerPoint.subtract(center);
       percent = Math.min(percent, this._percentCover());
-      if ( percent < minPercent ) {
-        if ( useDebug ) calc.debug(true);
-        return percent;
-      }
+      if ( percent < minPercent ) return percent;
     }
-    if ( useDebug ) calc.debug(true);
     return percent;
   }
 
