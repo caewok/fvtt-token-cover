@@ -1,6 +1,9 @@
 /* globals
-game,
+Application,
+game
+Hooks,
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 /* Area 3d
@@ -73,9 +76,9 @@ Draw.shape(thisShape, { color: Draw.COLORS.orange });
 Draw.shape(targetShape, { color: Draw.COLORS.red })
 
 */
-
+import { MODULE_ID } from "../const.js";
 import { AlternativeLOS } from "./AlternativeLOS.js";
-import { AREA3D_POPOUTS } from "./Area3dPopout.js"; // Debugging pop-up
+import { Area3dPopout } from "./Area3dPopout.js";
 
 // Geometry folder
 import { Point3d } from "../geometry/3d/Point3d.js";
@@ -116,12 +119,103 @@ export class Area3dLOS extends AlternativeLOS {
   }
 
   // ----- NOTE: Debugging methods ----- //
-  get popout() { return AREA3D_POPOUTS.geometric; }
+  #popout;
 
-  debug(hasLOS) {
+  #hookIds = new Map();
+
+  #renderHookIds = new Map();
+
+  /**
+   * Add hook so that if this token is controlled, the debug window pops up.
+   */
+
+  _initializeDebugHooks() {
+    this.#hookIds.set("renderArea3dPopout", Hooks.on("renderArea3dPopout", this._renderArea3dPopoutHook.bind(this)));
+    this.#hookIds.set("closeArea3dPopout", Hooks.on("closeArea3dPopout", this._closeArea3dPopoutHook.bind(this)));
+  }
+
+  destroy() {
+    this.closeDebugPopout();
+    this.#hookIds.forEach((id, fnName) => Hooks.off(fnName, id));
+    this.#hookIds.clear();
+    super.destroy();
+  }
+
+  /**
+   * If debug popout is rendered, update it when token is controlled or targeted.
+   */
+
+  /**
+   * Hook: controlToken
+   * If the token is controlled, open the debug popout.
+   * @event controlObject
+   * @category PlaceableObject
+   * @param {PlaceableObject} object The object instance which is selected/deselected.
+   * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
+   */
+  _controlTokenHook(token, controlled) {
+    if ( token !== this.viewer ) return;
+    if ( controlled ) this.openDebugPopout();
+  }
+
+  /**
+   * Hook: targetToken
+   * If the token is targeted, refresh debug drawings.
+   */
+  _targetTokenHook(user, target, targeted) {
+    if ( user !== game.user || !targeted || !this.popoutIsRendered ) return;
+    if ( this.viewer === target ) return; // Don't set target to self.
+    if ( !this.viewer.controlled ) return; // Don't change targets for uncontrolled tokens.
+    this.target = target;
+    this.debug(true);
+  }
+
+  /** Add hooks on render.
+   * @param {Application} application     The Application instance being rendered
+   * @param {jQuery} html                 The inner HTML of the document that will be displayed and may be modified
+   * @param {object} data                 The object of data used when rendering the application
+   */
+  _renderArea3dPopoutHook(app, _html, _id) {
+    if ( app !== this.#popout ) return;
+    this.#renderHookIds.set("controlToken", Hooks.on("controlToken", this._controlTokenHook.bind(this)));
+    this.#renderHookIds.set("targetToken", Hooks.on("targetToken", this._targetTokenHook.bind(this)));
+  }
+
+  /**
+   * Remove hooks on close.
+   * @param {Application} app                     The Application instance being closed
+   * @param {jQuery[]} html                       The application HTML when it is closed
+   */
+  _closeArea3dPopoutHook(app, _html, _id) {
+    if ( app !== this.#popout ) return;
+    this.#renderHookIds.forEach((id, fnName) => Hooks.off(fnName, id));
+    this.#renderHookIds.clear();
+  }
+
+  /** @type {string} */
+  get popoutTitle() {
+    const moduleName = game.i18n.localize(`${MODULE_ID}.nameAbbr`);
+    return `${moduleName} 3D Debug: ⏿ ${this.viewer?.name ?? ""} → ◎ ${this.target?.name ?? "?"}`;
+  }
+
+  #updatePopoutTitle() {
+    if ( !this.popoutIsRendered ) return;
+    const popout = this.popout;
+    const title = this.popoutTitle;
+    const elem = popout.element.find(".window-title");
+    elem[0].textContent = title;
+    popout.options.title = title; // Just for consistency.
+  }
+
+  get popout() {
+    return this.#popout || (this.#popout = new Area3dPopout({ title: this.popoutTitle }));
+  }
+
+  get popoutIsRendered() { return this.#popout && this.#popout.rendered; }
+
+  updateDebug() {
     // Debug: console.debug(`debug|${this.viewer.name}👀 => ${this.target.name}🎯`);
-    this._enableDebugPopout();
-    super.debug(hasLOS);
+    super.updateDebug();
 
     // Only draw in the popout for the targeted token(s).
     // Otherwise, it is really unclear to what the debug is referring.
@@ -141,6 +235,9 @@ export class Area3dLOS extends AlternativeLOS {
    * Must be extended by subclasses. This version pops up a blank window.
    */
   _draw3dDebug() {
+    this._clear3dDebug();
+    this.#updatePopoutTitle();
+    this.openDebugPopout(); // Go last so prior can be skipped if popout not active.
   }
 
   /**
@@ -149,31 +246,36 @@ export class Area3dLOS extends AlternativeLOS {
    * Must be extended by subclasses.
    */
   _clear3dDebug() {
-
+    if ( !this.popoutIsRendered ) return;
+    this.#popout.pixiApp.stage.removeChildren();
   }
 
-  async enableDebug() { return this._enableDebugPopout(); }
+  /**
+   * Add a PIXI container object to the popout, causing it to render in the popout.
+   * Will force the popout to render if necessary, and is async for that purpose.
+   * @param {PIXI.Container} container
+   */
+  async _addChildToPopout(container) {
+    if ( !this.popoutIsRendered ) await this.openDebugPopout();
+    if ( !this.popoutIsRendered ) return;
+    this.#popout.pixiApp.stage.addChild(container);
+  }
 
-  async disableDebug() { return this._closeDebugPopout(); }
+
+  /**
+   * Open the debug popout window, rendering if necessary.
+   */
+  async openDebugPopout() { if ( this.popout._state < 2 ) await this.popout._render(true); }
 
   /**
    * For debugging.
    * Close the popout window.
    */
-  async _closeDebugPopout() {
-    const app = this.popout.app;
-    if ( !app || app.closing ) return;
-    return app.close();
+  async closeDebugPopout() {
+    const popout = this.#popout; // Don't trigger creating new popout app on close.
+    if ( !popout || popout._state < Application.RENDER_STATES.RENDERING ) return;
+    this._clear3dDebug();
+    return popout.close(); // Async
   }
 
-  /**
-   * For debugging.
-   * Popout the debugging window if not already rendered.
-   * Clear drawings in that canvas.
-   * Clear other children.
-   */
-  async _enableDebugPopout() {
-    const popout = this.popout;
-    if ( popout.app._state < 2 ) popout.app.render(true);
-  }
 }

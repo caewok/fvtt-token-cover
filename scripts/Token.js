@@ -12,10 +12,138 @@ import { isFirstGM } from "./util.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
+PATCHES.DEBUG = {};
 PATCHES.sfrpg = {};
 PATCHES.NO_PF2E = {};
 
+
+// ----- NOTE: Debug Hooks ----- //
+
+/**
+ * Hook: controlToken
+ * If the token is uncontrolled, clear debug drawings.
+ * @event controlObject
+ * @category PlaceableObject
+ * @param {PlaceableObject} object The object instance which is selected/deselected.
+ * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
+ */
+async function controlTokenDebugHook(token, controlled) {
+  const calc = token[MODULE_ID]?.coverCalc.calc;
+  if ( !calc ) return;
+  calc.clearDebug();
+  if ( controlled ) {
+    if ( calc.openDebugPopout ) await calc.openDebugPopout();
+    updateDebugForControlledToken(token)
+  }
+}
+
+/**
+ * Hook: targetToken
+ * Check for other controlled tokens and update their Area3d debug popout to point at this target.
+ * @param {User} user        The User doing the targeting
+ * @param {Token} token      The targeted Token
+ * @param {boolean} targeted Whether the Token has been targeted or untargeted
+ */
+function targetTokenDebugHook(user, target, targeted) {
+  if ( !targeted || game.user !== user ) return;
+  canvas.tokens.placeables.forEach(token => {
+    if ( token === target || !token.controlled ) return;
+    const calc = token[MODULE_ID]?.coverCalc.calc;
+    if ( !calc || !calc._draw3dDebug ) return;
+    calc._clearCache();
+    calc.target = target;
+    calc.updateDebug();
+  });
+}
+
+/**
+ * Hook: updateToken
+ * If the token moves, clear all debug drawings.
+ * @param {Document} tokenD                         The existing Document which was updated
+ * @param {object} change                           Differential data that was used to update the document
+ * @param {DocumentModificationContext} options     Additional options which modified the update request
+ * @param {string} userId                           The ID of the User who triggered the update workflow
+ */
+function updateTokenDebugHook(tokenD, change, _options, _userId) {
+  if ( !(Object.hasOwn(change, "x")
+      || Object.hasOwn(change, "y")
+      || Object.hasOwn(change, "elevation")
+      || Object.hasOwn(change, "rotation")) ) return;
+
+  // Token moved
+  const token = tokenD.object;
+  if ( token.controlled ) updateDebugForControlledToken(token);
+  updateDebugForRelatedTokens(token);
+}
+
+/**
+ * If token position is refreshed (i.e., clone), then clear debug.
+ * @param {PlaceableObject} object    The object instance being refreshed
+ * @param {RenderFlag} flags
+ */
+function refreshTokenDebugHook(token, flags) {
+  if ( !flags.refreshPosition ) return;
+  if ( token.controlled ) updateDebugForControlledToken(token);
+  updateDebugForRelatedTokens(token);
+}
+
+function updateDebugForControlledToken(changedToken) {
+  // If this token is controlled, update its LOS canvas display to every other token.
+  const changedCalc = changedToken[MODULE_ID]?.coverCalc.calc;
+  if ( !changedCalc ) return;
+  changedCalc.clearDebug();
+  canvas.tokens.placeables.forEach(token => {
+    if ( token === changedToken ) return;
+    changedCalc._clearCache();
+    changedCalc.target = token;
+    changedCalc.updateDebug();
+  });
+
+}
+
+/**
+ * Update debug graphics for tokens related to this one.
+ * @param {Token} changedToken    Token that has been updated (position, etc.)
+ */
+function updateDebugForRelatedTokens(changedToken) {
+  // For any other controlled token, update its LOS canvas display for this one.
+  canvas.tokens.placeables.forEach(token => {
+    if ( token === changedToken || !token.controlled ) return;
+    const calc = token[MODULE_ID]?.coverCalc.calc;
+    if ( !calc ) return;
+    if ( calc.target === changedToken ) calc.clearDebug();
+    calc._clearCache();
+    calc.target = changedToken;
+    calc.updateDebug();
+  });
+}
+
+PATCHES.DEBUG.HOOKS = {
+  controlToken: controlTokenDebugHook,
+  updateToken: updateTokenDebugHook,
+  refreshToken: refreshTokenDebugHook,
+  targetToken: targetTokenDebugHook
+};
+
 // ----- NOTE: Hooks ----- //
+
+/**
+ * Hook: targetToken
+ * If the debug popout is active, redraw the 3d debug if the target changes.
+ * @param {User} user        The User doing the targeting
+ * @param {Token} token      The targeted Token
+ * @param {boolean} targeted Whether the Token has been targeted or untargeted
+ */
+function targetTokenDebug(user, target, targeted) {
+  if ( !targeted || game.user !== user ) return;
+  for ( const token of canvas.tokens.controlled ) {
+    const calc = token[MODULE_ID].coverCalc.calc;
+    if ( !calc.popoutIsRendered ) continue;
+    calc.target = target;
+    calc.percentVisible();
+    calc._draw3dDebug();
+  }
+}
 
 /**
  * Hook: drawToken
@@ -57,7 +185,7 @@ async function targetToken(user, target, targeted) {
   const combatToken = c.combatant.token.object;
   const coverCalc = combatToken[MODULE_ID].coverCalc;
   coverCalc.target = target;
-  return await coverCalc.setTargetCoverEffect()
+  return await coverCalc.setTargetCoverEffect();
 }
 
 /**
@@ -77,53 +205,10 @@ function applyTokenStatusEffect(token, statusId, active) {
     : CoverCalculator.disableAllCover(token);
 }
 
-/**
- * Hook controlToken
- * If the token is controlled or uncontrolled, clear debug drawings.
- */
-function controlToken(_token, _controlled) {
-  Settings.clearDebugGraphics();
-}
 
-/**
- * Hook: updateToken
- * If the token width/height changes, invalidate the tokenShape.
- * If the token moves, clear all debug drawings.
- * @param {Document} tokenD                         The existing Document which was updated
- * @param {object} change                           Differential data that was used to update the document
- * @param {DocumentModificationContext} options     Additional options which modified the update request
- * @param {string} userId                           The ID of the User who triggered the update workflow
-
- */
-function updateToken(tokenD, change, _options, _userId) {
-  // Token shape changed; invalidate cached shape.
-  const token = tokenD.object;
-  if ( (Object.hasOwn(change, "width") || Object.hasOwn(change, "height")) && token ) token._tokenShape = undefined;
-
-  // Token moved; clear drawings.
-  if ( Object.hasOwn(change, "x")
-    || Object.hasOwn(change, "y")
-    || Object.hasOwn(change, "elevation") ) Settings.clearDebugGraphics();
-}
-
-PATCHES.BASIC.HOOKS = { controlToken, updateToken,  drawToken, destroyToken };
+PATCHES.BASIC.HOOKS = { drawToken, destroyToken, targetToken: targetTokenDebug };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 PATCHES.NO_PF2E.HOOKS = { targetToken };
-
-// ----- NOTE: Wraps ----- //
-
-/**
- * Wrap Token.prototype.updateSource
- * Reset the debugging drawings.
- */
-function updateSource(wrapper, ...args) {
-  Settings.clearDebugGraphics();
-  return wrapper(...args);
-}
-
-PATCHES.BASIC.WRAPS = {
-  updateSource
-};
 
 // ----- NOTE: Getters ----- //
 

@@ -57,7 +57,6 @@ export class AlternativeLOS {
    * @property {Point3d} visionOffset                 Offset delta from the viewer center for vision point.
    * @property {PIXI.Polygon} visibleTargetShape      Portion of the token shape that is visible.
    * @property {VisionSource} visionSource            Vision source of the viewer.
-   * @property {boolean} debug                        Enable debug visualizations.
    */
   config = {};
 
@@ -107,13 +106,6 @@ export class AlternativeLOS {
     // Other
     this._visionPolygon = undefined;
     this.#blockingObjects.initialized = false;
-  }
-
-  /**
-   * Method to be overridden by subclasses if objects must be destroyed before deleting.
-   */
-  destroy() {
-
   }
 
   // ----- NOTE: Viewer properties ----- //
@@ -241,14 +233,12 @@ export class AlternativeLOS {
    * @param {number} [threshold]    Percentage to be met to be considered visible
    * @returns {boolean}
    */
-  hasLOS(threshold, printResult = false) {
+  hasLOS(threshold) {
     // Debug: console.debug(`hasLOS|${this.viewer.name}👀 => ${this.target.name}🎯`);
     this._clearCache();
 
     threshold ??= Settings.get(SETTINGS.LOS.TARGET.PERCENT);
     const percentVisible = this.percentVisible();
-    if ( printResult ) console.debug(`${this.viewer.name} sees ${Math.round(percentVisible * 100 * 10) / 10}% of ${this.target.name}.`);
-
 
     if ( typeof percentVisible === "undefined" ) return true; // Defaults to visible.
     if ( percentVisible.almostEqual(0) ) return false;
@@ -262,8 +252,12 @@ export class AlternativeLOS {
    */
   percentVisible() {
     // Simple case: target is within the vision angle of the viewer and no obstacles present.
-    return this._simpleVisibilityTest();
+    const percent = this._simpleVisibilityTest() ?? this._percentVisible();
+    return percent;
   }
+
+  /** @override */
+  _percentVisible() { return 1; }
 
   /**
    * Test for whether target is within the vision angle of the viewer and no obstacles present.
@@ -858,17 +852,49 @@ export class AlternativeLOS {
 
   // ----- NOTE: Debugging methods ----- //
 
-  async debug(hasLOS) {
-    hasLOS ??= this.hasLOS();
-    this._drawCanvasDebug(hasLOS);
+  /**
+   * Destroy any PIXI objects and remove hooks upon destroying.
+   */
+  destroy() {
+    if ( !this.#debugGraphics || this.#debugGraphics._destroyed ) return;
+    canvas.tokens.removeChild(this.#debugGraphics);
+    this.#debugGraphics.destroy();
+    this.#debugGraphics = undefined;
+    this.#debugDraw = undefined;
   }
 
-  async enableDebug() { }
+  updateDebug() {
+    this._drawCanvasDebug();
+  }
 
-  async disableDebug() { }
+  /** @type {PIXI.Graphics} */
+  #debugGraphics;
+
+  get debugGraphics() {
+    if ( !this.#debugGraphics || this.#debugGraphics.destroyed ) this.#debugGraphics = this._initializeDebugGraphics();
+    return this.#debugGraphics;
+  }
+
+  /** @type {Draw} */
+  #debugDraw;
+
+  get debugDraw() {
+    if ( !this.#debugDraw || !this.#debugGraphics || this.#debugGraphics.destroyed ) this.#debugDraw = new Draw(this.debugGraphics);
+    return this.#debugDraw || (this.#debugDraw = new Draw(this.debugGraphics));
+  }
+
+  _initializeDebugGraphics() {
+    const g = new PIXI.Graphics();
+    g.tokenvisibility_losDebug = this.viewer.id;
+    g.eventMode = "passive"; // Allow targeting, selection to pass through.
+    canvas.tokens.addChild(g);
+    return g;
+  }
 
   clearDebug() {
-    this._clearCanvasDebug();
+    if ( !this.#debugGraphics ) return;
+    this.#debugGraphics.clear();
+    // Debug: console.debug(`Cleared ${this.viewer.name} debug`);
   }
 
   /**
@@ -876,16 +902,12 @@ export class AlternativeLOS {
    * Draw debugging objects on the main canvas.
    * @param {boolean} hasLOS    Is there line-of-sight to this target?
    */
-  _drawCanvasDebug(hasLOS = true) {
+  _drawCanvasDebug() {
     this._drawLineOfSight();
     this._drawVisionTriangle();
-    this._drawVisibleTokenBorder(hasLOS);
+    this._drawVisibleTokenBorder();
     this._drawDetectedObjects();
-  }
-
-  _clearCanvasDebug() {
-    const draw = new Draw(Settings.DEBUG_LOS);
-    draw.clearDrawings();
+    // Debug: console.debug(`\n\nDrawn ${this.viewer.name} debug`);
   }
 
   /**
@@ -893,8 +915,7 @@ export class AlternativeLOS {
    * Draw the line of sight from token to target.
    */
   _drawLineOfSight() {
-    const draw = new Draw(Settings.DEBUG_LOS);
-    draw.segment({A: this.viewerPoint, B: this.targetCenter});
+    this.debugDraw.segment({A: this.viewerPoint, B: this.targetCenter});
   }
 
   /**
@@ -902,9 +923,9 @@ export class AlternativeLOS {
    * Draw the constrained token border and visible shape, if any.
    * @param {boolean} hasLOS    Is there line-of-sight to this target?
    */
-  _drawVisibleTokenBorder(hasLOS = true) {
-    const draw = new Draw(Settings.DEBUG_LOS);
-    const color = hasLOS ? Draw.COLORS.green : Draw.COLORS.red;
+  _drawVisibleTokenBorder() {
+    const draw = this.debugDraw;
+    let color = Draw.COLORS.blue;
 
     // Fill in the constrained border on canvas
     draw.shape(this.target.constrainedTokenBorder, { color, fill: color, fillAlpha: 0.2});
@@ -919,7 +940,7 @@ export class AlternativeLOS {
    * Draw outlines for the various objects that can be detected on the canvas.
    */
   _drawDetectedObjects() {
-    const draw = new Draw(Settings.DEBUG_LOS);
+    const draw = this.debugDraw;
     const colors = Draw.COLORS;
     const { walls, tiles, terrainWalls, tokens } = this.blockingObjects;
     walls.forEach(w => draw.segment(w, { color: colors.blue, fillAlpha: 0.3 }));
@@ -933,7 +954,7 @@ export class AlternativeLOS {
    * Draw the vision triangle between viewer point and target.
    */
   _drawVisionTriangle() {
-    const draw = new Draw(Settings.DEBUG_LOS);
+    const draw = this.debugDraw;
     draw.shape(this.visionPolygon, { fill: Draw.COLORS.lightblue, fillAlpha: 0.2 });
   }
 }

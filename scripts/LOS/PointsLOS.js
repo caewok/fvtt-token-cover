@@ -155,11 +155,7 @@ export class PointsLOS extends AlternativeLOS {
    * Determine percentage of the token visible using the class methodology.
    * @returns {number}
    */
-  percentVisible() { return this._simpleVisibilityTest() ?? (1 - this._applyPercentageTest()); }
-
-  _applyPercentageTest() {
-    return this._testTargetPoints(this.targetPoints);
-  }
+  _percentVisible() { return (1 - this._testTargetPoints(this.targetPoints)); }
 
   /**
    * Convenience method that uses settings of this calculator to construct viewer points.
@@ -331,10 +327,9 @@ export class PointsLOS extends AlternativeLOS {
   /**
    * For debugging.
    * Draw debugging objects on the main canvas.
-   * @param {boolean} hasLOS    Is there line-of-sight to this target?
    */
-  _drawCanvasDebug(hasLOS = true) {
-    super._drawCanvasDebug(hasLOS);
+  _drawCanvasDebug() {
+    super._drawCanvasDebug();
     this._drawTargetPointsArray(this.targetPoints);
   }
 
@@ -369,7 +364,7 @@ export class PointsLOS extends AlternativeLOS {
    * @param {Point3d[]} targetPoints    Array of points on the target to test
    */
   _drawPointToPoints(targetPoints, { alpha = 1, width = 1 } = {}) {
-    const draw = new Draw(Settings.DEBUG_LOS);
+    const draw = this.debugDraw;
     const viewerPoint = this.viewerPoint;
     const visibleTargetShape = this.config.visibleTargetShape;
     const ln = targetPoints.length;

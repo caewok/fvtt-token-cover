@@ -99,6 +99,14 @@ export class CoverCalculator {
 
   destroy() { this.calc.destroy(); }
 
+  clearDebug() { this.calc.clearDebug(); }
+
+  debug(hasLOS) { return this.calc.debug(hasLOS); }
+
+  async closeDebugPopout() { return this.calc.closeDebugPopout(); }
+
+  async openDebugPopout() { return this.calc.openDebugPopout(); }
+
   /**
    * Configure cover options, most of which are passed to the cover LOS class.
    * @param {CoverConfig}
@@ -264,16 +272,11 @@ export class CoverCalculator {
     const viewerPoints = calc.constructor.constructViewerPoints(viewer);
     let percent = 1;
     const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
-    const useDebug = Settings.get(SETTINGS.DEBUG.COVER);
     for ( const viewerPoint of viewerPoints ) {
       calc.visionOffset = viewerPoint.subtract(center);
       percent = Math.min(percent, this._percentCover());
-      if ( percent < minPercent ) {
-        if ( useDebug ) calc.debug(true);
-        return percent;
-      }
+      if ( percent < minPercent ) return percent;
     }
-    if ( useDebug ) calc.debug(true);
     return percent;
   }
 

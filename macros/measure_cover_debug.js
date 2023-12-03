@@ -24,8 +24,11 @@ if ( !targets.size ) {
 // api.debug.once = true;
 
 // Display cover debug to user.
+coverCalc = token.tokencover.coverCalc;
+await coverCalc.openDebugPopout(); // If using Area3d, popout the debug viewer.
+
 const api = game.modules.get("tokencover").api;
-await api.Settings.set(api.Settings.KEYS.DEBUG.COVER, true);
 const coverDialog = new api.CoverDialog(token, targets);
 coverDialog.showCoverResults();
-await api.Settings.set(api.Settings.KEYS.DEBUG.COVER, false);
+
+coverCalc.debug(true);

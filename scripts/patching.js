@@ -44,6 +44,7 @@ export const PATCHER = new Patcher(PATCHES);
 
 export function initializePatching() {
   PATCHER.registerGroup("BASIC");
+  PATCHER.registerGroup("TILE");
 
   // If ATV is not active, handle the LOS patches needed to run the calculator.
   if ( !MODULES_ACTIVE.TOKEN_VISIBILITY ) {
@@ -63,3 +64,33 @@ export function initializePatching() {
 
   if ( game.system.id !== "pf2e" ) PATCHER.registerGroup("NO_PF2E");
 }
+
+export function registerArea3d() {
+  if ( MODULES_ACTIVE.TOKEN_VISIBILITY ) {
+    // Use the ATV hooks instead, to avoid potentially updating twice.
+    const api = game.modules.get("tokenvisibility").api;
+    api.PATCHER.registerGroup("AREA3D");
+    return;
+  }
+
+  PATCHER.registerGroup("AREA3D");
+
+  // Create placeable geometry handlers.
+  if ( canvas.walls ) {
+    canvas.walls.placeables
+      .filter(wall => !wall[MODULE_ID])
+      .forEach(wall => wall[MODULE_ID] = { geomHandler: new WallGeometryHandler(wall) });
+
+    canvas.tiles.placeables
+      .filter(tile => !tile[MODULE_ID])
+      .forEach(tile => tile[MODULE_ID] = { geomHandler: new TileGeometryHandler(tile) });
+
+    canvas.tokens.placeables
+      .filter(token => !token[MODULE_ID])
+      .forEach(token => token[MODULE_ID] = { geomHandler: new TokenGeometryHandler(token) });
+  }
+}
+
+export function registerDebug() { PATCHER.registerGroup("DEBUG"); }
+
+export function deregisterDebug() { PATCHER.deregisterGroup("DEBUG"); }
