@@ -74,6 +74,7 @@ export const SETTINGS = {
   },
 
   DEBUG: "debug-cover",
+  PRONE_STATUS_ID: "prone-status-id",
 
   // Other cover settings
   COVER: {
@@ -124,7 +125,6 @@ export const SETTINGS = {
     },
 
     PRONE: "cover-prone",
-    PRONE_STATUS_ID: "prone-status-id",
   },
 
   // Hidden settings
