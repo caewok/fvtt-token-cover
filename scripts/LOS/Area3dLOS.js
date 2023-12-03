@@ -1,7 +1,9 @@
 /* globals
 Application,
 game
+Hooks,
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 /* Area 3d
@@ -119,10 +121,80 @@ export class Area3dLOS extends AlternativeLOS {
   // ----- NOTE: Debugging methods ----- //
   #popout;
 
+  #hookIds = new Map();
+
+  #renderHookIds = new Map();
+
+  /**
+   * Add hook so that if this token is controlled, the debug window pops up.
+   */
+
+  _initializeDebugHooks() {
+    this.#hookIds.set("renderArea3dPopout", Hooks.on("renderArea3dPopout", this._renderArea3dPopoutHook.bind(this)));
+    this.#hookIds.set("closeArea3dPopout", Hooks.on("closeArea3dPopout", this._closeArea3dPopoutHook.bind(this)));
+  }
+
+  destroy() {
+    this.closeDebugPopout();
+    this.#hookIds.forEach((id, fnName) => Hooks.off(fnName, id));
+    this.#hookIds.clear();
+    super.destroy();
+  }
+
+  /**
+   * If debug popout is rendered, update it when token is controlled or targeted.
+   */
+
+  /**
+   * Hook: controlToken
+   * If the token is controlled, open the debug popout.
+   * @event controlObject
+   * @category PlaceableObject
+   * @param {PlaceableObject} object The object instance which is selected/deselected.
+   * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
+   */
+  _controlTokenHook(token, controlled) {
+    if ( token !== this.viewer ) return;
+    if ( controlled ) this.openDebugPopout();
+  }
+
+  /**
+   * Hook: targetToken
+   * If the token is targeted, refresh debug drawings.
+   */
+  _targetTokenHook(user, target, targeted) {
+    if ( user !== game.user || !targeted || !this.popoutIsRendered ) return;
+    if ( this.viewer === target ) return; // Don't set target to self.
+    if ( !this.viewer.controlled ) return; // Don't change targets for uncontrolled tokens.
+    this.target = target;
+    this.debug(true);
+  }
+
+  /** Add hooks on render.
+   * @param {Application} application     The Application instance being rendered
+   * @param {jQuery} html                 The inner HTML of the document that will be displayed and may be modified
+   * @param {object} data                 The object of data used when rendering the application
+   */
+  _renderArea3dPopoutHook(app, _html, _id) {
+    if ( app !== this.#popout ) return;
+    this.#renderHookIds.set("controlToken", Hooks.on("controlToken", this._controlTokenHook.bind(this)));
+    this.#renderHookIds.set("targetToken", Hooks.on("targetToken", this._targetTokenHook.bind(this)));
+  }
+
+  /**
+   * Remove hooks on close.
+   * @param {Application} app                     The Application instance being closed
+   * @param {jQuery[]} html                       The application HTML when it is closed
+   */
+  _closeArea3dPopoutHook(app, _html, _id) {
+    if ( app !== this.#popout ) return;
+    this.#renderHookIds.forEach((id, fnName) => Hooks.off(fnName, id));
+    this.#renderHookIds.clear();
+  }
+
   /** @type {string} */
   get popoutTitle() {
-    // const moduleName = game.i18n.localize(`${MODULE_ID}.name`);
-    const moduleName = "ATV";
+    const moduleName = game.i18n.localize(`${MODULE_ID}.nameAbbr`);
     return `${moduleName} 3D Debug: ⏿ ${this.viewer?.name ?? ""} → ◎ ${this.target?.name ?? "?"}`;
   }
 
@@ -131,7 +203,7 @@ export class Area3dLOS extends AlternativeLOS {
     const popout = this.popout;
     const title = this.popoutTitle;
     const elem = popout.element.find(".window-title");
-    elem[0].textContent = title
+    elem[0].textContent = title;
     popout.options.title = title; // Just for consistency.
   }
 
@@ -141,9 +213,9 @@ export class Area3dLOS extends AlternativeLOS {
 
   get popoutIsRendered() { return this.#popout && this.#popout.rendered; }
 
-  debug(hasLOS) {
+  updateDebug() {
     // Debug: console.debug(`debug|${this.viewer.name}👀 => ${this.target.name}🎯`);
-    super.debug(hasLOS);
+    super.updateDebug();
 
     // Only draw in the popout for the targeted token(s).
     // Otherwise, it is really unclear to what the debug is referring.
