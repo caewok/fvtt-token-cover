@@ -115,7 +115,7 @@ export const SETTINGS = {
 
     LIVE_TOKENS: {
       ALGORITHM: "cover-token-live",
-      ATTRIBUTE: "cover-token-prone-attribute",
+      // ATTRIBUTE: "cover-token-prone-attribute",
       TYPES: {
         NONE: "cover-token-live-none",
         HALF: "cover-token-live-half",
@@ -123,7 +123,8 @@ export const SETTINGS = {
       }
     },
 
-    PRONE: "cover-prone"
+    PRONE: "cover-prone",
+    PRONE_STATUS_ID: "prone-status-id",
   },
 
   // Hidden settings
@@ -639,14 +640,14 @@ export class Settings {
       tab: "other"
     });
 
-    register(KEYS.COVER.LIVE_TOKENS.ATTRIBUTE, {
-      name: localize(`${KEYS.COVER.LIVE_TOKENS.ATTRIBUTE}.Name`),
-      hint: localize(`${KEYS.COVER.LIVE_TOKENS.ATTRIBUTE}.Hint`),
+    register(KEYS.PRONE_STATUS_ID, {
+      name: localize(`${KEYS.PRONE_STATUS_ID}.Name`),
+      hint: localize(`${KEYS.PRONE_STATUS_ID}.Hint`),
       scope: "world",
       config: false,
       type: String,
-      default: "prone",
-      onChange: value => CONFIG.GeometryLib.proneStatusId = value,
+      default: CONFIG.GeometryLib.proneStatusId || "prone",
+      onChange: value => this.setProneStatusId(value),
       tab: "other"
     });
 
@@ -709,5 +710,10 @@ export class Settings {
   static losSettingChange(key, _value) {
     this.cache.delete(key);
     canvas.tokens.placeables.forEach(token => token[MODULE_ID]?.coverCalc._updateConfigurationSettings());
+  }
+
+  static setProneStatusId(value) {
+    CONFIG.GeometryLib.proneStatusId = value;
+    if ( MODULES_ACTIVE.TOKEN_VISIBILITY) game.settings.set("tokenvisibility", SETTINGS.PRONE_STATUS_ID, value);
   }
 }
