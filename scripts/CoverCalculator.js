@@ -118,7 +118,7 @@ export class CoverCalculator {
 
     cfg.type = config.type ?? "move";
     cfg.wallsBlock = config.type || true;
-    cfg.tilesBlock = config.tilesBlock || MODULES_ACTIVE.LEVELS || MODULES_ACTIVE.EV;
+    cfg.tilesBlock = config.tilesBlock || true;
     cfg.deadTokensBlock = config.deadTokensBlock || Settings.get(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
     cfg.liveTokensBlock = config.liveTokensBlock || liveTokenAlg !== liveTypes.NONE;
     cfg.liveForceHalfCover = config.liveForceHalfCover || liveTokenAlg === liveTypes.HALF;

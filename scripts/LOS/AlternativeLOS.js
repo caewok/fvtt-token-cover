@@ -26,6 +26,8 @@ import { ClipperPaths } from "../geometry/ClipperPaths.js";
 // Points folder
 import { WallPoints3d } from "./PlaceablesPoints/WallPoints3d.js";
 
+const NULL_SET = new Set(); // Set intended to signify no items, as a placeholder.
+
 /**
  * Base class to estimate line-of-sight between a source and a token using different methods.
  * The expectation is that the class will be initialized with a viewer token and target token,
@@ -335,10 +337,14 @@ export class AlternativeLOS {
     const blockingObjs = this.#blockingObjects;
     const objsFound = this._filterSceneObjectsByVisionPolygon();
 
-    // Separate the terrain walls.
-    const { terrainWalls, walls } = blockingObjs;
+    // Remove old blocking objects.
+    const { terrainWalls, walls, tokens, tiles } = blockingObjs;
     terrainWalls.clear();
     walls.clear();
+    tokens.clear();
+    tiles.clear();
+
+    // Separate the terrain walls.
     objsFound.walls.forEach(w => {
       const s = w.document[type] === CONST.WALL_SENSE_TYPES.LIMITED ? terrainWalls : walls;
       s.add(w);
@@ -352,11 +358,8 @@ export class AlternativeLOS {
     }
 
     // Add tokens, tiles
-    if ( objsFound.tokens ) blockingObjs.tokens = objsFound.tokens;
-    else blockingObjs.tokens.clear();
-
-    if ( objsFound.tiles ) blockingObjs.tiles = objsFound.tiles;
-    else blockingObjs.tiles.clear();
+    objsFound.tokens.forEach(t => tokens.add(t));
+    objsFound.tiles.forEach(t => tiles.add(t));
 
     blockingObjs.initialized = true;
   }
@@ -644,7 +647,12 @@ export class AlternativeLOS {
     const { topZ, bottomZ } = target;
     const maxE = Math.max(viewerPoint.z, topZ);
     const minE = Math.min(viewerPoint.z, bottomZ);
-    const out = {};
+    const out = {
+      tiles: NULL_SET,
+      tokens: NULL_SET,
+      walls: NULL_SET
+    };
+
     if ( wallsBlock ) {
       out.walls = this
         ._filterWallsByVisionPolygon()

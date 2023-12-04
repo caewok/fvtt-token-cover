@@ -52,8 +52,8 @@ export function initializePatching() {
     PATCHER.registerGroup("ConstrainedTokenBorder");
   }
 
-  if ( MODULES_ACTIVE.LEVELS ) PATCHER.registerGroup("LEVELS");
-  else PATCHER.registerGroup("NO_LEVELS");
+//   if ( MODULES_ACTIVE.LEVELS ) PATCHER.registerGroup("LEVELS");
+//   else PATCHER.registerGroup("NO_LEVELS");
 
   if ( game.system.id === "dnd5e" ) {
     if ( MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_MIDI")

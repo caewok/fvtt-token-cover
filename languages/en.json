@@ -96,8 +96,8 @@
     "tokencover.settings.cover-token-live-half": "Forced flat low cover (dnd5e/pf2e rule)",
     "tokencover.settings.cover-token-live-full": "Cover",
 
-    "tokencover.settings.cover-token-prone-attribute.Name": "'Prone' Status Id",
-    "tokencover.settings.cover-token-prone-attribute.Hint": "String indicating the id for the token 'prone' status. If set, prone tokens will be considered half-height for all vision and cover calculations. Requires Wall Height module.",
+    "tokencover.settings.prone-status-id.Name": "'Prone' Status Id",
+    "tokencover.settings.prone-status-id.Hint": "String indicating the id for the token 'prone' status. If set, prone tokens will be considered half-height for all vision and cover calculations.",
 
     "tokencover.settings.button-pf2e.Label": "Reset to PF2e",
     "tokencover.settings.button-pf2e.Notification": "Alt. Cover settings changed to PF2e defaults",
