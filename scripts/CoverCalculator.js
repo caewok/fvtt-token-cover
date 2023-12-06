@@ -268,12 +268,12 @@ export class CoverCalculator {
   percentCover(target) {
     const { viewer, calc } = this;
     if ( target ) calc.target = target;
-    const center = Point3d.fromTokenCenter(viewer);
-    const viewerPoints = calc.constructor.constructViewerPoints(viewer);
+
     let percent = 1;
     const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
+    const viewerPoints = calc.constructor.constructViewerPoints(viewer);
     for ( const viewerPoint of viewerPoints ) {
-      calc.visionOffset = viewerPoint.subtract(center);
+      calc.viewerPoint = viewerPoint;
       percent = Math.min(percent, this._percentCover());
       if ( percent < minPercent ) return percent;
     }

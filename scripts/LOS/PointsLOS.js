@@ -8,9 +8,6 @@ PIXI
 import { squaresUnderToken, hexesUnderToken } from "./shapes_under_token.js";
 import { AlternativeLOS } from "./AlternativeLOS.js";
 
-// Base folder
-import { Settings, SETTINGS } from "../settings.js";
-
 // Geometry folder
 import { Point3d } from "../geometry/3d/Point3d.js";
 import { Draw } from "../geometry/Draw.js";
@@ -122,21 +119,17 @@ export class PointsLOS extends AlternativeLOS {
    * @property {boolean} debug                        Enable debug visualizations.
    *
    * Added by this subclass:
-   * @property {SETTINGS.POINT_TYPE} pointAlgorithm   The type of point-based algorithm to apply to target
+   * @property {POINT_TYPE} pointAlgorithm            The type of point-based algorithm to apply to target
    * @property {number} inset                         How much to inset target points from target border
    * @property {boolean} grid                         True if treating points separately for each grid space
    * @property {boolean} points3d                     Use top/bottom target elevation when enabled
    */
 
-
-  _configure(config = {}) {
-    super._configure(config);
-    const cfg = this.config;
-    const OPTS = SETTINGS.LOS.TARGET.POINT_OPTIONS;
-
-    cfg.pointAlgorithm = config.pointAlgorithm ?? Settings.get(OPTS.NUM_POINTS);
-    cfg.inset = config.inset ?? Settings.get(OPTS.INSET);
-    cfg.points3d = config.points3d ?? Settings.get(OPTS.POINTS3D);
+  _initializeConfiguration(config = {}) {
+    config.numTargetPoints ??= this.constructor.POINT_TYPES.CENTER;
+    config.targetInset ??= 0.75;
+    config.points3d ??= true;
+    super._initializeConfiguration(config);
   }
 
   _clearCache() {
@@ -162,7 +155,8 @@ export class PointsLOS extends AlternativeLOS {
    * @returns {Points3d[]|undefined} Undefined if viewer cannot be ascertained
    */
   constructViewerPoints() {
-    const { pointAlgorithm, inset } = this.config;
+    const pointAlgorithm = this.getConfiguration("pointAlgorithm");
+    const inset = this.getConfiguration("inset");
     const tokenShape = this.viewer.bounds;
     return this.constructor._constructTokenPoints(this.viewer, { pointAlgorithm, inset, tokenShape });
   }
@@ -172,11 +166,13 @@ export class PointsLOS extends AlternativeLOS {
    * - Grid. When set, points are constructed per grid space covered by the token.
    */
   _constructTargetPoints() {
-    const { target, config } = this;
-    const { largeTarget, pointAlgorithm, inset, points3d } = config;
+    const { target } = this;
+    const pointAlgorithm = this.getConfiguration("pointAlgorithm");
+    const inset = this.getConfiguration("inset");
+    const points3d = this.getConfiguration("points3d");
     const cfg = { pointAlgorithm, inset };
 
-    if ( largeTarget ) {
+    if ( this.useLargeTarget ) {
       // Construct points for each target subshape, defined by grid spaces under the target.
       const targetShapes = this.constructor.constrainedGridShapesUnderToken(target);
       const targetPointsArray = targetShapes.map(targetShape => {
@@ -240,7 +236,7 @@ export class PointsLOS extends AlternativeLOS {
    */
   _testPointToPoints(targetPoints) {
     const viewerPoint = this.viewerPoint;
-    const visibleTargetShape = this.config.visibleTargetShape;
+    const visibleTargetShape = this.visibleTargetShape;
     let numPointsBlocked = 0;
     const ln = targetPoints.length;
     for ( let i = 0; i < ln; i += 1 ) {
@@ -366,7 +362,7 @@ export class PointsLOS extends AlternativeLOS {
   _drawPointToPoints(targetPoints, { alpha = 1, width = 1 } = {}) {
     const draw = this.debugDraw;
     const viewerPoint = this.viewerPoint;
-    const visibleTargetShape = this.config.visibleTargetShape;
+    const visibleTargetShape = this.visibleTargetShape;
     const ln = targetPoints.length;
     for ( let i = 0; i < ln; i += 1 ) {
       const targetPoint = targetPoints[i];
