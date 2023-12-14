@@ -141,8 +141,8 @@ export class CoverDialog {
    * @returns {Map<Token, COVER_TYPE>|false}
    */
   async workflow(actionType) {
-    const coverCheckOption = Settings.get(SETTINGS.COVER.MIDIQOL.COVERCHECK);
-    const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
+    const coverCheckOption = Settings.get(SETTINGS.MIDIQOL.COVERCHECK);
+    const choices = SETTINGS.MIDIQOL.COVERCHECK_CHOICES;
     let askGM = true;
     switch ( coverCheckOption ) {
       case choices.NONE: return undefined;

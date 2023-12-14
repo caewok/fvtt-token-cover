@@ -75,6 +75,23 @@ export const SETTINGS = {
 
   DEBUG: "debug-cover",
   PRONE_STATUS_ID: "prone-status-id",
+  TOKEN_HP_ATTRIBUTE: "token-hp-attribute",
+
+  PRONE_MULTIPLIER: "prone-multiplier",
+  VISION_HEIGHT_MULTIPLIER: "vision-height-multiplier",
+
+  DEAD_TOKENS_BLOCK: "dead-tokens-block",
+  PRONE_TOKENS_BLOCK: "prone-tokens-block",
+
+  LIVE_TOKENS: {
+    ALGORITHM: "cover-token-live",
+    // ATTRIBUTE: "cover-token-prone-attribute",
+    TYPES: {
+      NONE: "cover-token-live-none",
+      HALF: "cover-token-live-half",
+      FULL: "cover-token-live-full"
+    }
+  },
 
   // Other cover settings
   COVER: {
@@ -94,37 +111,20 @@ export const SETTINGS = {
       HIGH: "cover-trigger-percent-high"
     },
 
-    MIDIQOL: {
-      COVERCHECK: "midiqol-covercheck",
-      COVERCHECK_CHOICES: {
-        NONE: "midiqol-covercheck-none",
-        USER: "midiqol-covercheck-user",
-        USER_CANCEL: "midiqol-covercheck-user-cancel",
-        GM: "midiqol-covercheck-gm",
-        AUTO: "midiqol-covercheck-auto"
-      },
-      COVERCHECK_IF_CHANGED: "midiqol-covercheck-if-changed"
-    },
-
     COMBAT_AUTO: "cover-combat-auto",
-    CHAT: "cover-chat-message",
+    CHAT: "cover-chat-message"
+  },
 
-    DEAD_TOKENS: {
-      ALGORITHM: "cover-token-dead",
-      ATTRIBUTE: "cover-token-dead-attribute"
+  MIDIQOL: {
+    COVERCHECK: "midiqol-covercheck",
+    COVERCHECK_CHOICES: {
+      NONE: "midiqol-covercheck-none",
+      USER: "midiqol-covercheck-user",
+      USER_CANCEL: "midiqol-covercheck-user-cancel",
+      GM: "midiqol-covercheck-gm",
+      AUTO: "midiqol-covercheck-auto"
     },
-
-    LIVE_TOKENS: {
-      ALGORITHM: "cover-token-live",
-      // ATTRIBUTE: "cover-token-prone-attribute",
-      TYPES: {
-        NONE: "cover-token-live-none",
-        HALF: "cover-token-live-half",
-        FULL: "cover-token-live-full"
-      }
-    },
-
-    PRONE: "cover-prone",
+    COVERCHECK_IF_CHANGED: "midiqol-covercheck-if-changed"
   },
 
   // Hidden settings
@@ -562,12 +562,12 @@ export class Settings {
       tab: "workflow"
     });
 
-    const MIDICHOICES = KEYS.COVER.MIDIQOL.COVERCHECK_CHOICES;
+    const MIDICHOICES = KEYS.MIDIQOL.COVERCHECK_CHOICES;
     const useCoverCheck = game.system.id === "dnd5e" || MODULES_ACTIVE.MIDI_QOL;
     if ( useCoverCheck ) {
-      register(KEYS.COVER.MIDIQOL.COVERCHECK, {
-        name: localize(`${KEYS.COVER.MIDIQOL.COVERCHECK}.Name`),
-        hint: localize(`${KEYS.COVER.MIDIQOL.COVERCHECK}.Hint`),
+      register(KEYS.MIDIQOL.COVERCHECK, {
+        name: localize(`${KEYS.MIDIQOL.COVERCHECK}.Name`),
+        hint: localize(`${KEYS.MIDIQOL.COVERCHECK}.Hint`),
         scope: "world",
         config: false,
         type: String,
@@ -582,9 +582,9 @@ export class Settings {
         tab: "workflow"
       });
 
-      register(KEYS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED, {
-        name: localize(`${KEYS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED}.Name`),
-        hint: localize(`${KEYS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED}.Hint`),
+      register(KEYS.MIDIQOL.COVERCHECK_IF_CHANGED, {
+        name: localize(`${KEYS.MIDIQOL.COVERCHECK_IF_CHANGED}.Name`),
+        hint: localize(`${KEYS.MIDIQOL.COVERCHECK_IF_CHANGED}.Hint`),
         scope: "world",
         config: false,
         type: Boolean,
@@ -594,10 +594,10 @@ export class Settings {
     }
 
     // ----- NOTE: Other cover settings tab ----- //
-    const LIVECHOICES = KEYS.COVER.LIVE_TOKENS.TYPES;
-    register(KEYS.COVER.LIVE_TOKENS.ALGORITHM, {
-      name: localize(`${KEYS.COVER.LIVE_TOKENS.ALGORITHM}.Name`),
-      hint: localize(`${KEYS.COVER.LIVE_TOKENS.ALGORITHM}.Hint`),
+    const LIVECHOICES = KEYS.LIVE_TOKENS.TYPES;
+    register(KEYS.LIVE_TOKENS.ALGORITHM, {
+      name: localize(`${KEYS.LIVE_TOKENS.ALGORITHM}.Name`),
+      hint: localize(`${KEYS.LIVE_TOKENS.ALGORITHM}.Hint`),
       scope: "world",
       config: false,
       type: String,
@@ -607,12 +607,35 @@ export class Settings {
         [LIVECHOICES.HALF]: localize(LIVECHOICES.HALF)
       },
       default: LIVECHOICES.FULL,
+      onChange: value => this.losSettingChange(KEYS.LIVE_TOKENS.ALGORITHM, value),
       tab: "other"
     });
 
-    register(KEYS.COVER.DEAD_TOKENS.ALGORITHM, {
-      name: localize(`${KEYS.COVER.DEAD_TOKENS.ALGORITHM}.Name`),
-      hint: localize(`${KEYS.COVER.DEAD_TOKENS.ALGORITHM}.Hint`),
+    register(KEYS.DEAD_TOKENS_BLOCK, {
+      name: localize(`${KEYS.DEAD_TOKENS_BLOCK}.Name`),
+      hint: localize(`${KEYS.DEAD_TOKENS_BLOCK}.Hint`),
+      scope: "world",
+      config: false,
+      type: Boolean,
+      default: false,
+      onChange: value => this.losSettingChange(KEYS.DEAD_TOKENS_BLOCK, value),
+      tab: "other"
+    });
+
+    register(KEYS.PRONE_TOKENS_BLOCK, {
+      name: localize(`${KEYS.PRONE_TOKENS_BLOCK}.Name`),
+      hint: localize(`${KEYS.PRONE_TOKENS_BLOCK}.Hint`),
+      scope: "world",
+      config: false,
+      type: Boolean,
+      default: false,
+      onChange: value => this.losSettingChange(KEYS.PRONE_TOKENS_BLOCK, value),
+      tab: "other"
+    });
+
+    register(KEYS.PRONE_STATUS_ID, {
+      name: localize(`${KEYS.PRONE_STATUS_ID}.Name`),
+      hint: localize(`${KEYS.PRONE_STATUS_ID}.Hint`),
       scope: "world",
       config: false,
       type: Boolean,
@@ -620,23 +643,35 @@ export class Settings {
       tab: "other"
     });
 
-    register(KEYS.COVER.PRONE, {
-      name: localize(`${KEYS.COVER.PRONE}.Name`),
-      hint: localize(`${KEYS.COVER.PRONE}.Hint`),
+    register(KEYS.PRONE_MULTIPLIER, {
+      name: localize(`${KEYS.PRONE_MULTIPLIER}.Name`),
+      hint: localize(`${KEYS.PRONE_MULTIPLIER}.Hint`),
       scope: "world",
       config: false,
-      type: Boolean,
-      default: true,
+      type: Number,
+      range: {
+        max: 1,  // Prone equivalent to standing.
+        min: 0,  // Prone equivalent to (almost) not being there at all. Will set to a single pixel.
+        step: 0.1
+      },
+      default: 0.33,  // Same as Wall Height
+      onChange: value => CONFIG.GeometryLib.proneMultiplier = value,
       tab: "other"
     });
 
-    register(KEYS.COVER.DEAD_TOKENS.ATTRIBUTE, {
-      name: localize(`${KEYS.COVER.DEAD_TOKENS.ATTRIBUTE}.Name`),
-      hint: localize(`${KEYS.COVER.DEAD_TOKENS.ATTRIBUTE}.Hint`),
+    register(KEYS.VISION_HEIGHT_MULTIPLIER, {
+      name: localize(`${KEYS.VISION_HEIGHT_MULTIPLIER}.Name`),
+      hint: localize(`${KEYS.VISION_HEIGHT_MULTIPLIER}.Hint`),
       scope: "world",
       config: false,
-      type: String,
-      default: "system.attributes.hp.value",
+      type: Number,
+      range: {
+        max: 1,  // At token top.
+        min: 0,  // At token bottom.
+        step: 0.1
+      },
+      default: 0.9,
+      onChange: value => CONFIG.GeometryLib.proneMultiplier = value,
       tab: "other"
     });
 
@@ -649,6 +684,17 @@ export class Settings {
       default: CONFIG.GeometryLib.proneStatusId || "prone",
       onChange: value => this.setProneStatusId(value),
       tab: "other"
+    });
+
+    register(KEYS.TOKEN_HP_ATTRIBUTE, {
+      name: localize(`${KEYS.TOKEN_HP_ATTRIBUTE}.Name`),
+      hint: localize(`${KEYS.TOKEN_HP_ATTRIBUTE}.Hint`),
+      scope: "world",
+      config: false,
+      type: String,
+      default: "system.attributes.hp.value",
+      tab: "other",
+      onChange: value => this.losSettingChange(KEYS.TOKEN_HP_ATTRIBUTE, value)
     });
 
 
@@ -707,9 +753,10 @@ export class Settings {
     canvas.tokens.placeables.forEach(token => token[MODULE_ID]?.coverCalc._updateAlgorithm());
   }
 
-  static losSettingChange(key, _value) {
+  static losSettingChange(key, value) {
     this.cache.delete(key);
-    canvas.tokens.placeables.forEach(token => token[MODULE_ID]?.coverCalc._updateConfigurationSettings());
+    const cfg = { [key]: value };
+    canvas.tokens.placeables.forEach(token => token[MODULE_ID]?.coverCalc._updateConfiguration(cfg));
   }
 
   static setProneStatusId(value) {

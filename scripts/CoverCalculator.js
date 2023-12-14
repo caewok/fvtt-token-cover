@@ -32,6 +32,27 @@ let [viewer] = canvas.tokens.controlled;
 let [target] = game.user.targets;
 */
 
+/**
+ * Map of settings to    configurations.
+ */
+const TARGET = SETTINGS.LOS.TARGET;
+const SETTINGS_CONFIG_MAP = {
+  // Target
+  [TARGET.LARGE]: "largeTarget",
+
+  // Target (PointsLOS)
+  [TARGET.POINT_OPTIONS.NUM_POINTS]: "numTargetPoints",
+  [TARGET.POINT_OPTIONS.INSET]: "targetInset",
+  [TARGET.POINT_OPTIONS.POINTS3D]: "points3d",
+
+  // Token blocking
+  [SETTINGS.DEAD_TOKENS_BLOCK]: "deadTokensBlock",
+  [SETTINGS.PRONE_TOKENS_BLOCK]: "proneTokensBlock",
+  [SETTINGS.TOKEN_HP_ATTRIBUTE]: "tokenHPAttribute",
+  [SETTINGS.LIVE_TOKENS.ALGORITHM]: "liveTokensAlgorithm",
+};
+
+
 
 export class CoverCalculator {
 
@@ -60,18 +81,6 @@ export class CoverCalculator {
   /** @type {object} */
   static COVER_TYPES = COVER.TYPES;
 
-  /**
-   * @typedef CoverConfig  Configuration settings for this class.
-   * @type {object}
-   * @property {CONST.WALL_RESTRICTION_TYPES} type    What type of walls block for this cover
-   * @property {boolean} wallsBlock                   Do walls block vision?
-   * @property {boolean} tilesBlock                   Do tiles block vision?
-   * @property {boolean} deadTokensBlock              Do dead tokens block vision?
-   * @property {boolean} liveTokensBlock              Do live tokens block vision?
-   * @property {boolean} liveForceHalfCover           Use dnd5e token half-cover rule
-   */
-  config = {};
-
   /** @type {AlternativeLOS} */
   calc;
 
@@ -80,9 +89,30 @@ export class CoverCalculator {
    * @param {Token} target
    * @param {CoverConfig} [config]
    */
-  constructor(viewer, target, config = {}) {
-    this.#configure(config);
-    this.calc = new this.constructor.ALGORITHM_CLASS[this.config.losAlgorithm](viewer, target, this.config);
+  constructor(viewer, target) {
+    const algorithm = Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
+    const cfg = this.constructor.initialConfiguration();
+    this.calc = new this.constructor.ALGORITHM_CLASS[algorithm](viewer, target, cfg);
+  }
+
+  static initialConfiguration() {
+    const cfg = {
+      type: "move",
+      wallsBlock: true,
+      tilesBlock: true
+    };
+
+    // Add in relevant settings.
+    for ( const [settingsKey, configLabel] of Object.entries(SETTINGS_CONFIG_MAP) ) {
+      cfg[configLabel] = Settings.get(settingsKey);
+    }
+
+    // Handle the live token cover choices.
+    const liveTypes = SETTINGS.LIVE_TOKENS.TYPES;
+    cfg.liveTokensBlock = cfg.liveTokensAlgorithm !== liveTypes.NONE;
+    cfg.liveForceHalfCover = cfg.liveTokensAlgorithm === liveTypes.HALF;
+
+    return cfg;
   }
 
   // ----- NOTE: Getters / Setters ----- //
@@ -99,32 +129,15 @@ export class CoverCalculator {
 
   destroy() { this.calc.destroy(); }
 
+  debug() { return this.calc.updateDebug(); }
+
   clearDebug() { this.calc.clearDebug(); }
 
   debug(hasLOS) { return this.calc.debug(hasLOS); }
 
-  async closeDebugPopout() { return this.calc.closeDebugPopout(); }
+  async closeDebugPopout() { return this.calc?.closeDebugPopout(); }
 
-  async openDebugPopout() { return this.calc.openDebugPopout(); }
-
-  /**
-   * Configure cover options, most of which are passed to the cover LOS class.
-   * @param {CoverConfig}
-   */
-  #configure(config) {
-    const cfg = this.config;
-    const liveTokenAlg = Settings.get(SETTINGS.COVER.LIVE_TOKENS.ALGORITHM);
-    const liveTypes = SETTINGS.COVER.LIVE_TOKENS.TYPES;
-
-    cfg.type = config.type ?? "move";
-    cfg.wallsBlock = config.type || true;
-    cfg.tilesBlock = config.tilesBlock || true;
-    cfg.deadTokensBlock = config.deadTokensBlock || Settings.get(SETTINGS.COVER.DEAD_TOKENS.ALGORITHM);
-    cfg.liveTokensBlock = config.liveTokensBlock || liveTokenAlg !== liveTypes.NONE;
-    cfg.liveForceHalfCover = config.liveForceHalfCover || liveTokenAlg === liveTypes.HALF;
-    cfg.proneTokensBlock = config.proneTokensBlock || Settings.get(SETTINGS.COVER.PRONE);
-    cfg.losAlgorithm = config.losAlgorithm ??= Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
-  }
+  async openDebugPopout() { return this.calc?.openDebugPopout(); }
 
   /**
    * Update the calculator algorithm.
@@ -312,6 +325,55 @@ export class CoverCalculator {
     }
   }
 
+
+  /**
+   * Update one or more specific settings in the calculator.
+   */
+  _updateConfiguration(config) {
+    // Remap settings to the calculator config.
+
+    for ( const [settingsLabel, settingsValue] of Object.entries(config) ) {
+      if ( !Object.hasOwn(SETTINGS_CONFIG_MAP, settingsLabel) ) continue;
+      const cfgLabel = SETTINGS_CONFIG_MAP[settingsLabel];
+      config[cfgLabel] = settingsValue;
+      delete config[settingsLabel];
+    }
+
+    // Handle the live token cover choices.
+    if ( Object.hasOwn(config, "liveTokensAlgorithm") ) {
+      const liveTypes = SETTINGS.LIVE_TOKENS.TYPES;
+      config.liveTokensBlock = config.liveTokensAlgorithm !== liveTypes.NONE;
+      config.liveForceHalfCover = config.liveTokensAlgorithm === liveTypes.HALF;
+    }
+
+    this.calc.updateConfiguration(config);
+  }
+
+  /**
+   * Update the calculator algorithm.
+   */
+  _updateAlgorithm(algorithm) {
+    algorithm ??= Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
+    const clName = this.calc.constructor.name;
+    if ( clName === this.constructor.ALGORITHM_CLASS_NAME[algorithm] ) return;
+
+    const cl = this.constructor.ALGORITHM_CLASS[algorithm];
+    this.calc.destroy();
+    this.calc = new cl(this.viewer, this.target, this.config);
+  }
+
+  _forceWebGL2() { this._updateAlgorithm(SETTINGS.LOS.TARGET.TYPE.AREA3D_WEBGL2); }
+
+  _forceGeometric() { this._updateAlgorithm(SETTINGS.LOS.TARGET.TYPE.AREA3D_GEOMETRIC); }
+
+  /**
+   * Reset the calculator settings to the current settings.
+   * (Used in Settings after settings have changed.)
+   */
+  _resetConfigurationSettings() {
+    this.calc._initializeConfiguration(this.constructor.initialConfiguration());
+    this.calc._clearCache();
+  }
 
   // ----- NOTE: Helper methods ----- //
 

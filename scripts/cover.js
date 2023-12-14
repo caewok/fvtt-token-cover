@@ -86,7 +86,7 @@ export async function coverWorkflow(token, targets, actionType) {
 
   // Display in chat if requested.
   let displayChat = Settings.get(SETTINGS.COVER.CHAT);
-  if ( displayChat && Settings.get(SETTINGS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED) ) {
+  if ( displayChat && Settings.get(SETTINGS.MIDIQOL.COVERCHECK_IF_CHANGED) ) {
     // Only display chat if the cover differs from what is already applied to tokens.
     displayChat = !coverDialog._targetCoversMatchCalculations(coverCalculations);
   }
