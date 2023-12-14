@@ -110,6 +110,6 @@ Hooks.once("init", function() {
 Hooks.once("setup", function() {
   Settings.registerAll();
   initializePatching();
-  registerElevationConfig("Tile", "Alt. Token Cover");
+  registerElevationConfig("TileConfig", "Alt. Token Cover");
   Settings.updateConfigStatusEffects();
 });
