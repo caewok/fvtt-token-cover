@@ -46,10 +46,10 @@ const SETTINGS_CONFIG_MAP = {
   [TARGET.POINT_OPTIONS.POINTS3D]: "points3d",
 
   // Token blocking
+  [SETTINGS.LIVE_TOKENS.ALGORITHM]: "liveTokensAlgorithm",
   [SETTINGS.DEAD_TOKENS_BLOCK]: "deadTokensBlock",
   [SETTINGS.PRONE_TOKENS_BLOCK]: "proneTokensBlock",
-  [SETTINGS.TOKEN_HP_ATTRIBUTE]: "tokenHPAttribute",
-  [SETTINGS.LIVE_TOKENS.ALGORITHM]: "liveTokensAlgorithm",
+  [SETTINGS.TOKEN_HP_ATTRIBUTE]: "tokenHPAttribute"
 };
 
 

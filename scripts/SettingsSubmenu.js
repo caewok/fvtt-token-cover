@@ -92,6 +92,11 @@ export class DefaultSettings {
 }
 
 export class SettingsSubmenu extends FormApplication {
+  async _renderInner(data) {
+    await getTemplate(`modules/${MODULE_ID}/templates/settings-menu-tab-partial.html`, "atvSettingsMenuTabPartial");
+    return super._renderInner(data);
+  }
+
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       title: game.i18n.localize(`${MODULE_ID}.settings.submenu.title`),

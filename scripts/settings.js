@@ -2,14 +2,13 @@
 canvas,
 CONFIG,
 duplicate,
-game,
-PIXI
+foundry,
+game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
-import { Draw } from "./geometry/Draw.js";
 import { STATUS_EFFECTS } from "./status_effects.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
@@ -130,6 +129,7 @@ export const SETTINGS = {
   // Hidden settings
   AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
   CHANGELOG: "changelog",
+  ATV_SETTINGS_MESSAGE: "atv-settings-message",
 
   WELCOME_DIALOG: {
     v020: "welcome-dialog-v0-20",
@@ -633,58 +633,68 @@ export class Settings {
       tab: "other"
     });
 
-    register(KEYS.PRONE_STATUS_ID, {
-      name: localize(`${KEYS.PRONE_STATUS_ID}.Name`),
-      hint: localize(`${KEYS.PRONE_STATUS_ID}.Hint`),
-      scope: "world",
-      config: false,
-      type: Boolean,
-      default: true,
-      tab: "other"
-    });
+    if ( !MODULES_ACTIVE.TOKEN_VISIBILITY ) {
+      register(KEYS.PRONE_MULTIPLIER, {
+        name: localize(`${KEYS.PRONE_MULTIPLIER}.Name`),
+        hint: localize(`${KEYS.PRONE_MULTIPLIER}.Hint`),
+        scope: "world",
+        config: false,
+        type: Number,
+        range: {
+          max: 1,  // Prone equivalent to standing.
+          min: 0,  // Prone equivalent to (almost) not being there at all. Will set to a single pixel.
+          step: 0.1
+        },
+        default: CONFIG.GeometryLib.proneMultiplier ?? 0.33, // Same as Wall Height
+        tab: "other",
+        horizontalDivider: true,
+        onChange: value => CONFIG.GeometryLib.proneMultiplier = value
+      });
 
-    register(KEYS.PRONE_MULTIPLIER, {
-      name: localize(`${KEYS.PRONE_MULTIPLIER}.Name`),
-      hint: localize(`${KEYS.PRONE_MULTIPLIER}.Hint`),
-      scope: "world",
-      config: false,
-      type: Number,
-      range: {
-        max: 1,  // Prone equivalent to standing.
-        min: 0,  // Prone equivalent to (almost) not being there at all. Will set to a single pixel.
-        step: 0.1
-      },
-      default: 0.33,  // Same as Wall Height
-      onChange: value => CONFIG.GeometryLib.proneMultiplier = value,
-      tab: "other"
-    });
+      register(KEYS.VISION_HEIGHT_MULTIPLIER, {
+        name: localize(`${KEYS.VISION_HEIGHT_MULTIPLIER}.Name`),
+        hint: localize(`${KEYS.VISION_HEIGHT_MULTIPLIER}.Hint`),
+        scope: "world",
+        config: false,
+        type: Number,
+        range: {
+          max: 1,  // At token top.
+          min: 0,  // At token bottom.
+          step: 0.1
+        },
+        default: CONFIG.GeometryLib.visionHeightMultiplier ?? 0.9,
+        tab: "other",
+        onChange: value => CONFIG.GeometryLib.visionHeightMultiplier = value
+      });
 
-    register(KEYS.VISION_HEIGHT_MULTIPLIER, {
-      name: localize(`${KEYS.VISION_HEIGHT_MULTIPLIER}.Name`),
-      hint: localize(`${KEYS.VISION_HEIGHT_MULTIPLIER}.Hint`),
-      scope: "world",
-      config: false,
-      type: Number,
-      range: {
-        max: 1,  // At token top.
-        min: 0,  // At token bottom.
-        step: 0.1
-      },
-      default: 0.9,
-      onChange: value => CONFIG.GeometryLib.proneMultiplier = value,
-      tab: "other"
-    });
+      register(KEYS.PRONE_STATUS_ID, {
+        name: localize(`${KEYS.PRONE_STATUS_ID}.Name`),
+        hint: localize(`${KEYS.PRONE_STATUS_ID}.Hint`),
+        scope: "world",
+        config: false,
+        type: String,
+        default: CONFIG.GeometryLib.proneStatusId || "prone",
+        tab: "other",
+        onChange: value => CONFIG.GeometryLib.proneMultiplier = value
+      });
 
-    register(KEYS.PRONE_STATUS_ID, {
-      name: localize(`${KEYS.PRONE_STATUS_ID}.Name`),
-      hint: localize(`${KEYS.PRONE_STATUS_ID}.Hint`),
-      scope: "world",
-      config: false,
-      type: String,
-      default: CONFIG.GeometryLib.proneStatusId || "prone",
-      onChange: value => this.setProneStatusId(value),
-      tab: "other"
-    });
+    } else {
+      register(KEYS.ATV_SETTINGS_MESSAGE, {
+        name: localize(`${KEYS.ATV_SETTINGS_MESSAGE}.Name`),
+        hint: localize(`${KEYS.ATV_SETTINGS_MESSAGE}.Hint`),
+        scope: "world",
+        config: false,
+        type: Boolean,
+        default: false,
+        // TODO: Open ATV settings? onChange: value => this.losSettingChange(KEYS.PRONE_TOKENS_BLOCK, value),
+        tab: "other"
+      });
+    }
+
+    // Make sure these are linked at the start.
+    CONFIG.GeometryLib.proneMultiplier = this.get(KEYS.PRONE_MULTIPLIER);
+    CONFIG.GeometryLib.visionHeightMultiplier = this.get(KEYS.VISION_HEIGHT_MULTIPLIER);
+    CONFIG.GeometryLib.proneStatusId = this.get(KEYS.PRONE_STATUS_ID);
 
     register(KEYS.TOKEN_HP_ATTRIBUTE, {
       name: localize(`${KEYS.TOKEN_HP_ATTRIBUTE}.Name`),
