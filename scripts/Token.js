@@ -7,7 +7,7 @@ game
 
 import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
-import { SETTINGS, Settings } from "./Settings.js";
+import { SETTINGS, Settings } from "./settings.js";
 import { isFirstGM } from "./util.js";
 
 export const PATCHES = {};

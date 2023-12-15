@@ -7,7 +7,7 @@ Token
 "use strict";
 
 import { COVER, MODULES_ACTIVE, WEAPON_ATTACK_TYPES, MODULE_ID } from "./const.js";
-import { SETTINGS, Settings } from "./Settings.js";
+import { SETTINGS, Settings } from "./settings.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { PointsLOS } from "./LOS/PointsLOS.js";
 import { Area2dLOS } from "./LOS/Area2dLOS.js";

@@ -9,7 +9,7 @@ ui
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { Settings, SETTINGS } from "./Settings.js";
+import { Settings, SETTINGS } from "./settings.js";
 
 export class DefaultSettings {
   static get changeableSettings() {
