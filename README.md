@@ -1,34 +1,38 @@
-[![Version (latest)](https://img.shields.io/github/v/release/caewok/fvtt-token-visibility)](https://github.com/caewok/fvtt-token-visibility/releases/latest)
-[![Foundry Version](https://img.shields.io/badge/dynamic/json.svg?url=https://github.com/caewok/fvtt-token-visibility/releases/latest/download/module.json&label=Foundry%20Version&query=$.compatibleCoreVersion&colorB=blueviolet)](https://github.com/caewok/fvtt-token-visibility/releases/latest)
-[![License](https://img.shields.io/github/license/caewok/fvtt-token-visibility)](LICENSE)
+[![Version (latest)](https://img.shields.io/github/v/release/caewok/fvtt-token-cover)](https://github.com/caewok/fvtt-token-cover/releases/latest)
+[![Foundry Version](https://img.shields.io/badge/dynamic/json.svg?url=https://github.com/caewok/fvtt-token-cover/releases/latest/download/module.json&label=Foundry%20Version&query=$.compatibleCoreVersion&colorB=blueviolet)](https://github.com/caewok/fvtt-token-cover/releases/latest)
+[![License](https://img.shields.io/github/license/caewok/fvtt-token-cover)](LICENSE)
 
-# Alternative Token Visibility
+# Alternative Token Cover
 
-This module provides options to modify Foundry's default methods for measuring visibility range and line-of-sight between tokens. Some options are more performant, while others trade some performance for a more precise method of computing visibility.
+This module provides options to calculate how much cover a targeted token has, with respect to a viewer token. Various options are provided to modify how the cover calculation is made. The GM can also define low, medium, and high levels of cover, and associate each level of cover with an active effect that is applied to the targeted token when it has cover. Workflow options are provided to facilitate automation.
 
-As of v0.2.0, this module also optionally assists with cover calculations in a (mostly) system-agnostic manner. Various cover measurement options are provided. A macro is also provided to allow any user to calculate cover from one or more selected tokens to one or more targeted tokens. (Import from the Macro compendium.)
+This module is closely related to [Alternative Token Visibility](https://github.com/caewok/fvtt-token-visibility). Both rely on the same underlying algorithms to determine whether there are obstacles between the viewer and the target.
 
-Version v0.3.0 introduces the ability to use tokens as cover, and to designate a token with the ability to ignore cover.
+Cover Algorithm choices:
+- Points. Test whether a 3d ray from a point on the viewer token to a point on the target token is blocked by an obstacle. Multiple points on the target can be tested to determine whether a threshold percentage of rays is met for cover. For overhead tiles, considers them to block unless the ray passes through a transparent portion of the tile.
+- Area2d. Test the percentage of the overhead view of a target token that is viewable from the perspective of a point on the viewer token. For overhead tiles, does not consider transparency.
+- Area3d. Test the percentage of the 3d view of a target token that is viewable from the perspective of a point on the viewer token. For overhead tiles, uses webGL to test transparency.
 
-By measuring the precise token boundary and by considering intersecting walls, Alt Token Visibility prevents tokens from being seen in situations where they partially overlap a wall. Alt Token Visibility provides additional customizations to control when partially obscured tokens can be seen.
-
-Alt Token Visibility is particularly useful when dealing with token elevations and walls with limited heights or depth, because it focuses on approximating visibility in 3 dimensions.
+Major features:
+- Choose whether one or more points on the viewing target are tested for line-of-sight, with the best result taken. Options include a "stereo" version that uses two points on the front facing side of the token.
+- Change the number of points used to determine range.
+- Adjust viewer and target line-of-sight point locations, shifting from the token border to the center.
+- Account for wall height (using the [Wall Height](https://github.com/theripper93/wall-height) module) and overhead tiles.
+- Adjust the vision height for tokens and prone tokens.
 
 # Installation
 
-Add this [Manifest URL](https://github.com/caewok/fvtt-token-visibility/releases/latest/download/module.json) in Foundry to install.
+Add this [Manifest URL](https://github.com/caewok/fvtt-token-cover/releases/latest/download/module.json) in Foundry to install.
 
 ## Dependencies
 - [libWrapper](https://github.com/ruipin/fvtt-lib-wrapper)
 - [socketlib](https://github.com/manuelVo/foundryvtt-socketlib)
 
 ## Recommended module additions
+- [Alternative Token Visibility](https://github.com/caewok/fvtt-token-visibility). Needed if you want token vision to exactly match token cover.
 - [Wall Height](https://github.com/theripper93/wall-height). Not only does Wall Height provide the ability to set elevation for wall tops and bottoms, it also gives tokens height based on their size. The Area3d option for Alt Token Visibility takes full advantage of token height.
 - [Elevated Vision](https://github.com/caewok/fvtt-elevated-vision). Can assist with setting terrain and token elevations.
-- [Token Lean](https://github.com/WesBelmont/token-lean). Useful when you want players to be able to "peer" over limited-height walls.
 - [Midiqol](https://gitlab.com/tposney/midi-qol). If midiqol is installed, additional options are presented to allow cover calculations during an attack roll.
-
-Alternative Token Visibility should also work with [Perfect Vision](https://github.com/dev7355608/perfect-vision/) and [Levels](https://github.com/theripper93/Levels). If either module is installed, measurement of range is left to those modules.
 
 ## Levels
 
