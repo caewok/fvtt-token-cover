@@ -87,7 +87,7 @@ export class ModuleSettingsAbstract {
    * Localize a setting key.
    * @param {string} key
    */
-  static localize(key) { game.i18n.localize(`${MODULE_ID}.settings.${key}`); }
+  static localize(key) { return game.i18n.localize(`${MODULE_ID}.settings.${key}`); }
 
   /**
    * Register all settings
