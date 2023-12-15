@@ -9,7 +9,7 @@ ui
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { Settings, SETTINGS } from "./Settings.js";
+import { Settings, SETTINGS } from "./settings.js";
 
 export class DefaultSettings {
   static get changeableSettings() {
@@ -26,8 +26,8 @@ export class DefaultSettings {
       TARGET.POINT_OPTIONS.INSET,
       TARGET.POINT_OPTIONS.POINTS3D,
 
-      COVER.DEAD_TOKENS.ALGORITHM,
-      COVER.LIVE_TOKENS.ALGORITHM
+      SETTINGS.DEAD_TOKENS_BLOCK,
+      SETTINGS.LIVE_TOKENS.ALGORITHM
     ];
   }
 
@@ -49,8 +49,8 @@ export class DefaultSettings {
       [TARGET.POINT_OPTIONS.POINTS3D]: false,
 
       // Cover options
-      [COVER.DEAD_TOKENS.ALGORITHM]: false,
-      [COVER.LIVE_TOKENS.ALGORITHM]: COVER.LIVE_TOKENS.TYPES.FULL
+      [SETTINGS.DEAD_TOKENS_BLOCK]: false,
+      [SETTINGS.LIVE_TOKENS.ALGORITHM]: SETTINGS.LIVE_TOKENS.TYPES.FULL
     };
   }
 
@@ -72,8 +72,8 @@ export class DefaultSettings {
       [TARGET.POINT_OPTIONS.POINTS3D]: false,
 
       // Cover options
-      [COVER.DEAD_TOKENS.ALGORITHM]: false,
-      [COVER.LIVE_TOKENS.ALGORITHM]: COVER.LIVE_TOKENS.TYPES.HALF
+      [SETTINGS.DEAD_TOKENS_BLOCK]: false,
+      [SETTINGS.LIVE_TOKENS.ALGORITHM]: SETTINGS.LIVE_TOKENS.TYPES.HALF
     };
   }
 
@@ -92,6 +92,11 @@ export class DefaultSettings {
 }
 
 export class SettingsSubmenu extends FormApplication {
+  async _renderInner(data) {
+    await getTemplate(`modules/${MODULE_ID}/templates/settings-menu-tab-partial.html`, "atvSettingsMenuTabPartial");
+    return super._renderInner(data);
+  }
+
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       title: game.i18n.localize(`${MODULE_ID}.settings.submenu.title`),

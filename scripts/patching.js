@@ -25,12 +25,16 @@ import { PATCHES as PATCHES_Wall } from "./LOS/Wall.js";
 // Midiqol
 import { PATCHES as PATCHES_Midiqol } from "./Midiqol.js";
 
+// Settings
+import { PATCHES as PATCHES_Settings } from "./ModuleSettingsAbstract.js";
+
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
   Combat: PATCHES_Combat,
   ConstrainedTokenBorder: PATCHES_ConstrainedTokenBorder,
   Item: PATCHES_Item,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
+  Settings: PATCHES_Settings,
   SettingsConfig: PATCHES_SettingsConfig,
   Tile: PATCHES_Tile,
   Token: foundry.utils.mergeObject(PATCHES_Token, PATCHES_TokenLOS),

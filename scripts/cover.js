@@ -47,7 +47,7 @@ dnd5e: half, 3/4, full
 */
 
 import { COVER, MODULE_ID } from "./const.js";
-import { SETTINGS, Settings } from "./Settings.js";
+import { SETTINGS, Settings } from "./settings.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { CoverDialog } from "./CoverDialog.js";
 
@@ -86,7 +86,7 @@ export async function coverWorkflow(token, targets, actionType) {
 
   // Display in chat if requested.
   let displayChat = Settings.get(SETTINGS.COVER.CHAT);
-  if ( displayChat && Settings.get(SETTINGS.COVER.MIDIQOL.COVERCHECK_IF_CHANGED) ) {
+  if ( displayChat && Settings.get(SETTINGS.MIDIQOL.COVERCHECK_IF_CHANGED) ) {
     // Only display chat if the cover differs from what is already applied to tokens.
     displayChat = !coverDialog._targetCoversMatchCalculations(coverCalculations);
   }
