@@ -91,11 +91,15 @@ export class CoverCalculator {
    */
   constructor(viewer, target) {
     const algorithm = Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
-    const cfg = this.constructor.initialConfiguration();
+    const cfg = this.constructor.calcConfiguration();
     this.calc = new this.constructor.ALGORITHM_CLASS[algorithm](viewer, target, cfg);
   }
 
-  static initialConfiguration() {
+  get liveForceHalfCover() {
+    return this.calc.getConfiguration("liveTokensAlgorithm") === SETTINGS.LIVE_TOKENS.TYPES.HALF;
+  }
+
+  static calcConfiguration() {
     const cfg = {
       type: "move",
       wallsBlock: true,
@@ -107,11 +111,8 @@ export class CoverCalculator {
       cfg[configLabel] = Settings.get(settingsKey);
     }
 
-    // Handle the live token cover choices.
-    const liveTypes = SETTINGS.LIVE_TOKENS.TYPES;
-    cfg.liveTokensBlock = cfg.liveTokensAlgorithm !== liveTypes.NONE;
-    cfg.liveForceHalfCover = cfg.liveTokensAlgorithm === liveTypes.HALF;
-
+    // Set liveTokensBlock based on underlying algorithm.
+    cfg.liveTokensBlock = cfg.liveTokensAlgorithm !== SETTINGS.LIVE_TOKENS.TYPES.NONE;
     return cfg;
   }
 
@@ -262,10 +263,10 @@ export class CoverCalculator {
   _percentCover() {
     const calc = this.calc;
     let percent = 1 - calc.percentVisible();
-    if ( this.config.liveForceHalfCover && calc.config.liveTokensBlock ) {
-      calc._updateConfiguration({ liveTokensBlock: false });
+    if ( this.liveForceHalfCover && calc.getConfiguration("liveTokensBlock") ) {
+      calc.updateConfiguration({ liveTokensBlock: false });
       const percentNoTokens = 1 - calc.percentVisible();
-      calc._updateConfiguration({ liveTokensBlock: true });
+      calc.updateConfiguration({ liveTokensBlock: true });
       const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
       percent = Math.max(percentNoTokens, Math.min(minPercent, percent));
     }
@@ -343,7 +344,6 @@ export class CoverCalculator {
     if ( Object.hasOwn(config, "liveTokensAlgorithm") ) {
       const liveTypes = SETTINGS.LIVE_TOKENS.TYPES;
       config.liveTokensBlock = config.liveTokensAlgorithm !== liveTypes.NONE;
-      config.liveForceHalfCover = config.liveTokensAlgorithm === liveTypes.HALF;
     }
 
     this.calc.updateConfiguration(config);
