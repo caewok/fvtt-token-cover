@@ -273,6 +273,11 @@ export class CoverCalculator {
     return percent;
   }
 
+  coverFromViewerAtLocation(target, location) {
+    this.calc.viewerPoint = location;
+
+  }
+
   /**
    * Calculate the percentage cover over all viewer points if more than one in settings.
    * @param {Token} [target]    Optional target if not already set.
