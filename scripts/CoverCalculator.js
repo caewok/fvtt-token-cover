@@ -134,11 +134,15 @@ export class CoverCalculator {
 
   clearDebug() { this.calc.clearDebug(); }
 
-  debug(hasLOS) { return this.calc.debug(hasLOS); }
+  async closeDebugPopout() {
+    if ( !this.calc.closeDebugPopout ) return;
+    return this.calc.closeDebugPopout();
+  }
 
-  async closeDebugPopout() { return this.calc?.closeDebugPopout(); }
-
-  async openDebugPopout() { return this.calc?.openDebugPopout(); }
+  async openDebugPopout() {
+    if ( !this.calc.openDebugPopout ) return;
+    return this.calc.openDebugPopout();
+  }
 
   /**
    * Update the calculator algorithm.
