@@ -1,0 +1,30 @@
+{
+  "name": "Measure Cover",
+  "type": "script",
+  "author": "nx29hoGineoQv9Bs",
+  "img": "icons/svg/shield.svg",
+  "scope": "global",
+  "command": "// Macro to measure cover between selected tokens and targets.\n// Determine token and targets.\nconst token = game.user._lastSelected || canvas.tokens.controlled[0];\nif ( !token ) {\n  ui.notifications.error(\"Please select a token.\");\n  return;\n}\n\nlet targets = game.user.targets;\nif ( !targets.size ) {\n  targets = new Set(canvas.tokens.placeables);\n  targets.delete(token); // Remove the controlled token.\n}\n\nif ( !targets.size ) {\n  ui.notifications.error(\"Please target at least one target.\");\n  return;\n}\n\n// Display cover to user.\nconst api = game.modules.get(\"tokencover\").api;\nconst coverDialog = new api.CoverDialog(token, targets);\ncoverDialog.showCoverResults();",
+  "folder": null,
+  "ownership": {
+    "default": 0,
+    "nx29hoGineoQv9Bs": 3
+  },
+  "flags": {
+    "combat-utility-belt": {
+      "macroTrigger": ""
+    },
+    "core": {}
+  },
+  "_stats": {
+    "systemId": "dnd5e",
+    "systemVersion": "2.3.1",
+    "coreVersion": "11.311",
+    "createdTime": 1666899726209,
+    "modifiedTime": 1703007470720,
+    "lastModifiedBy": "nx29hoGineoQv9Bs"
+  },
+  "_id": "DlP22h4zkOlScUds",
+  "sort": 0,
+  "_key": "!macros!DlP22h4zkOlScUds"
+}

@@ -1,15 +1,15 @@
-2023/12/18-19:34:47.844097 173d4f000 Recovering log #23
-2023/12/18-19:34:47.845265 173d4f000 Delete type=3 #21
-2023/12/18-19:34:47.845316 173d4f000 Delete type=0 #23
-2023/12/18-19:34:47.847222 173ddb000 Level-0 table #29: started
-2023/12/18-19:34:47.847418 173ddb000 Level-0 table #29: 1686 bytes OK
-2023/12/18-19:34:47.847545 173ddb000 Delete type=0 #27
-2023/12/18-19:34:47.847633 173ddb000 Manual compaction at level-0 from '!macros!7KEraAg7JO8XwvRP' @ 72057594037927935 : 1 .. '!macros!luwHDJFmgp5H6tGu' @ 0 : 0; will stop at (end)
-2023/12/18-19:34:47.847658 173ddb000 Manual compaction at level-1 from '!macros!7KEraAg7JO8XwvRP' @ 72057594037927935 : 1 .. '!macros!luwHDJFmgp5H6tGu' @ 0 : 0; will stop at '!macros!luwHDJFmgp5H6tGu' @ 23 : 1
-2023/12/18-19:34:47.847667 173ddb000 Compacting 1@1 + 1@2 files
-2023/12/18-19:34:47.847877 173ddb000 Generated table #30@1: 3 keys, 1661 bytes
-2023/12/18-19:34:47.847884 173ddb000 Compacted 1@1 + 1@2 files => 1661 bytes
-2023/12/18-19:34:47.847942 173ddb000 compacted to: files[ 0 0 1 0 0 0 0 ]
-2023/12/18-19:34:47.847970 173ddb000 Delete type=2 #29
-2023/12/18-19:34:47.848027 173ddb000 Delete type=2 #25
-2023/12/18-19:34:47.848084 173ddb000 Manual compaction at level-1 from '!macros!luwHDJFmgp5H6tGu' @ 23 : 1 .. '!macros!luwHDJFmgp5H6tGu' @ 0 : 0; will stop at (end)
+2023/12/19-09:40:19.297993 17312b000 Recovering log #33
+2023/12/19-09:40:19.298690 17312b000 Delete type=3 #31
+2023/12/19-09:40:19.298742 17312b000 Delete type=0 #33
+2023/12/19-09:40:19.300152 1739bf000 Level-0 table #39: started
+2023/12/19-09:40:19.300289 1739bf000 Level-0 table #39: 1929 bytes OK
+2023/12/19-09:40:19.300371 1739bf000 Delete type=0 #37
+2023/12/19-09:40:19.300431 1739bf000 Manual compaction at level-0 from '!macros!DlP22h4zkOlScUds' @ 72057594037927935 : 1 .. '!macros!zEeAog9Sbw3vGayj' @ 0 : 0; will stop at (end)
+2023/12/19-09:40:19.300444 1739bf000 Manual compaction at level-1 from '!macros!DlP22h4zkOlScUds' @ 72057594037927935 : 1 .. '!macros!zEeAog9Sbw3vGayj' @ 0 : 0; will stop at '!macros!zEeAog9Sbw3vGayj' @ 33 : 1
+2023/12/19-09:40:19.300448 1739bf000 Compacting 1@1 + 1@2 files
+2023/12/19-09:40:19.300596 1739bf000 Generated table #40@1: 3 keys, 1859 bytes
+2023/12/19-09:40:19.300601 1739bf000 Compacted 1@1 + 1@2 files => 1859 bytes
+2023/12/19-09:40:19.300649 1739bf000 compacted to: files[ 0 0 1 0 0 0 0 ]
+2023/12/19-09:40:19.300674 1739bf000 Delete type=2 #39
+2023/12/19-09:40:19.300720 1739bf000 Delete type=2 #35
+2023/12/19-09:40:19.300772 1739bf000 Manual compaction at level-1 from '!macros!zEeAog9Sbw3vGayj' @ 33 : 1 .. '!macros!zEeAog9Sbw3vGayj' @ 0 : 0; will stop at (end)
