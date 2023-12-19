@@ -1,9 +1,9 @@
 {
   "id": "tokencover",
   "title": "Alternative Token Cover",
-  "version": "This is auto replaced",
-  "library": false,
-  "socket": true,
+  "version": "#{VERSION}#",
+  "library": "false",
+  "socket": "true",
   "manifestPlusVersion": "1.0.0",
   "compatibility": {
     "minimum": "11.299",
@@ -73,9 +73,9 @@
       "description": "Alternative token cover rules"
     }
   ],
-  "url": "This is auto replaced",
-  "manifest": "This is auto replaced",
-  "download": "This is auto replaced",
+  "url": "#{URL}#",
+  "manifest": "#{MANIFEST}#",
+  "download": "#{DOWNLOAD}#",
   "license": "LICENSE",
   "readme": "README.md"
 }
