@@ -275,7 +275,7 @@ export class CoverCalculator {
 
   coverFromViewerAtLocation(target, location) {
     this.calc.viewerPoint = location;
-
+    return this._percentCover();
   }
 
   /**
