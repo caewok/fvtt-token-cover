@@ -1,30 +1,19 @@
 /* globals
-game,
+CONFIG,
 foundry,
-PIXI,
-CONFIG
+fromUuidSync,
+PIXI
 */
 "use strict";
 
-import { MODULE_ID, EPSILON } from "./const.js";
+import { EPSILON } from "./const.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
-import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
-import { getSetting, SETTINGS } from "./settings.js";
 
 /**
- * Log message only when debug flag is enabled from DevMode module.
- * @param {Object[]} args  Arguments passed to console.log.
+ * Determine if this user is the first active GM.
+ * So that effects are applied only once.
  */
-export function log(...args) {
-  try {
-    const isDebugging = game.modules.get("_dev-mode")?.api?.getPackageDebugValue(MODULE_ID);
-    if ( isDebugging ) {
-      console.log(MODULE_ID, "|", ...args);
-    }
-  } catch(e) {
-    // Empty
-  }
-}
+export function isFirstGM() { return game.user === game.users.find((u) => u.isGM && u.active); }
 
 /**
  * Gets the actor object by the actor UUID
@@ -244,66 +233,6 @@ export function lineTriangleIntersectionLocation(rayVector, edge1, edge2, s, f, 
   // if t < 1, t is between rayOrigin and B, where rayVector = B.subtract(A)
 }
 
-/**
- * Test if line intersects a quadrilateral in 3d.
- * Applies Möller-Trumbore ray-triangle intersection but does the planar test only once.
- * @param {Point3d} A           Point on the line. For a ray, the ray origin point.
- * @param {Point3d} rayVector   Line vector, from origin.
- * @param {Point3d} r0          Quad vertex 0  Expected vertices in CW order.
- * @param {Point3d} r1          Quad vertex 1
- * @param {Point3d} r2          Quad vertex 2
- * @param {Point3d} r3          Quad vertex 3
- * @returns {number|null}  Place on the ray of the intersection or null if none.
- */
-export function lineIntersectionQuadrilateral3d(A, rayVector, r0, r1, r2, r3) {
-  // Test both directions of the quad (otherwise, need to force to CW order)
-  let res = _lineIntersectionQuadrilateral3d(A, rayVector, r0, r1, r2, r3);
-  if ( res === null ) res = _lineIntersectionQuadrilateral3d(A, rayVector, r3, r2, r1, r0);
-  return res;
-}
-
-function _lineIntersectionQuadrilateral3d(A, rayVector, r0, r1, r2, r3) {
-  // Triangles are 0-1-2 and 0-2-3
-  const edge1 = r1.subtract(r0);
-  const edge2 = r2.subtract(r0);
-
-  const h = rayVector.cross(edge2);
-  const a = edge1.dot(h);
-
-  if ( a.almostEqual(0, EPSILON) ) return null; // Ray is parallel to triangle.
-
-  const f = 1.0 / a;
-  const s = A.subtract(r0);
-
-  const tri1 = lineTriangleIntersectionLocation(rayVector, edge1, edge2, s, f, h);
-  if ( tri1 !== null ) return tri1;
-
-  const edge3 = r3.subtract(r0);
-  const h2 = rayVector.cross(edge3);
-  const a2 = edge1.dot(h);
-  const f2 = 1.0 / a2;
-
-  return lineTriangleIntersectionLocation(rayVector, edge1, edge3, s, f2, h2);
-}
-
-/**
- * Boolean test for whether a line segment intersects a quadrilateral.
- * Relies on Möller-Trumbore ray-triangle intersection.
- * @param {Point3d} A     First endpoint of the segment
- * @param {Point3d} B     Second endpoint of the segment
- * @param {Point3d} r0          Quad vertex 0  Expected vertices in CW order.
- * @param {Point3d} r1          Quad vertex 1
- * @param {Point3d} r2          Quad vertex 2
- * @param {Point3d} r3          Quad vertex 3
- * @returns {boolean} True if intersection occurs.
- */
-export function lineSegmentIntersectsQuadrilateral3d(A, B, r0, r1, r2, r3, { EPSILON = 1e-08 } = {}) {
-  const rayVector = B.subtract(A);
-  const t = lineIntersectionQuadrilateral3d(A, rayVector, r0, r1, r2, r3);
-  if ( t === null ) return false;
-
-  return !(t < EPSILON || t > (1 + EPSILON));
-}
 
 /**
  * Get the intersection of a 3d line with a wall extended as a plane.
@@ -322,44 +251,4 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
   const d = new Point3d(-(wall.B.y - Ay), (wall.B.x - Ax), 0);
 
   return linePlane3dIntersection(a, b, c, d, epsilon);
-}
-
-/**
- * @typedef buildTokenPointsConfig
- * @type {object}
- * @property {CONST.WALL_RESTRICTION_TYPES} type    Type of vision source
- * @property {boolean} deadTokensBlock              Do dead tokens block vision?
- * @property {boolean} liveTokensBlock              Do live tokens block vision?
- * @property {PIXI.Graphics} graphics               Graphics to pass to the point constructor
- */
-
-/**
- * Given config options, build TokenPoints3d from tokens.
- * The points will use either half- or full-height tokens, depending on config.
- * @param {Token[]|Set<Token>} tokens
- * @param {buildTokenPointsConfig} config
- * @returns {TokenPoints3d[]}
- */
-export function buildTokenPoints(tokens, config) {
-  if ( !tokens.length && !tokens.size ) return tokens;
-  const { liveTokensBlock, deadTokensBlock, proneTokensBlock } = config;
-  if ( !(liveTokensBlock || deadTokensBlock) ) return [];
-
-  const hpAttribute = getSetting(SETTINGS.COVER.DEAD_TOKENS.ATTRIBUTE);
-
-  // Filter live or dead tokens
-  if ( liveTokensBlock ^ deadTokensBlock ) tokens = tokens.filter(t => {
-    const hp = getObjectProperty(t.actor, hpAttribute);
-    if ( typeof hp !== "number" ) return true;
-
-    if ( liveTokensBlock && hp > 0 ) return true;
-    if ( deadTokensBlock && hp <= 0 ) return true;
-    return false;
-  });
-
-
-  if ( !proneTokensBlock ) tokens = tokens.filter(t => !t.isProne);
-
-  // Pad (inset) to avoid triggering cover at corners. See issue 49.
-  return tokens.map(t => new TokenPoints3d(t, { pad: -1 }));
 }

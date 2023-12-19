@@ -11,9 +11,10 @@ Token
 "use strict";
 
 import { MODULE_ID, COVER } from "./const.js";
-import { CoverCalculator, SOCKETS } from "./CoverCalculator.js";
+import { CoverCalculator } from "./CoverCalculator.js";
+import { SOCKETS } from "./cover_application.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
-import { SETTINGS, getSetting } from "./settings.js";
+import { SETTINGS, Settings } from "./settings.js";
 
 // Helper class to construct dialogs related to cover between token(s) and target(s).
 
@@ -94,7 +95,7 @@ export class CoverDialog {
   async confirmCover({ askGM, actionType } = {}) {
     askGM ||= false;
     const html = this._htmlConfirmCover({ actionType });
-    const dialogData = { title: game.i18n.localize("tokenvisibility.phrases.ConfirmCover"), content: html };
+    const dialogData = { title: game.i18n.localize(`${MODULE_ID}.phrases.ConfirmCover`), content: html };
 
     let coverSelections;
     if ( askGM ) {
@@ -140,8 +141,8 @@ export class CoverDialog {
    * @returns {Map<Token, COVER_TYPE>|false}
    */
   async workflow(actionType) {
-    const coverCheckOption = getSetting(SETTINGS.COVER.MIDIQOL.COVERCHECK);
-    const choices = SETTINGS.COVER.MIDIQOL.COVERCHECK_CHOICES;
+    const coverCheckOption = Settings.get(SETTINGS.MIDIQOL.COVERCHECK);
+    const choices = SETTINGS.MIDIQOL.COVERCHECK_CHOICES;
     let askGM = true;
     switch ( coverCheckOption ) {
       case choices.NONE: return undefined;
@@ -203,7 +204,7 @@ export class CoverDialog {
    * @param {object} opts     Options passed to htmlCoverTable.
    */
   async showCoverResults(opts) {
-    const coverAlgorithm = getSetting(SETTINGS.COVER.ALGORITHM);
+    const coverAlgorithm = Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
     const algorithmDescription = game.i18n.localize(`${MODULE_ID}.settings.${coverAlgorithm}`);
     const html = this._htmlShowCover(opts);
     const content =
@@ -270,11 +271,7 @@ ${html}
     for ( const target of targets ) {
       const cover = coverCalculations.get(target);
 
-      const target_center = new Point3d(
-        target.center.x,
-        target.center.y,
-        CoverCalculator.averageTokenElevationZ(target));
-
+      const target_center = Point3d.fromTokenCenter(target);
       const targetImage = target.document.texture.src; // Token canvas image.
       const dist = Point3d.distanceBetween(token_center, target_center);
       const distContent = include3dDistance ? `<td style="text-align: right">${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>` : "";
@@ -375,10 +372,7 @@ ${html}
       // If needed, determine the target distance.
       let distContent = "";
       if ( include3dDistance ) {
-        const target_center = new Point3d(
-          target.center.x,
-          target.center.y,
-          CoverCalculator.averageTokenElevationZ(target));
+        const target_center = Point3d.fromTokenCenter(target);
         const dist = Point3d.distanceBetween(token_center, target_center);
         distContent = `<td style="text-align: right">${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(dist))} ${canvas.scene.grid.units}</td>`;
       }

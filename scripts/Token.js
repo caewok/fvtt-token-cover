@@ -1,25 +1,165 @@
 /* globals
-canvas,
-CONFIG,
-game,
-PIXI
+game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
 // Patches for the Token class
 
-import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
-import { MODULE_ID, MODULES_ACTIVE, DEBUG, COVER, IGNORES_COVER_HANDLER } from "./const.js";
-import { Draw } from "./geometry/Draw.js";
+import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
-import { SETTINGS, getSetting } from "./settings.js";
+import { SETTINGS, Settings } from "./settings.js";
+import { isFirstGM } from "./util.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
+PATCHES.DEBUG = {};
 PATCHES.sfrpg = {};
-PATCHES.NOT_PF2E = {};
+PATCHES.NO_PF2E = {};
+
+
+// ----- NOTE: Debug Hooks ----- //
+
+/**
+ * Hook: controlToken
+ * If the token is uncontrolled, clear debug drawings.
+ * @event controlObject
+ * @category PlaceableObject
+ * @param {PlaceableObject} object The object instance which is selected/deselected.
+ * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
+ */
+async function controlTokenDebugHook(token, controlled) {
+  const calc = token[MODULE_ID]?.coverCalc.calc;
+  if ( !calc ) return;
+  calc.clearDebug();
+  if ( controlled ) {
+    if ( calc.openDebugPopout ) await calc.openDebugPopout();
+    updateDebugForControlledToken(token)
+  }
+}
+
+/**
+ * Hook: targetToken
+ * Check for other controlled tokens and update their Area3d debug popout to point at this target.
+ * @param {User} user        The User doing the targeting
+ * @param {Token} token      The targeted Token
+ * @param {boolean} targeted Whether the Token has been targeted or untargeted
+ */
+function targetTokenDebugHook(user, target, targeted) {
+  if ( !targeted || game.user !== user ) return;
+  canvas.tokens.placeables.forEach(token => {
+    if ( token === target || !token.controlled ) return;
+    const calc = token[MODULE_ID]?.coverCalc.calc;
+    if ( !calc || !calc._draw3dDebug ) return;
+    calc._clearCache();
+    calc.target = target;
+    calc.updateDebug();
+  });
+}
+
+/**
+ * Hook: updateToken
+ * If the token moves, clear all debug drawings.
+ * @param {Document} tokenD                         The existing Document which was updated
+ * @param {object} change                           Differential data that was used to update the document
+ * @param {DocumentModificationContext} options     Additional options which modified the update request
+ * @param {string} userId                           The ID of the User who triggered the update workflow
+ */
+function updateTokenDebugHook(tokenD, change, _options, _userId) {
+  if ( !(Object.hasOwn(change, "x")
+      || Object.hasOwn(change, "y")
+      || Object.hasOwn(change, "elevation")
+      || Object.hasOwn(change, "rotation")) ) return;
+
+  // Token moved
+  const token = tokenD.object;
+  if ( token.controlled ) updateDebugForControlledToken(token);
+  updateDebugForRelatedTokens(token);
+}
+
+/**
+ * If token position is refreshed (i.e., clone), then clear debug.
+ * @param {PlaceableObject} object    The object instance being refreshed
+ * @param {RenderFlag} flags
+ */
+function refreshTokenDebugHook(token, flags) {
+  if ( !flags.refreshPosition ) return;
+  if ( token.controlled ) updateDebugForControlledToken(token);
+  updateDebugForRelatedTokens(token);
+}
+
+function updateDebugForControlledToken(changedToken) {
+  // If this token is controlled, update its LOS canvas display to every other token.
+  const changedCalc = changedToken[MODULE_ID]?.coverCalc.calc;
+  if ( !changedCalc ) return;
+  changedCalc.clearDebug();
+  canvas.tokens.placeables.forEach(token => {
+    if ( token === changedToken ) return;
+    changedCalc._clearCache();
+    changedCalc.target = token;
+    changedCalc.updateDebug();
+  });
+
+}
+
+/**
+ * Update debug graphics for tokens related to this one.
+ * @param {Token} changedToken    Token that has been updated (position, etc.)
+ */
+function updateDebugForRelatedTokens(changedToken) {
+  // For any other controlled token, update its LOS canvas display for this one.
+  canvas.tokens.placeables.forEach(token => {
+    if ( token === changedToken || !token.controlled ) return;
+    const calc = token[MODULE_ID]?.coverCalc.calc;
+    if ( !calc ) return;
+    if ( calc.target === changedToken ) calc.clearDebug();
+    calc._clearCache();
+    calc.target = changedToken;
+    calc.updateDebug();
+  });
+}
+
+PATCHES.DEBUG.HOOKS = {
+  controlToken: controlTokenDebugHook,
+  updateToken: updateTokenDebugHook,
+  refreshToken: refreshTokenDebugHook,
+  targetToken: targetTokenDebugHook
+};
 
 // ----- NOTE: Hooks ----- //
+
+/**
+ * Hook: targetToken
+ * If the debug popout is active, redraw the 3d debug if the target changes.
+ * @param {User} user        The User doing the targeting
+ * @param {Token} token      The targeted Token
+ * @param {boolean} targeted Whether the Token has been targeted or untargeted
+ */
+function targetTokenDebug(user, target, targeted) {
+  if ( !targeted || game.user !== user ) return;
+  for ( const token of canvas.tokens.controlled ) {
+    const calc = token[MODULE_ID].coverCalc.calc;
+    if ( !calc.popoutIsRendered ) continue;
+    calc.target = target;
+    calc.percentVisible();
+    calc._draw3dDebug();
+  }
+}
+
+/**
+ * Hook: drawToken
+ * Create a token cover calculator.
+ * @param {PlaceableObject} object    The object instance being drawn
+ */
+function drawToken(token) {
+  const obj = token[MODULE_ID] ??= {};
+  obj.coverCalc = new CoverCalculator(token);
+}
+
+/**
+ * Hook: destroyToken
+ * @param {PlaceableObject} object    The object instance being destroyed
+ */
+function destroyToken(token) { token[MODULE_ID].coverCalc.destroy(); }
 
 /**
  * If a token is targeted, determine its cover status.
@@ -32,22 +172,19 @@ PATCHES.NOT_PF2E = {};
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
 async function targetToken(user, target, targeted) {
-  if ( !getSetting(SETTINGS.COVER.COMBAT_AUTO) ) return;
+  if ( !isFirstGM()
+    || !Settings.get(SETTINGS.COVER.COMBAT_AUTO)
+    || !game.combat?.started // If not in combat, do nothing because it is unclear who is targeting what...
+    || !isUserCombatTurn(user)  // Ignore targeting by other users
+  ) return;
 
-  // If not in combat, do nothing because it is unclear who is targeting what...
-  if ( !game.combat?.started ) return;
-
-  // Ignore targeting by other users
-  if ( !isUserCombatTurn(user) ) return;
-
-  if ( !targeted ) {
-    return await CoverCalculator.disableAllCover(target.id);
-  }
+  if ( !targeted ) return await CoverCalculator.disableAllCover(target.id);
 
   // Target from the current combatant to the target token
   const c = game.combats.active;
   const combatToken = c.combatant.token.object;
-  const coverCalc = new CoverCalculator(combatToken, target);
+  const coverCalc = combatToken[MODULE_ID].coverCalc;
+  coverCalc.target = target;
   return await coverCalc.setTargetCoverEffect();
 }
 
@@ -68,92 +205,12 @@ function applyTokenStatusEffect(token, statusId, active) {
     : CoverCalculator.disableAllCover(token);
 }
 
-/**
- * Hook: updateToken
- * If the token width/height changes, invalidate the tokenShape.
- * If the token moves, clear all debug drawings.
- * @param {Document} tokenD                         The existing Document which was updated
- * @param {object} change                           Differential data that was used to update the document
- * @param {DocumentModificationContext} options     Additional options which modified the update request
- * @param {string} userId                           The ID of the User who triggered the update workflow
 
- */
-function updateToken(tokenD, change, _options, _userId) {
-  // Token shape changed; invalidate cached shape.
-  const token = tokenD.object;
-  if ( (Object.hasOwn(change, "width") || Object.hasOwn(change, "height")) && token ) token._tokenShape = undefined;
-
-  // Token moved; clear drawings.
-  if ( Object.hasOwn(change, "x")
-    || Object.hasOwn(change, "y")
-    || Object.hasOwn(change, "elevation") ) {
-
-    if ( DEBUG.once || DEBUG.range || DEBUG.area || DEBUG.cover || DEBUG.los ) {
-      Draw.clearDrawings();
-
-      if ( DEBUG.once ) {
-        DEBUG.range = false;
-        DEBUG.area = false;
-        DEBUG.cover = false;
-        DEBUG.los = false;
-        DEBUG.once = false;
-      }
-    }
-  }
-}
-
-PATCHES.BASIC.HOOKS = { updateToken };
+PATCHES.BASIC.HOOKS = { drawToken, destroyToken, targetToken: targetTokenDebug };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
-PATCHES.NOT_PF2E.HOOKS = { targetToken };
-
-// ----- NOTE: Wraps ----- //
-
-/**
- * Wrap Token.prototype.updateSource
- * Reset the debugging drawings.
- */
-function updateSource(wrapper, ...args) {
-  if ( DEBUG.once || DEBUG.range || DEBUG.area || DEBUG.cover || DEBUG.los ) {
-    CONFIG.GeometryLib.Draw.clearDrawings();
-
-    if ( DEBUG.once ) {
-      DEBUG.range = false;
-      DEBUG.area = false;
-      DEBUG.cover = false;
-      DEBUG.los = false;
-      DEBUG.once = false;
-    }
-  }
-
-  return wrapper(...args);
-}
-
-PATCHES.BASIC.WRAPS = {
-  updateSource
-};
+PATCHES.NO_PF2E.HOOKS = { targetToken };
 
 // ----- NOTE: Getters ----- //
-
-/**
- * New getter: Token.prototype.constrainedTokenBorder
- * Determine the constrained border shape for this token.
- * @returns {ConstrainedTokenShape|PIXI.Rectangle}
- */
-function constrainedTokenBorder() { return ConstrainedTokenBorder.get(this).constrainedBorder(); }
-
-/**
- * New getter: Token.prototype.tokenBorder
- * Determine the correct border shape for this token. Utilize the cached token shape.
- * @returns {PIXI.Polygon|PIXI.Rectangle}
- */
-function tokenBorder() { return this.tokenShape.translate(this.x, this.y); }
-
-/**
- * New getter: Token.prototype.tokenShape
- * Cache the token shape.
- * @type {PIXI.Polygon|PIXI.Rectangle}
- */
-function tokenShape() { return this._tokenShape || (this._tokenShape = calculateTokenShape(this)); }
 
 /**
  * New getter: Token.prototype.coverType
@@ -180,31 +237,11 @@ function ignoresCoverType() {
 }
 
 PATCHES.BASIC.GETTERS = {
-  constrainedTokenBorder,
-  tokenBorder,
-  tokenShape,
   coverType,
   ignoresCoverType
 };
 
-
 // ----- NOTE: Helper functions ----- //
-/**
- * Theoretical token shape at 0,0 origin.
- * @returns {PIXI.Polygon|PIXI.Rectangle}
- */
-function calculateTokenShape(token) {
-  // TODO: Use RegularPolygon shapes for use with WeilerAtherton
-  // Hexagon (for width .5 or 1)
-  // Square (for width === height)
-  let shape;
-  if ( canvas.grid.isHex ) {
-    const pts = canvas.grid.grid.getBorderPolygon(token.document.width, token.document.height, 0);
-    if ( pts ) shape = new PIXI.Polygon(pts);
-  }
-
-  return shape || new PIXI.Rectangle(0, 0, token.w, token.h);
-}
 
 /**
  * Determine if the user's token is the current combatant in the active tracker.

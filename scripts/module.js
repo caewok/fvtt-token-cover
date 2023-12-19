@@ -4,38 +4,29 @@ Hooks
 */
 "use strict";
 
-import { MODULE_ID, COVER, DEBUG, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, COVER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
+import { registerElevationConfig } from "./geometry/elevation_configs.js";
 import { initializePatching, PATCHER } from "./patching.js";
-import {
-  registerSettings,
-  updateConfigStatusEffects,
-  getSetting,
-  setSetting } from "./settings.js";
+import { Settings, SETTINGS } from "./settings.js";
 
 // For API
-import * as bench from "./benchmark.js";
-import * as util from "./util.js";
+import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
+import { PointsLOS } from "./LOS/PointsLOS.js";
+import { Area2dLOS } from "./LOS/Area2dLOS.js";
+import { Area3dLOSGeometric } from "./LOS/Area3dLOSGeometric.js";
+import { Area3dLOSWebGL } from "./LOS/Area3dLOSWebGL1.js";
+import { Area3dLOSWebGL2 } from "./LOS/Area3dLOSWebGL2.js";
+import { Area3dLOSHybrid } from "./LOS/Area3dLOSHybrid.js";
+import { OPEN_POPOUTS } from "./LOS/Area3dPopout.js";
+import { ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
+import { Token3dGeometry, Wall3dGeometry, DirectionalWall3dGeometry, ConstrainedToken3dGeometry } from "./LOS/Placeable3dGeometry.js";
+import { Placeable3dShader, Tile3dShader, Placeable3dDebugShader, Tile3dDebugShader } from "./LOS/Placeable3dShader.js";
 
-import { PlanePoints3d } from "./PlaceablesPoints/PlanePoints3d.js";
-import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
-import { DrawingPoints3d } from "./PlaceablesPoints/DrawingPoints3d.js";
-import { WallPoints3d } from "./PlaceablesPoints/WallPoints3d.js";
-import { TilePoints3d } from "./PlaceablesPoints/TilePoints3d.js";
-import { VerticalPoints3d } from "./PlaceablesPoints/VerticalPoints3d.js";
-import { HorizontalPoints3d } from "./PlaceablesPoints/HorizontalPoints3d.js";
-
-import { Area3d } from "./Area3d.js";
-import { Area2d } from "./Area2d.js";
-import { CoverCalculator, SOCKETS } from "./CoverCalculator.js";
-import { ConstrainedTokenBorder } from "./ConstrainedTokenBorder.js";
+import { CoverCalculator } from "./CoverCalculator.js";
 import { CoverDialog } from "./CoverDialog.js";
-
-import { Area3dPopout, area3dPopoutData } from "./Area3dPopout.js";
-
-import * as los from "./visibility_los.js";
 
 // Ignores Cover
 import {
@@ -47,33 +38,60 @@ import {
 // Other self-executing hooks
 import "./changelog.js";
 import "./migration.js";
+import "./cover_application.js";
 
 Hooks.once("init", function() {
   registerGeometry();
-  initializePatching();
   addDND5eCoverFeatFlags();
 
+  // Set CONFIGS used by this module.
+  CONFIG[MODULE_ID] = {
+
+    /**
+     * The percent threshold under which a tile should be considered transparent at that pixel.
+     * @type {number}
+     */
+    alphaThreshold: 0.75,
+
+    /**
+     * Size of the render texture (width and height) used in the webGL LOS algorithms.
+     * @type {number}
+     */
+    renderTextureSize: 100,
+
+    /**
+     * Resolution of the render texture used in the webZGL LOS algorithm.
+     * Should be between (0, 1).
+     * @type {number}
+     */
+    renderTextureResolution: 1
+  };
+
   game.modules.get(MODULE_ID).api = {
-    bench,
-    Area2d,
-    Area3d,
-    util,
+    losCalcMethods: {
+      AlternativeLOS,
+      PointsLOS,
+      Area2dLOS,
+      Area3dLOSGeometric,
+      Area3dLOSWebGL,
+      Area3dLOSWebGL2,
+      Area3dLOSHybrid
+    },
+
+    OPEN_POPOUTS,
+
+    webgl: {
+      Token3dGeometry, Wall3dGeometry, DirectionalWall3dGeometry, ConstrainedToken3dGeometry,
+      Placeable3dShader, Tile3dShader,
+      Placeable3dDebugShader, Tile3dDebugShader
+    },
+
     CoverCalculator,
     CoverDialog,
     COVER,
     ConstrainedTokenBorder,
-    los,
-    PlanePoints3d,
-    TokenPoints3d,
-    DrawingPoints3d,
-    WallPoints3d,
-    TilePoints3d,
-    VerticalPoints3d,
-    HorizontalPoints3d,
     setCoverIgnoreHandler,
-    SOCKETS,
-    getSetting,
-    setSetting,
+    Settings,
 
     IgnoresCoverClasses: {
       IgnoresCover,
@@ -81,12 +99,7 @@ Hooks.once("init", function() {
       IgnoresCoverSimbuls
     },
 
-    Area3dPopout,
-    area3dPopoutData,
-
-    PATCHER,
-
-    debug: DEBUG
+    PATCHER
   };
 
   if ( game.system.id === "dnd5e" ) {
@@ -95,15 +108,8 @@ Hooks.once("init", function() {
 });
 
 Hooks.once("setup", function() {
-  registerSettings();
-  updateConfigStatusEffects();
-});
-
-
-/**
- * Tell DevMode that we want a flag for debugging this module.
- * https://github.com/League-of-Foundry-Developers/foundryvtt-devMode
- */
-Hooks.once("devModeReady", ({ registerPackageDebugFlag }) => {
-  registerPackageDebugFlag(MODULE_ID);
+  Settings.registerAll();
+  initializePatching();
+  registerElevationConfig("TileConfig", "Alt. Token Cover");
+  Settings.updateConfigStatusEffects();
 });

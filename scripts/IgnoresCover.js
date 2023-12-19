@@ -80,7 +80,7 @@ export class IgnoresCover {
 
   set all(value) {
     if ( !this.constructor.verifyCoverValue(value) ) return;
-    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.ALL);
+    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.ALL, value);
   }
 
   /**
@@ -91,7 +91,7 @@ export class IgnoresCover {
 
   set mwak(value) {
     if ( !this.constructor.verifyCoverValue(value) ) return;
-    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.MWAK);
+    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.MWAK, value);
   }
 
   /**
@@ -102,7 +102,7 @@ export class IgnoresCover {
 
   set msak(value) {
     if ( !this.constructor.verifyCoverValue(value) ) return;
-    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.MSAK);
+    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.MSAK, value);
   }
 
   /**
@@ -113,7 +113,7 @@ export class IgnoresCover {
 
   set rwak(value) {
     if ( !this.constructor.verifyCoverValue(value) ) return;
-    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.RWAK);
+    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.RWAK, value);
   }
 
   /**
@@ -124,7 +124,7 @@ export class IgnoresCover {
 
   set rsak(value) {
     if ( !this.constructor.verifyCoverValue(value) ) return;
-    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.RSAK);
+    this.actor.setFlag(MODULE_ID, FLAGS.COVER.IGNORE.RSAK, value);
   }
 }
 

@@ -1,0 +1,97 @@
+<form class="flexcol">
+  <nav class="sheet-tabs tabs" data-group="sections">
+    <a class="item" data-tab="los_viewer">
+      {{localize "tokencover.template.settings-config.tabs.los_viewer"}}
+    </a>
+
+    <a class="item" data-tab="los_target">
+      {{localize "tokencover.template.settings-config.tabs.los_target"}}
+    </a>
+
+    <a class="item" data-tab="workflow">
+      {{localize "tokencover.template.settings-config.tabs.workflow"}}
+    </a>
+
+    <a class="item" data-tab="other">
+      {{localize "tokencover.template.settings-config.tabs.other"}}
+    </a>
+  </nav
+
+  <section class="content">
+    <div class="tab" data-tab="los_viewer" data-group="sections">
+      <h2>{{ localize "tokencover.template.settings-config.viewer"}}</h2>
+      <p><em>{{ localize "tokencover.template.settings-config.viewerDescription"}}</em></p>
+
+      {{#each settings}}
+        {{#if (eq this.tab "losViewer")}}
+          {{> atvSettingsMenuTabPartial}}
+        {{/if}}
+      {{/each}}
+    </div>
+
+    <div class="tab" data-tab="los_target" data-group="sections">
+      <h2>{{ localize "tokencover.template.settings-config.target"}}</h2>
+      <p><em>{{ localize "tokencover.template.settings-config.targetDescription"}}</em></p>
+
+      {{#each settings}}
+        {{#if (eq this.tab "losTarget")}}
+          {{> atvSettingsMenuTabPartial}}
+        {{/if}}
+      {{/each}}
+    </div>
+
+    <div class="tab" data-tab="workflow" data-group="sections">
+      <h2>{{ localize "tokencover.template.settings-config.workflow"}}</h2>
+      <p><em>{{ localize "tokencover.template.settings-config.workflowDescription"}}</em></p>
+
+      {{#each settings}}
+        {{#if (eq this.tab "workflow")}}
+          {{> atvSettingsMenuTabPartial}}
+        {{/if}}
+      {{/each}}
+    </div>
+
+    <div class="tab" data-tab="other" data-group="sections">
+      <h2>{{ localize "tokencover.template.settings-config.other"}}</h2>
+      <p><em>{{ localize "tokencover.template.settings-config.otherDescription"}}</em></p>
+
+      {{#each settings}}
+        {{#if (eq this.tab "other")}}
+          {{> atvSettingsMenuTabPartial}}
+        {{/if}}
+      {{/each}}
+    </div>
+
+
+  </section>
+
+  <footer class="sheet-footer flextable">
+    <hr>
+    <div class="flexrow">
+    <div class="form-group flexcol">
+      <button name="tokencover-button-foundry">
+        <i class="fas fa-sliders"></i>
+        {{localize "tokencover.settings.button-pf2e.Label"}}
+      </button>
+    </div>
+
+    <div class="form-group flexcol">
+      <button name="tokencover-button-dnd5e">
+        <i class="fas fa-sliders"></i>
+        {{localize "tokencover.settings.button-dnd5e.Label"}}
+      </button>
+    </div>
+
+    <div class = "form-group flexcol">
+      <button name="tokencover-button-threeD">
+        <i class="fas fa-sliders"></i>
+        {{localize "tokencover.settings.button-threeD.Label"}}
+      </button>
+    </div>
+    </div>
+  <div class="flexrow">
+  <button type='submit' name='submit' value='1'><i class='far fa-floppy-disk'></i>{{localize "Save Changes"}}</button>
+  </div>
+  </footer>
+
+</form>

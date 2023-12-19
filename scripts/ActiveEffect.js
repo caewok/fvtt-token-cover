@@ -21,13 +21,12 @@ PATCHES.BASIC = {};
  * @returns {boolean|void}                        Explicitly return false to prevent creation of this Document
  */
 function preCreateActiveEffect(activeEffect, data, options, userId) {
-  if ( userId !== game.userId ) return;
-
   // Is the activeEffect a cover status?
   if ( !activeEffect.statuses.intersects(COVER.IDS.ALL) ) return;
 
   // Does the status effect already exist?
   const actor = activeEffect.parent;
+  if ( !actor || !actor.statuses ) return true;
   const coverStatuses = actor.statuses?.intersection(COVER.IDS.ALL) ?? new Set();
   if ( coverStatuses.intersects(activeEffect.statuses) ) return false;
   return true;
@@ -58,20 +57,18 @@ async function _onCreateDocuments(wrapper, documents, context) {
     // Do the existing actor statuses need to be removed?
     const actor = effect.parent;
     const coverStatuses = actor.statuses?.intersection(COVER.IDS.ALL) ?? new Set();
-    const toRemove = docCoverStatuses.difference(docCoverStatuses);
+    const toRemove = coverStatuses.difference(docCoverStatuses);
     if ( !toRemove.size ) continue;;
 
     // Remove all cover statuses except the activeEffect status
     // ActiveEffect actor does not point to specific token for linked so use getActiveTokens
     const tokenDocs = actor.getActiveTokens(false, true);
 
-    await CoverCalculator.lock.acquire();
     const promises = [];
     tokenDocs.forEach(tokenD => {
       promises.push(...toRemove.map(id => tokenD.toggleActiveEffect({ id }, { active: false }))); // Async
     });
     await Promise.allSettled(promises);
-    await CoverCalculator.lock.release();
   }
 
   return res;

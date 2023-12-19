@@ -5,7 +5,7 @@ game,
 ActiveEffect
 */
 
-import { getCoverEffect, setCoverEffect } from "./settings.js";
+import { Settings } from "./settings.js";
 
 // Adapted from https://github.com/death-save/combat-utility-belt/blob/master/modules/enhanced-conditions/enhanced-effect-config.js
 // @example
@@ -52,7 +52,7 @@ export class LowCoverEffectConfig extends EnhancedEffectConfig {
   constructor() {
     super();
 
-    const data = getCoverEffect("LOW");
+    const data = Settings.getCoverEffect("LOW");
     this.object = new ActiveEffect(data);
   }
 
@@ -62,7 +62,7 @@ export class LowCoverEffectConfig extends EnhancedEffectConfig {
   async _onSubmit(...args) {
     await super._onSubmit(...args);
     const data = this.object.toJSON();
-    await setCoverEffect("LOW", data);
+    await Settings.setCoverEffect("LOW", data);
   }
 }
 
@@ -73,7 +73,7 @@ export class MediumCoverEffectConfig extends EnhancedEffectConfig {
   constructor() {
     super();
 
-    const data = getCoverEffect("MEDIUM");
+    const data = Settings.getCoverEffect("MEDIUM");
     this.object = new ActiveEffect(data);
   }
 
@@ -83,7 +83,7 @@ export class MediumCoverEffectConfig extends EnhancedEffectConfig {
   async _onSubmit(...args) {
     await super._onSubmit(...args);
     const data = this.object.toJSON();
-    await setCoverEffect("MEDIUM", data);
+    await Settings.setCoverEffect("MEDIUM", data);
   }
 }
 
@@ -94,7 +94,7 @@ export class HighCoverEffectConfig extends EnhancedEffectConfig {
   constructor() {
     super();
 
-    const data = getCoverEffect("HIGH");
+    const data = Settings.getCoverEffect("HIGH");
     this.object = new ActiveEffect(data);
   }
 
@@ -104,6 +104,6 @@ export class HighCoverEffectConfig extends EnhancedEffectConfig {
   async _onSubmit(...args) {
     await super._onSubmit(...args);
     const data = this.object.toJSON();
-    await setCoverEffect("HIGH", data);
+    await Settings.setCoverEffect("HIGH", data);
   }
 }

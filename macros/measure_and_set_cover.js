@@ -1,11 +1,13 @@
 // Macro to measure cover between selected tokens and targets.
 // And allow the user to set cover status.
-const api = game.modules.get("tokenvisibility").api;
+const api = game.modules.get("tokencover").api;
 const CoverCalculator = api.CoverCalculator;
 const CoverDialog = api.CoverDialog
 
 // Determine token and targets.
-const token = game.user._lastSelected || canvas.tokens.controlled[0];
+// If Walled Templates is present, we can use its' last selected.
+const last = fromUuidSync(game.user._lastSelected)?.token;
+const token = last || canvas.tokens.controlled[0];
 const targets = game.user.targets;
 if ( !token ) {
   ui.notifications.error("Please select a token.");
