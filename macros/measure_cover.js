@@ -9,7 +9,7 @@ if ( !token ) {
 let targets = game.user.targets;
 if ( !targets.size ) {
   targets = new Set(canvas.tokens.placeables);
-  targets.delete(token); // Remove the controlled token from targets.
+  targets.delete(token); // Remove the controlled token.
 }
 
 if ( !targets.size ) {
