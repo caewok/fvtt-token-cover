@@ -1,33 +1,33 @@
-# Code to use Foundry cli to update compendia
+ # Code to use Foundry cli to update compendia
 # https://github.com/foundryvtt/foundryvtt-cli
 
 fvtt configure set installPath ~/FoundryVTT-11
 fvtt configure set dataPath ~/foundrydatav11
 
-fvtt package workon "tokenvisibility"
+fvtt package workon "tokencover"
 
 # Unpack the json.
 # fvtt package unpack "macros" -t "Macro"
 
 # We actually would prefer to unpack the macro JSONs to the local git folder, so use this instead:
-fvtt package unpack "macros" -t "Macro" --out ~/git/fvtt-token-visibility/jsons/macros
+fvtt package unpack "macros" -t "Macro" --out ~/git/fvtt-token-cover/jsons/macros
 
 # To repack (must be logged out of world)
-fvtt package pack --in ~/git/fvtt-token-visibility/jsons/macros --type "Module" --compendiumType "Macro" --compendiumName "macros"
+fvtt package pack --in ~/git/fvtt-token-cover/jsons/macros --type "Module" --compendiumType "Macro" --compendiumName "macros"
 
 # To repack for release
-fvtt package pack --in ~/git/fvtt-token-visibility/jsons/macros --out ~/git/fvtt-token-visibility/packs --type "Module" --compendiumType "Macro" --compendiumName "macros"
+fvtt package pack --in ~/git/fvtt-token-cover/jsons/macros --out ~/git/fvtt-token-cover/packs --type "Module" --compendiumType "Macro" --compendiumName "macros"
 
 
 
 # Pull from a non-module location -- doesn't work
-# fvtt package unpack "atv-cover" --in ~/foundrydatav11/Data/worlds/test-starfinder/packs/atv-cover -t "Item" --out ~/git/fvtt-token-visibility/jsons/items/sfrpg
+# fvtt package unpack "atv-cover" --in ~/foundrydatav11/Data/worlds/test-starfinder/packs/atv-cover -t "Item" --out ~/git/fvtt-token-cover/jsons/items/sfrpg
 
 # Starfinder items -- doesn't work with subfolders or --in path
-# fvtt package unpack "items/sfrpg" -t "Item" --out ~/git/fvtt-token-visibility/jsons/items
+# fvtt package unpack "items/sfrpg" -t "Item" --out ~/git/fvtt-token-cover/jsons/items
 
-fvtt package unpack "items_sfrpg" -t "Item" --out ~/git/fvtt-token-visibility/jsons/
-fvtt package pack --in ~/git/fvtt-token-visibility/jsons/items/sfrpg --type "Module" --compendiumType "Item" --compendiumName "sfrpg"
+fvtt package unpack "items_sfrpg" -t "Item" --out ~/git/fvtt-token-cover/jsons/
+fvtt package pack --in ~/git/fvtt-token-cover/jsons/items/sfrpg --type "Module" --compendiumType "Item" --compendiumName "sfrpg"
 
 # To repack for release
-fvtt package pack --in ~/git/fvtt-token-visibility/jsons/items/sfrpg --out ~/git/fvtt-token-visibility/packs/items --type "Module" --compendiumType "Item" --compendiumName "sfrpg"
+fvtt package pack --in ~/git/fvtt-token-cover/jsons/items/sfrpg --out ~/git/fvtt-token-cover/packs/items --type "Module" --compendiumType "Item" --compendiumName "sfrpg"
