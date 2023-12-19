@@ -5,6 +5,8 @@ Split Alternative Token Visibility from Alternative Token Cover. This module han
 - Use the GM to monitor user targeting and update cover accordingly, instead of starting the update on the user side. This may help with latency issues when targeting in combat.
 - Introduce new permutations of viewer/target cover testing that mirror ATV's approach.
 
+Refactor the settings menu. Split viewer from target settings. Add two and three-point settings. Allow multiple viewer points to be used with Area2d and Area3d. Handle tile transparency with Area3d algorithm. A lot of backend work on patches and cover calculator.
+
 ## 0.5.8
 - Correctly ignore tokens if the token cover settings do not consider tokens to be cover. Closes issue #58.
 
