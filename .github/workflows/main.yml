@@ -71,7 +71,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-
+        with:
+          submodules: 'true'
 
       # Extract version embedded in the tag.
       # This step expects the tag to be one of the following formats:
