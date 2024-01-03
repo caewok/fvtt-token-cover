@@ -1,3 +1,6 @@
+## 0.6.1
+Update lib geometry to v0.2.12. Backend updates to settings and patch handling.
+
 ## 0.6.0
 Split Alternative Token Visibility from Alternative Token Cover. This module handles token cover only. All vision-related features left in ATV.
 - Refactor and reuse ATV code in ATC code.

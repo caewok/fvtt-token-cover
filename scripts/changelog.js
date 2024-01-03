@@ -69,7 +69,7 @@ Hooks.once("ready", () => {
 
     .addEntry({
       version: "0.6.0",
-      title: "Split Token Visibility from Token Cover",
+      title: "Welcome to Token Cover!",
       body: `\
           To simplify the module and improve debugging, I have split out token cover from
           token visibility. There are now two modules: [Alternative Token Visibility](https://github.com/caewok/fvtt-token-visibility) and
@@ -77,7 +77,7 @@ Hooks.once("ready", () => {
           the other, or both in combination.
 
           - **Refactored Settings:** New settings configuration submenu and reorganized settings. Sorry, I did not attempt
-            to transfer over your old settings!
+            to transfer over your old settings! Many settings have changed so you will want to review anew.
           - **Revised Area3d Algorithm:** Area3d and Points algorithms both now handle handle transparent tiles. Area3d will
             automatically switch to webGL to render a 3d view with tiles when necessary to determine cover.
           `

@@ -257,8 +257,7 @@ export class Settings extends ModuleSettingsAbstract {
    * Register all settings
    */
   static registerAll() {
-    const { KEYS, register, registerMenu } = this;
-    const localize = this.localize;
+    const { KEYS, register, registerMenu, localize } = this;
     const PT_TYPES = KEYS.POINT_TYPES;
     const RTYPES = [PT_TYPES.CENTER, PT_TYPES.FIVE, PT_TYPES.NINE];
     const PT_OPTS = KEYS.LOS.TARGET.POINT_OPTIONS;
