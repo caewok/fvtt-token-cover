@@ -9,7 +9,7 @@ SettingsConfig
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { Settings } from "./Settings.js";
+import { Settings } from "./settings.js";
 
 export class SettingsSubmenuAbstract extends FormApplication {
   async _renderInner(data) {
