@@ -117,7 +117,7 @@ export const MODULES_ACTIVE = {
   DFREDS_CE: false,
   SIMBULS_CC: false,
   MIDI_QOL: false,
-  EV: false
+  ELEVATED_VISION: false
 };
 
 export let IGNORES_COVER_HANDLER = IgnoresCover;
