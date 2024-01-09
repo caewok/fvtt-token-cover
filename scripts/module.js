@@ -37,7 +37,6 @@ import {
 
 // Other self-executing hooks
 import "./changelog.js";
-import "./migration.js";
 import "./cover_application.js";
 
 Hooks.once("init", function() {

@@ -114,16 +114,6 @@ export const SETTINGS = {
   AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
   CHANGELOG: "changelog",
   ATV_SETTINGS_MESSAGE: "atv-settings-message",
-
-  WELCOME_DIALOG: {
-    v020: "welcome-dialog-v0-20",
-    v030: "welcome-dialog-v0-30"
-  },
-
-  MIGRATION: {
-    v032: "migration-v032",
-    v054: "migration-v054"
-  }
 };
 
 export class Settings extends ModuleSettingsAbstract {
@@ -428,7 +418,7 @@ export class Settings extends ModuleSettingsAbstract {
       config: false,
       type: String,
       choices: losChoices,
-      default: LTYPES.NINE,
+      default: LTYPES.POINTS,
       tab: "losTarget",
       onChange: value => this.losAlgorithmChange(TARGET.ALGORITHM, value)
     });
@@ -651,27 +641,6 @@ export class Settings extends ModuleSettingsAbstract {
       scope: "world",
       config: false,
       default: STATUS_EFFECTS
-    });
-
-    register(KEYS.WELCOME_DIALOG.v030, {
-      scope: "world",
-      config: false,
-      default: false,
-      type: Boolean
-    });
-
-    register(KEYS.MIGRATION.v032, {
-      scope: "world",
-      config: false,
-      default: false,
-      type: Boolean
-    });
-
-    register(KEYS.MIGRATION.v054, {
-      scope: "world",
-      config: false,
-      default: false,
-      type: Boolean
     });
 
     // ----- NOTE: Triggers based on starting settings ---- //
