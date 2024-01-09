@@ -91,8 +91,9 @@ export class CoverCalculator {
    */
   constructor(viewer, target) {
     const algorithm = Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
+    const cl = this.constructor.ALGORITHM_CLASS[algorithm] ?? PointsLOS;
     const cfg = this.constructor.calcConfiguration();
-    this.calc = new this.constructor.ALGORITHM_CLASS[algorithm](viewer, target, cfg);
+    this.calc = new cl(viewer, target, cfg);
   }
 
   get liveForceHalfCover() {
