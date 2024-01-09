@@ -418,7 +418,7 @@ export class Settings extends ModuleSettingsAbstract {
       config: false,
       type: String,
       choices: losChoices,
-      default: LTYPES.NINE,
+      default: LTYPES.POINTS,
       tab: "losTarget",
       onChange: value => this.losAlgorithmChange(TARGET.ALGORITHM, value)
     });
