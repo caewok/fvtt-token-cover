@@ -136,7 +136,7 @@ A token can be set to ignore cover less than or equal to some amount. For exampl
 
 To set ignoring cover on a specific token, use, for example:
 ```js
-api = game.modules.get('tokenvisibility').api;
+api = game.modules.get('tokencover').api;
 cover_type = api.COVER_TYPES;
 
 _token.ignoresCoverType.all = cover_type.LOW;
@@ -155,7 +155,7 @@ For Midiqol workflows, the special flags for sharpshooter and spell sniper will 
 
 A compendium macro, "Measure Cover" is provided to allow users to easily measure cover. Select one or more tokens and target one or more tokens. Cover will be measured for each token --> target combination and the results reported in a pop-up.
 
-<img src="https://raw.githubusercontent.com/caewok/fvtt-token-visibility/feature/screenshots/screenshots/settings-cover-macro.jpg" width="400" alt="Cover Macro for the Alt Token Visibility Module">
+<img src="https://raw.githubusercontent.com/caewok/fvtt-token-cover/feature/screenshots/screenshots/settings-cover-macro.jpg" width="400" alt="Cover Macro for the Alt Token Visibility Module">
 
 A second version of this macro, "Cover Debug Tester" temporarily enables the debug visibility so you can get a better sense of what the cover algorithm is detecting.
 
