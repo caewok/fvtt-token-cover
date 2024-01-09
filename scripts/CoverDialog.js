@@ -192,6 +192,7 @@ export class CoverDialog {
    * @returns {Promise<>}
    */
   async updateTargetsCover(coverCalculations) {
+    if ( coverCalculations === false ) return; // User canceled.
     coverCalculations ??= this.coverCalculations;
     const promises = [];
     coverCalculations.forEach((coverStatus, target) =>
