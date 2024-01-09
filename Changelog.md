@@ -1,6 +1,7 @@
 ## 0.6.2
 Remove migration code, which has outlived its usefulness. Closes issue #6.
 Catch if the algorithm setting is not defined or misdefined from an old version. Closes issue #5.
+Fix documentation and reporting buttons appearing in multiple filters. Closes issue #2.
 
 ## 0.6.1
 Update lib geometry to v0.2.12. Backend updates to settings and patch handling.
