@@ -152,7 +152,7 @@ export class CoverCalculator {
     const clName = this.calc.constructor.name;
     if ( clName === this.constructor.ALGORITHM_CLASS_NAME[algorithm] ) return;
 
-    const cl = this.constructor.ALGORITHM_CLASS[algorithm];
+    const cl = this.constructor.ALGORITHM_CLASS[algorithm] ?? PointsLOS;
     this.calc.destroy();
     this.calc = new cl(this.viewer, this.target, this.config);
   }
@@ -366,7 +366,7 @@ export class CoverCalculator {
     const clName = this.calc.constructor.name;
     if ( clName === this.constructor.ALGORITHM_CLASS_NAME[algorithm] ) return;
 
-    const cl = this.constructor.ALGORITHM_CLASS[algorithm];
+    const cl = this.constructor.ALGORITHM_CLASS[algorithm] ?? PointsLOS;
     this.calc.destroy();
     this.calc = new cl(this.viewer, this.target, this.config);
   }
