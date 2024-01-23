@@ -117,7 +117,9 @@ export const MODULES_ACTIVE = {
   DFREDS_CE: false,
   SIMBULS_CC: false,
   MIDI_QOL: false,
-  ELEVATED_VISION: false
+  ELEVATED_VISION: false,
+  RIDEABLE: false,
+  API: {}
 };
 
 export let IGNORES_COVER_HANDLER = IgnoresCover;
@@ -139,6 +141,9 @@ Hooks.once("init", function() {
   MODULES_ACTIVE.SIMBULS_CC = game.modules.get("simbuls-cover-calculator")?.active;
   MODULES_ACTIVE.MIDI_QOL = game.modules.get("midi-qol")?.active;
   MODULES_ACTIVE.ELEVATED_VISION = game.modules.get("elevatedvision")?.active;
+  MODULES_ACTIVE.RIDEABLE = game.modules.get("Rideable")?.active;
+
+  if ( MODULES_ACTIVE.RIDEABLE ) MODULES_ACTIVE.API.RIDEABLE = game.modules.get("Rideable").api;
 });
 
 /**
