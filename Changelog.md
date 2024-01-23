@@ -4,6 +4,7 @@ Possible fix for issue #8 (`targetShapes.map` error).
 Exclude the original token from the cover calculation of a dragged token. Closes issue #9.
 Remove messages re "one viewablePoint." Closes issue #10.
 Update the macro compendium.
+Update lib geometry to v0.2.13.
 
 ## 0.6.2
 Remove migration code, which has outlived its usefulness. Closes issue #6.
