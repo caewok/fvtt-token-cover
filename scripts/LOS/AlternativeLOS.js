@@ -16,6 +16,9 @@ VisionSource
 
 // Base folder
 import { MODULES_ACTIVE, MODULE_ID } from "../const.js";
+import { log } from "../util.js";
+
+// LOS folder
 import {
   insetPoints,
   lineIntersectionQuadrilateral3d,
@@ -301,7 +304,7 @@ export class AlternativeLOS {
    * @returns {boolean}
    */
   hasLOS() {
-    // Debug: console.debug(`hasLOS|${this.viewer.name}👀 => ${this.target.name}🎯`);
+    log(`hasLOS|${this.viewer.name}👀 => ${this.target.name}🎯`);
     this._clearCache();
 
     const threshold = this.#config.threshold;
@@ -1033,7 +1036,7 @@ export class AlternativeLOS {
   clearDebug() {
     if ( !this.#debugGraphics ) return;
     this.#debugGraphics.clear();
-    // Debug: console.debug(`Cleared ${this.viewer.name} debug`);
+    log(`Cleared ${this.viewer.name} debug`);
   }
 
   /**
@@ -1046,7 +1049,7 @@ export class AlternativeLOS {
     this._drawVisionTriangle();
     this._drawVisibleTokenBorder();
     this._drawDetectedObjects();
-    // Debug: console.debug(`\n\nDrawn ${this.viewer.name} debug`);
+    log(`\n\nDrawn ${this.viewer.name} debug`);
   }
 
   /**
