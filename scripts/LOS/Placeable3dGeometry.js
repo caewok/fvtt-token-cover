@@ -7,7 +7,7 @@ PolygonMesher
 "use strict";
 
 import { Point3d } from "../geometry/3d/Point3d.js";
-import { log } from "../util.js";
+import { log } from "./util.js";
 
 const vec3 = glMatrix.vec3;
 

@@ -79,11 +79,12 @@ Draw.shape(targetShape, { color: Draw.COLORS.red })
 
 // Base folder
 import { MODULE_ID } from "../const.js";
-import { log } from "../util.js";
+
 
 // This LOS folder
 import { AlternativeLOS } from "./AlternativeLOS.js";
 import { Area3dPopout } from "./Area3dPopout.js";
+import { log } from "./util.js";
 
 // Geometry folder
 import { Point3d } from "../geometry/3d/Point3d.js";

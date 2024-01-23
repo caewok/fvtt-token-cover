@@ -16,14 +16,14 @@ VisionSource
 
 // Base folder
 import { MODULES_ACTIVE, MODULE_ID } from "../const.js";
-import { log } from "../util.js";
 
 // LOS folder
 import {
   insetPoints,
   lineIntersectionQuadrilateral3d,
   lineSegmentIntersectsQuadrilateral3d,
-  getObjectProperty } from "./util.js";
+  getObjectProperty,
+  log } from "./util.js";
 
 // Geometry folder
 import { Point3d } from "../geometry/3d/Point3d.js";
