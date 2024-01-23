@@ -826,9 +826,12 @@ export class AlternativeLOS {
 
     // Filter by the precise triangle cone
     // For speed and simplicity, consider only token rectangular bounds
+    // Remove clone of the viewing object, if any. See Token Cover issue #9
+    // hasPreview doesn't seem to work; the viewer in particular does not show up.
     const edges = visionPolygon._edges;
     const collisionTest = o => {
       const t = o.t;
+      if ( t.id === viewer.id ) return false;
       const tCenter = t.center;
       if ( visionPolygon.contains(tCenter.x, tCenter.y) ) return true;
       const tBounds = t.bounds;
