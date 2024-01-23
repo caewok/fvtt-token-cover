@@ -599,6 +599,24 @@ export class Settings extends ModuleSettingsAbstract {
         onChange: value => CONFIG.GeometryLib.proneMultiplier = value
       });
 
+      register(KEYS.TOKEN_HP_ATTRIBUTE, {
+        name: localize(`${KEYS.TOKEN_HP_ATTRIBUTE}.Name`),
+        hint: localize(`${KEYS.TOKEN_HP_ATTRIBUTE}.Hint`),
+        scope: "world",
+        config: false,
+        type: String,
+        default: "system.attributes.hp.value",
+        tab: "other",
+        onChange: value => CONFIG.GeometryLib.tokenHPId = value
+      });
+
+
+      // Make sure these are linked at the start.
+      CONFIG.GeometryLib.proneMultiplier = this.get(KEYS.PRONE_MULTIPLIER);
+      CONFIG.GeometryLib.visionHeightMultiplier = this.get(KEYS.VISION_HEIGHT_MULTIPLIER);
+      CONFIG.GeometryLib.proneStatusId = this.get(KEYS.PRONE_STATUS_ID);
+      CONFIG.GeometryLib.tokenHPId = this.get(KEYS.TOKEN_HP_ATTRIBUTE);
+
     } else {
       register(KEYS.ATV_SETTINGS_MESSAGE, {
         name: localize(`${KEYS.ATV_SETTINGS_MESSAGE}.Name`),
@@ -611,23 +629,6 @@ export class Settings extends ModuleSettingsAbstract {
         tab: "other"
       });
     }
-
-    // Make sure these are linked at the start.
-    CONFIG.GeometryLib.proneMultiplier = this.get(KEYS.PRONE_MULTIPLIER);
-    CONFIG.GeometryLib.visionHeightMultiplier = this.get(KEYS.VISION_HEIGHT_MULTIPLIER);
-    CONFIG.GeometryLib.proneStatusId = this.get(KEYS.PRONE_STATUS_ID);
-
-    register(KEYS.TOKEN_HP_ATTRIBUTE, {
-      name: localize(`${KEYS.TOKEN_HP_ATTRIBUTE}.Name`),
-      hint: localize(`${KEYS.TOKEN_HP_ATTRIBUTE}.Hint`),
-      scope: "world",
-      config: false,
-      type: String,
-      default: "system.attributes.hp.value",
-      tab: "other",
-      onChange: value => this.losSettingChange(KEYS.TOKEN_HP_ATTRIBUTE, value)
-    });
-
 
     // ----- NOTE: Hidden settings ----- //
     register(KEYS.AREA3D_USE_SHADOWS, {

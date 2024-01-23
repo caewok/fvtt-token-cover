@@ -105,7 +105,7 @@ export class AlternativeLOS {
     cfg.liveTokensBlock = config.liveTokensBlock ?? false;
     cfg.proneTokensBlock = config.proneTokensBlock ?? false;
     cfg.useLitTargetShape = config.useLitTargetShape ?? false;
-    cfg.tokenHPAttribute = config.tokenHPAttribute; // Or undefined.
+    cfg.tokenHPAttribute = config.tokenHPAttribute ?? CONFIG.GeometryLib.tokenHPId; // Or undefined.
   }
 
   updateConfiguration(config = {}) {
