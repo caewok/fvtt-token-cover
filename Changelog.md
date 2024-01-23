@@ -1,3 +1,11 @@
+## 0.6.3
+Improve compatibility between Alternative Token Cover and Alternative Token Visibility. Closes issue #7.
+Possible fix for issue #8 (`targetShapes.map` error).
+Exclude the original token from the cover calculation of a dragged token. Closes issue #9.
+Remove messages re "one viewablePoint." Closes issue #10.
+Update the macro compendium.
+Update lib geometry to v0.2.13.
+
 ## 0.6.2
 Remove migration code, which has outlived its usefulness. Closes issue #6.
 Catch if the algorithm setting is not defined or misdefined from an old version. Closes issue #5.

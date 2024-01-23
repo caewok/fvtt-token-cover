@@ -1,4 +1,5 @@
 /* globals
+CONFIG,
 game,
 Hooks
 */
@@ -10,7 +11,7 @@ import { MODULE_ID, COVER, setCoverIgnoreHandler } from "./const.js";
 import { registerGeometry } from "./geometry/registration.js";
 import { registerElevationConfig } from "./geometry/elevation_configs.js";
 import { initializePatching, PATCHER } from "./patching.js";
-import { Settings, SETTINGS } from "./settings.js";
+import { Settings } from "./settings.js";
 
 // For API
 import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
@@ -45,6 +46,11 @@ Hooks.once("init", function() {
 
   // Set CONFIGS used by this module.
   CONFIG[MODULE_ID] = {
+
+    /**
+     * Turn on debug logging.
+     */
+    debug: false,
 
     /**
      * The percent threshold under which a tile should be considered transparent at that pixel.

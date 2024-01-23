@@ -105,8 +105,8 @@
     "tokencover.settings.vision-height-multiplier.Name": "Vision Height Multiplier",
     "tokencover.settings.vision-height-multiplier.Hint": "What percentage of token height is its vision located? 0% means the very bottom; 100% (1) means very top.",
 
-    "tokencover.settings.atv-settings-message.Name": "",
-    "tokencover.settings.atv-settings-message.Hint": "When Alternative Token Visibility is active, the prone multiplier, vision height multiplier, and prone status id use ATV's settings.",
+    "tokencover.settings.atv-settings-message.Name": "Prone / HP configuration",
+    "tokencover.settings.atv-settings-message.Hint": "When Alternative Token Visibility is active, the prone multiplier, vision height multiplier, prone status id, and token HP id use ATV's settings.",
 
     "tokencover.settings.button-pf2e.Label": "Reset to PF2e",
     "tokencover.settings.button-pf2e.Notification": "Alt. Cover settings changed to PF2e defaults",

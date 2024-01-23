@@ -6,8 +6,19 @@ PIXI
 */
 "use strict";
 
-import { EPSILON } from "./const.js";
+import { EPSILON, MODULE_ID } from "./const.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
+
+/**
+ * Log if this module's debug config is enabled.
+ */
+export function log(...args) {
+  try {
+    if ( CONFIG[MODULE_ID].debug ) console.debug(MODULE_ID, "|", ...args);
+  } catch(e) {
+    // Empty
+  }
+}
 
 /**
  * Determine if this user is the first active GM.

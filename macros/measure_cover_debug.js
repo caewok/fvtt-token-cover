@@ -18,17 +18,21 @@ if ( !targets.size ) {
   return;
 }
 
-// Turn on debugging just for this macro; turns off at next token move.
-
-// api.debug.cover = true;
-// api.debug.once = true;
-
-// Display cover debug to user.
-coverCalc = token.tokencover.coverCalc;
-await coverCalc.openDebugPopout(); // If using Area3d, popout the debug viewer.
-
+// Display the cover dialog
 const api = game.modules.get("tokencover").api;
 const coverDialog = new api.CoverDialog(token, targets);
 coverDialog.showCoverResults();
 
-coverCalc.debug(true);
+// Display debug from token to each target
+const coverCalc = token.tokencover.coverCalc;
+for ( const target of targets ) {
+  coverCalc.target = target;
+  await coverCalc.openDebugPopout(); // If using Area3d, popout the debug viewer.
+  coverCalc.debug();
+}
+
+// Clear the debug drawing when any token is updated.
+Hooks.once("updateToken", () => {
+  coverCalc.clearDebug();
+  coverCalc.closeDebugPopout();
+});
