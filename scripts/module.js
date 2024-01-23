@@ -47,6 +47,11 @@ Hooks.once("init", function() {
   CONFIG[MODULE_ID] = {
 
     /**
+     * Turn on debug logging.
+     */
+    debug: false,
+
+    /**
      * The percent threshold under which a tile should be considered transparent at that pixel.
      * @type {number}
      */
