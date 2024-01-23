@@ -1,3 +1,6 @@
+## 0.6.4
+Ignore riders and mounts if Rideable module is present for purposes of blocking vision.
+
 ## 0.6.3
 Improve compatibility between Alternative Token Cover and Alternative Token Visibility. Closes issue #7.
 Possible fix for issue #8 (`targetShapes.map` error).
