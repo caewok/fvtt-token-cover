@@ -17,6 +17,7 @@ import { Plane } from "../geometry/3d/Plane.js";
 
 // Base folder
 import { MODULE_ID } from "../const.js";
+import { log } from "../util.js";
 
 const RADIANS_90 = Math.toRadians(90);
 
@@ -502,7 +503,7 @@ export class Area3dLOSWebGL2 extends Area3dLOS {
     const renderer = this.popout.pixiApp.renderer;
     // renderer.state.setDepthTest = true;
 
-    // Debug: console.debug(`_draw3dDebug|${this.viewer.name}👀 => ${this.target.name}🎯`);
+    log(`_draw3dDebug|${this.viewer.name}👀 => ${this.target.name}🎯`);
     const { debugShaders, debugSprite, debugRenderTexture } = this;
     this._addChildToPopout(debugSprite);
 
