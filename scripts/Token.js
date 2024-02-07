@@ -175,8 +175,9 @@ async function targetToken(user, target, targeted) {
   if ( !targeted ) return await CoverCalculator.disableAllCover(target.id);
 
   // Target from the current combatant to the target token
-  const c = game.combats.active;
-  const combatToken = c.combatant.token.object;
+  const c = game.combats.active?.combatant;
+  if ( !c ) return; // Apparently combatant is not always defined.
+  const combatToken = c.token.object;
   const coverCalc = combatToken.coverCalculator;
   coverCalc.target = target;
   return await coverCalc.setTargetCoverEffect();
@@ -267,7 +268,7 @@ function isUserCombatTurn(user) {
   if ( !game.combat?.started ) return false;
 
   // If no players, than it must be a GM token
-  const c = game.combats.active;
-  if ( !c.combatant.players?.length ) return user.isGM;
-  return c.combatant.players.some(player => user.name === player.name);
+  const players = game.combats.active?.combatant?.players;
+  if ( !players?.length ) return user.isGM;
+  return players.some(player => user.name === player.name);
 }
