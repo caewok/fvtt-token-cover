@@ -194,7 +194,7 @@ export class CoverCalculator {
     }
     if ( targets instanceof Token ) targets = [targets];
 
-    const coverCalc = viewer[MODULE_ID].coverCalc;
+    const coverCalc = viewer.coverCalculator;
     calcs ??= new Map();
     for ( const target of targets ) {
       coverCalc.target = target;
@@ -324,6 +324,11 @@ export class CoverCalculator {
    */
   setTargetCoverEffect(type = this.targetCover()) {
     const COVER_TYPES = this.constructor.COVER_TYPES;
+    if ( !keyForValue(COVER_TYPES, type) ) {
+      console.warn("Token.coverType|cover value not recognized.");
+      return;
+    }
+
     switch ( type ) {
       case COVER_TYPES.NONE:
         this.constructor.disableAllCover(this.target.id);
