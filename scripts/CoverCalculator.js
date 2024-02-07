@@ -6,19 +6,13 @@ Token
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { COVER, MODULES_ACTIVE, WEAPON_ATTACK_TYPES, MODULE_ID } from "./const.js";
+import { COVER, WEAPON_ATTACK_TYPES } from "./const.js";
 import { SETTINGS, Settings } from "./settings.js";
-import { Point3d } from "./geometry/3d/Point3d.js";
-import { PointsLOS } from "./LOS/PointsLOS.js";
-import { Area2dLOS } from "./LOS/Area2dLOS.js";
-import { Area3dLOSGeometric } from "./LOS/Area3dLOSGeometric.js";
-import { Area3dLOSWebGL } from "./LOS/Area3dLOSWebGL1.js";
-import { Area3dLOSWebGL2 } from "./LOS/Area3dLOSWebGL2.js";
-import { Area3dLOSHybrid } from "./LOS/Area3dLOSHybrid.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 import { SOCKETS } from "./cover_application.js";
 import { keyForValue } from "./util.js";
 import { CoverDialog } from "./CoverDialog.js";
+import { AbstractCalculator } from "./LOS/AbstractCalculator.js";
 
 
 /* Testing
@@ -32,129 +26,43 @@ let [viewer] = canvas.tokens.controlled;
 let [target] = game.user.targets;
 */
 
-/**
- * Map of settings to    configurations.
- */
-const TARGET = SETTINGS.LOS.TARGET;
-const SETTINGS_CONFIG_MAP = {
-  // Target
-  [TARGET.LARGE]: "largeTarget",
+const TARGET = Settings.KEYS.LOS.TARGET;
 
-  // Target (PointsLOS)
-  [TARGET.POINT_OPTIONS.NUM_POINTS]: "numTargetPoints",
-  [TARGET.POINT_OPTIONS.INSET]: "targetInset",
-  [TARGET.POINT_OPTIONS.POINTS3D]: "points3d",
+export class CoverCalculator extends AbstractCalculator {
+  /**
+   * Map of settings to Cover configurations.
+   * @type {object}
+   */
+  static SETTINGS_CONFIG_MAP = {
+    // Target
+    [TARGET.LARGE]: "largeTarget",
 
-  // Token blocking
-  [SETTINGS.LIVE_TOKENS.ALGORITHM]: "liveTokensAlgorithm",
-  [SETTINGS.DEAD_TOKENS_BLOCK]: "deadTokensBlock",
-  [SETTINGS.PRONE_TOKENS_BLOCK]: "proneTokensBlock",
-};
+    // Target (PointsLOS)
+    [TARGET.POINT_OPTIONS.NUM_POINTS]: "numTargetPoints",
+    [TARGET.POINT_OPTIONS.INSET]: "targetInset",
+    [TARGET.POINT_OPTIONS.POINTS3D]: "points3d",
 
-
-
-export class CoverCalculator {
-
-  /** @enum {string: AlternativeLOS} */
-  static ALGORITHM_CLASS = {
-    "los-points": PointsLOS,
-    "los-area-2d": Area2dLOS,
-    "los-area-3d": Area3dLOSHybrid,
-    "los-area-3d-geometric": Area3dLOSGeometric,
-    "los-area-3d-webgl1": Area3dLOSWebGL,
-    "los-area-3d-webgl2": Area3dLOSWebGL2,
-    "los-area-3d-hybrid": Area3dLOSHybrid
-  };
-
-  /** @enum {string} */
-  static ALGORITHM_CLASS_NAME = {
-    "los-points": "PointsLOS",
-    "los-area-2d": "Area2dLOS",
-    "los-area-3d": "Area3dLOSHybrid",
-    "los-area-3d-geometric": "Area3dLOSGeometric",
-    "los-area-3d-webgl1": "Area3dLOSWebGL",
-    "los-area-3d-webgl2": "Area3dLOSWebGL2",
-    "los-area-3d-hybrid": "Area3dLOSHybrid"
+    // Token blocking
+    [Settings.KEYS.LIVE_TOKENS.ALGORITHM]: "liveTokensAlgorithm",
+    [Settings.KEYS.DEAD_TOKENS_BLOCK]: "deadTokensBlock",
+    [Settings.KEYS.PRONE_TOKENS_BLOCK]: "proneTokensBlock",
   };
 
   /** @type {object} */
   static COVER_TYPES = COVER.TYPES;
 
-  /** @type {AlternativeLOS} */
-  calc;
-
-  /**
-   * @param {Token|VisionSource} viewer
-   * @param {Token} target
-   * @param {CoverConfig} [config]
-   */
-  constructor(viewer, target) {
-    const algorithm = Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
-    const cl = this.constructor.ALGORITHM_CLASS[algorithm] ?? PointsLOS;
-    const cfg = this.constructor.calcConfiguration();
-    this.calc = new cl(viewer, target, cfg);
-  }
-
   get liveForceHalfCover() {
     return this.calc.getConfiguration("liveTokensAlgorithm") === SETTINGS.LIVE_TOKENS.TYPES.HALF;
   }
 
-  static calcConfiguration() {
-    const cfg = {
-      type: "move",
-      wallsBlock: true,
-      tilesBlock: true
-    };
-
-    // Add in relevant settings.
-    for ( const [settingsKey, configLabel] of Object.entries(SETTINGS_CONFIG_MAP) ) {
-      cfg[configLabel] = Settings.get(settingsKey);
-    }
+  static initialConfiguration(cfg = {}) {
+    // Move type b/c cover relates to physical obstacles.
+    cfg.type = "move";
 
     // Set liveTokensBlock based on underlying algorithm.
+    super.initialConfiguration(cfg);
     cfg.liveTokensBlock = cfg.liveTokensAlgorithm !== SETTINGS.LIVE_TOKENS.TYPES.NONE;
     return cfg;
-  }
-
-  // ----- NOTE: Getters / Setters ----- //
-
-  /** @type {Token} */
-  get viewer() { return this.calc.viewer; }
-
-  set viewer(value) { this.calc.viewer = value; }
-
-  /** @type {Token} */
-  get target() { return this.calc.target; }
-
-  set target(value) { this.calc.target = value; }
-
-  destroy() { this.calc.destroy(); }
-
-  debug() { return this.calc.updateDebug(); }
-
-  clearDebug() { this.calc.clearDebug(); }
-
-  async closeDebugPopout() {
-    if ( !this.calc.closeDebugPopout ) return;
-    return this.calc.closeDebugPopout();
-  }
-
-  async openDebugPopout() {
-    if ( !this.calc.openDebugPopout ) return;
-    return this.calc.openDebugPopout();
-  }
-
-  /**
-   * Update the calculator algorithm.
-   */
-  _updateAlgorithm(algorithm) {
-    algorithm ??= Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
-    const clName = this.calc.constructor.name;
-    if ( clName === this.constructor.ALGORITHM_CLASS_NAME[algorithm] ) return;
-
-    const cl = this.constructor.ALGORITHM_CLASS[algorithm] ?? PointsLOS;
-    this.calc.destroy();
-    this.calc = new cl(this.viewer, this.target, this.config);
   }
 
   /**
@@ -294,7 +202,11 @@ export class CoverCalculator {
 
     let percent = 1;
     const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
-    const viewerPoints = calc.constructor.constructViewerPoints(viewer);
+    const viewerOpts = {
+      pointAlgorithm: Settings.get(Settings.KEYS.LOS.VIEWER.NUM_POINTS),
+      inset: Settings.get(Settings.KEYS.LOS.VIEWER.INSET)
+    }
+    const viewerPoints = calc.constructor.constructViewerPoints(viewer, viewerOpts);
     for ( const viewerPoint of viewerPoints ) {
       calc.viewerPoint = viewerPoint;
       percent = Math.min(percent, this._percentCover());
@@ -340,86 +252,15 @@ export class CoverCalculator {
     }
   }
 
-
   /**
    * Update one or more specific settings in the calculator.
    */
   _updateConfiguration(config) {
-    // Remap settings to the calculator config.
-
-    for ( const [settingsLabel, settingsValue] of Object.entries(config) ) {
-      if ( !Object.hasOwn(SETTINGS_CONFIG_MAP, settingsLabel) ) continue;
-      const cfgLabel = SETTINGS_CONFIG_MAP[settingsLabel];
-      config[cfgLabel] = settingsValue;
-      delete config[settingsLabel];
-    }
-
     // Handle the live token cover choices.
     if ( Object.hasOwn(config, "liveTokensAlgorithm") ) {
       const liveTypes = SETTINGS.LIVE_TOKENS.TYPES;
       config.liveTokensBlock = config.liveTokensAlgorithm !== liveTypes.NONE;
     }
-
-    this.calc.updateConfiguration(config);
+    super._updateConfiguration(config);
   }
-
-  /**
-   * Update the calculator algorithm.
-   */
-  _updateAlgorithm(algorithm) {
-    algorithm ??= Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
-    const clName = this.calc.constructor.name;
-    if ( clName === this.constructor.ALGORITHM_CLASS_NAME[algorithm] ) return;
-
-    const cl = this.constructor.ALGORITHM_CLASS[algorithm] ?? PointsLOS;
-    this.calc.destroy();
-    this.calc = new cl(this.viewer, this.target, this.config);
-  }
-
-  _forceWebGL2() { this._updateAlgorithm(SETTINGS.LOS.TARGET.TYPE.AREA3D_WEBGL2); }
-
-  _forceGeometric() { this._updateAlgorithm(SETTINGS.LOS.TARGET.TYPE.AREA3D_GEOMETRIC); }
-
-  /**
-   * Reset the calculator settings to the current settings.
-   * (Used in Settings after settings have changed.)
-   */
-  _resetConfigurationSettings() {
-    this.calc._initializeConfiguration(this.constructor.initialConfiguration());
-    this.calc._clearCache();
-  }
-
-  // ----- NOTE: Helper methods ----- //
-
-  /**
-   * Set up configuration object to pass to the cover algorithm.
-   * @param {PointsLOSConfig|Area2dLOSConfig|Area3dLOSConfig}
-   * @returns {PointsLOSConfig|Area2dLOSConfig|Area3dLOSConfig}
-   */
-//   #configureLOS(config = {}) {
-//     config = {...config}; // Shallow copy to avoid modifying the original group.
-//     const cfg = this.config;
-//     const TARGET = SETTINGS.LOS.TARGET;
-//
-//     // AlternativeLOS base config
-//     config.debug ??= cfg.debug;
-//     config.type ??= cfg.type;
-//     config.wallsBlock ??= cfg.wallsBlock;
-//     config.deadTokensBlock ??= cfg.deadTokensBlock;
-//     config.liveTokensBlock ??= cfg.liveTokensBlock;
-//
-//     // Area2d and Area3d; can keep for Points without issue.
-//     config.visionSource ??= this.viewer.vision;
-//
-//     if ( this.config.losAlgorithm !== TARGET.TYPES.POINTS ) return config;
-//
-//     // Points config
-//     config.pointAlgorithm ??= Settings.get(TARGET.POINT_OPTIONS.NUM_POINTS);
-//     config.inset ??= Settings.get(TARGET.POINT_OPTIONS.INSET);
-//     config.points3d ??= Settings.get(TARGET.POINT_OPTIONS.POINTS3D);
-//     config.grid ??= Settings.get(TARGET.LARGE);
-//
-//     // Keep undefined: config.visibleTargetShape
-//     return config;
-//   }
 }
