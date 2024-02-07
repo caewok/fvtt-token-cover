@@ -173,7 +173,10 @@ export class Settings extends ModuleSettingsAbstract {
   static getCoverEffect(type = "LOW") {
     const allStatusEffects = this.get(SETTINGS.COVER.EFFECTS);
     const statusEffects = allStatusEffects[game.system.id] || allStatusEffects.generic;
-    return statusEffects[type];
+    const coverEffect = statusEffects[type];
+    coverEffect.id = `${MODULE_ID}.cover.${type}`;
+    coverEffect.name ??= coverEffect.label ?? coverEffect.id; // Ensure name is always present.
+    return coverEffect;
   }
 
   /**
@@ -235,10 +238,7 @@ export class Settings extends ModuleSettingsAbstract {
     }
 
     const coverEffect = this.getCoverEffect(type);
-    coverEffect.id = `${MODULE_ID}.cover.${type}`;
     const currIdx = CONFIG.statusEffects.findIndex(effect => effect.id === coverEffect.id);
-    coverEffect.name ??= coverEffect.label ?? coverEffect.id; // Ensure name is always present.
-
     if ( !~currIdx ) CONFIG.statusEffects.push(coverEffect);
     else CONFIG.statusEffects[currIdx] = coverEffect;
   }
