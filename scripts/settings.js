@@ -183,7 +183,7 @@ export class Settings extends ModuleSettingsAbstract {
    */
   static getCoverName(type = "LOW") {
     if ( type === "NONE" ) return game.i18n.localize("None");
-    if ( type === "TOTAL" ) return game.i18n.localize("tokenvisibility.phrases.Total");
+    if ( type === "TOTAL" ) return game.i18n.localize(`${MODULE_ID}.phrases.Total`);
 
     const effect = this.getCoverEffect(type);
     return game.i18n.localize(effect.name ?? effect.label);
