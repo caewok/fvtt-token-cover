@@ -1,4 +1,5 @@
 /* globals
+canvas,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -8,7 +9,7 @@ game
 import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { SETTINGS, Settings } from "./settings.js";
-import { isFirstGM } from "./util.js";
+import { isFirstGM, keyForValue } from "./util.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
@@ -33,7 +34,7 @@ async function controlTokenDebugHook(token, controlled) {
   calc.clearDebug();
   if ( controlled ) {
     if ( calc.openDebugPopout ) await calc.openDebugPopout();
-    updateDebugForControlledToken(token)
+    updateDebugForControlledToken(token);
   }
 }
 
@@ -205,10 +206,26 @@ function applyTokenStatusEffect(token, statusId, active) {
     : CoverCalculator.disableAllCover(token);
 }
 
-
 PATCHES.BASIC.HOOKS = { drawToken, destroyToken, targetToken: targetTokenDebug };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 PATCHES.NO_PF2E.HOOKS = { targetToken };
+
+
+// ----- NOTE: Methods ----- //
+/**
+ * Token.prototype.setCoverType
+ * Set cover type for this token.
+ * @param {COVER.TYPES} value
+ */
+async function setCoverType(value) {
+  if ( !keyForValue(COVER.TYPES, value) ) {
+    console.warn("Token.coverType|cover value not recognized.");
+    return;
+  }
+  CoverCalculator.enableCover(this, value);
+}
+
+PATCHES.BASIC.METHODS = { setCoverType };
 
 // ----- NOTE: Getters ----- //
 
@@ -240,6 +257,7 @@ PATCHES.BASIC.GETTERS = {
   coverType,
   ignoresCoverType
 };
+
 
 // ----- NOTE: Helper functions ----- //
 
