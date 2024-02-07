@@ -1,3 +1,8 @@
+## 0.6.5
+Fix for token cover pop-up appearing even when set to only appear when the target cover differs from the current measured cover. Closes issue #16.
+Fix for cover effect getting duplicated in `CONFIG.statusEffects` after low/medium/high cover gets configured in the settings.
+Correct erroneous references to `tokenvisibility`.
+
 ## 0.6.4
 Ignore riders and mounts if Rideable module is present for purposes of blocking vision.
 
