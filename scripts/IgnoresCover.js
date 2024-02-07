@@ -14,14 +14,14 @@ export function addDND5eCoverFeatFlags() {
   if ( game.system.id !== "dnd5e" || MODULES_ACTIVE.SIMBULS_CC ) return;
 
   CONFIG.DND5E.characterFlags.helpersIgnoreCover = {
-    name: game.i18n.localize("tokenvisibility.dnd5e.feats.cover.Name"),
-    hint: game.i18n.localize("tokenvisibility.dnd5e.feats.cover.Hint"),
+    name: game.i18n.localize(`${MODULE_ID}.dnd5e.feats.cover.Name`),
+    hint: game.i18n.localize(`${MODULE_ID}.dnd5e.feats.cover.Hint`),
     section: "Feats",
     choices: {
-      0: game.i18n.localize("tokenvisibility.dnd5e.feats.cover.OptionNone"),
-      1: game.i18n.localize("tokenvisibility.dnd5e.feats.cover.OptionHalf"),
-      2: game.i18n.localize("tokenvisibility.dnd5e.feats.cover.OptionThreeQuarters"),
-      3: game.i18n.localize("tokenvisibility.dnd5e.feats.cover.OptionFull")
+      0: game.i18n.localize(`${MODULE_ID}.dnd5e.feats.cover.OptionNone`),
+      1: game.i18n.localize(`${MODULE_ID}.dnd5e.feats.cover.OptionHalf`),
+      2: game.i18n.localize(`${MODULE_ID}.dnd5e.feats.cover.OptionThreeQuarters`),
+      3: game.i18n.localize(`${MODULE_ID}.dnd5e.feats.cover.OptionFull`)
     },
     type: Number
   };

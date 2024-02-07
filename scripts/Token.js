@@ -220,7 +220,7 @@ PATCHES.NO_PF2E.HOOKS = { targetToken };
 function coverType() {
   const statuses = this.actor?.statuses;
   if ( !statuses ) return COVER.TYPES.NONE;
-  const coverModule = MODULES_ACTIVE.DFREDS_CE ? "dfreds-convenient-effects" : "tokenvisibility";
+  const coverModule = MODULES_ACTIVE.DFREDS_CE ? "dfreds-convenient-effects" : MODULE_ID;
   return statuses.has(COVER.CATEGORIES.HIGH[coverModule]) ? COVER.TYPES.HIGH
     : statuses.has(COVER.CATEGORIES.MEDIUM[coverModule]) ? COVER.TYPES.MEDIUM
       : statuses.has(COVER.CATEGORIES.LOW[coverModule]) ? COVER.TYPES.LOW
