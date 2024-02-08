@@ -153,7 +153,7 @@
     "tokencover.template.settings-config.otherDescription": "Settings to adjust other cover rules and to set system-specific cover properties.",
 
     "tokencover.tokenconfig.maximum-cover.name": "Maximum Cover",
-    "tokencover.tokenconfig.maximum-cover.hint": "Maximum cover provided by this token. Example: A swarm of bees might only provide half cover. Does nothing if tokens do not grant cover (see module settings).",
+    "tokencover.tokenconfig.maximum-cover.hint": "Maximum cover provided by this token. Example: A swarm of bees might only provide half cover. A ghos may provide no cover. Does nothing if tokens do not grant cover (see module settings).",
 
     "tokencover.cover.None": "No Cover",
     "tokencover.cover.Low": "Low Cover",
