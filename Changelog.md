@@ -3,6 +3,7 @@ Fix for token cover pop-up appearing even when set to only appear when the targe
 Fix for cover effect getting duplicated in `CONFIG.statusEffects` after low/medium/high cover gets configured in the settings.
 Correct erroneous references to `tokenvisibility`.
 Fix for token cover settings not being respected in some situations. Closes issue #11.
+Pad potentially blocking token shapes by -2 pixels to avoid incorrectly labeling adjacent tokens as blocking. Closes issue #17.
 
 ## 0.6.4
 Ignore riders and mounts if Rideable module is present for purposes of blocking vision.
