@@ -263,3 +263,13 @@ export function lineWall3dIntersection(a, b, wall, epsilon = EPSILON) {
 
   return linePlane3dIntersection(a, b, c, d, epsilon);
 }
+
+/**
+ * Helper to inject configuration html into the application config.
+ */
+export async function injectConfiguration(app, html, data, template, findString) {
+  const myHTML = await renderTemplate(template, data);
+  const form = html.find(findString);
+  form.append(myHTML);
+  app.setPosition(app.position);
+}

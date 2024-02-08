@@ -26,9 +26,17 @@ export const FLAGS = {
 
     IGNORE_DND5E: "helpersIgnoreCover",
     SPELLSNIPER: "spellSniper",
-    SHARPSHOOTER: "sharpShooter"
+    SHARPSHOOTER: "sharpShooter",
+    MAX_GRANT: "maximumCoverGrant"
   }
 };
+
+export const TEMPLATES = {
+  TOKEN_CONFIG: `modules/${MODULE_ID}/templates/token-config.html`,
+  SETTINGS_BUTTONS: `modules/${MODULE_ID}/templates/settings-buttons.html`,
+  SETTINGS_MENU_PARTIAL: `modules/${MODULE_ID}/templates/settings-menu-tab-partial.html`,
+  SETTINGS_MENU: `modules/${MODULE_ID}/templates/settings-menu.html`
+}
 
 export const COVER = {};
 

@@ -28,6 +28,8 @@ import { PATCHES as PATCHES_Midiqol } from "./Midiqol.js";
 // Settings
 import { PATCHES as PATCHES_ClientSettings } from "./ModuleSettingsAbstract.js";
 
+// Token configuration
+import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
@@ -39,6 +41,7 @@ const PATCHES = {
   SettingsConfig: PATCHES_SettingsConfig,
   Tile: PATCHES_Tile,
   Token: foundry.utils.mergeObject(PATCHES_Token, PATCHES_TokenLOS),
+  TokenConfig: PATCHES_TokenConfig,
   VisionSource: PATCHES_VisionSource,
   Wall: PATCHES_Wall,
 
