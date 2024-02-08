@@ -359,7 +359,7 @@ export class AlternativeLOS {
    * @returns {boolean} True if some blocking placeable within the vision triangle.
    */
   hasPotentialObstacles() {
-    const objs = this.#blockingObjects;
+    const objs = this.blockingObjects;
     return objs.walls.size || objs.tokens.size || objs.tiles.size;
   }
 
@@ -467,7 +467,7 @@ export class AlternativeLOS {
   }
 
   /**
-   * Does the ray between two points collide with a tile?
+   * Does the ray between two points collide with a tile within the vision triangle?
    * @param {Point3d} startPt       Starting point of this ray
    * @param {Point3d} endPt         End point of this ray
    * @returns {boolean} True if a tile blocks this ray
@@ -477,8 +477,10 @@ export class AlternativeLOS {
     const ray = new Ray(startPt, endPt);
 
     // Ignore non-overhead tiles
-    const collisionTest = (o, _rect) => o.t.document.overhead;
-    const tiles = canvas.tiles.quadtree.getObjects(ray.bounds, { collisionTest });
+    // Use blockingObjects b/c more limited and we can modify it if necessary.
+    // const collisionTest = (o, _rect) => o.t.document.overhead;
+    // const tiles = canvas.tiles.quadtree.getObjects(ray.bounds, { collisionTest });
+    const tiles = this.blockingObjects.tiles.filter(t => t.document.overhead);
 
     // Because tiles are parallel to the XY plane, we need not test ones obviously above or below.
     const maxE = Math.max(startPt.z, endPt.z);
@@ -516,7 +518,7 @@ export class AlternativeLOS {
   }
 
   /**
-   * Does the ray between two points collide with a token?
+   * Does the ray between two points collide with a token within the vision triangle?
    * @param {Point3d} startPt       Starting point of this ray
    * @param {Point3d} endPt         End point of this ray
    * @returns {boolean} True if a token blocks this ray
@@ -525,10 +527,18 @@ export class AlternativeLOS {
     const { liveTokensBlock, deadTokensBlock } = this.#config;
     if ( !(liveTokensBlock || deadTokensBlock) ) return false;
 
+
+    // Use blockingObjects b/c more limited and we can modify it if necessary.
     // Filter out the viewer and target token
-    const collisionTest = o => !(o.t.bounds.contains(startPt.x, startPt.y) || o.t.bounds.contains(endPt.x, endPt.y));
-    const ray = new Ray(startPt, endPt);
-    let tokens = canvas.tokens.quadtree.getObjects(ray.bounds, { collisionTest });
+    // const collisionTest = o => !(o.t.bounds.contains(startPt.x, startPt.y) || o.t.bounds.contains(endPt.x, endPt.y));
+    // const ray = new Ray(startPt, endPt);
+    // let tokens = canvas.tokens.quadtree.getObjects(ray.bounds, { collisionTest });
+    let tokens = this.blockingObjects.tokens.filter(t =>
+      t.constrainedTokenBorder.lineSegmentIntersects(startPt, endPt, { inside: true }));
+
+    // Filter out the viewer and target token
+    tokens.delete(this.viewer);
+    token.delete(this.target);
 
     // Build full- or half-height startPts3d from tokens
     const tokenPts = this._buildTokenPoints(tokens);
