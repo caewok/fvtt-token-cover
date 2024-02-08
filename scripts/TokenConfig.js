@@ -21,7 +21,7 @@ async function renderTokenConfigHook(app, html, data) {
 function addTokenConfigData(app, data) {
   data.object.flags ??= {};
   data.object.flags[MODULE_ID] ??= {};
-  data.object.flags[MODULE_ID][FLAGS.COVER.MAX_GRANT] ??= COVER.TYPES.HIGH;
+  data.object.flags[MODULE_ID][FLAGS.COVER.MAX_GRANT] ??= COVER.TYPES.MAX;
 
   const renderData = {};
   renderData[MODULE_ID] = {
@@ -29,7 +29,8 @@ function addTokenConfigData(app, data) {
       0: "tokencover.cover.None",
       1: "tokencover.cover.Low",
       2: "tokencover.cover.Medium",
-      3: "tokencover.cover.High"
+      3: "tokencover.cover.High",
+      4: "tokencover.cover.Total"
     }
   };
   foundry.utils.mergeObject(data, renderData, {inplace: true});
