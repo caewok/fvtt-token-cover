@@ -125,13 +125,9 @@ export class Settings extends ModuleSettingsAbstract {
   static toggleDebugGraphics(enabled = false) {
     if ( enabled ) registerDebug();
     else {
-      if ( canvas.tokens?.placeables ) {
-        canvas.tokens.placeables.forEach(token => {
-          const calc = token[MODULE_ID]?.coverCalc.calc;
-          if ( !calc ) return;
-          calc.clearDebug();
-        });
-      }
+      if ( canvas.tokens?.placeables ) canvas.tokens.placeables
+        .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
+        .forEach(t => t.coverCalculator.clearDebug());
       deregisterDebug();
     }
   }
@@ -661,13 +657,17 @@ export class Settings extends ModuleSettingsAbstract {
   static losAlgorithmChange(key, value) {
     this.cache.delete(key);
     if ( this.typesWebGL2.has(value) ) registerArea3d();
-    canvas.tokens.placeables.forEach(token => token[MODULE_ID]?.coverCalc._updateAlgorithm());
+    canvas.tokens.placeables
+      .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
+      .forEach(token => token.coverCalculator._updateAlgorithm());
   }
 
   static losSettingChange(key, value) {
     this.cache.delete(key);
     const cfg = { [key]: value };
-    canvas.tokens.placeables.forEach(token => token[MODULE_ID]?.coverCalc._updateConfiguration(cfg));
+    canvas.tokens.placeables
+      .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
+      .forEach(token => token.coverCalculator._updateConfiguration(cfg));
   }
 
   static setProneStatusId(value) {

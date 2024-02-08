@@ -9,7 +9,7 @@ game
 import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { SETTINGS, Settings } from "./settings.js";
-import { isFirstGM, keyForValue } from "./util.js";
+import { isFirstGM } from "./util.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
@@ -29,11 +29,11 @@ PATCHES.NO_PF2E = {};
  * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
  */
 async function controlTokenDebugHook(token, controlled) {
-  const calc = token[MODULE_ID]?.coverCalc.calc;
-  if ( !calc ) return;
-  calc.clearDebug();
+  if ( !token[MODULE_ID].coverCalc ) return;
+  const coverCalc = token.coverCalculator;
+  coverCalc.clearDebug();
   if ( controlled ) {
-    if ( calc.openDebugPopout ) await calc.openDebugPopout();
+    if ( coverCalc.calc.openDebugPopout ) await coverCalc.calc.openDebugPopout();
     updateDebugForControlledToken(token);
   }
 }
@@ -47,14 +47,16 @@ async function controlTokenDebugHook(token, controlled) {
  */
 function targetTokenDebugHook(user, target, targeted) {
   if ( !targeted || game.user !== user ) return;
-  canvas.tokens.placeables.forEach(token => {
-    if ( token === target || !token.controlled ) return;
-    const calc = token[MODULE_ID]?.coverCalc.calc;
-    if ( !calc || !calc._draw3dDebug ) return;
-    calc._clearCache();
-    calc.target = target;
-    calc.updateDebug();
-  });
+  canvas.tokens.placeables
+    .filter(t => t !== target && t.controlled && t[MODULE_ID]?.coverCalc)
+    .forEach(t => {
+      const coverCalc = t.coverCalculator;
+      if ( !coverCalc._draw3dDebug ) return;
+      coverCalc.calc._clearCache();
+      coverCalc.target = target;
+      coverCalc.calc.updateDebug();
+    });
+
 }
 
 /**
@@ -108,15 +110,15 @@ function updateDebugForControlledToken(changedToken) {
  */
 function updateDebugForRelatedTokens(changedToken) {
   // For any other controlled token, update its LOS canvas display for this one.
-  canvas.tokens.placeables.forEach(token => {
-    if ( token === changedToken || !token.controlled ) return;
-    const calc = token[MODULE_ID]?.coverCalc.calc;
-    if ( !calc ) return;
-    if ( calc.target === changedToken ) calc.clearDebug();
-    calc._clearCache();
-    calc.target = changedToken;
-    calc.updateDebug();
-  });
+  canvas.tokens.placeables
+    .filter(t => t !== changedToken && t.controlled && t[MODULE_ID]?.coverCalc)
+    .forEach(token => {
+      const coverCalc = token.coverCalculator;
+      if ( coverCalc.target === changedToken ) coverCalc.clearDebug();
+      coverCalc.calc._clearCache();
+      coverCalc.target = changedToken;
+      coverCalc.calc.updateDebug();
+    });
 }
 
 PATCHES.DEBUG.HOOKS = {
@@ -138,29 +140,20 @@ PATCHES.DEBUG.HOOKS = {
 function targetTokenDebug(user, target, targeted) {
   if ( !targeted || game.user !== user ) return;
   for ( const token of canvas.tokens.controlled ) {
-    const calc = token[MODULE_ID].coverCalc.calc;
-    if ( !calc.popoutIsRendered ) continue;
-    calc.target = target;
-    calc.percentVisible();
-    calc._draw3dDebug();
+    if ( !token[MODULE_ID]?.coverCalc ) continue;
+    const coverCalc = token.coverCalculator;
+    if ( !coverCalc.calc.popoutIsRendered ) continue;
+    coverCalc.target = target;
+    coverCalc.percentCover();
+    coverCalc.calc._draw3dDebug();
   }
-}
-
-/**
- * Hook: drawToken
- * Create a token cover calculator.
- * @param {PlaceableObject} object    The object instance being drawn
- */
-function drawToken(token) {
-  const obj = token[MODULE_ID] ??= {};
-  obj.coverCalc = new CoverCalculator(token);
 }
 
 /**
  * Hook: destroyToken
  * @param {PlaceableObject} object    The object instance being destroyed
  */
-function destroyToken(token) { token[MODULE_ID].coverCalc.destroy(); }
+function destroyToken(token) { if ( token[MODULE_ID]?.coverCalc ) token.coverCalculator.destroy(); }
 
 /**
  * If a token is targeted, determine its cover status.
@@ -182,9 +175,10 @@ async function targetToken(user, target, targeted) {
   if ( !targeted ) return await CoverCalculator.disableAllCover(target.id);
 
   // Target from the current combatant to the target token
-  const c = game.combats.active;
-  const combatToken = c.combatant.token.object;
-  const coverCalc = combatToken[MODULE_ID].coverCalc;
+  const c = game.combats.active?.combatant;
+  if ( !c ) return; // Apparently combatant is not always defined.
+  const combatToken = c.token.object;
+  const coverCalc = combatToken.coverCalculator;
   coverCalc.target = target;
   return await coverCalc.setTargetCoverEffect();
 }
@@ -206,7 +200,7 @@ function applyTokenStatusEffect(token, statusId, active) {
     : CoverCalculator.disableAllCover(token);
 }
 
-PATCHES.BASIC.HOOKS = { drawToken, destroyToken, targetToken: targetTokenDebug };
+PATCHES.BASIC.HOOKS = { destroyToken, targetToken: targetTokenDebug };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 PATCHES.NO_PF2E.HOOKS = { targetToken };
 
@@ -217,13 +211,7 @@ PATCHES.NO_PF2E.HOOKS = { targetToken };
  * Set cover type for this token.
  * @param {COVER.TYPES} value
  */
-async function setCoverType(value) {
-  if ( !keyForValue(COVER.TYPES, value) ) {
-    console.warn("Token.coverType|cover value not recognized.");
-    return;
-  }
-  CoverCalculator.enableCover(this, value);
-}
+async function setCoverType(value) { return this.coverCalculator.setTargetCoverEffect(value); }
 
 PATCHES.BASIC.METHODS = { setCoverType };
 
@@ -253,7 +241,17 @@ function ignoresCoverType() {
   return this._ignoresCoverType || (this._ignoresCoverType = new IGNORES_COVER_HANDLER(this));
 }
 
+/**
+ * New getter: Token.prototype.coverCalculator
+ * Retrieve a valid cover calculator or construct a new one.
+ */
+function coverCalculator() {
+  this[MODULE_ID] ??= {};
+  return (this[MODULE_ID].coverCalc ??= new CoverCalculator(this));
+}
+
 PATCHES.BASIC.GETTERS = {
+  coverCalculator,
   coverType,
   ignoresCoverType
 };
@@ -270,7 +268,7 @@ function isUserCombatTurn(user) {
   if ( !game.combat?.started ) return false;
 
   // If no players, than it must be a GM token
-  const c = game.combats.active;
-  if ( !c.combatant.players.length ) return user.isGM;
-  return c.combatant.players.some(player => user.name === player.name);
+  const players = game.combats.active?.combatant?.players;
+  if ( !players?.length ) return user.isGM;
+  return players.some(player => user.name === player.name);
 }
