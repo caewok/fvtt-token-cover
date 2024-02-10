@@ -22,7 +22,6 @@ import { Area3dLOSWebGL } from "./LOS/Area3dLOSWebGL1.js";
 import { Area3dLOSWebGL2 } from "./LOS/Area3dLOSWebGL2.js";
 import { Area3dLOSHybrid } from "./LOS/Area3dLOSHybrid.js";
 import { OPEN_POPOUTS } from "./LOS/Area3dPopout.js";
-import { ConstrainedTokenBorder } from "./LOS/ConstrainedTokenBorder.js";
 import { Token3dGeometry, Wall3dGeometry, DirectionalWall3dGeometry, ConstrainedToken3dGeometry } from "./LOS/Placeable3dGeometry.js";
 import { Placeable3dShader, Tile3dShader, Placeable3dDebugShader, Tile3dDebugShader } from "./LOS/Placeable3dShader.js";
 
@@ -94,7 +93,6 @@ Hooks.once("init", function() {
     CoverCalculator,
     CoverDialog,
     COVER,
-    ConstrainedTokenBorder,
     setCoverIgnoreHandler,
     Settings,
 
