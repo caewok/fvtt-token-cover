@@ -4,7 +4,6 @@ ClipperLib,
 CONFIG,
 CONST,
 foundry,
-getObjectProperty,
 LimitedAnglePolygon,
 PIXI,
 PointSourcePolygon,
@@ -80,6 +79,9 @@ export class AlternativeLOS {
     this.#viewer = viewer;
     this.#target = target;
     this._initializeConfiguration(config);
+
+    // Hide initialized property so we can iterate the object.
+    Object.defineProperty(this.#blockingObjects, "initialized", { enumerable: false});
   }
 
   /**
@@ -122,16 +124,25 @@ export class AlternativeLOS {
   get useLargeTarget() { return this.#config.largeTarget; }
 
   _clearCache() {
-    // Viewer
-    this.#viewerPoint = undefined;
+    this._clearViewerCache();
+    this._clearTargetCache();
+  }
 
-    // Target
-    this.#targetCenter = undefined;
+  _clearViewerCache() {
+    this.#viewerPoint.x = null;
+
+    // Affected by both viewer and target
+    this._visionPolygon = undefined; // Requires viewer, target.
+    this.#blockingObjects.initialized = false; // Requires visionPolygon.
+  }
+
+  _clearTargetCache() {
+    this.#targetCenter.x = null;
     this.#visibleTargetShape = undefined;
 
-    // Other
-    this._visionPolygon = undefined;
-    this.#blockingObjects.initialized = false;
+    // Affected by both viewer and target
+    this._visionPolygon = undefined; // Requires viewer, target.
+    this.#blockingObjects.initialized = false; // Requires visionPolygon.
   }
 
   // ----- NOTE: Viewer properties ----- //
@@ -150,18 +161,21 @@ export class AlternativeLOS {
     if ( value instanceof VisionSource ) value = value.object;
     if ( value === this.#viewer ) return;
     this.#viewer = value;
-    this._clearCache();
+    this._clearViewerCache();
   }
 
-  #viewerPoint;
+  #viewerPoint = new Point3d(null); // Set x = null to indicate uninitialized.
 
   /**
    * The line-of-sight is calculated from this point.
    * @type {Point3d}
    */
   get viewerPoint() {
-    return this.#viewerPoint
-      || (this.#viewerPoint = Point3d.fromTokenVisionHeight(this.viewer).add(this.#config.visionOffset));
+    if ( this.#viewerPoint.x == null ) {
+      Point3d.fromTokenVisionHeight(this.viewer, this.#viewerPoint)
+        .add(this.#config.visionOffset, this.#viewerPoint);
+    }
+    return this.#viewerPoint;
   }
 
   /**
@@ -173,16 +187,15 @@ export class AlternativeLOS {
     // See get viewerPoint:
     // vp = center + offset
     // offset = vp - center
-    const center = Point3d.fromTokenVisionHeight(this.viewer);
-    this.#config.visionOffset = value.subtract(center);
-    this.#viewerPoint = value; // TODO: This and viewerPoint and others should all be copyFrom or set.
-    this._clearCache();
+    Point3d.fromTokenVisionHeight(this.viewer, this.#config.visionOffset); // Center
+    value.subtract(this.#config.visionOffset, this.#config.visionOffset); // Value - center
+    this._clearViewerCache(); // Will clear viewerPoint.
   }
 
   /** @type {Point3d} */
   set visionOffset(value) {
     this.#config.visionOffset.copyPartial(value);
-    this._clearCache();
+    this._clearViewerCache(); // Affects viewerPoint.
   }
 
   // ----- NOTE: Target properties ----- //
@@ -202,15 +215,15 @@ export class AlternativeLOS {
   set target(value) {
     if ( value === this.#target ) return;
     this.#target = value;
-    this._clearCache();
+    this._clearTargetCache();
   }
 
   /** @type {Point3d} */
-  #targetCenter;
+  #targetCenter = new Point3d(null); // Set x=null to indicate uninitialized.
 
   get targetCenter() {
-    return this.#targetCenter
-      || (this.#targetCenter = Point3d.fromTokenCenter(this.target));
+    if ( this.#targetCenter.x == null ) Point3d.fromTokenCenter(this.target, this.#targetCenter);
+    return this.#targetCenter;
   }
 
   /**
@@ -305,7 +318,6 @@ export class AlternativeLOS {
    */
   hasLOS() {
     log(`hasLOS|${this.viewer.name}👀 => ${this.target.name}🎯`);
-    this._clearCache();
 
     const threshold = this.#config.threshold;
     const percentVisible = this.percentVisible();
@@ -334,8 +346,6 @@ export class AlternativeLOS {
    * @returns {0|1|undefined} Undefined if obstacles present or target intersects the vision rays.
    */
   _simpleVisibilityTest() {
-    this._clearCache();
-
     // To avoid obvious errors.
     if ( this.viewer === this.target
       || this.viewerPoint.almostEqual(Point3d.fromTokenCenter(this.target)) ) return 1;
@@ -356,11 +366,15 @@ export class AlternativeLOS {
   }
 
   /**
+   * Test if we have one or more potentially blocking objects. Does not check for whether
+   * the objects in fact block but does require two terrain walls to count.
    * @returns {boolean} True if some blocking placeable within the vision triangle.
+   *
    */
   hasPotentialObstacles() {
-    const objs = this.blockingObjects;
-    return objs.walls.size || objs.tokens.size || objs.tiles.size;
+    const { terrainWalls, ...otherObjects } = this.blockingObjects;
+    if ( terrainWalls.size > 1 ) return true;
+    return Object.values(otherObjects).some(objSet => objSet.size);
   }
 
   /**
@@ -411,31 +425,34 @@ export class AlternativeLOS {
     // Locate blocking objects for the vision triangle
     const type = this.#config.type;
     const blockingObjs = this.#blockingObjects;
-    const objsFound = this._filterSceneObjectsByVisionPolygon();
+    const objsFound = this._filterSceneObjectsByVisionPolygon(); // Returns tiles, tokens, walls.
 
     // Remove old blocking objects.
-    const { terrainWalls, walls, tokens, tiles } = blockingObjs;
-    terrainWalls.clear();
-    walls.clear();
-    tokens.clear();
-    tiles.clear();
+    Object.values(blockingObjs).forEach(objs => objs.clear());
 
-    // Separate the terrain walls.
-    objsFound.walls.forEach(w => {
-      const s = w.document[type] === CONST.WALL_SENSE_TYPES.LIMITED ? terrainWalls : walls;
-      s.add(w);
+    // Add new blocking objects to their respective set.
+    // Walls must be separated into terrain and normal.
+    const { walls, ...otherObjs } = objsFound;
+    walls.forEach(foundObjs => {
+      foundObjs.forEach(w => {
+        const objName = w.document[type] === CONST.WALL_SENSE_TYPES.LIMITED ? "terrainWalls" : "walls";
+        blockingObjs[objName].add(w);
+      });
     });
+
+    // Add other blocking objects to their respective set.
+    Object.entries(otherObjs).forEach(([key, foundObjs]) => {
+      const blockingSet = blockingObjs[key];
+      foundObjs.forEach(obj => blockingSet.add(obj));
+    });
+
 
     // Add walls for limited angle sight, if necessary.
     const limitedAngleWalls = this._constructLimitedAngleWallPoints3d();
     if ( limitedAngleWalls ) {
-      walls.add(limitedAngleWalls[0]);
-      walls.add(limitedAngleWalls[1]);
+      blockingObjs.walls.add(limitedAngleWalls[0]);
+      blockingObjs.walls.add(limitedAngleWalls[1]);
     }
-
-    // Add tokens, tiles
-    objsFound.tokens.forEach(t => tokens.add(t));
-    objsFound.tiles.forEach(t => tiles.add(t));
 
     blockingObjs.initialized = true;
   }
@@ -474,7 +491,6 @@ export class AlternativeLOS {
    */
   _hasTileCollision(startPt, endPt) {
     if ( !this.#config.tilesBlock ) return false;
-    const ray = new Ray(startPt, endPt);
 
     // Ignore non-overhead tiles
     // Use blockingObjects b/c more limited and we can modify it if necessary.
@@ -538,7 +554,7 @@ export class AlternativeLOS {
 
     // Filter out the viewer and target token
     tokens.delete(this.viewer);
-    token.delete(this.target);
+    tokens.delete(this.target);
 
     // Build full- or half-height startPts3d from tokens
     const tokenPts = this._buildTokenPoints(tokens);
@@ -648,7 +664,7 @@ export class AlternativeLOS {
     }
 
     if ( pointAlgorithm === TYPES.THREE ) {
-       if ( isTarget && viewerPoint ) {
+      if ( isTarget && viewerPoint ) {
         tokenPoints.shift(); // Remove the center point.
         cornerPoints.forEach(pt => pt._dist = Point3d.distanceSquaredBetween(viewerPoint, pt));
         cornerPoints.sort((a, b) => a._dist - b._dist);
@@ -832,7 +848,7 @@ export class AlternativeLOS {
    * @return {Set<Token>}
    */
   _filterTokensByVisionPolygon() {
-    const { visionPolygon, target, viewer, viewerPoint } = this;
+    const { visionPolygon, target, viewer } = this;
 
     // Filter by the precise triangle cone
     // For speed and simplicity, consider only token rectangular bounds
