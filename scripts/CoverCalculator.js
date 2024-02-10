@@ -386,10 +386,8 @@ export class CoverCalculator extends AbstractCalculator {
    */
   _updateConfiguration(config) {
     // Handle the live token cover choices.
-    if ( Object.hasOwn(config, "liveTokensAlgorithm") ) {
-      const liveTypes = SETTINGS.LIVE_TOKENS.TYPES;
-      config.liveTokensBlock = config.liveTokensAlgorithm !== liveTypes.NONE;
-    }
+    const liveTokensAlg = config[Settings.KEYS.LIVE_TOKENS.ALGORITHM];
+    if ( liveTokensAlg ) config.liveTokensBlock = liveTokensAlg !== Settings.KEYS.LIVE_TOKENS.TYPES.NONE;
     super._updateConfiguration(config);
   }
 }
