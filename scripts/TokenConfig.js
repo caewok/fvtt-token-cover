@@ -21,7 +21,7 @@ async function renderTokenConfigHook(app, html, data) {
 function addTokenConfigData(app, data) {
   data.object.flags ??= {};
   data.object.flags[MODULE_ID] ??= {};
-  data.object.flags[MODULE_ID][FLAGS.COVER.MAX_GRANT] ??= COVER.TYPES.MAX;
+  data.object.flags[MODULE_ID][FLAGS.COVER.MAX_GRANT] ??= COVER.MAX;
 
   const renderData = {};
   renderData[MODULE_ID] = {
