@@ -178,6 +178,7 @@ export class CoverCalculator extends AbstractCalculator {
       const maxCover = Number(t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? COVER.TYPES.TOTAL);
       if ( maxCover === COVER.TYPES.NONE ) blockingTokens.delete(t);
     });
+    if ( blockingTokens.size ) this.calc._blockingObjectsChanged();
   }
 
 
@@ -268,9 +269,11 @@ export class CoverCalculator extends AbstractCalculator {
 
       // Without partially blocking tokens.
       partialBlockingTokens.forEach(t => blockingTokens.delete(t));
+      calc._blockingObjectsChanged();
       const percentNoTokens = 1 - calc.percentVisible();
       const diff = percent - percentNoTokens;
       partialBlockingTokens.forEach(t => blockingTokens.add(t));
+      calc._blockingObjectsChanged();
 
       // Remove each token in turn
       let tPercentage = [];
@@ -279,9 +282,11 @@ export class CoverCalculator extends AbstractCalculator {
       partialBlockingTokens.forEach(t => {
         tMaxCover.push(Number(t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? COVER.TYPES.HIGH));
         blockingTokens.delete(t);
+        calc._blockingObjectsChanged();
         const percentMinusOneToken = 1 - calc.percentVisible();
         tPercentage.push(percent - percentMinusOneToken);
         blockingTokens.add(t);
+        calc._blockingObjectsChanged();
       });
 
       // Pro-rate each token's percentage contribution to the total token contribution to

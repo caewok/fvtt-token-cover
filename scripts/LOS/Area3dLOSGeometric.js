@@ -131,6 +131,18 @@ export class Area3dLOSGeometric extends Area3dLOS {
     this.#blockingPoints.initialized = false;
   }
 
+  /**
+   * Manually update blocking objects. Used when interested in the delta of visibility with
+   * or without 1+ objects. E.g., when measuring token-provided cover.
+   * Because the blockingObjects changed, we must recalculate the derived blocking points.
+   */
+  _blockingObjectsChanged() {
+    super._blockingObjectsChanged();
+    this.#viewIsSet = false;
+    this.#blockingObjectsPoints.initialized = false;
+    this.#blockingPoints.initialized = false;
+  }
+
   // ----- NOTE: Target properties ----- //
 
   /** @type {Point3d} */
@@ -305,8 +317,8 @@ export class Area3dLOSGeometric extends Area3dLOS {
     }
 
     // Set the matrix to look at blocking point objects from the viewer.
-    Object.values(this.blockingPoints).forEach(objSet =>
-      objSet.forEach(pts => pts.setViewMatrix(targetLookAtMatrix)));
+    Object.values(this.blockingPoints).forEach(objArr =>
+      objArr.forEach(pts => pts.setViewMatrix(targetLookAtMatrix)));
 
     // Set the matrix for drawing other debug objects
     Object.values(this.blockingObjectsPoints).forEach(objSet =>
@@ -452,14 +464,16 @@ export class Area3dLOSGeometric extends Area3dLOS {
     }
 
     // Add points to the respective blockingPoints array.
-    Object.entries(nonTokens).forEach(([key, pts]) => addVisibleSplitsFn(key, pts));
+    Object.entries(nonTokens)
+      .forEach(([key, objSet]) => objSet
+        .forEach(pts => addVisibleSplitsFn(key, pts)));
 
-    Object.values(tokens).forEach(token => {
+    tokens.forEach(token => {
       const topBottom = token._viewableTopBottom(viewerLoc);
-      if ( topBottom ) addVisibleSplitsFn("token", topBottom);
+      if ( topBottom ) addVisibleSplitsFn("tokens", topBottom);
 
       const sides = token._viewableSides(viewerLoc);
-      sides.forEach(pts => addVisibleSplitsFn("token", pts));
+      sides.forEach(pts => addVisibleSplitsFn("tokens", pts));
     });
 
     this.#blockingPoints.initialized = true;
