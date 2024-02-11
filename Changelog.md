@@ -1,9 +1,17 @@
 ## 0.6.5
+
+### New Feature
+
+Add dropdown menu in token configuration to force the token to grant less than full cover. For example, ghosts might grant no cover; swarms may grant at most half cover. `tokencover.maximumCoverGrant` is the flag for this. Closes issue #12.
+
+### Bug Fixes
+
 Fix for token cover pop-up appearing even when set to only appear when the target cover differs from the current measured cover. Closes issue #16.
 Fix for cover effect getting duplicated in `CONFIG.statusEffects` after low/medium/high cover gets configured in the settings.
 Correct erroneous references to `tokenvisibility`.
 Fix for token cover settings not being respected in some situations. Closes issue #11.
 Pad potentially blocking token shapes by -2 pixels to avoid incorrectly labeling adjacent tokens as blocking. Closes issue #17.
+Various fixes imported from ATV related to constrained token borders failing to be created properly.
 
 ## 0.6.4
 Ignore riders and mounts if Rideable module is present for purposes of blocking vision.
