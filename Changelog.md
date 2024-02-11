@@ -14,6 +14,9 @@ Pad potentially blocking token shapes by -2 pixels to avoid incorrectly labeling
 Various fixes imported from ATV related to constrained token borders failing to be created properly.
 Fix for Rideable module breaking cover measurements. Closes issue #18.
 Only test for cover in dnd5e `rollAttack` workflow if the attack type is melee/ranged weapon or spell attack. Closes issue #15.
+Don't treat tokens as blocking if they overlap the viewer or target.
+
+Update lib geometry to v0.2.16.
 
 ## 0.6.4
 Ignore riders and mounts if Rideable module is present for purposes of blocking vision.
