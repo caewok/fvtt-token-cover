@@ -12,19 +12,19 @@ export const STATUS_EFFECTS = {
     LOW: {
       id: `${MODULE_ID}.cover.LOW`,
       icon: `modules/${MODULE_ID}/assets/shield_low_gray.svg`,
-      name: "tokenvisibility.Cover.Low"
+      name: `${MODULE_ID}.Cover.Low`
     },
 
     MEDIUM: {
       id: `${MODULE_ID}.cover.MEDIUM`,
       icon: `modules/${MODULE_ID}/assets/shield_medium_gray.svg`,
-      name: "tokenvisibility.Cover.Medium"
+      name: `${MODULE_ID}.Cover.Medium`
     },
 
     HIGH: {
       id: `${MODULE_ID}.cover.HIGH`,
       icon: `modules/${MODULE_ID}/assets/shield_high_gray.svg`,
-      name: "tokenvisibility.Cover.High"
+      name: `${MODULE_ID}.Cover.High`
     }
   }
 };

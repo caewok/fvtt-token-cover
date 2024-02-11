@@ -1,0 +1,15 @@
+<fieldset>
+  <legend>{{ localize "tokencover.name" }}</legend>
+
+    <div class="form-group">
+      <label for="tokencover.maximumCoverGrant">{{ localize "tokencover.tokenconfig.maximum-cover.name" }}</label>
+      <div class="form-fields">
+        <select id="tokencover.maximumCoverGrant" name="flags.tokencover.maximumCoverGrant" class="tokencover">
+          {{ selectOptions tokencover.coverChoices selected=object.flags.tokencover.maximumCoverGrant localize=true }}
+        </select>
+      </div>
+      <p class="hint">{{ localize "tokencover.tokenconfig.maximum-cover.hint" }}</p>
+    </div>
+
+  </legend>
+</fieldset>

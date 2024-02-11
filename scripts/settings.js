@@ -125,13 +125,9 @@ export class Settings extends ModuleSettingsAbstract {
   static toggleDebugGraphics(enabled = false) {
     if ( enabled ) registerDebug();
     else {
-      if ( canvas.tokens?.placeables ) {
-        canvas.tokens.placeables.forEach(token => {
-          const calc = token[MODULE_ID]?.coverCalc.calc;
-          if ( !calc ) return;
-          calc.clearDebug();
-        });
-      }
+      if ( canvas.tokens?.placeables ) canvas.tokens.placeables
+        .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
+        .forEach(t => t.coverCalculator.clearDebug());
       deregisterDebug();
     }
   }
@@ -173,7 +169,10 @@ export class Settings extends ModuleSettingsAbstract {
   static getCoverEffect(type = "LOW") {
     const allStatusEffects = this.get(SETTINGS.COVER.EFFECTS);
     const statusEffects = allStatusEffects[game.system.id] || allStatusEffects.generic;
-    return statusEffects[type];
+    const coverEffect = statusEffects[type];
+    coverEffect.id = `${MODULE_ID}.cover.${type}`;
+    coverEffect.name ??= coverEffect.label ?? coverEffect.id; // Ensure name is always present.
+    return coverEffect;
   }
 
   /**
@@ -183,7 +182,7 @@ export class Settings extends ModuleSettingsAbstract {
    */
   static getCoverName(type = "LOW") {
     if ( type === "NONE" ) return game.i18n.localize("None");
-    if ( type === "TOTAL" ) return game.i18n.localize("tokenvisibility.phrases.Total");
+    if ( type === "TOTAL" ) return game.i18n.localize(`${MODULE_ID}.phrases.Total`);
 
     const effect = this.getCoverEffect(type);
     return game.i18n.localize(effect.name ?? effect.label);
@@ -235,10 +234,7 @@ export class Settings extends ModuleSettingsAbstract {
     }
 
     const coverEffect = this.getCoverEffect(type);
-    coverEffect.id = `${MODULE_ID}.cover.${type}`;
     const currIdx = CONFIG.statusEffects.findIndex(effect => effect.id === coverEffect.id);
-    coverEffect.name ??= coverEffect.label ?? coverEffect.id; // Ensure name is always present.
-
     if ( !~currIdx ) CONFIG.statusEffects.push(coverEffect);
     else CONFIG.statusEffects[currIdx] = coverEffect;
   }
@@ -661,13 +657,17 @@ export class Settings extends ModuleSettingsAbstract {
   static losAlgorithmChange(key, value) {
     this.cache.delete(key);
     if ( this.typesWebGL2.has(value) ) registerArea3d();
-    canvas.tokens.placeables.forEach(token => token[MODULE_ID]?.coverCalc._updateAlgorithm());
+    canvas.tokens.placeables
+      .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
+      .forEach(token => token.coverCalculator._updateAlgorithm());
   }
 
   static losSettingChange(key, value) {
     this.cache.delete(key);
     const cfg = { [key]: value };
-    canvas.tokens.placeables.forEach(token => token[MODULE_ID]?.coverCalc._updateConfiguration(cfg));
+    canvas.tokens.placeables
+      .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
+      .forEach(token => token.coverCalculator._updateConfiguration(cfg));
   }
 
   static setProneStatusId(value) {

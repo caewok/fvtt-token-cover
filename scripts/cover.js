@@ -1,7 +1,4 @@
 /* globals
-canvas,
-ChatMessage,
-game,
 */
 "use strict";
 
@@ -46,9 +43,7 @@ dnd5e: half, 3/4, full
 
 */
 
-import { COVER, MODULE_ID } from "./const.js";
 import { SETTINGS, Settings } from "./settings.js";
-import { CoverCalculator } from "./CoverCalculator.js";
 import { CoverDialog } from "./CoverDialog.js";
 
 
@@ -67,11 +62,13 @@ export async function coverWorkflow(token, targets, actionType) {
   // - undefined if covercheck is set to NONE. NONE may still require chat display.
   // - Map otherwise
   const coverDialog = new CoverDialog(token, targets);
+
   const coverCalculations = await coverDialog.workflow(actionType);
+  if ( typeof coverCalculations === "undefined" ) return true; // Setting is do not use cover.
   if ( coverCalculations === false ) return false;  // User canceled
 
   // Check if the user removed one or more targets.
-  if ( coverCalculations && coverCalculations.size !== coverDialog.coverCalculations.size ) {
+  if ( coverCalculations.size !== coverDialog.coverCalculations.size ) {
     if ( !coverCalculations.size ) return false; // All targets removed.
 
     // Drop the removed targets.
@@ -80,9 +77,7 @@ export async function coverWorkflow(token, targets, actionType) {
   }
 
   // Update targets' cover if some targets are present
-  if ( coverCalculations && coverCalculations.size ) {
-    await coverDialog.updateTargetsCover(coverCalculations);
-  }
+  if ( coverCalculations.size ) await coverDialog.updateTargetsCover(coverCalculations);
 
   // Display in chat if requested.
   let displayChat = Settings.get(SETTINGS.COVER.CHAT);

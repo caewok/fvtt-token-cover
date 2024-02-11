@@ -5,7 +5,7 @@ renderTemplate
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, DOCUMENTATION_URL, ISSUE_URL } from "./const.js";
+import { MODULE_ID, DOCUMENTATION_URL, ISSUE_URL, TEMPLATES } from "./const.js";
 import { SETTINGS, Settings } from "./settings.js";
 
 // Patches for the VisionSource class
@@ -26,8 +26,7 @@ async function renderSettingsConfig(app, html, data) {
   const settings = html.find(`section[data-tab="${MODULE_ID}"]`);
   if ( !settings || !settings.length ) return;
 
-  const template = `modules/${MODULE_ID}/templates/settings-buttons.html`;
-  const myHTML = await renderTemplate(template, data);
+  const myHTML = await renderTemplate(TEMPLATES.SETTINGS_BUTTONS, data);
   settings.last().children().last().after(myHTML);
   app.setPosition(app.position);
 

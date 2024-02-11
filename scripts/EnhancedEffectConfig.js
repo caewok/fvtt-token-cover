@@ -52,7 +52,7 @@ export class LowCoverEffectConfig extends EnhancedEffectConfig {
   constructor() {
     super();
 
-    const data = Settings.getCoverEffect("LOW");
+    const data = {...Settings.getCoverEffect("LOW")};
     this.object = new ActiveEffect(data);
   }
 
@@ -73,7 +73,7 @@ export class MediumCoverEffectConfig extends EnhancedEffectConfig {
   constructor() {
     super();
 
-    const data = Settings.getCoverEffect("MEDIUM");
+    const data = {...Settings.getCoverEffect("MEDIUM")};
     this.object = new ActiveEffect(data);
   }
 
@@ -94,7 +94,7 @@ export class HighCoverEffectConfig extends EnhancedEffectConfig {
   constructor() {
     super();
 
-    const data = Settings.getCoverEffect("HIGH");
+    const data = {...Settings.getCoverEffect("HIGH")};
     this.object = new ActiveEffect(data);
   }
 

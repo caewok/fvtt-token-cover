@@ -26,9 +26,17 @@ export const FLAGS = {
 
     IGNORE_DND5E: "helpersIgnoreCover",
     SPELLSNIPER: "spellSniper",
-    SHARPSHOOTER: "sharpShooter"
+    SHARPSHOOTER: "sharpShooter",
+    MAX_GRANT: "maximumCoverGrant"
   }
 };
+
+export const TEMPLATES = {
+  TOKEN_CONFIG: `modules/${MODULE_ID}/templates/token-config.html`,
+  SETTINGS_BUTTONS: `modules/${MODULE_ID}/templates/settings-buttons.html`,
+  SETTINGS_MENU_PARTIAL: `modules/${MODULE_ID}/templates/settings-menu-tab-partial.html`,
+  SETTINGS_MENU: `modules/${MODULE_ID}/templates/settings-menu.html`
+}
 
 export const COVER = {};
 
@@ -110,17 +118,7 @@ COVER.TYPES_FOR_ID = {
 COVER.MIN = Math.min(...Object.values(COVER.TYPES));
 COVER.MAX = Math.max(...Object.values(COVER.TYPES));
 
-export const MODULES_ACTIVE = {
-  WALL_HEIGHT: false,
-  TOKEN_VISIBILITY: false,
-  LEVELS: false,
-  DFREDS_CE: false,
-  SIMBULS_CC: false,
-  MIDI_QOL: false,
-  ELEVATED_VISION: false,
-  RIDEABLE: false,
-  API: {}
-};
+
 
 export let IGNORES_COVER_HANDLER = IgnoresCover;
 
@@ -132,6 +130,8 @@ export const WEAPON_ATTACK_TYPES = {
   rsak: "DND5E.ActionRSAK"
 };
 
+export const MODULES_ACTIVE = { API: {} };
+
 // Hook init b/c game.modules is not initialized at start.
 Hooks.once("init", function() {
   MODULES_ACTIVE.WALL_HEIGHT = game.modules.get("wall-height")?.active;
@@ -142,7 +142,10 @@ Hooks.once("init", function() {
   MODULES_ACTIVE.MIDI_QOL = game.modules.get("midi-qol")?.active;
   MODULES_ACTIVE.ELEVATED_VISION = game.modules.get("elevatedvision")?.active;
   MODULES_ACTIVE.RIDEABLE = game.modules.get("Rideable")?.active;
+});
 
+// API not necessarily available until ready hook. (Likely added at init.)
+Hooks.once("ready", function() {
   if ( MODULES_ACTIVE.RIDEABLE ) MODULES_ACTIVE.API.RIDEABLE = game.modules.get("Rideable").api;
 });
 

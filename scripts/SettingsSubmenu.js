@@ -8,7 +8,7 @@ ui
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, TEMPLATES } from "./const.js";
 import { Settings, SETTINGS } from "./settings.js";
 
 export class DefaultSettings {
@@ -93,14 +93,14 @@ export class DefaultSettings {
 
 export class SettingsSubmenu extends FormApplication {
   async _renderInner(data) {
-    await getTemplate(`modules/${MODULE_ID}/templates/settings-menu-tab-partial.html`, "atvSettingsMenuTabPartial");
+    await getTemplate(TEMPLATES.SETTINGS_MENU_PARTIAL, "atvSettingsMenuTabPartial");
     return super._renderInner(data);
   }
 
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       title: game.i18n.localize(`${MODULE_ID}.settings.submenu.title`),
-      template: `modules/${MODULE_ID}/templates/settings-menu.html`,
+      template: TEMPLATES.SETTINGS_MENU,
       height: "auto",
       width: 700,
       tabs: [

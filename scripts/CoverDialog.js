@@ -138,9 +138,14 @@ export class CoverDialog {
    * 2. User confirms / cancels
    * 3. User accepts / cancels
    * @param {string} [actionType]  "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
-   * @returns {Map<Token, COVER_TYPE>|false}
+   * @returns {Map<Token, COVER_TYPE>|false|undefined}
+   *   Undefined if setting is to not calculate cover.
+   *   False if the user/gm canceled by closing the dialog.
    */
   async workflow(actionType) {
+    if ( Settings.get(SETTINGS.MIDIQOL.COVERCHECK_IF_CHANGED)
+      && this._targetCoversMatchCalculations(this.coverCalculations) ) return this.coverCalculations;
+
     const coverCheckOption = Settings.get(SETTINGS.MIDIQOL.COVERCHECK);
     const choices = SETTINGS.MIDIQOL.COVERCHECK_CHOICES;
     let askGM = true;
@@ -151,7 +156,7 @@ export class CoverDialog {
         askGM = false;
       case choices.GM: { // eslint-disable-line no-fallthrough
         const coverCalculations = await this.confirmCover({ askGM, actionType });
-        if ( !coverCalculations ) return false;
+        if ( !coverCalculations ) return undefined;
 
         // Allow the GM or user to omit targets.
         coverCalculations.forEach((cover, token) => {

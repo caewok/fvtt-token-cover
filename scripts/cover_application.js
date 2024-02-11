@@ -157,8 +157,8 @@ async function enableCoverSFRPG(tokenD, coverType) {
   if ( !coverItem ) {
     // Pull from the compendium.
     const coverName = COVER.SFRPG[coverType];
-    const documentIndex = game.packs.get("tokenvisibility.tokenvision_items_sfrpg").index.getName(coverName);
-    coverItem = await game.packs.get("tokenvisibility.tokenvision_items_sfrpg").getDocument(documentIndex._id);
+    const documentIndex = game.packs.get(`${MODULE_ID}.tokenvision_items_sfrpg`).index.getName(coverName);
+    coverItem = await game.packs.get(`${MODULE_ID}.tokenvision_items_sfrpg`).getDocument(documentIndex._id);
   }
 
   if ( tokenD.actor.items.has(coverItem.id) ) return;
