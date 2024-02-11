@@ -76,6 +76,13 @@ PATCHES.sfrpg.HOOKS = { preCreateItem, createItem };
 async function rollAttack(wrapper, options = {}) {
   if ( !this.hasAttack ) return wrapper(options);
 
+  // Determine the attack type
+  const actionType = this.system?.actionType;
+  if ( !(actionType === "mwak"
+      || actionType === "msak"
+      || actionType === "rsak"
+      || actionType === "rwak") ) return wrapper(options);
+
   // Locate the token
   const actor = this.actor;
   const token = canvas.tokens.get(ChatMessage.getSpeaker({ actor }).token);
@@ -84,9 +91,6 @@ async function rollAttack(wrapper, options = {}) {
   // Determine the targets for the user
   const targets = game.user.targets;
   if ( !targets.size ) return wrapper(options);
-
-  // Determine the attack type
-  const actionType = this.system?.actionType;
 
   // Construct dialogs, if applicable
   if ( await coverWorkflow(token, targets, actionType) ) return wrapper(options);
