@@ -12,6 +12,7 @@ Correct erroneous references to `tokenvisibility`.
 Fix for token cover settings not being respected in some situations. Closes issue #11.
 Pad potentially blocking token shapes by -2 pixels to avoid incorrectly labeling adjacent tokens as blocking. Closes issue #17.
 Various fixes imported from ATV related to constrained token borders failing to be created properly.
+Fix for Rideable module breaking cover measurements. Closes issue #18.
 
 ## 0.6.4
 Ignore riders and mounts if Rideable module is present for purposes of blocking vision.
