@@ -83,6 +83,21 @@ Hooks.once("ready", () => {
           `
     })
 
+    .addEntry({
+      version: "0.6.5",
+      title: "Per-Token Maximum Cover",
+      body: `\
+        I have added a dropdown menu in the token configuration to force the token to grant less than total cover.
+        If changed to something less than "total cover," when only the token is blocking, it will grant cover to the
+        target that does not exceed this setting. For example, you could set ghosts to grant no cover; swarms might grant at most half cover.
+
+        Contributions to cover from multiple tokens are prorated based on the total token contribution to cover. Thus,
+        the presence of walls or other token obstacles still may result in higher cover than this setting.
+
+        When set, a flag, "tokencover.maximumCoverGrant," is added to the token's flags.
+      `
+    })
+
     .build()
     ?.render(true);
 });
