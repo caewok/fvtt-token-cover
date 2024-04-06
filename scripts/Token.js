@@ -259,14 +259,14 @@ function updateCoverFromToken(tokenToUpdate, token) {
  * @param {Token} token   Other token from which this token may have cover
  * @returns {COVER_TYPES}
  */
-function coverTypeFromToken(token) {
+function coverFromToken(token) {
   const coverFromMap = this.coverFromMap;
   const percentCover = coverFromMap.get(token.id) ?? updateCoverFromToken(this, token);
   return CoverCalculator.typeForPercentage(percentCover);
 }
 
 
-PATCHES.BASIC.METHODS = { setCoverType, coverTypeFromToken };
+PATCHES.BASIC.METHODS = { setCoverType, coverFromToken };
 
 // ----- NOTE: Getters ----- //
 
