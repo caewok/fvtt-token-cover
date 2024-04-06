@@ -131,6 +131,33 @@ PATCHES.DEBUG.HOOKS = {
 // ----- NOTE: Hooks ----- //
 
 /**
+ * Hook: updateToken
+ * If the token moves, clear cover calculations
+ * @param {Document} tokenD                         The existing Document which was updated
+ * @param {object} change                           Differential data that was used to update the document
+ * @param {DocumentModificationContext} options     Additional options which modified the update request
+ * @param {string} userId                           The ID of the User who triggered the update workflow
+ */
+function updateToken(tokenD, change, _options, _userId) {
+  if ( !(Object.hasOwn(change, "x")
+      || Object.hasOwn(change, "y")
+      || Object.hasOwn(change, "elevation")
+      || Object.hasOwn(change, "rotation")) ) return;
+
+  // Token moved
+  // Clear this token's cover calculations.
+  const token = tokenD.object;
+  token.coverFromMap.clear();
+
+  // Clear all other token's cover calculations for this token.
+  const id = token.id;
+  canvas.tokens.placeables.forEach(t => {
+    if ( t == token ) return;
+    t.coverFromMap.delete(id);
+  });
+}
+
+/**
  * Hook: targetToken
  * If the debug popout is active, redraw the 3d debug if the target changes.
  * @param {User} user        The User doing the targeting
@@ -200,7 +227,7 @@ function applyTokenStatusEffect(token, statusId, active) {
     : CoverCalculator.disableAllCover(token);
 }
 
-PATCHES.BASIC.HOOKS = { destroyToken, targetToken: targetTokenDebug };
+PATCHES.BASIC.HOOKS = { destroyToken, targetToken: targetTokenDebug, updateToken };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 PATCHES.NO_PF2E.HOOKS = { targetToken };
 
@@ -213,7 +240,19 @@ PATCHES.NO_PF2E.HOOKS = { targetToken };
  */
 async function setCoverType(value) { return this.coverCalculator.setTargetCoverEffect(value); }
 
-PATCHES.BASIC.METHODS = { setCoverType };
+/**
+ * New method: Token.prototype.updateCoverFromToken
+ * Update whether this token has cover from another token.
+ * @param {Token} token      Other token from which this token may have cover
+ * @returns {number} Cover percent, for convenience.
+ */
+function updateCoverFromToken(token) {
+  const coverPercent = this.coverCalculator.percentCover(token);
+  this.coverFromMap.set(token.id, coverPercent);
+  return coverPercent;
+}
+
+PATCHES.BASIC.METHODS = { setCoverType, updateCoverFromToken };
 
 // ----- NOTE: Getters ----- //
 
@@ -250,10 +289,25 @@ function coverCalculator() {
   return (this[MODULE_ID].coverCalc ??= new CoverCalculator(this));
 }
 
+
+/**
+ * New getter: Token.prototype.coverFromMap
+ * Return a map that records the cover percentage of this token versus every other token on the scene.
+ * Updated on token movement.
+ * Map is not guaranteed to have any specific token in the map.
+ * @type {Map<string|number>} Map of token ids and percentage cover
+ */
+function coverFromMap() {
+  const mod = this[MODULE_ID] ??= {};
+  return (mod._coverFromMap ??= new Map());
+}
+
+
 PATCHES.BASIC.GETTERS = {
   coverCalculator,
   coverType,
-  ignoresCoverType
+  ignoresCoverType,
+  coverFromMap
 };
 
 
