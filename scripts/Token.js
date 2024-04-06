@@ -243,16 +243,30 @@ async function setCoverType(value) { return this.coverCalculator.setTargetCoverE
 /**
  * New method: Token.prototype.updateCoverFromToken
  * Update whether this token has cover from another token.
- * @param {Token} token      Other token from which this token may have cover
+ * @param {Token} tokenToUpdate   Token whose cover should be calcualted
+ * @param {Token} otherToken      Other token from which this token may have cover
  * @returns {number} Cover percent, for convenience.
  */
-function updateCoverFromToken(token) {
-  const coverPercent = this.coverCalculator.percentCover(token);
-  this.coverFromMap.set(token.id, coverPercent);
+function updateCoverFromToken(tokenToUpdate, token) {
+  const coverPercent = tokenToUpdate.coverCalculator.percentCover(token);
+  tokenToUpdate.coverFromMap.set(token.id, coverPercent);
   return coverPercent;
 }
 
-PATCHES.BASIC.METHODS = { setCoverType, updateCoverFromToken };
+/**
+ * New method: Token.prototype.coverTypeFromToken
+ * Returns the stored cover type or calculates it, as necessary.
+ * @param {Token} token   Other token from which this token may have cover
+ * @returns {COVER_TYPES}
+ */
+function coverTypeFromToken(token) {
+  const coverFromMap = this.coverFromMap;
+  const percentCover = coverFromMap.get(token.id) ?? updateCoverFromToken(this, token);
+  return CoverCalculator.typeForPercentage(percentCover);
+}
+
+
+PATCHES.BASIC.METHODS = { setCoverType, coverTypeFromToken };
 
 // ----- NOTE: Getters ----- //
 
