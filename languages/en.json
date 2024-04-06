@@ -2,6 +2,15 @@
     "tokencover.name": "Alt. Token Cover",
     "tokencover.nameAbbr": "ATC",
 
+    "tokencover.settings.cover-icon-low.Name": "Low Cover Icon",
+    "tokencover.settings.cover-icon-low.Hint": "Icon displayed locally on tokens to indicate they have low cover versus a single controlled token.",
+
+    "tokencover.settings.cover-icon-medium.Name": "Medium Cover Icon",
+    "tokencover.settings.cover-icon-medium.Hint": "Icon displayed locally on tokens to indicate they have medium cover versus a single controlled token.",
+
+    "tokencover.settings.cover-icon-high.Name": "High Cover Icon",
+    "tokencover.settings.cover-icon-high.Hint": "Icon displayed locally on tokens to indicate they have high cover versus a single controlled token.",
+
     "tokencover.settings.points-center": "Token center only (1 point)",
     "tokencover.settings.points-four": "Token corners (4 points)",
     "tokencover.settings.points-five": "Token corners and center (5 points)",

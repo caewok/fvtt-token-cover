@@ -21,6 +21,13 @@ import {
 export const SETTINGS = {
   SUBMENU: "submenu",
 
+  // Status icons for marking cover on tokens locally.
+  COVER_ICON: {
+    LOW: "cover-icon-low",
+    MEDIUM: "cover-icon-medium",
+    HIGH: "cover-icon-high"
+  },
+
   // Taken from Alt. Token Visibility
   POINT_TYPES: {
     CENTER: "points-center",
@@ -254,6 +261,39 @@ export class Settings extends ModuleSettingsAbstract {
     Object.values(RTYPES).forEach(type => rangeChoices[type] = localize(type));
     Object.values(LTYPES).forEach(type => losChoices[type] = localize(type));
     Object.values(PT_TYPES).forEach(type => ptChoices[type] = localize(type));
+
+    register(KEYS.COVER_ICON.LOW, {
+      name: localize(`${KEYS.COVER_ICON.LOW}.Name`),
+      hint: localize(`${KEYS.COVER_ICON.LOW}.Hint`),
+      scope: "world",
+      config: true,
+      type: String,
+      filePicker: true,
+      default: "modules/tokencover/assets/shield_low_gray.svg"
+      // onChange: value => this.losSettingChange(KEYS.DEAD_TOKENS_BLOCK, value),
+    });
+
+    register(KEYS.COVER_ICON.MEDIUM, {
+      name: localize(`${KEYS.COVER_ICON.LOW}.Name`),
+      hint: localize(`${KEYS.COVER_ICON.LOW}.Hint`),
+      scope: "world",
+      config: true,
+      type: String,
+      filePicker: true,
+      default: "modules/tokencover/assets/shield_medium_gray.svg"
+      // onChange: value => this.losSettingChange(KEYS.DEAD_TOKENS_BLOCK, value),
+    });
+
+    register(KEYS.COVER_ICON.HIGH, {
+      name: localize(`${KEYS.COVER_ICON.HIGH}.Name`),
+      hint: localize(`${KEYS.COVER_ICON.HIGH}.Hint`),
+      scope: "world",
+      config: true,
+      type: String,
+      filePicker: true,
+      default: "modules/tokencover/assets/shield_high_gray.svg"
+      // onChange: value => this.losSettingChange(KEYS.DEAD_TOKENS_BLOCK, value),
+    });
 
     // ----- Main Settings Menu ----- //
     registerMenu(KEYS.SUBMENU, {
