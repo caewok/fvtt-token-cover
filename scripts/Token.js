@@ -156,9 +156,11 @@ function updateToken(tokenD, change, _options, _userId) {
     t.coverFromMap.delete(id);
   });
 
-  // If tokens are controlled, update.
-  const tokens = canvas.tokens.controlled;
-  if ( tokens.length ) updateCoverForAttackingTokens(tokens);
+  if ( Settings.get(Settings.KEYS.USE_COVER_ICON) ) {
+    // If tokens are controlled, update.
+    const tokens = canvas.tokens.controlled;
+    if ( tokens.length ) updateCoverForAttackingTokens(tokens);
+  }
 }
 
 /**
@@ -170,6 +172,7 @@ function updateToken(tokenD, change, _options, _userId) {
  * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
  */
 function controlToken(controlledToken, _controlled) {
+  if ( !Settings.get(Settings.KEYS.USE_COVER_ICON) ) return;
   const tokens = canvas.tokens;
   if ( tokens.controlled.length ) updateCoverForAttackingTokens(tokens.controlled);
   else tokens.placeables.forEach(t => t.updateCoverIcon()); // Remove all cover status.

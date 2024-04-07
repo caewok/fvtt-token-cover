@@ -28,6 +28,8 @@ export const SETTINGS = {
     HIGH: "cover-icon-high"
   },
 
+  USE_COVER_ICON: "use-cover-icon",
+
   // Taken from Alt. Token Visibility
   POINT_TYPES: {
     CENTER: "points-center",
@@ -262,6 +264,19 @@ export class Settings extends ModuleSettingsAbstract {
     Object.values(LTYPES).forEach(type => losChoices[type] = localize(type));
     Object.values(PT_TYPES).forEach(type => ptChoices[type] = localize(type));
 
+    register(KEYS.USE_COVER_ICON, {
+      name: localize(`${KEYS.USE_COVER_ICON}.Name`),
+      hint: localize(`${KEYS.USE_COVER_ICON}.Hint`),
+      scope: "user",
+      config: true,
+      type: Boolean,
+      default: true,
+      requiresReload: true // Otherwise, would need to clear all icons from all users.
+    });
+
+    // TODO: Changing icons should result in a change for all tokens, but would require
+    //       sockets, probably, to trigger the change for all users.
+    //       Alternatively could require reload or simply ignore.
     register(KEYS.COVER_ICON.LOW, {
       name: localize(`${KEYS.COVER_ICON.LOW}.Name`),
       hint: localize(`${KEYS.COVER_ICON.LOW}.Hint`),
@@ -270,7 +285,6 @@ export class Settings extends ModuleSettingsAbstract {
       type: String,
       filePicker: true,
       default: "modules/tokencover/assets/shield_low_gray.svg"
-      // onChange: value => this.losSettingChange(KEYS.DEAD_TOKENS_BLOCK, value),
     });
 
     register(KEYS.COVER_ICON.MEDIUM, {
@@ -281,7 +295,6 @@ export class Settings extends ModuleSettingsAbstract {
       type: String,
       filePicker: true,
       default: "modules/tokencover/assets/shield_medium_gray.svg"
-      // onChange: value => this.losSettingChange(KEYS.DEAD_TOKENS_BLOCK, value),
     });
 
     register(KEYS.COVER_ICON.HIGH, {
@@ -292,7 +305,6 @@ export class Settings extends ModuleSettingsAbstract {
       type: String,
       filePicker: true,
       default: "modules/tokencover/assets/shield_high_gray.svg"
-      // onChange: value => this.losSettingChange(KEYS.DEAD_TOKENS_BLOCK, value),
     });
 
     // ----- Main Settings Menu ----- //
@@ -715,3 +727,5 @@ export class Settings extends ModuleSettingsAbstract {
     if ( MODULES_ACTIVE.TOKEN_VISIBILITY) game.settings.set("tokenvisibility", SETTINGS.PRONE_STATUS_ID, value);
   }
 }
+
+
