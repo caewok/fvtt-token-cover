@@ -29,6 +29,11 @@ export const SETTINGS = {
   },
 
   USE_COVER_ICON: "use-cover-icon",
+  USE_COVER_ICON_CHOICES: {
+    NEVER: "use-cover-icon-never",
+    COMBAT: "use-cover-icon-combat",
+    ALWAYS: "use-cover-icon-always"
+  },
 
   // Taken from Alt. Token Visibility
   POINT_TYPES: {
@@ -257,20 +262,24 @@ export class Settings extends ModuleSettingsAbstract {
     const RTYPES = [PT_TYPES.CENTER, PT_TYPES.FIVE, PT_TYPES.NINE];
     const PT_OPTS = KEYS.LOS.TARGET.POINT_OPTIONS;
     const LTYPES = foundry.utils.filterObject(KEYS.LOS.TARGET.TYPES, { POINTS: 0, AREA2D: 0, AREA3D: 0 });
+    const USE_COVER_ICON_CHOICES = KEYS.USE_COVER_ICON_CHOICES;
     const losChoices = {};
     const ptChoices = {};
     const rangeChoices = {};
+    const useCoverIconChoices = {};
     Object.values(RTYPES).forEach(type => rangeChoices[type] = localize(type));
     Object.values(LTYPES).forEach(type => losChoices[type] = localize(type));
     Object.values(PT_TYPES).forEach(type => ptChoices[type] = localize(type));
+    Object.values(USE_COVER_ICON_CHOICES).forEach(type => useCoverIconChoices[type] = localize(type));
 
     register(KEYS.USE_COVER_ICON, {
       name: localize(`${KEYS.USE_COVER_ICON}.Name`),
       hint: localize(`${KEYS.USE_COVER_ICON}.Hint`),
       scope: "user",
       config: true,
-      type: Boolean,
-      default: true,
+      type: String,
+      choices: useCoverIconChoices,
+      default: KEYS.USE_COVER_ICON_CHOICES.ALWAYS,
       requiresReload: true // Otherwise, would need to clear all icons from all users.
     });
 

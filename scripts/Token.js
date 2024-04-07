@@ -131,6 +131,19 @@ PATCHES.DEBUG.HOOKS = {
 // ----- NOTE: Hooks ----- //
 
 /**
+ * Helper function: determine whether to use the cover icon.
+ */
+function useCoverIcon() {
+  const choice = Settings.get(Settings.KEYS.USE_COVER_ICON);
+  switch ( Settings.get(Settings.KEYS.USE_COVER_ICON) ) {
+    case USE_COVER_ICON_CHOICES.NEVER: return false;
+    case USE_COVER_ICON_CHOICES.ALWAYS: return true;
+    case USE_COVER_ICON_CHOICES.COMBAT: return Boolean(game.combats.active);
+    default: return false;
+  }
+}
+
+/**
  * Hook: updateToken
  * If the token moves, clear cover calculations
  * @param {Document} tokenD                         The existing Document which was updated
@@ -156,7 +169,7 @@ function updateToken(tokenD, change, _options, _userId) {
     t.coverFromMap.delete(id);
   });
 
-  if ( Settings.get(Settings.KEYS.USE_COVER_ICON) ) {
+  if ( useCoverIcon()  ) {
     // If tokens are controlled, update.
     const tokens = canvas.tokens.controlled;
     if ( tokens.length ) updateCoverForAttackingTokens(tokens);
@@ -172,7 +185,7 @@ function updateToken(tokenD, change, _options, _userId) {
  * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
  */
 function controlToken(controlledToken, _controlled) {
-  if ( !Settings.get(Settings.KEYS.USE_COVER_ICON) ) return;
+  if ( !useCoverIcon()) return;
   const tokens = canvas.tokens;
   if ( tokens.controlled.length ) updateCoverForAttackingTokens(tokens.controlled);
   else tokens.placeables.forEach(t => t.updateCoverIcon()); // Remove all cover status.
