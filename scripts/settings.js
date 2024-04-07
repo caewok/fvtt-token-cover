@@ -274,8 +274,8 @@ export class Settings extends ModuleSettingsAbstract {
     });
 
     register(KEYS.COVER_ICON.MEDIUM, {
-      name: localize(`${KEYS.COVER_ICON.LOW}.Name`),
-      hint: localize(`${KEYS.COVER_ICON.LOW}.Hint`),
+      name: localize(`${KEYS.COVER_ICON.MEDIUM}.Name`),
+      hint: localize(`${KEYS.COVER_ICON.MEDIUM}.Hint`),
       scope: "world",
       config: true,
       type: String,
