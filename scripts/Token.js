@@ -156,9 +156,9 @@ function updateToken(tokenD, change, _options, _userId) {
     t.coverFromMap.delete(id);
   });
 
-  // If only 1 controlled token, update.
+  // If tokens are controlled, update.
   const tokens = canvas.tokens.controlled;
-  if ( tokens.length === 1 ) updateCoverForAttackingToken(tokens[0]);
+  if ( tokens.length ) updateCoverForAttackingTokens(tokens);
 }
 
 /**
@@ -170,8 +170,9 @@ function updateToken(tokenD, change, _options, _userId) {
  * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
  */
 function controlToken(controlledToken, _controlled) {
-  if ( canvas.tokens.controlled.length === 1 ) updateCoverForAttackingToken(controlledToken);
-  else canvas.tokens.placeables.forEach(t => t.updateCoverIcon()); // Remove all cover status.
+  const tokens = canvas.tokens;
+  if ( tokens.controlled.length ) updateCoverForAttackingTokens(tokens.controlled);
+  else tokens.placeables.forEach(t => t.updateCoverIcon()); // Remove all cover status.
 }
 
 /**
@@ -179,10 +180,11 @@ function controlToken(controlledToken, _controlled) {
  * Used when controlling a token or moving a controlled token.
  * @param {Token} attackingToken     Token seeking other tokens (The token assumed to be controlled.)
  */
-function updateCoverForAttackingToken(attackingToken) {
+function updateCoverForAttackingTokens(attackingTokens) {
+  attackingTokens = new Set(attackingTokens);
   canvas.tokens.placeables.forEach(t => {
-    if ( t === attackingToken ) return;
-    t.updateCoverIcon(attackingToken);
+    if ( attackingTokens.has(t) ) return;
+    t.updateCoverIcon(attackingTokens);
   });
 }
 
@@ -297,26 +299,50 @@ function coverFromToken(attackingToken) {
  * New method: Token.prototype.updateCoverIcon
  * Set the cover icon representing whether this token has cover from a specified token.
  * Only one status icon should be present at a time.
- * @param {Token} [attackingToken]   Other token from which this token may have cover
- *                          If undefined, all cover icons are removed
+ * @param {Token[]|Set<Token>} [attackingToken]   Other tokens from which this token may have cover
+ *                                                If length/size 0, all cover icons are removed
  */
-async function updateCoverIcon(attackingToken) {
+async function updateCoverIcon(attackingTokens = []) {
   const mod = this[MODULE_ID] ??= {};
   const currentIcon = mod.currentCoverIcon; // Store here b/c cannot add property to src string.
-  const coverType = attackingToken ? this.coverFromToken(attackingToken) : COVER.TYPES.NONE;
+  let changed = false;
 
-  // Remove current cover icon.
-  if ( currentIcon ) this.document.effects = this.document.effects.filter(e => e !== currentIcon);
-  mod.currentCoverIcon = undefined;
+  // Determine the minimum cover from the attacking tokens.
+  let coverType = Number.POSITIVE_INFINITY;
+  for ( const attackingToken of attackingTokens ) {
+    coverType = Math.min(coverType, this.coverFromToken(attackingToken));
+    if ( !coverType ) break; // If no cover, then we are done.
+  }
+  if ( !Number.isFinite(coverType) ) coverType = COVER.TYPES.NONE;
 
-  // Add the new source.
-  if ( coverType ) {
-    mod.currentCoverIcon = Settings.get(Settings.KEYS.COVER_ICON[keyForValue(COVER.TYPES, coverType)]);
-    this.document.effects.push(mod.currentCoverIcon);
+  // No cover; remove cover icon
+  if ( currentIcon && !coverType ) {
+    this.document.effects = this.document.effects.filter(e => e !== currentIcon);
+    changed ||= true;
+    mod.currentCoverIcon = undefined;
   }
 
-  // Trigger effects update.
-  this.renderFlags.set({ redrawEffects: true });
+  // Cover; remove old, add new, unless already same.
+  else if ( currentIcon && coverType ) {
+    mod.currentCoverIcon = Settings.get(Settings.KEYS.COVER_ICON[keyForValue(COVER.TYPES, coverType)]);
+    if ( currentIcon !== mod.currentCoverIcon ) {
+      this.document.effects = this.document.effects.filter(e => e !== currentIcon);
+      this.document.effects.push(mod.currentCoverIcon);
+      changed ||= true;
+    }
+  }
+
+  // Cover; add the new source.
+  else if ( !currentIcon && coverType ) {
+    mod.currentCoverIcon = Settings.get(Settings.KEYS.COVER_ICON[keyForValue(COVER.TYPES, coverType)]);
+    this.document.effects.push(mod.currentCoverIcon);
+    changed ||= true;
+  }
+
+  // if ( !currentIcon && !coverType ) <-- No cover and no current cover icon, so nothing to do.
+
+  // Trigger effects update if there was a change.
+  if ( changed ) this.renderFlags.set({ redrawEffects: true });
 }
 
 
