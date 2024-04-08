@@ -28,7 +28,8 @@ export const FLAGS = {
     SPELLSNIPER: "spellSniper",
     SHARPSHOOTER: "sharpShooter",
     MAX_GRANT: "maximumCoverGrant"
-  }
+  },
+  VERSION: "version" // For updating flag data to new versions of the module.
 };
 
 export const TEMPLATES = {

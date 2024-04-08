@@ -5,7 +5,7 @@ Hooks
 */
 "use strict";
 
-import { MODULE_ID, COVER, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, COVER, FLAGS, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
@@ -120,8 +120,35 @@ Hooks.once("setup", function() {
 });
 
 Hooks.once("ready", function() {
-
-
   Settings.registerAll();
   Settings.updateConfigStatusEffects();
+
+  // Transitions to newer data.
+  transitionTokenMaximumCoverFlags();
 });
+
+
+/**
+ * Transition token maximum cover flags.
+ * Previously was stored by cover type (0 – 4).
+ * Now will be a percentage blocked.
+ */
+function transitionTokenMaximumCoverFlags() {
+  const sceneVersion = canvas.scene.getFlag(MODULE_ID, FLAGS.VERSION);
+  if ( sceneVersion && !isNewerVersion("0.6.6", sceneVersion) ) return;
+  const v = game.modules.get("tokencover").version;
+  canvas.tokens.placeables.forEach(t => {
+    const currCoverMax = t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT);
+    if ( !currCoverMax ) return; // Either 0 or undefined; either is fine.
+    let newMax = 1;
+    switch ( currCoverMax ) {
+      case 1: newMax = 0.5; break;
+      case 2: newMax = 0.75; break;
+      case 3: newMax = 0.90; break;
+      case 4: newMax = 1; break;
+    }
+    t.document.setFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT, newMax);
+    t.document.setFlag(MODULE_ID, FLAGS.VERSION, v)
+  });
+  canvas.scene.setFlag(MODULE_ID, FLAGS.VERSION, v);
+}
