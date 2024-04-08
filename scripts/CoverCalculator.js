@@ -417,6 +417,7 @@ export class CoverCalculator extends AbstractCalculator {
       if ( !maxCover ) nonBlockingTokens.push(token);
       else partialBlockingTokens.push(token);
     }
+    return { partialBlockingTokens, nonBlockingTokens };
   }
 
   /**
