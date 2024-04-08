@@ -322,7 +322,6 @@ export class CoverCalculator extends AbstractCalculator {
    * Calculate the percentage cover over all viewer points if more than one in settings.
    * @param {Token} [target]    Optional target if not already set.
    * @returns {number} Percent between 0 and 1.
-   *   Only guaranteed to return less than the lowest cover percentage.
    */
   percentCover(target) {
     const { viewer, calc } = this;
@@ -330,7 +329,6 @@ export class CoverCalculator extends AbstractCalculator {
     calc._clearCache();
 
     let percent = 1;
-    const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
     const viewerOpts = {
       pointAlgorithm: Settings.get(Settings.KEYS.LOS.VIEWER.NUM_POINTS),
       inset: Settings.get(Settings.KEYS.LOS.VIEWER.INSET)
@@ -339,7 +337,7 @@ export class CoverCalculator extends AbstractCalculator {
     for ( const viewerPoint of viewerPoints ) {
       calc.viewerPoint = viewerPoint;
       percent = Math.min(percent, this._percentCover());
-      if ( percent < minPercent ) return percent;
+      if ( percent < 0 || percent.almostEqual(0) ) return 0;
     }
     return percent;
   }
