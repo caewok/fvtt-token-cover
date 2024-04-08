@@ -12,6 +12,8 @@ import { registerGeometry } from "./geometry/registration.js";
 import { registerElevationConfig } from "./geometry/elevation_configs.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
+import { setDefaultCoverData } from "./cover_types.js";
+
 
 // For API
 import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
@@ -41,6 +43,7 @@ import "./cover_application.js";
 
 Hooks.once("init", function() {
   registerGeometry();
+  setDefaultCoverData();
   addDND5eCoverFeatFlags();
 
   // Set CONFIGS used by this module.
@@ -111,8 +114,14 @@ Hooks.once("init", function() {
 });
 
 Hooks.once("setup", function() {
-  Settings.registerAll();
   initializePatching();
   registerElevationConfig("TileConfig", "Alt. Token Cover");
+
+});
+
+Hooks.once("ready", function() {
+
+
+  Settings.registerAll();
   Settings.updateConfigStatusEffects();
 });

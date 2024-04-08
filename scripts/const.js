@@ -48,6 +48,7 @@ COVER.TYPES = {
   TOTAL: 4
 };
 
+
 // Names of the SFRPG Cover items
 COVER.SFRPG = {
   1: "Partial Cover",

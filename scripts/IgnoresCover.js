@@ -53,6 +53,8 @@ export class IgnoresCover {
    * @returns {boolean}
    */
   static verifyCoverValue(cover) {
+
+
     if ( !cover.between(COVER.MIN, COVER.MAX) ) {
       console.warn(`IgnoresCover requires value between ${COVER.MIN} and ${MAX_COVER}`);
       return false;
@@ -68,7 +70,7 @@ export class IgnoresCover {
    */
   _getCoverFlag(flag) {
     let flagValue = this.actor?.getFlag(MODULE_ID, flag);
-    flagValue ??= COVER.TYPES.NONE;
+    flagValue ??= COVER.NONE;
     return flagValue;
   }
 
@@ -170,7 +172,7 @@ export class IgnoresCoverDND5e extends IgnoresCover {
    * @type {COVER_TYPE}
    */
   get rwak() {
-    const sharpShooter = this.actor?.flags["midi-qol"]?.sharpShooter ? COVER.TYPES.MEDIUM : COVER.TYPES.NONE;
+    const sharpShooter = this.actor?.flags["midi-qol"]?.sharpShooter ? COVER.TYPES.MEDIUM : COVER.NONE;
     return Math.max(super.rwak, sharpShooter);
   }
 
@@ -179,7 +181,7 @@ export class IgnoresCoverDND5e extends IgnoresCover {
    * @type {COVER_TYPE}
    */
   get rsak() {
-    const spellSniper = this.actor?.flags?.dnd5e?.spellSniper ? COVER.TYPES.MEDIUM : COVER.TYPES.NONE;
+    const spellSniper = this.actor?.flags?.dnd5e?.spellSniper ? COVER.TYPES.MEDIUM : COVER.NONE;
     return Math.max(super.rsak, spellSniper);
   }
 }
