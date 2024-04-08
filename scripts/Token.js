@@ -135,10 +135,11 @@ PATCHES.DEBUG.HOOKS = {
  */
 function useCoverIcon() {
   const choice = Settings.get(Settings.KEYS.USE_COVER_ICON);
-  switch ( Settings.get(Settings.KEYS.USE_COVER_ICON) ) {
-    case USE_COVER_ICON_CHOICES.NEVER: return false;
-    case USE_COVER_ICON_CHOICES.ALWAYS: return true;
-    case USE_COVER_ICON_CHOICES.COMBAT: return Boolean(game.combats.active);
+  const choices = Settings.KEYS.USE_COVER_ICON_CHOICES;
+  switch ( choice ) {
+    case choices.NEVER: return false;
+    case choices.ALWAYS: return true;
+    case choices.COMBAT: return Boolean(game.combats.active);
     default: return false;
   }
 }
