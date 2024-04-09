@@ -59,18 +59,117 @@ export class CoverEffectsController {
    * Handles clicks on the create effect button
    * @param {MouseEvent} event
    */
-  async onCreateEffectClick(_event) {
-    log("CoverEffectsController|onCreateEffectClick");
-    const terrain = new Terrain();
-    await terrain.initialize();
-    this._viewMvc.render();
-    terrain.activeEffect.sheet.render(true);
+  async onCreateCoverEffect(_event) {
+    log("CoverEffectsController|onCreateCoverEffect");
+//     const terrain = new Terrain();
+//     await terrain.initialize();
+//     this._viewMvc.render();
+//     terrain.activeEffect.sheet.render(true);
   }
 
+  /**
+   * Handle editing the custom effect
+   * @param {jQuery} effectItem - jQuery element representing the effect list item
+   */
+  async onEditCoverEffect(_effectItem) {
+    log("CoverEffectsController|onEditCoverEffect");
+    const effectId = this._findNearestEffectId(event);
+//     const activeEffect = EffectHelper.getTerrainEffectById(effectId);
+//     activeEffect.sheet.render(true);
+  }
 
+  /**
+   * Handle deleting the custom effect
+   * @param {jQuery} effectItem - jQuery element representing the effect list item
+   */
+  async onDeleteCoverEffect(_effectItem) {
+    log("CoverEffectsController|onDeleteCoverEffect");
+    const effectId = this._findNearestEffectId(event);
+    const view = this._viewMvc;
+
+    return Dialog.confirm({
+      title: "Remove Terrain",
+      content:
+        "<h4>Are You Sure?</h4><p>This will remove the terrain from all scenes.",
+      yes: async () => {
+        log("CoverEffectsController|onDeleteCoverEffect yes");
+        //await EffectHelper.deleteEffectById(effectId);
+        view.render();
+      }
+    });
+  }
+
+  /**
+   * Locate the nearest effect in the menu to the click event.
+   * @returns {string|undefined} Id of the nearest effect
+   */
+  _findNearestEffectId(event) {
+    return $(event.target)
+      .closest("[data-effect-id], .tokencover-effect")
+      .data()?.effectId;
+  }
+
+  /**
+   * Handle clicks on the import terrain menu item.
+   * @param {jQuery} effectItem - jQuery element representing the effect list item
+   */
+  async onImportCoverEffect(effectItem) {
+    log("CoverEffectsController|onImportCoverEffect");
+    const effectId = effectItem.data().effectId;
+//     const terrain = Terrain.fromEffectId(effectId);
+//     await terrain.importFromJSONDialog();
+//     this._viewMvc.render();
+  }
+
+  /**
+   * Handle clicks on the export terrain menu item.
+   * @param {jQuery} effectItem - jQuery element representing the effect list item
+   */
+  onExportCoverEffect(effectItem) {
+    log("CoverEffectsController|onExportCoverEffect");
+    const effectId = effectItem.data().effectId;
+//     const terrain = Terrain.fromEffectId(effectId);
+//     terrain.exportToJSON();
+  }
+
+  /**
+   * Handle duplicating an effect.
+   * @param {jQuery} effectItem - jQuery element representing the effect list item
+   */
+  async onDuplicateCoverEffect(effectItem) {
+    log("CoverEffectsController|onDuplicateCoverEffect");
+    const effectId = effectItem.data().effectId;
+//     const eHelper = EffectHelper.fromId(effectId);
+//     const dupe = await eHelper.duplicate();
+//     dupe.effect.name = `${dupe.effect.name} Copy`;
+//     this._viewMvc.render();
+  }
+
+  /**
+   * Handles starting the drag for effect items
+   * For non-nested effects, populates the dataTransfer with Foundry's expected
+   * ActiveEffect type and data to make non-nested effects behave as core does
+   * @param {DragEvent} event - event that corresponds to the drag start
+   */
+  onEffectDragStart(_event) {
+    log(`CoverEffectsController|onEffectDragStart for ${event.target.dataset.effectName}`);
+//     const terrain = Terrain.fromEffectId(event.target.dataset.effectId);
+//     event.dataTransfer.setData(
+//       "text/plain",
+//       JSON.stringify({
+//         name: terrain.name,
+//         type: "ActiveEffect",
+//         data: terrain._effectHelper.effect
+//       })
+//     );
+  }
+
+  canDragStart() {
+    return game.user.role >= CONST.USER_ROLES.ASSISTANT;
+  }
 }
 
-
+// ----- NOTE: Helper functions ----- //
 
 function importCoverEffectData() {
 //     api = game.modules.get("tokencover").api

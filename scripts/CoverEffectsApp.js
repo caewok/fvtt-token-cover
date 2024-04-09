@@ -27,8 +27,8 @@ export class CoverEffectsApp extends Application {
     return foundry.utils.mergeObject(super.defaultOptions, {
       width: 300,
       height: 600,
-      top: 75,
-      left: 125,
+      top: 100,
+      left: 200,
       popOut: true,
       minimizable: true,
       resizable: true,
@@ -72,7 +72,7 @@ export class CoverEffectsApp extends Application {
    * Listeners for buttons in the menu
    */
   _initClickListeners() {
-    this._createEffectButton.on("click", this._controller.onCreateEffectClick.bind(this._controller));
+    this._createEffectButton.on("click", this._controller.onCreateCoverEffect.bind(this._controller));
     this._listCoverTypesButton.on("click", this._controller.onListCoverTypes.bind(this._controller));
   }
 
@@ -80,40 +80,40 @@ export class CoverEffectsApp extends Application {
    * Menu items when right-clicking on an active effect.
    */
   _initContextMenus() {
-    new ContextMenu(this._rootView, ".terrainmapper-effect", [
+    new ContextMenu(this._rootView, ".tokencover-effect", [
       {
         name: "Edit Cover Effect",
         icon: '<i class="fas fa-edit fa-fw"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onEditEffectClick.bind(this._controller)
+        callback: this._controller.onEditCoverEffect.bind(this._controller)
       },
 
       {
         name: "Duplicate",
         icon: '<i class="far fa-copy fa-fw"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onDuplicate.bind(this._controller)
+        callback: this._controller.onDuplicateCoverEffect.bind(this._controller)
       },
 
       {
         name: "Import Cover Effect",
         icon: '<i class="far fa-file-arrow-up"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onImportTerrain.bind(this._controller)
+        callback: this._controller.onImportCoverEffect.bind(this._controller)
       },
 
       {
         name: "Export Cover Effect",
         icon: '<i class="far fa-file-arrow-down"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onExportTerrain.bind(this._controller)
+        callback: this._controller.onExportCoverEffect.bind(this._controller)
       },
 
       {
         name: "Delete Cover Effect",
         icon: '<i class="fas fa-trash fa-fw"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onDeleteEffectClick.bind(this._controller)
+        callback: this._controller.onDeleteCoverEffect.bind(this._controller)
       }
     ]);
   }
