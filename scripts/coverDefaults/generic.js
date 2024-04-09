@@ -16,8 +16,7 @@ coverTypes.low = {
   canOverlap: false,
   includeWalls: true,
   includeTokens: false,
-  priority: 1,
-  activeEffectData: null
+  priority: 1
 };
 
 coverTypes.medium = {
@@ -29,8 +28,7 @@ coverTypes.medium = {
   canOverlap: false,
   includeWalls: true,
   includeTokens: false,
-  priority: 2,
-  activeEffectData: null
+  priority: 2
 };
 
 coverTypes.high = {
@@ -42,8 +40,7 @@ coverTypes.high = {
   canOverlap: false,
   includeWalls: true,
   includeTokens: false,
-  priority: 3,
-  activeEffectData: null
+  priority: 3
 };
 
 coverTypes.tokensBlock = {
@@ -55,6 +52,5 @@ coverTypes.tokensBlock = {
   canOverlap: true,
   includeWalls: false,
   includeTokens: true,
-  priority: null,
-  activeEffectData: null
+  priority: null
 };

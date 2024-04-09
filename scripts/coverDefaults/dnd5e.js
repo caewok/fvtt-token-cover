@@ -40,8 +40,7 @@ coverTypes.halfToken = {
   canOverlap: false,
   priority: 0,
   includeWalls: false,
-  includeTokens: true,
-  activeEffectData: null
+  includeTokens: true
 };
 
 // A target has half cover if an obstacle blocks at least half of its body.
@@ -54,8 +53,7 @@ coverTypes.half = {
   canOverlap: false,
   includeWalls: true,
   includeTokens: false,
-  priority: 1,
-  activeEffectData: null
+  priority: 1
 };
 
 // A target has three-quarters cover if about three-quarters of it is covered by an obstacle.
@@ -68,8 +66,7 @@ coverTypes.threeQuarters = {
   canOverlap: false,
   priority: 2,
   includeWalls: true,
-  includeTokens: false,
-  activeEffectData: null
+  includeTokens: false
 };
 
 // A target has total cover if it is completely concealed by an obstacle.
@@ -82,8 +79,7 @@ coverTypes.total = {
   canOverlap: false,
   includeWalls: true,
   includeTokens: false,
-  priority: 3,
-  activeEffectData: null
+  priority: 3
 };
 
 

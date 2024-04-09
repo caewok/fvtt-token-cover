@@ -40,8 +40,7 @@ coverTypes.lesser = {
   tint: null,
   canOverlap: false,
   includeWalls: false,
-  includeTokens: true,
-  activeEffectData: null
+  includeTokens: true
 };
 
 coverTypes.standard = {
@@ -52,8 +51,7 @@ coverTypes.standard = {
   tint: null,
   canOverlap: false,
   includeWalls: true,
-  includeTokens: false,
-  activeEffectData: null
+  includeTokens: false
 };
 
 coverTypes.greater = {
@@ -64,8 +62,7 @@ coverTypes.greater = {
   tint: null,
   canOverlap: false,
   includeWalls: true,
-  includeTokens: false,
-  activeEffectData: null
+  includeTokens: false
 };
 
 coverTypes.total = {
@@ -76,6 +73,5 @@ coverTypes.total = {
   tint: null,
   canOverlap: false,
   includeWalls: true,
-  includeTokens: false,
-  activeEffectData: null
+  includeTokens: false
 };

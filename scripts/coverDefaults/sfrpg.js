@@ -46,7 +46,6 @@ coverTypes.soft = {
   icon: ICONS.SHIELD_THICK_GRAY.SPLAT,
   tint: null,
   canOverlap: true,
-  activeEffectData: null,
   includeWalls: false,
   includeTokens: true,
   priority: null
@@ -61,7 +60,6 @@ coverTypes.partial = {
   icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
   tint: null,
   canOverlap: false,
-  activeEffectData: null,
   includeWalls: true,
   includeTokens: true,
   priority: 1
@@ -78,7 +76,6 @@ coverTypes.cover = {
   canOverlap: false,
   includeWalls: true,
   includeTokens: true,
-  activeEffectData: null,
   priority: 2
 };
 
@@ -92,7 +89,6 @@ coverTypes.improved = {
   canOverlap: false,
   includeWalls: true,
   includeTokens: true,
-  activeEffectData: null,
   priority: 3
 };
 
@@ -106,6 +102,5 @@ coverTypes.total = {
   canOverlap: false,
   includeWalls: true,
   includeTokens: true,
-  activeEffectData: null,
   priority: 4
 };
