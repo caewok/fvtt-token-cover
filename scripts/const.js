@@ -29,7 +29,19 @@ export const FLAGS = {
     SHARPSHOOTER: "sharpShooter",
     MAX_GRANT: "maximumCoverGrant"
   },
-  VERSION: "version" // For updating flag data to new versions of the module.
+
+
+  /**
+   * Identify what cover type should be associated with this active effect.
+   * @type {string} Cover type id or "none"
+   */
+  COVER_TYPE: "coverType",
+
+  /**
+   * For updating flag data to new versions of the module.
+   * @type {string} Version of the module that saved this data.
+   */
+  VERSION: "version"
 };
 
 export const TEMPLATES = {
