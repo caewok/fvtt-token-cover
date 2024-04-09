@@ -5,14 +5,14 @@ Hooks
 */
 "use strict";
 
-import { MODULE_ID, COVER, FLAGS, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, FLAGS, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 import { registerElevationConfig } from "./geometry/elevation_configs.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
-import { setDefaultCoverData } from "./cover_types.js";
+import { setDefaultCoverData, COVER } from "./cover_types.js";
 
 
 // For API
