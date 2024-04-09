@@ -28,7 +28,8 @@ export const FLAGS = {
     SPELLSNIPER: "spellSniper",
     SHARPSHOOTER: "sharpShooter",
     MAX_GRANT: "maximumCoverGrant"
-  }
+  },
+  VERSION: "version" // For updating flag data to new versions of the module.
 };
 
 export const TEMPLATES = {
@@ -47,6 +48,7 @@ COVER.TYPES = {
   HIGH: 3,
   TOTAL: 4
 };
+
 
 // Names of the SFRPG Cover items
 COVER.SFRPG = {

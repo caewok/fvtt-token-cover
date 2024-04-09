@@ -4,9 +4,7 @@
     <div class="form-group">
       <label for="tokencover.maximumCoverGrant">{{ localize "tokencover.tokenconfig.maximum-cover.name" }}</label>
       <div class="form-fields">
-        <select id="tokencover.maximumCoverGrant" name="flags.tokencover.maximumCoverGrant" class="tokencover">
-          {{ selectOptions tokencover.coverChoices selected=object.flags.tokencover.maximumCoverGrant localize=true }}
-        </select>
+        {{rangePicker name="flags.tokencover.maximumCoverGrant" value=object.flags.tokencover.maximumCoverGrant min=0 max=1 step = 0.05}}
       </div>
       <p class="hint">{{ localize "tokencover.tokenconfig.maximum-cover.hint" }}</p>
     </div>

@@ -172,146 +172,146 @@ export class CoverCalculator extends AbstractCalculator {
    * Temporarily remove non-blocking tokens from the cover calculator.
    * Must be redone whenever `this.calc` is cleared or its configuration changed.
    */
-  #removeNonBlockingTokens() {
-    const blockingTokens = this.calc.blockingObjects.tokens;
-    blockingTokens.forEach(t => {
-      const maxCover = Number(t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? COVER.TYPES.TOTAL);
-      if ( maxCover === COVER.TYPES.NONE ) blockingTokens.delete(t);
-    });
-    if ( blockingTokens.size ) this.calc._blockingObjectsChanged();
-  }
+//   #removeNonBlockingTokens() {
+//     const blockingTokens = this.calc.blockingObjects.tokens;
+//     blockingTokens.forEach(t => {
+//       const maxCover = Number(t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? COVER.TYPES.TOTAL);
+//       if ( maxCover === COVER.TYPES.NONE ) blockingTokens.delete(t);
+//     });
+//     if ( blockingTokens.size ) this.calc._blockingObjectsChanged();
+//   }
 
 
   /**
    * Calculate the percentage cover for the current viewer point.
    * @returns {number} Percent between 0 and 1.
    */
-  _percentCover() {
-    const calc = this.calc;
-    const liveTokensBlock = calc.getConfiguration("liveTokensBlock");
-    const deadTokensBlock = calc.getConfiguration("deadTokensBlock");
-    const proneTokensBlock = calc.getConfiguration("proneTokensBlock");
-    const tokensBlock = liveTokensBlock || deadTokensBlock || proneTokensBlock;
-
-    // Drop any tokens that do not convey cover.
-    const blockingTokens = calc.blockingObjects.tokens;
-    if ( tokensBlock && blockingTokens.size ) this.#removeNonBlockingTokens();
-    let percent = 1 - calc.percentVisible();
-
-    // Check if 1 or more blocking tokens convey only some portion of cover.
-    const partialBlockingTokens = blockingTokens.filter((t => {
-      const maxCover = Number(t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? COVER.TYPES.TOTAL);
-      return maxCover === COVER.TYPES.LOW || maxCover === COVER.TYPES.MEDIUM || maxCover === COVER.TYPES.HIGH;
-    }))
-
-    if ( tokensBlock && partialBlockingTokens.size ) {
-
-      /*
-      Example: token provides 75% cover.
-      If without that token, you would have 50% cover but with that token, it is 100% cover, drops to 75%.
-
-      Example: token1 provides 0% cover, token2 provides 50% cover
-      Drop token1.
-
-      Example: Wall cover 40%. Token1 covers 50%. Token2 covers 60%. Wall is in middle.
-      T1 max is 50%. T2 max is 75%.
-      Wall: |   ----   |
-      T1:   |-----     |
-      T2:   |    ------|
-
-      With both tokens: 100% cover
-      Without both tokens: 40% cover
-      Without token1: 70% cover
-      Without token2: 70% cover
-
-      60% (100 - 40) of cover provided by tokens.
-      Of that 60%, T1 and T2 split evenly: 70% / 70%.
-      New formula: .4 + .6 * (.5 * .5 + .5 * .75) = .775
-
-      Example: Wall cover 40%. Token1 covers 50%. Token2 covers 60%. Wall is in middle.
-      T1 max is 50%. T2 max is 75%.
-      Wall: |   ----   |
-      T1:   |-----     |
-      T2:   |------    |
-
-      With both tokens: 70% cover
-      Without both tokens: 40% cover
-      Without token1: 70% cover
-      Without token2: 70% cover
-
-      30% (70 - 40) of cover provided by the tokens.
-      Of that 30%, T1 and T2 split evenly: 70% / 70%.
-      New formula: .40 + .30 * (.5 * .5 + .5 * .75) = .5875
-
-      Example: Wall cover 40%. Token1 covers 10%. Token2 covers 20%. Wall is in middle.
-      T1 max is 50%. T2 max is 75%.
-      Wall: |   ----   |
-      T1:   |-         |
-      T2:   |   --     |
-
-      With both tokens: 50% cover
-      Without both tokens: 40% cover
-      Without token1: 40% cover
-      Without token2: 50% cover
-
-      10% (50 - 40) of cover provided by the tokens.
-      Of that 10%, T1 provides 10% (50 - 40) and T2 provides 0% (50 - 50)
-      New formula: .40 + .10 * (1 * .5 + 0 * .75) = .45
-      */
-
-      const percentages = {
-        0: 0,
-        1: Settings.get(Settings.KEYS.COVER.TRIGGER_PERCENT.LOW),
-        2: Settings.get(Settings.KEYS.COVER.TRIGGER_PERCENT.MEDIUM),
-        3: Settings.get(Settings.KEYS.COVER.TRIGGER_PERCENT.HIGH),
-        4: 1
-      };
-
-      // Without partially blocking tokens.
-      partialBlockingTokens.forEach(t => blockingTokens.delete(t));
-      calc._blockingObjectsChanged();
-      const percentNoTokens = 1 - calc.percentVisible();
-      const diff = percent - percentNoTokens;
-      partialBlockingTokens.forEach(t => blockingTokens.add(t));
-      calc._blockingObjectsChanged();
-
-      // Remove each token in turn
-      let tPercentage = [];
-      const tMaxCover = [];
-      // Avoid infinite loop here by using a copy of the blocking token set.
-      partialBlockingTokens.forEach(t => {
-        tMaxCover.push(Number(t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? COVER.TYPES.HIGH));
-        blockingTokens.delete(t);
-        calc._blockingObjectsChanged();
-        const percentMinusOneToken = 1 - calc.percentVisible();
-        tPercentage.push(percent - percentMinusOneToken);
-        blockingTokens.add(t);
-        calc._blockingObjectsChanged();
-      });
-
-      // Pro-rate each token's percentage contribution to the total token contribution to
-      // cover by the maximum cover for each respective token.
-      const nTokens = tPercentage.length;
-      const denom = tPercentage.reduce((curr, acc) => acc + curr) || nTokens;
-      tPercentage = tPercentage.map(x => x / denom);
-      let newPercent = 0;
-      for ( let i = 0; i < nTokens; i += 1 ) newPercent += tPercentage[i] * percentages[tMaxCover[i]];
-      newPercent *= diff;
-      newPercent += percentNoTokens;
-      percent = Math.clamped(newPercent, 0, 1);
-    }
-
-    // If forcing half-cover from tokens blocking, determine if the percent cover would
-    // be the same without live token blocking.
-    if ( this.liveForceHalfCover && calc.getConfiguration("liveTokensBlock") ) {
-      calc.updateConfiguration({ liveTokensBlock: false });
-      const percentNoTokens = 1 - calc.percentVisible();
-      calc.updateConfiguration({ liveTokensBlock: true });
-      const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
-      percent = Math.max(percentNoTokens, Math.min(minPercent, percent));
-    }
-    return percent;
-  }
+//   _percentCover() {
+//     const calc = this.calc;
+//     const liveTokensBlock = calc.getConfiguration("liveTokensBlock");
+//     const deadTokensBlock = calc.getConfiguration("deadTokensBlock");
+//     const proneTokensBlock = calc.getConfiguration("proneTokensBlock");
+//     const tokensBlock = liveTokensBlock || deadTokensBlock || proneTokensBlock;
+//
+//     // Drop any tokens that do not convey cover.
+//     const blockingTokens = calc.blockingObjects.tokens;
+//     if ( tokensBlock && blockingTokens.size ) this.#removeNonBlockingTokens();
+//     let percent = 1 - calc.percentVisible();
+//
+//     // Check if 1 or more blocking tokens convey only some portion of cover.
+//     const partialBlockingTokens = blockingTokens.filter((t => {
+//       const maxCover = Number(t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? COVER.TYPES.TOTAL);
+//       return maxCover === COVER.TYPES.LOW || maxCover === COVER.TYPES.MEDIUM || maxCover === COVER.TYPES.HIGH;
+//     }))
+//
+//     if ( tokensBlock && partialBlockingTokens.size ) {
+//
+//       /*
+//       Example: token provides 75% cover.
+//       If without that token, you would have 50% cover but with that token, it is 100% cover, drops to 75%.
+//
+//       Example: token1 provides 0% cover, token2 provides 50% cover
+//       Drop token1.
+//
+//       Example: Wall cover 40%. Token1 covers 50%. Token2 covers 60%. Wall is in middle.
+//       T1 max is 50%. T2 max is 75%.
+//       Wall: |   ----   |
+//       T1:   |-----     |
+//       T2:   |    ------|
+//
+//       With both tokens: 100% cover
+//       Without both tokens: 40% cover
+//       Without token1: 70% cover
+//       Without token2: 70% cover
+//
+//       60% (100 - 40) of cover provided by tokens.
+//       Of that 60%, T1 and T2 split evenly: 70% / 70%.
+//       New formula: .4 + .6 * (.5 * .5 + .5 * .75) = .775
+//
+//       Example: Wall cover 40%. Token1 covers 50%. Token2 covers 60%. Wall is in middle.
+//       T1 max is 50%. T2 max is 75%.
+//       Wall: |   ----   |
+//       T1:   |-----     |
+//       T2:   |------    |
+//
+//       With both tokens: 70% cover
+//       Without both tokens: 40% cover
+//       Without token1: 70% cover
+//       Without token2: 70% cover
+//
+//       30% (70 - 40) of cover provided by the tokens.
+//       Of that 30%, T1 and T2 split evenly: 70% / 70%.
+//       New formula: .40 + .30 * (.5 * .5 + .5 * .75) = .5875
+//
+//       Example: Wall cover 40%. Token1 covers 10%. Token2 covers 20%. Wall is in middle.
+//       T1 max is 50%. T2 max is 75%.
+//       Wall: |   ----   |
+//       T1:   |-         |
+//       T2:   |   --     |
+//
+//       With both tokens: 50% cover
+//       Without both tokens: 40% cover
+//       Without token1: 40% cover
+//       Without token2: 50% cover
+//
+//       10% (50 - 40) of cover provided by the tokens.
+//       Of that 10%, T1 provides 10% (50 - 40) and T2 provides 0% (50 - 50)
+//       New formula: .40 + .10 * (1 * .5 + 0 * .75) = .45
+//       */
+//
+//       const percentages = {
+//         0: 0,
+//         1: Settings.get(Settings.KEYS.COVER.TRIGGER_PERCENT.LOW),
+//         2: Settings.get(Settings.KEYS.COVER.TRIGGER_PERCENT.MEDIUM),
+//         3: Settings.get(Settings.KEYS.COVER.TRIGGER_PERCENT.HIGH),
+//         4: 1
+//       };
+//
+//       // Without partially blocking tokens.
+//       partialBlockingTokens.forEach(t => blockingTokens.delete(t));
+//       calc._blockingObjectsChanged();
+//       const percentNoTokens = 1 - calc.percentVisible();
+//       const diff = percent - percentNoTokens;
+//       partialBlockingTokens.forEach(t => blockingTokens.add(t));
+//       calc._blockingObjectsChanged();
+//
+//       // Remove each token in turn
+//       let tPercentage = [];
+//       const tMaxCover = [];
+//       // Avoid infinite loop here by using a copy of the blocking token set.
+//       partialBlockingTokens.forEach(t => {
+//         tMaxCover.push(Number(t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? COVER.TYPES.HIGH));
+//         blockingTokens.delete(t);
+//         calc._blockingObjectsChanged();
+//         const percentMinusOneToken = 1 - calc.percentVisible();
+//         tPercentage.push(percent - percentMinusOneToken);
+//         blockingTokens.add(t);
+//         calc._blockingObjectsChanged();
+//       });
+//
+//       // Pro-rate each token's percentage contribution to the total token contribution to
+//       // cover by the maximum cover for each respective token.
+//       const nTokens = tPercentage.length;
+//       const denom = tPercentage.reduce((curr, acc) => acc + curr) || nTokens;
+//       tPercentage = tPercentage.map(x => x / denom);
+//       let newPercent = 0;
+//       for ( let i = 0; i < nTokens; i += 1 ) newPercent += tPercentage[i] * percentages[tMaxCover[i]];
+//       newPercent *= diff;
+//       newPercent += percentNoTokens;
+//       percent = Math.clamped(newPercent, 0, 1);
+//     }
+//
+//     // If forcing half-cover from tokens blocking, determine if the percent cover would
+//     // be the same without live token blocking.
+//     if ( this.liveForceHalfCover && calc.getConfiguration("liveTokensBlock") ) {
+//       calc.updateConfiguration({ liveTokensBlock: false });
+//       const percentNoTokens = 1 - calc.percentVisible();
+//       calc.updateConfiguration({ liveTokensBlock: true });
+//       const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
+//       percent = Math.max(percentNoTokens, Math.min(minPercent, percent));
+//     }
+//     return percent;
+//   }
 
   coverFromViewerAtLocation(target, location) {
     this.calc.viewerPoint = location;
@@ -320,17 +320,16 @@ export class CoverCalculator extends AbstractCalculator {
 
   /**
    * Calculate the percentage cover over all viewer points if more than one in settings.
-   * @param {Token} [target]    Optional target if not already set.
+   * @param {Token} [target]    Optional target if not already set
+   * @param {object} [opts]     Options passed to _percentCover
    * @returns {number} Percent between 0 and 1.
-   *   Only guaranteed to return less than the lowest cover percentage.
    */
-  percentCover(target) {
+  percentCover(target, opts) {
     const { viewer, calc } = this;
     if ( target ) calc.target = target;
     calc._clearCache();
 
     let percent = 1;
-    const minPercent = Settings.get(SETTINGS.COVER.TRIGGER_PERCENT.LOW);
     const viewerOpts = {
       pointAlgorithm: Settings.get(Settings.KEYS.LOS.VIEWER.NUM_POINTS),
       inset: Settings.get(Settings.KEYS.LOS.VIEWER.INSET)
@@ -338,11 +337,189 @@ export class CoverCalculator extends AbstractCalculator {
     const viewerPoints = calc.constructor.constructViewerPoints(viewer, viewerOpts);
     for ( const viewerPoint of viewerPoints ) {
       calc.viewerPoint = viewerPoint;
-      percent = Math.min(percent, this._percentCover());
-      if ( percent < minPercent ) return percent;
+      percent = Math.min(percent, this._percentCover(opts));
+      if ( percent < 0 || percent.almostEqual(0) ) return 0;
     }
     return percent;
   }
+
+  /**
+   * Calculate the percentage cover for the current viewer point.
+   * @param {object} [opts]                     Options to manipulate the LOS calculation
+   * @param {boolean} [opts.includeWalls=true]    Should walls be considered blocking?
+   * @param {boolean} [opts.includeTokens=true]   Should tokens be considered blocking?
+   *                                            GM settings may further modify which tokens block
+   * @param {Token[]} [opts.tokensToExclude=[]] What tokens to not include in blocking objects
+   * @param {Token[]} [opts.onlyTokens=[]]      Only include these tokens as potentially blocking
+   * @returns {number} Percent between 0 and 1.
+   */
+  _percentCover({ includeWalls = true, includeTokens = true, tokensToExclude = [], onlyTokens = [] } = {}) {
+    const calc = this.calc;
+
+    // Instead of copying and restoring blocking objects, just change them and clear cache after.
+    let blockingObjectsChanged = false;
+    let partialBlockingTokens = [];
+
+    if ( !includeWalls ) {
+      calc.blockingObjects.walls.clear();
+      calc.blockingObjects.terrainWalls.clear();
+      blockingObjectsChanged ||= true;
+    }
+
+    if ( includeTokens ) {
+      // Remove tokens flagged as not blocking.
+      // Process tokens that have been flagged as partially blocking.
+      const res = this._partiallyBlockingTokens();
+      partialBlockingTokens = res.partialBlockingTokens;
+      if ( res.nonBlockingTokens.length ) {
+        nonBlockingTokens.forEach(t => calc.blockingObjects.tokens.delete(t));
+        blockingObjectsChanged ||= true;
+      }
+
+      // Process tokens that are forcibly excluded or included.
+      if ( tokensToExclude.length ) {
+        tokensToExclude.forEach(t => calc.blockingObjects.tokens.delete(t));
+        blockingObjectsChanged ||= true;
+      }
+      if ( onlyTokens.length ) {
+        calc.blockingObjects.tokens.clear();
+        onlyTokens.forEach(t => calc.blockingObjects.tokens.add(t));
+        blockingObjectsChanged ||= true;
+      }
+
+    } else {
+      calc.blockingObjects.tokens.clear();
+      blockingObjectsChanged ||= true;
+    }
+
+    // Basic approach: simply calculate cover based on visibility of the target from the viewer point.
+    if ( blockingObjectsChanged ) calc._blockingObjectsChanged();
+    const percent = 1 - calc.percentVisible();
+
+    // Handle partially blocking tokens separately.
+    if ( partialBlockingTokens.length ) return this._calculatePartiallyBlockingCover(partialBlockingTokens, percent);
+    return percent;
+  }
+
+  /**
+   * Locate all partially and non-blocking tokens.
+   * @returns {object}
+   *   - @prop{Token[]} partialBlockingTokens    Any tokens that grant only partial cover
+   *   - @prop{Token[]} nonBlockingTokens        Any tokens that do not grant cover
+   */
+  _partiallyBlockingTokens() {
+    const calc = this.calc;
+    const partialBlockingTokens = [];
+    const nonBlockingTokens = [];
+    for ( const token of calc.blockingObjects.tokens ) {
+      const maxCover = Number(token.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? 1);
+      if ( maxCover >= 1 ) continue;
+      if ( !maxCover ) nonBlockingTokens.push(token);
+      else partialBlockingTokens.push(token);
+    }
+    return { partialBlockingTokens, nonBlockingTokens };
+  }
+
+  /**
+   * Run the percent cover calculation for partially blocking tokens.
+   * Tokens provided but not checked for partial blocking.
+   * @param {Set<Token>|Token[]} patiallyBlockingTokens
+   */
+  _calculatePartiallyBlockingCover(partialBlockingTokens, totalPercent) {
+    const calc = this.calc;
+    const blockingTokens = calc.blockingObjects.tokens;
+
+    // Without partially blocking tokens.
+    partialBlockingTokens.forEach(t => blockingTokens.delete(t));
+    calc._blockingObjectsChanged();
+    const percentNoTokens = 1 - calc.percentVisible();
+
+    // Add back the tokens.
+    partialBlockingTokens.forEach(t => blockingTokens.add(t));
+    calc._blockingObjectsChanged();
+
+    // Remove each token in turn.
+    let tPercentage = [];
+    const tMaxCover = [];
+    // Avoid infinite loop here by using a copy of the blocking token set.
+    partialBlockingTokens.forEach(t => {
+      tMaxCover.push(Number(t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? 1));
+      blockingTokens.delete(t);
+      calc._blockingObjectsChanged();
+      const percentMinusOneToken = 1 - calc.percentVisible();
+      tPercentage.push(percent - percentMinusOneToken);
+      blockingTokens.add(t);
+      calc._blockingObjectsChanged();
+    });
+
+    // Prorate each token's percentage contribution to the total token contribution to
+    // cover by the maximum cover for each respective token.
+    const diff = percent - percentNoTokens;
+    const nTokens = tPercentage.length;
+    const denom = tPercentage.reduce((curr, acc) => acc + curr) || nTokens;
+    tPercentage = tPercentage.map(x => x / denom);
+    let newPercent = 0;
+    for ( let i = 0; i < nTokens; i += 1 ) newPercent += tPercentage[i] * tMaxCover[i];
+    newPercent *= diff;
+    newPercent += percentNoTokens;
+    return Math.clamped(newPercent, 0, 1);
+  }
+
+
+    /*
+    Example: token provides 75% cover.
+    If without that token, you would have 50% cover but with that token, it is 100% cover, drops to 75%.
+
+    Example: token1 provides 0% cover, token2 provides 50% cover
+    Drop token1.
+
+    Example: Wall cover 40%. Token1 covers 50%. Token2 covers 60%. Wall is in middle.
+    T1 max is 50%. T2 max is 75%.
+    Wall: |   ----   |
+    T1:   |-----     |
+    T2:   |    ------|
+
+    With both tokens: 100% cover
+    Without both tokens: 40% cover
+    Without token1: 70% cover
+    Without token2: 70% cover
+
+    60% (100 - 40) of cover provided by tokens.
+    Of that 60%, T1 and T2 split evenly: 70% / 70%.
+    New formula: .4 + .6 * (.5 * .5 + .5 * .75) = .775
+
+    Example: Wall cover 40%. Token1 covers 50%. Token2 covers 60%. Wall is in middle.
+    T1 max is 50%. T2 max is 75%.
+    Wall: |   ----   |
+    T1:   |-----     |
+    T2:   |------    |
+
+    With both tokens: 70% cover
+    Without both tokens: 40% cover
+    Without token1: 70% cover
+    Without token2: 70% cover
+
+    30% (70 - 40) of cover provided by the tokens.
+    Of that 30%, T1 and T2 split evenly: 70% / 70%.
+    New formula: .40 + .30 * (.5 * .5 + .5 * .75) = .5875
+
+    Example: Wall cover 40%. Token1 covers 10%. Token2 covers 20%. Wall is in middle.
+    T1 max is 50%. T2 max is 75%.
+    Wall: |   ----   |
+    T1:   |-         |
+    T2:   |   --     |
+
+    With both tokens: 50% cover
+    Without both tokens: 40% cover
+    Without token1: 40% cover
+    Without token2: 50% cover
+
+    10% (50 - 40) of cover provided by the tokens.
+    Of that 10%, T1 provides 10% (50 - 40) and T2 provides 0% (50 - 50)
+    New formula: .40 + .10 * (1 * .5 + 0 * .75) = .45
+    */
+
+
 
   /**
    * Calculate the target's cover.
