@@ -412,7 +412,7 @@ export class CoverCalculator extends AbstractCalculator {
     const partialBlockingTokens = [];
     const nonBlockingTokens = [];
     for ( const token of calc.blockingObjects.tokens ) {
-      const maxCover = Number(t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? 1);
+      const maxCover = Number(token.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? 1);
       if ( maxCover >= 1 ) continue;
       if ( !maxCover ) nonBlockingTokens.push(token);
       else partialBlockingTokens.push(token);
