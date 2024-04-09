@@ -2,7 +2,10 @@
 */
 "use strict";
 
+import { MODULE_ID, ICONS } from "../const.js";
 import { coverTypesForToken as genericCoverTypesForToken } from "../cover_types.js";
+
+const SYSTEM_ID = "sfrpg";
 
 /**
  * Determine what cover types apply to a target token given an attacking token.
@@ -38,8 +41,9 @@ export const coverTypes = {};
 // Creatures between you and the source of the attack
 coverTypes.soft = {
   name: "SFRPG.Vehicles.VehicleCoverTypes.Soft",
+  id: `${MODULE_ID}.${SYSTEM_ID}.soft`,
   percentThreshold: .01,
-  icon: "modules/tokencover/assets/shield_low_gray.svg",
+  icon: ICONS.SHIELD_THICK_GRAY.SPLAT,
   tint: null,
   canOverlap: true,
   activeEffectData: null,
@@ -52,8 +56,9 @@ coverTypes.soft = {
 // Cover is ≥ 25%. But partial is less than 50%. So anything ≥ 50% would be cover.
 coverTypes.partial = {
   name: "SFRPG.Vehicles.VehicleCoverTypes.Partial",
+  id: `${MODULE_ID}.${SYSTEM_ID}.partial`,
   percentThreshold: 0.25,
-  icon: "modules/tokencover/assets/shield_low_gray.svg",
+  icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
   tint: null,
   canOverlap: false,
   activeEffectData: null,
@@ -66,8 +71,9 @@ coverTypes.partial = {
 // Any corner of the viewer square --> any corner of token square is blocked. (dnd5e DMG rule)
 coverTypes.cover = {
   name: "SFRPG.Vehicles.VehicleCoverTypes.Cover",
+  id: `${MODULE_ID}.${SYSTEM_ID}.cover`,
   percentThreshold: 0.5,
-  icon: "modules/tokencover/assets/shield_medium_gray.svg",
+  icon: ICONS.SHIELD_THIN_GRAY.HALF,
   tint: null,
   canOverlap: false,
   includeWalls: true,
@@ -79,8 +85,9 @@ coverTypes.cover = {
 // Certain cases such as target hiding behind defensive wall, bonuses doubled.
 coverTypes.improved = {
   name: "SFRPG.Vehicles.VehicleCoverTypes.Improved",
+  id: `${MODULE_ID}.${SYSTEM_ID}.improved`,
   percentThreshold: 0.9,
-  icon: "modules/tokencover/assets/shield_high_gray.svg",
+  icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
   tint: null,
   canOverlap: false,
   includeWalls: true,
@@ -92,8 +99,9 @@ coverTypes.improved = {
 // No line of sight
 coverTypes.total = {
   name: "SFRPG.Vehicles.VehicleCoverTypes.Total",
+  id: `${MODULE_ID}.${SYSTEM_ID}.total`,
   percentThreshold: 1,
-  icon: "modules/tokencover/assets/shield_high_gray.svg",
+  icon: ICONS.SHIELD_THIN_GRAY.FULL,
   tint: null,
   canOverlap: false,
   includeWalls: true,

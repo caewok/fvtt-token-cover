@@ -39,6 +39,29 @@ export const TEMPLATES = {
   SETTINGS_MENU: `modules/${MODULE_ID}/templates/settings-menu.html`
 }
 
+export const ICONS = {
+  SHIELD_THIN_GRAY: {
+    ONE_QUARTER: `modules/${MODULE_ID}/assets/shield_low_gray.svg`,
+    HALF: `modules/${MODULE_ID}/assets/shield_half_gray.svg`,
+    THREE_QUARTERS: `modules/${MODULE_ID}/assets/shield_medium_gray.svg`,
+    FULL: `modules/${MODULE_ID}/assets/shield_high_gray.svg`
+  },
+
+  SHIELD_THICK_GRAY: {
+    HEART: `modules/${MODULE_ID}/assets/shield_heart_gray.svg`,
+    SPLAT: `modules/${MODULE_ID}/assets/shield_virus_gray.svg`,
+    HALF: `modules/${MODULE_ID}/assets/shield_halved_gray.svg`,
+    FULL: `modules/${MODULE_ID}/assets/shield_gray.svg`
+  },
+
+  SHIELD_THICK_BLACK: {
+    HEART: `modules/${MODULE_ID}/assets/shield_heart.svg`,
+    SPLAT: `modules/${MODULE_ID}/assets/shield_virus.svg`,
+    HALF: `modules/${MODULE_ID}/assets/shield_halved.svg`,
+    FULL: `modules/${MODULE_ID}/assets/shield.svg`
+  }
+};
+
 export const COVER = {};
 
 COVER.TYPES = {

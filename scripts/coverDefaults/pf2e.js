@@ -2,7 +2,10 @@
 */
 "use strict";
 
+import { MODULE_ID, ICONS } from "../const.js";
 import { coverTypesForToken as genericCoverTypesForToken } from "../cover_types.js";
+
+const SYSTEM_ID = "pf2e";
 
 /**
  * Determine what cover types apply to a target token given an attacking token.
@@ -31,8 +34,9 @@ export function coverTypesForToken(attackingToken, targetToken) {
 export const coverTypes = {};
 coverTypes.lesser = {
   name: "Lesser",
+  id: `${MODULE_ID}.${SYSTEM_ID}.low`,
   percentThreshold: 0.25,
-  icon: "modules/tokencover/assets/shield_low_gray.svg",
+  icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
   tint: null,
   canOverlap: false,
   includeWalls: false,
@@ -42,8 +46,9 @@ coverTypes.lesser = {
 
 coverTypes.standard = {
   name: "Standard",
+  id: `${MODULE_ID}.${SYSTEM_ID}.low`,
   percentThreshold: 0.5,
-  icon: "modules/tokencover/assets/shield_medium_gray.svg",
+  icon: ICONS.SHIELD_THIN_GRAY.HALF,
   tint: null,
   canOverlap: false,
   includeWalls: true,
@@ -53,8 +58,9 @@ coverTypes.standard = {
 
 coverTypes.greater = {
   name: "Greater",
+  id: `${MODULE_ID}.${SYSTEM_ID}.low`,
   percentThreshold: 1,
-  icon: "modules/tokencover/assets/shield_high_gray.svg",
+  icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
   tint: null,
   canOverlap: false,
   includeWalls: true,
@@ -64,8 +70,9 @@ coverTypes.greater = {
 
 coverTypes.total = {
   name: "Total",
+  id: `${MODULE_ID}.${SYSTEM_ID}.low`,
   percentThreshold: 1,
-  icon: "modules/tokencover/assets/shield_high_gray.svg",
+  icon: ICONS.SHIELD_THIN_GRAY.FULL,
   tint: null,
   canOverlap: false,
   includeWalls: true,
