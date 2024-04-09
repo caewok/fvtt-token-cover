@@ -19,6 +19,10 @@ import {
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
 export const SETTINGS = {
+  CONTROLS: {
+    COVER_EFFECTS: "cover-effects-control"
+  },
+
   SUBMENU: "submenu",
 
   // Status icons for marking cover on tokens locally.

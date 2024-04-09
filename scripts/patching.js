@@ -9,6 +9,7 @@ import { MODULES_ACTIVE } from "./const.js";
 import { WallGeometryHandler, TileGeometryHandler, TokenGeometryHandler } from "./LOS/Placeable3dGeometry.js";
 
 import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
+import { PATCHES as PATCHES_ActiveEffectConfig } from "./ActiveEffectConfig.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
 import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_SettingsConfig } from "./SettingsConfig.js";
@@ -32,6 +33,7 @@ import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
+  ActiveEffectConfig: PATCHES_ActiveEffectConfig,
   ClientSettings: PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
   Item: PATCHES_Item,

@@ -14,6 +14,8 @@ import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
 import { setDefaultCoverData, COVER } from "./cover_types.js";
 
+// Cover effect token control
+import { CoverEffectsApp } from "./CoverEffectsApp.js";
 
 // For API
 import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
@@ -127,6 +129,22 @@ Hooks.once("ready", function() {
   transitionTokenMaximumCoverFlags();
 });
 
+// Add pathfinding button to token controls.
+const COVER_EFFECTS_CONTROL = {
+  name: Settings.KEYS.CONTROLS.COVER_EFFECTS,
+  title: `${MODULE_ID}.controls.${Settings.KEYS.CONTROLS.COVER_EFFECTS}.name`,
+  icon: "fas fa-book",
+  button: true,
+  onClick: () => { new CoverEffectsApp().render(true); },
+  visible: true
+};
+
+// Render the cover effects book control if setting enabled.
+Hooks.on("getSceneControlButtons", controls => {
+  if ( !canvas.scene ) return;
+  const tokenTools = controls.find(c => c.name === "token");
+  tokenTools.tools.push(COVER_EFFECTS_CONTROL);
+});
 
 /**
  * Transition token maximum cover flags.

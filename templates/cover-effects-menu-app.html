@@ -1,0 +1,40 @@
+<section
+  id='tokencover'
+  class='tokencover sidebar-tab directory flexcol'
+>
+
+  <!-- Directory Header -->
+  <header class='directory-header'>
+    {{#if isGM}}
+      <div class='header-actions action-buttons flexrow'>
+        <button class='list-cover-types'>
+          <i class='fas fa-rectangle-list'></i>
+          Edit Cover Types (Advanced Edit)
+        </button>
+      </div>
+    {{/if}}
+    </div>
+  </header>
+
+  <!-- Directories List -->
+  <ol class='directory-list'>
+    <ol class='subdirectory'>
+      {{#each effects as |effect|}}
+        <li
+          class='directory-item document entity flexrow tokencover-effect'
+          data-effect-id='{{effect.id}}'
+          data-effect-name='{{effect.name}}'
+          draggable='true'
+          style='display: flex'
+        >
+          <img title='{{effect.name}}' src='{{effect.icon}}' />
+          <h4 class='document-name entity-name'>
+            <a title='{{effect.description}}'>
+              {{effect.name}}
+            </a>
+          </h4>
+        </li>
+      {{/each}}
+    </ol>
+  </ol>
+</section>

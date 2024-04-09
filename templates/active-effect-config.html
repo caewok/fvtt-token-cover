@@ -1,0 +1,13 @@
+<fieldset>
+  <legend>{{ localize "tokencover.name" }}</legend>
+
+    <div class="form-group">
+      <label for="tokencover.coverType">{{ localize "tokencover.active-effect-config.coverType.name" }}</label>
+      <div class="form-fields">
+        {{selectOptions coverTypes selected=object.flags.tokencover.coverType nameAttr="key" labelAttr="label"}}
+      </div>
+      <p class="hint">{{ localize "tokencover.active-effect-config.coverType.hint" }}</p>
+    </div>
+
+  </legend>
+</fieldset>
