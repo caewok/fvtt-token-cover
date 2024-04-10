@@ -21,6 +21,17 @@ export class CoverEffectsApp extends Application {
   }
 
   /**
+   * Re-render if the app is open.
+   * Needed when terrain effects are updated in the effects app.
+   * See https://github.com/DFreds/dfreds-convenient-effects/blob/c2d5e81eb1d28d4db3cb0889c22a775c765c24e3/scripts/foundry-helpers.js#L51
+   */
+  static rerender() {
+    const openApps = Object.values(ui.windows);
+    const app = openApps.find(app => app instanceof CoverEffectsApp);
+    if ( app ) app.render(true);
+  }
+
+  /**
    * Set the options for how the application is displayed.
    */
   static get defaultOptions() {
@@ -128,4 +139,9 @@ export class CoverEffectsApp extends Application {
    * The button used to display a listing of all cover types.
    */
   get _listCoverTypesButton() { return this._rootView.find(".list-cover-types"); }
+
+  /**
+   * The listed active effect target.
+   */
+  get _coverEffectItem() { return this._rootView.find(".tokencover-effect"); }
 }
