@@ -29,10 +29,10 @@ function closeActiveEffectConfig(app, _html) {
 async function renderActiveEffectConfig(app, html, data) {
   if ( !app.object.getFlag(MODULE_ID, FLAGS.COVER_TYPE) ) return;
 
-  const coverTypes = COVER.TYPES.map(ct => {
+  let coverTypes = Object.values(COVER.TYPES).map(ct => {
     return { key: ct.id, label: ct.name }
   });
-  coverTypes.unshift({ key: "none", label: "None"});
+  coverTypes.unshift({ key: "none", label: "None" });
 
   const renderData = {};
   renderData[MODULE_ID] = { coverTypes };

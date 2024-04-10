@@ -5,6 +5,7 @@ game,
 ActiveEffect
 */
 
+import { MODULE_ID } from "./const.js";
 import { Settings } from "./settings.js";
 
 // Adapted from https://github.com/death-save/combat-utility-belt/blob/master/modules/enhanced-conditions/enhanced-effect-config.js
@@ -27,6 +28,9 @@ export class CoverEffectConfig extends ActiveEffectConfig {
       const statusEffects = allStatusEffects[game.system.id] || allStatusEffects.generic;
       if ( Object.hasOwn(statusEffects, id) ) data = { ...statusEffects[id] };
     }
+    data.flags ??= {};
+    data.flags[MODULE_ID] ??= {};
+    data.flags[MODULE_ID].coverType ??= "none";
     this.object = new ActiveEffect(data);
   }
 
