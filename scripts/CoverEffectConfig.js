@@ -16,9 +16,10 @@ export class CoverEffectConfig extends ActiveEffectConfig {
   /**
    * Force the constructor to use the cover setting.
    */
-  constructor() {
-    super();
+  constructor(opts = {}) {
+    super(opts);
 
+    this.options.coverEffectId = opts.coverEffectId;
     let data = { name: "New Cover Effect" };
     const id = this.options.coverEffectId;
     if ( id ) {
