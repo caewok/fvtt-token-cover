@@ -75,7 +75,8 @@ export class CoverEffectsController {
    */
   async onEditCoverEffect(effectItem) {
     log("CoverEffectsController|onEditCoverEffect");
-    const coverEffectId = effectItem.data().effectId;
+    const data = effectItem.data ? effectItem.data() : effectItem.currentTarget.dataset;
+    const coverEffectId = data.effectId;
     const app = new CoverEffectConfig({ coverEffectId })
     app.render(true);
 

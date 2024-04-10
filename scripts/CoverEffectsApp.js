@@ -74,6 +74,7 @@ export class CoverEffectsApp extends Application {
   _initClickListeners() {
     this._createEffectButton.on("click", this._controller.onCreateCoverEffect.bind(this._controller));
     this._listCoverTypesButton.on("click", this._controller.onListCoverTypes.bind(this._controller));
+    this._coverEffectItem.on("click", this._controller.onEditCoverEffect.bind(this._controller));
   }
 
   /**
