@@ -66,7 +66,6 @@ export class CoverEffectConfig extends ActiveEffectConfig {
    */
   async _onSubmit(...args) {
     await super._onSubmit(...args);
-    const data = this.object.toJSON();
     const allStatusEffects = Settings.get(Settings.KEYS.COVER.EFFECTS);
     let systemId = game.system.id;
     if ( (systemId === "dnd5e" || systemId === "sw5e")
@@ -74,9 +73,8 @@ export class CoverEffectConfig extends ActiveEffectConfig {
 
     if ( !Object.hasOwn(allStatusEffects, systemId) ) allStatusEffects[systemId] = duplicate(allStatusEffects.generic);
 
-    allStatusEffects[systemId][type] = value;
-    await this.set(SETTINGS.COVER.EFFECTS, allStatusEffects);
-
-    await Settings.setCoverEffect("MEDIUM", data);
+    const coverEffectId = this.options.coverEffectId
+    allStatusEffects[systemId][coverEffectId] = this.object.toJSON();;
+    await Settings.set(Settings.KEYS.COVER.EFFECTS, allStatusEffects);
   }
 }
