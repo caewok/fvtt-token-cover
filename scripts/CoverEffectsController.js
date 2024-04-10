@@ -17,6 +17,7 @@ import { coverTypes as pf2eCoverTypes } from "./coverDefaults/pf2e.js";
 import { coverTypes as sfrpgCoverTypes } from "./coverDefaults/sfrpg.js";
 import { coverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
 import { CoverEffectConfig } from "./CoverEffectConfig.js";
+import { CoverTypesListConfig } from "./CoverTypesListConfig.js";
 
 
 // Much of this is from
@@ -53,7 +54,7 @@ export class CoverEffectsController {
    */
   async onListCoverTypes() {
     log("CoverEffectsController|onListCoverTypes");
-    //new CoverTypesListConfig().render(true);
+    new CoverTypesListConfig().render(true);
   }
 
   /**
