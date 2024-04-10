@@ -9,13 +9,14 @@ SearchFilter
 "use strict";
 
 import { Settings } from "./settings.js";
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, FLAGS } from "./const.js";
 import { COVER } from "./cover_types.js";
 import { log } from "./util.js";
 import { coverTypes as dnd5eCoverTypes } from "./coverDefaults/dnd5e.js";
 import { coverTypes as pf2eCoverTypes } from "./coverDefaults/pf2e.js";
 import { coverTypes as sfrpgCoverTypes } from "./coverDefaults/sfrpg.js";
 import { coverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
+import { CoverEffectConfig } from "./CoverEffectConfig.js";
 
 
 // Much of this is from
@@ -33,14 +34,14 @@ export class CoverEffectsController {
    * @returns {Object} the data to pass to the template
    */
   get data() {
-    const effects = importCoverEffectData();
+    const effects = importAllCoverEffectData();
     return {
       isGM: game.user.isGM,
-      effects: effects.map(e => {
+      effects: effects.map(([id, data]) => {
         return {
-          name: e.name,
-          id: e.id ?? e.name,
-          icon: e.icon
+          name: data.name,
+          id,
+          icon: data.icon
         }
       })
     };
@@ -71,20 +72,23 @@ export class CoverEffectsController {
    * Handle editing the custom effect
    * @param {jQuery} effectItem - jQuery element representing the effect list item
    */
-  async onEditCoverEffect(_effectItem) {
+  async onEditCoverEffect(effectItem) {
     log("CoverEffectsController|onEditCoverEffect");
-    const effectId = this._findNearestEffectId(event);
-//     const activeEffect = EffectHelper.getTerrainEffectById(effectId);
-//     activeEffect.sheet.render(true);
+    const coverEffectId = effectItem.data().effectId;
+    const app = new CoverEffectConfig({ coverEffectId })
+    app.render(true);
+
+    // const activeEffect = importCoverEffect(effectId);
+    // activeEffect.sheet.render(true);
   }
 
   /**
    * Handle deleting the custom effect
    * @param {jQuery} effectItem - jQuery element representing the effect list item
    */
-  async onDeleteCoverEffect(_effectItem) {
+  async onDeleteCoverEffect(effectItem) {
     log("CoverEffectsController|onDeleteCoverEffect");
-    const effectId = this._findNearestEffectId(event);
+    const effectId = effectItem.data().effectId;
     const view = this._viewMvc;
 
     return Dialog.confirm({
@@ -103,11 +107,11 @@ export class CoverEffectsController {
    * Locate the nearest effect in the menu to the click event.
    * @returns {string|undefined} Id of the nearest effect
    */
-  _findNearestEffectId(event) {
-    return $(event.target)
-      .closest("[data-effect-id], .tokencover-effect")
-      .data()?.effectId;
-  }
+//   _findNearestEffectId(event) {
+//     return $(event.target)
+//       .closest("[data-effect-id], .tokencover-effect")
+//       .data()?.effectId;
+//   }
 
   /**
    * Handle clicks on the import terrain menu item.
@@ -171,12 +175,28 @@ export class CoverEffectsController {
 
 // ----- NOTE: Helper functions ----- //
 
-function importCoverEffectData() {
+/**
+ * Import active effect for a specific cover effect data from settings.
+ * @param {string} id     Id for that cover effect.
+ * @returns {ActiveEffect} The active effect
+ */
+function importCoverEffect(id) {
+  const allStatusEffects = Settings.get(Settings.KEYS.COVER.EFFECTS);
+  const statusEffects = allStatusEffects[game.system.id] || allStatusEffects.generic;
+  const data = statusEffects[id];
+  data._id = null;
+  data.flags ??= {};
+  data.flags[MODULE_ID] ??= {};
+  data.flags[MODULE_ID][FLAGS.COVER_TYPE] ??= "";
+  return new ActiveEffect(data);
+}
+
+function importAllCoverEffectData() {
 //     api = game.modules.get("tokencover").api
 //     Settings = api.Settings;
   const allStatusEffects = Settings.get(Settings.KEYS.COVER.EFFECTS);
   const statusEffects = allStatusEffects[game.system.id] || allStatusEffects.generic;
-  return Object.values(statusEffects);
+  return Object.entries(statusEffects);
 }
 
 /**
