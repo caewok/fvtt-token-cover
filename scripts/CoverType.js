@@ -78,6 +78,7 @@ export class CoverType {
     // Create and cache the new type
     this._configure(coverTypeData);
     coverTypes.set(this.config.id, this);
+    this.constructor.coverTypesUpdated();
   }
 
   /**
@@ -106,7 +107,8 @@ export class CoverType {
     this.config.includeWalls ??= true;    // Walls almost always provide cover.
     this.config.includeTokens ??= false;  // Tokens less likely to provide cover.
 
-    // priority, tint, icon can all be null or undefined.
+    if ( !(this.config.tint instanceof Color) ) this.config.tint = new Color(this.config.tint ?? 0);
+    // priority, icon can be null or undefined.
   }
 
   /**
@@ -135,22 +137,6 @@ export class CoverType {
    * @returns {object}
    */
   toJSON() { return this.config.toJSON(); }
-
-  /**
-   * Save this cover type data to a JSON file.
-   */
-  saveToJSON() {
-    const data = this.toJSON();
-    data.flags.exportSource = {
-      world: game.world.id,
-      system: game.system.id,
-      coreVersion: game.version,
-      systemVersion: game.system.version,
-      [`${MODULE_ID}Version`]: game.modules.get(MODULE_ID).version
-    };
-    const filename = `${MODULE_ID}_${this.name}_CoverEffect`;
-    saveDataToFile(JSON.stringify(data, null, 2), "text/json", `${filename}.json`);
-  }
 
   /**
    * Import data from JSON and overwrite.
@@ -240,6 +226,65 @@ export class CoverType {
     const promises = [];
     for ( const coverType of this.coverTypesMap ) promises.push(ct.saveToSettings());
     return Promises.allSettled(promises);
+  }
+
+  /**
+   * Save all cover types to a json file.
+   */
+  static saveToJSON() {
+    const data = { coverTypes: [] };
+    this.coverTypesMap.forEach(c => data.coverTypes.push(c.toJSON));
+    data.flags.exportSource = {
+      world: game.world.id,
+      system: game.system.id,
+      coreVersion: game.version,
+      systemVersion: game.system.version,
+      [`${MODULE_ID}Version`]: game.modules.get(MODULE_ID).version
+    };
+    const filename = `${MODULE_ID}_${this.name}_CoverTypes`;
+    saveDataToFile(JSON.stringify(data, null, 2), "text/json", `${filename}.json`);
+  }
+
+  /**
+   * Import all cover types from a json file.
+   * @param {JSON} json   Data to import
+   */
+  static importFromJSON(json) {
+    json = JSON.parse(json);
+    if ( !json.flags?.exportSource?.[`${MODULE_ID}Version`] ) {
+      console.error("JSON file not recognized.");
+      return;
+    }
+    this.coverTypesMap.clear();
+    json.coverTypes.forEach(ct => new CoverType(ct));
+  }
+
+  static async importFromJSONDialog() {
+    new Dialog({
+      title: "Import Cover Types",
+      content: await renderTemplate("templates/apps/import-data.html", {
+        hint1: "You may import cover types from an exported JSON file.",
+        hint2: "This operation will update the cover types and cannot be undone."
+      }),
+      buttons: {
+        import: {
+          icon: '<i class="fas fa-file-import"></i>',
+          label: "Import",
+          callback: html => {
+            const form = html.find("form")[0];
+            if ( !form.data.files.length ) return ui.notifications.error("You did not upload a data file!");
+            readTextFromFile(form.data.files[0]).then(json => this.importFromJSON(json));
+          }
+        },
+        no: {
+          icon: '<i class="fas fa-times"></i>',
+          label: "Cancel"
+        }
+      },
+      default: "import"
+    }, {
+      width: 400
+    }).render(true);
   }
 
   /**

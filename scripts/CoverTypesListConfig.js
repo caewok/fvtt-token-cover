@@ -19,7 +19,7 @@ import { log } from "./util.js";
  */
 export class CoverTypesListConfig extends FormApplication  {
   /** @type {CoverType[]} */
-  allCoverTypes;
+  allCoverTypes = [];
 
   /**
    * Set the default size and other basic options for the form.
@@ -41,12 +41,14 @@ export class CoverTypesListConfig extends FormApplication  {
    */
   getData(options={}) {
     const data = super.getData(options);
-    this.allCoverTypes = COVER.TYPES
-      .map(ct => ct.config
-        .map(({ id, icon, tint, name, percentThreshold, canOverlap, priority, includeWalls, includeTokens }) =>
-             { id, icon, tint, name, percentThreshold, canOverlap, priority, includeWalls, includeTokens }));
-    this.#sortCoverTypes();
+    this.allCoverTypes.length = 0;
+    COVER.TYPES.forEach(ct => {
+      const obj = {...ct.config};
+      // obj.tint = obj.tint.css; // Convert tint to #rrbbgg.
+      this.allCoverTypes.push(obj);
+    });
 
+    this.#sortCoverTypes();
     return foundry.utils.mergeObject(data, {
       allCoverTypes: this.allCoverTypes
     });
@@ -57,7 +59,7 @@ export class CoverTypesListConfig extends FormApplication  {
    * Sort the cover types by priority.
    */
   #sortCoverTypes(coverTypes) {
-    this.coverTypes.sort((a, b) => {
+    this.allCoverTypes.sort((a, b) => {
       switch ( ( (a.priority == null) * 2) + (b.priority == null) ) {
         case 0: return a.priority - b.priority;
         case 1: return 1; // b.priority is null
@@ -83,6 +85,9 @@ export class CoverTypesListConfig extends FormApplication  {
    */
   async _updateObject(_event, formData) {
     const expandedFormData = expandObject(formData);
+
+
+
 //     const promises = [];
 //     for ( const coverType of Object.values(expandedFormData.allCoverTypes) ) {
 //       const storedCoverType = Object.values(COVER.TYPES).find(ct => ct.id === coverType.id);
@@ -114,7 +119,6 @@ export class CoverTypesListConfig extends FormApplication  {
     html.find("button.tm-add-coverType").click(this._onAddCoverType.bind(this));
     html.find("button.tm-remove-coverType").click(this._onRemoveCoverType.bind(this));
     html.find("button.tm-import-coverType").click(this._onImportCoverType.bind(this));
-    html.find("button.tm-replace-coverType").click(this._onReplaceAllCoverTypes.bind(this));
     html.find("button.tm-export-coverType").click(this._onExportAllCoverTypes.bind(this));
   }
 
@@ -123,13 +127,10 @@ export class CoverTypesListConfig extends FormApplication  {
    */
   async _onAddCoverType(event) {
     event.preventDefault();
-    log("addCoverType clicked!");
-
-//     const terrain = new Terrain();
-//     await terrain.initialize();
-//     await this._onSubmit(event, { preventClose: true });
-//     this.render();
-//     TerrainEffectsApp.rerender();
+    log("AddCoverType clicked!");
+    await this._onSubmit(event, { preventClose: true });
+    new CoverType();
+    this.render();
   }
 
   /**
@@ -137,7 +138,7 @@ export class CoverTypesListConfig extends FormApplication  {
    */
   async _onRemoveCoverType(event) {
     event.preventDefault();
-    log("removeCoverType clicked!");
+    log("RemoveCoverType clicked!");
     const idx = this._indexForEvent(event);
     const id = this.allCoverTypes[idx]?.id;
     if ( !id ) return;
@@ -148,9 +149,8 @@ export class CoverTypesListConfig extends FormApplication  {
         "<h4>Are You Sure?</h4><p>This will remove the cover type from all scenes.",
       yes: async () => {
         log("CoverTypesListConfig|_onRemoveCoverType yes");
-        // await EffectHelper.deleteEffectById(effectId);
-        // await this._onSubmit(event, { preventClose: true });
-        // TerrainEffectsApp.rerender();
+        COVER.TYPES.delete(id);
+        CoverType.coverTypesUpdated();
         this.render();
       }
     });
@@ -158,23 +158,17 @@ export class CoverTypesListConfig extends FormApplication  {
 
   async _onImportCoverType(event) {
     event.stopPropagation();
-    log("_onImportTerrains clicked!");
+    log("ImportCoverType clicked!");
     await this._onSubmit(event, { preventClose: true });
-    //await Terrain.importFromJSONDialog();
-  }
-
-  async _onReplaceAllCoverTypes(event) {
-    event.stopPropagation();
-    log("_onReplaceAllTerrains clicked!");
-    await this._onSubmit(event, { preventClose: true });
-    //await Terrain.replaceFromJSONDialog();
+    await CoverType.importFromJSONDialog();
+    this.render();
   }
 
   async _onExportAllCoverTypes(event) {
     event.stopPropagation();
-    log("_onExportAllTerrains clicked!");
+    log("ExportAllCoverTypes clicked!");
     await this._onSubmit(event, { preventClose: true });
-    //Terrain.saveToJSON();
+    CoverType.saveToJSON();
   }
 
   /**
