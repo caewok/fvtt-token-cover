@@ -12,7 +12,7 @@ import { registerGeometry } from "./geometry/registration.js";
 import { registerElevationConfig } from "./geometry/elevation_configs.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
-import { COVER } from "./CoverType.js";
+import { COVER, CoverType } from "./CoverType.js";
 
 // Cover effect token control
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
@@ -100,6 +100,7 @@ Hooks.once("init", function() {
     CoverCalculator,
     CoverDialog,
     COVER,
+    CoverType,
     setCoverIgnoreHandler,
     Settings,
 
@@ -122,7 +123,7 @@ Hooks.once("setup", function() {
   registerElevationConfig("TileConfig", "Alt. Token Cover");
 
   // Construct default types after init, so that world scripts have a chance to modify.
-  COVER.CoverType._constructDefaultCoverTypes();
+  CoverType._constructDefaultCoverTypes();
 });
 
 Hooks.once("ready", function() {
@@ -133,7 +134,7 @@ Hooks.once("ready", function() {
   transitionTokenMaximumCoverFlags();
 
   // Update cover types with settings data.
-  COVER.CoverType._updateCoverTypesFromSettings();
+  CoverType._updateCoverTypesFromSettings();
 });
 
 // Add pathfinding button to token controls.

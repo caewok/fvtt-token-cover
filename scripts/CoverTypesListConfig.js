@@ -11,7 +11,7 @@ ui
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { COVER } from "./CoverType.js";
+import { COVER, CoverType } from "./CoverType.js";
 import { log } from "./util.js";
 
 /**
@@ -42,15 +42,10 @@ export class CoverTypesListConfig extends FormApplication  {
   getData(options={}) {
     const data = super.getData(options);
     this.allCoverTypes.length = 0;
-    COVER.TYPES.forEach(ct => {
-      const obj = {...ct.config};
-      // obj.tint = obj.tint.css; // Convert tint to #rrbbgg.
-      this.allCoverTypes.push(obj);
-    });
-
+    COVER.TYPES.forEach(ct => this.allCoverTypes.push(ct));
     this.#sortCoverTypes();
     return foundry.utils.mergeObject(data, {
-      allCoverTypes: this.allCoverTypes
+      allCoverTypes: this.allCoverTypes.map(ct => { return { ...ct.config }; })
     });
   }
 
@@ -60,11 +55,11 @@ export class CoverTypesListConfig extends FormApplication  {
    */
   #sortCoverTypes(coverTypes) {
     this.allCoverTypes.sort((a, b) => {
-      switch ( ( (a.priority == null) * 2) + (b.priority == null) ) {
+      switch ( ( (a.config.priority == null) * 2) + (b.config.priority == null) ) {
         case 0: return a.priority - b.priority;
         case 1: return 1; // b.priority is null
         case 2: return -1; // a.priority is null
-        case 3: return a.name.toLowerCase() < b.name.toLowerCase ? -1 : 1;
+        case 3: return a.config.name.toLowerCase() < b.config.name.toLowerCase ? -1 : 1;
       }
     });
   }
@@ -85,21 +80,12 @@ export class CoverTypesListConfig extends FormApplication  {
    */
   async _updateObject(_event, formData) {
     const expandedFormData = expandObject(formData);
-
-
-
-//     const promises = [];
-//     for ( const coverType of Object.values(expandedFormData.allCoverTypes) ) {
-//       const storedCoverType = Object.values(COVER.TYPES).find(ct => ct.id === coverType.id);
-//       if ( !storedCoverType ) continue;
-//
-//       const terrain = this.allTerrains[Number(idx)];
-//       if ( !terrain ) continue;
-//       for ( const [key, value] of Object.entries(terrainData) ) {
-//         promises.push(terrain[`set${capitalizeFirstLetter(key)}`](value));
-//       }
-//     }
-//     await Promise.allSettled(promises);
+    for ( const [idx, coverTypeData] of Object.entries(expandedFormData.allCoverTypes) ) {
+      const storedCoverType = this.allCoverTypes[idx];
+      if ( !storedCoverType ) continue;
+      storedCoverType.update(coverTypeData);
+    }
+    await CoverType._saveCoverTypesToSettings();
   }
 
   /**

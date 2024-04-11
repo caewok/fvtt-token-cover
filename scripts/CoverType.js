@@ -7,6 +7,7 @@ import { coverTypes as pf2eCoverTypes } from "./coverDefaults/pf2e.js";
 import { coverTypes as sfrpgCoverTypes } from "./coverDefaults/sfrpg.js";
 import { coverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
 import { Settings } from "./settings.js";
+import { MODULE_ID } from "./const.js";
 
 /**
  * @typedef {object} CoverTypeData
@@ -70,7 +71,7 @@ export class CoverType {
    * optionally triggering active effects.
    * @param {CoverTypeData} [coverTypeData]
    */
-  constructor(coverTypeData) {
+  constructor(coverTypeData = {}) {
     // Unique cover type per id.
     const coverTypes = this.constructor.coverTypesMap;
     if ( coverTypes.has(coverTypeData.id) ) return coverTypes.get(coverTypeData.id);
@@ -136,16 +137,38 @@ export class CoverType {
    * Export this cover type data to JSON.
    * @returns {object}
    */
-  toJSON() { return this.config.toJSON(); }
+  toJSON() { return this.config; }
+
+  /**
+   * Update the cover type with a new full or partial config object.
+   * @param {object} [config={}]
+   */
+  update(config = {}) {
+    if ( config.id ) this.constructor.coverTypesMap.delete(this.config.id);
+    for ( const [key, value] of Object.entries(config) ) this.config[key] = value;
+    if ( config.id ) this.constructor.coverTypesMap.set(this.config.id, this);
+
+    // Fix tint to always be a Color class.
+    const tint = this.config.tint;
+    if ( !(tint instanceof Color) ) this.config.tint = typeof tint === "string"
+      ? Color.fromString(tint) : new Color(tint);
+    this.config.tint = new Color(this.config.tint);
+
+    // Mark that cover types may have been updated.
+    this.constructor.coverTypesUpdated();
+  }
 
   /**
    * Import data from JSON and overwrite.
    */
   fromJSON(json) {
-    json = JSON.parse(json);
-    delete json.id;
-    for ( const [key, value] of Object.entries(json) ) this.config[key] = value;
-    this.constructor.coverTypesUpdated();
+    try {
+      json = JSON.parse(json);
+    } catch ( error ) {
+      console.error(`${MODULE_ID}|CoverType#fromJSON`, error);
+      return;
+    }
+    this.update(json);
   }
 
   /**
@@ -163,7 +186,7 @@ export class CoverType {
   async saveToSettings() {
     const allStatusEffects = Settings.get(Settings.KEYS.COVER.TYPES);
     allStatusEffects[game.system.id] ??= {};
-    allStatusEffects[game.system.id][this.id] = this.toJSON();
+    allStatusEffects[game.system.id][this.config.id] = this.toJSON();
     await Settings.set(Settings.KEYS.COVER.TYPES, allStatusEffects);
   }
 
@@ -224,16 +247,16 @@ export class CoverType {
    */
   static async _saveCoverTypesToSettings() {
     const promises = [];
-    for ( const coverType of this.coverTypesMap ) promises.push(ct.saveToSettings());
-    return Promises.allSettled(promises);
+    this.coverTypesMap.forEach(ct => promises.push(ct.saveToSettings()));
+    return Promise.allSettled(promises);
   }
 
   /**
    * Save all cover types to a json file.
    */
   static saveToJSON() {
-    const data = { coverTypes: [] };
-    this.coverTypesMap.forEach(c => data.coverTypes.push(c.toJSON));
+    const data = { coverTypes: [], flags: {} };
+    this.coverTypesMap.forEach(c => data.coverTypes.push(c.toJSON()));
     data.flags.exportSource = {
       world: game.world.id,
       system: game.system.id,
@@ -334,7 +357,6 @@ export class CoverType {
   }
 }
 
-COVER.CoverType = CoverType;
 COVER.TYPES = CoverType.coverTypesMap;
 
 // ----- NOTE: Helper functions ----- //
