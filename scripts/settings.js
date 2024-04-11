@@ -98,6 +98,8 @@ export const SETTINGS = {
   COVER: {
     EFFECTS: "cover-effects",
 
+    TYPES: "cover-types",
+
     MENU: {
       LOW: "menu-cover-effects-low",
       MEDIUM: "menu-cover-effects-medium",
@@ -703,6 +705,12 @@ export class Settings extends ModuleSettingsAbstract {
       scope: "world",
       config: false,
       default: STATUS_EFFECTS
+    });
+
+    register(KEYS.COVER.TYPES, {
+      scope: "world",
+      config: false,
+      default: {}
     });
 
     // ----- NOTE: Triggers based on starting settings ---- //

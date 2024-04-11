@@ -2,28 +2,9 @@
 */
 "use strict";
 import { MODULE_ID, ICONS } from "../const.js";
-import { coverTypesForToken as genericCoverTypesForToken } from "../cover_types.js";
 
 const SYSTEM_ID = "dnd5e"
 
-/**
- * Determine what cover types apply to a target token given an attacking token.
- * @param {Token} attackingToken
- * @param {Token} targetToken
- * @returns {coverType[]}
- */
-export function coverTypesForToken(attackingToken, targetToken, { actionType }) {
-  const type = genericCoverTypesForToken(attackingToken, targetToken);
-  if ( !attackingToken ) return type;
-
-  // Test for ignored cover.
-
-  // Need to handle action type.
-
-
-
-  return type;
-}
 
 // https://5thsrd.org/combat/cover/
 // If a target is behind multiple sources of cover, only the most protective degree of cover applies;

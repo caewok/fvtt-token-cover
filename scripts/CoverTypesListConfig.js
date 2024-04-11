@@ -12,6 +12,7 @@ ui
 
 import { MODULE_ID } from "./const.js";
 import { COVER } from "./cover_types.js";
+import { log } from "./util.js";
 
 /**
  * Submenu for viewing and editing cover types defined for the system.
@@ -40,19 +41,23 @@ export class CoverTypesListConfig extends FormApplication  {
    */
   getData(options={}) {
     const data = super.getData(options);
-    const allCoverTypes = this.allCoverTypes = [...Object.values(COVER.TYPES)];
-    this._sortCoverTypes(allCoverTypes);
+    this.allCoverTypes = COVER.TYPES
+      .map(ct => ct.config
+        .map(({ id, icon, tint, name, percentThreshold, canOverlap, priority, includeWalls, includeTokens }) =>
+             { id, icon, tint, name, percentThreshold, canOverlap, priority, includeWalls, includeTokens }));
+    this.#sortCoverTypes();
 
     return foundry.utils.mergeObject(data, {
-      allCoverTypes: COVER.TYPES
+      allCoverTypes: this.allCoverTypes
     });
   }
+
 
   /**
    * Sort the cover types by priority.
    */
-  _sortCoverTypes(coverTypes) {
-    coverTypes.sort((a, b) => {
+  #sortCoverTypes(coverTypes) {
+    this.coverTypes.sort((a, b) => {
       switch ( ( (a.priority == null) * 2) + (b.priority == null) ) {
         case 0: return a.priority - b.priority;
         case 1: return 1; // b.priority is null

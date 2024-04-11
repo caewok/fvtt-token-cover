@@ -3,7 +3,6 @@
 "use strict";
 
 import { MODULE_ID, ICONS } from "../const.js";
-import { coverTypesForToken as genericCoverTypesForToken } from "../cover_types.js";
 
 const SYSTEM_ID = "pf2e";
 
@@ -13,18 +12,18 @@ const SYSTEM_ID = "pf2e";
  * @param {Token} targetToken
  * @returns {coverType[]}
  */
-export function coverTypesForToken(attackingToken, targetToken) {
-  const types = genericCoverTypesForToken(percentCover);
-
-  // If interveningToken is 2+ sizes larger than coverToken, keep standard cover.
-  const lesserIdx = types.indexOf(coverTypes.lesser);
-  if ( ~lesserIdx ) {
-    const tokens = calc.blockingTokens; // TODO: method to return all blocking tokens for calc.
-    // if ( tokens.some(t => t.size > targetToken.size + 1)) types[lesserIdx] = coverTypes.standard;
-  }
-
-  return types;
-}
+// export function coverTypesForToken(attackingToken, targetToken) {
+//   const types = genericCoverTypesForToken(percentCover);
+//
+//   // If interveningToken is 2+ sizes larger than coverToken, keep standard cover.
+//   const lesserIdx = types.indexOf(coverTypes.lesser);
+//   if ( ~lesserIdx ) {
+//     const tokens = calc.blockingTokens; // TODO: method to return all blocking tokens for calc.
+//     // if ( tokens.some(t => t.size > targetToken.size + 1)) types[lesserIdx] = coverTypes.standard;
+//   }
+//
+//   return types;
+// }
 
 // Cover is typically measured as center --> center.
 // Which means only standard cover would apply.

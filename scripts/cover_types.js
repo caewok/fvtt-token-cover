@@ -2,13 +2,14 @@
 */
 "use strict";
 
-import { coverTypes as dnd5eCoverTypes, coverTypesForToken as dnd5eCoverTypesForToken } from "./coverDefaults/dnd5e.js";
-import { coverTypes as pf2eCoverTypes, coverTypesForToken as pf2eCoverTypesForToken } from "./coverDefaults/pf2e.js";
-import { coverTypes as sfrpgCoverTypes, coverTypesForToken as sfrpgCoverTypesForToken } from "./coverDefaults/sfrpg.js";
+import { coverTypes as dnd5eCoverTypes } from "./coverDefaults/dnd5e.js";
+import { coverTypes as pf2eCoverTypes } from "./coverDefaults/pf2e.js";
+import { coverTypes as sfrpgCoverTypes } from "./coverDefaults/sfrpg.js";
 import { coverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
+import { Settings } from "./settings.js";
 
 /**
- * @typedef {object} CoverType
+ * @typedef {object} CoverTypeData
  *
  * Object that stores properties for a given cover type.
  * Custom properties are permitted.
@@ -74,108 +75,255 @@ COVER.NONE = 0;
 COVER.EXCLUDE = -1;
 
 /**
- * Determine what cover types apply to a target token given an attacking token.
- * @param {Token} attackingToken
- * @param {Token} targetToken
- * @returns {coverType[]}
+ * Class to manage the cover types.
+ * Each instantiation takes CoverTypeData and constructs the cover type.
+ * Loading and saving controlled here.
  */
-export function coverTypesForToken(attackingToken, targetToken) {
-  const calc = attackingToken.coverCalculator;
-  calc.target = targetToken;
-  const percentCoverFn = coverTypePercentTestFn(calc);
-  const types = [];
+export class CoverType {
+  /** @type {CoverTypeData} */
+  config = {};
 
-  // Test cover types in priority order.
-  for ( const type of COVER.ORDER ) {
-    if ( percentCoverFn(type) <= type.percentThreshold ) {
-      types.push(type);
-      break;
+  /**
+   * A cover type, representing rules for displaying the given icon on the token and
+   * optionally triggering active effects.
+   * @param {CoverTypeData} [coverTypeData]
+   */
+  constructor(coverTypeData) {
+    // Unique cover type per id.
+    const coverTypes = this.constructor.coverTypesMap;
+    if ( coverTypes.has(coverTypeData.id) ) return coverTypes.get(coverTypeData.id);
+
+    // Create and cache the new type
+    this._configure(coverTypeData);
+    coverTypes.set(this.config.id, this);
+  }
+
+  /**
+   * Delete the setting associated with this cover type.
+   * Typically used if destroying the cover type or resetting to defaults.
+   */
+  async deleteSetting() {
+    const allStatusEffects = Settings.get(Settings.KEYS.COVER.TYPES);
+    allStatusEffects[game.system.id] ??= {};
+    delete allStatusEffects[game.system.id][this.config.id];
+    return Settings.set(Settings.KEYS.COVER.TYPES, allStatusEffects);
+  }
+
+  /**
+   * Configure the object using the default provided data.
+   * @param {CoverTypeData} [CoverTypeData]
+   */
+  _configure(coverTypeData = {}) {
+    this.config = coverTypeData;
+
+    // Set reasonable defaults.
+    this.config.id ??= `${MODULE_ID}.${game.system.id}.${foundry.utils.randomID()}`;
+    this.config.name ??= "New Cover Type";
+    this.config.percentThreshold ??= 1;
+    this.config.system = game.system.id;
+    this.config.includeWalls ??= true;    // Walls almost always provide cover.
+    this.config.includeTokens ??= false;  // Tokens less likely to provide cover.
+
+    // priority, tint, icon can all be null or undefined.
+  }
+
+  /**
+   * Test if this cover type applies to a target token given an attacking token.
+   * Use the static coverTypesForToken for more efficient tests for all cover types at once.
+   */
+  coverTypeApplies(attackingToken, targetToken) {
+    return this.percentCover(attackingToken, targetToken) >= this.config.percentThreshold;
+  }
+
+  /**
+   * Percent cover given this cover type's settings for a pair of tokens.
+   * @param {Token} attackingToken
+   * @param {Token} targetToken
+   * @returns {number}
+   */
+  percentCover(attackingToken, targetToken) {
+    const { includeWalls, includeTokens } = this.config;
+    const calc = attackingToken.coverCalculator;
+    calc.target = targetToken;
+    return calc.percentCover({ includeWalls, includeTokens });
+  }
+
+  /**
+   * Export this cover type data to JSON.
+   * @returns {object}
+   */
+  toJSON() { return this.config.toJSON(); }
+
+  /**
+   * Save this cover type data to a JSON file.
+   */
+  saveToJSON() {
+    const data = this.toJSON();
+    data.flags.exportSource = {
+      world: game.world.id,
+      system: game.system.id,
+      coreVersion: game.version,
+      systemVersion: game.system.version,
+      [`${MODULE_ID}Version`]: game.modules.get(MODULE_ID).version
+    };
+    const filename = `${MODULE_ID}_${this.name}_CoverEffect`;
+    saveDataToFile(JSON.stringify(data, null, 2), "text/json", `${filename}.json`);
+  }
+
+  /**
+   * Import data from JSON and overwrite.
+   */
+  fromJSON(json) {
+    json = JSON.parse(json);
+    delete json.id;
+    for ( const [key, value] of Object.entries(json) ) this.config[key] = value;
+    this.constructor.coverTypesUpdated();
+  }
+
+  /**
+   * Sync from the stored setting, if any.
+   */
+  fromSettings() {
+    const allStatusEffects = Settings.get(Settings.KEYS.COVER.TYPES);
+    const json = allStatusEffects[game.system.id]?.[this.id];
+    if ( json ) this.fromJSON(json);
+  }
+
+  /**
+   * Save to the stored setting.
+   */
+  async saveToSettings() {
+    const allStatusEffects = Settings.get(Settings.KEYS.COVER.TYPES);
+    allStatusEffects[game.system.id] ??= {};
+    allStatusEffects[game.system.id][this.id] = this.toJSON();
+    await Settings.set(Settings.KEYS.COVER.TYPES, allStatusEffects);
+  }
+
+  // ----- NOTE: Static: Track Cover types ----- //
+  /** @type {Map<string,CoverType>} */
+  static coverTypesMap = new Map();
+
+  /** @type {CoverType[]} */
+  static #coverTypesOrdered = [];
+
+  static get coverTypesOrdered() {
+    if ( this.#coverTypesModified ) this.#updateCoverTypesOrder();
+    return this.#coverTypesOrdered;
+  }
+
+  /** @type {CoverType[]} */
+  static #coverTypesUnordered = [];
+
+  static get coverTypesUnordered() {
+    if ( this.#coverTypesModified ) this.#updateCoverTypesOrder();
+    return this.#coverTypesUnordered;
+  }
+
+  /**
+   * Track if cover types are updated and re-order accordingly.
+   * @type {boolean}
+   */
+  static #coverTypesModified = false;
+
+  static coverTypesUpdated() { this.#coverTypesModified ||= true;  }
+
+  static #updateCoverTypesOrder() {
+    this.#coverTypesOrdered.length = 0;
+    this.#coverTypesUnordered.length = 0;
+    for ( const coverType of this.coverTypesMap ) {
+      if ( coverType.priority == null ) this.#coverTypesUnordered.push(coverType);
+      else this.#coverTypesOrdered.push(coverType);
+    }
+    this.#coverTypesOrdered.sort((a, b) => b.priority - a.priority);
+    this.#coverTypesModified = false;
+  }
+
+  // ----- NOTE: Static other properties ----- //
+
+
+  // ----- NOTE: Static methods ----- //
+
+  /**
+   * Update the cover types from settings.
+   */
+  static _updateCoverTypesFromSettings() {
+    this.coverTypesMap.forEach(ct => ct.fromSettings());
+    this.#coverTypesModified ||= true;
+  }
+
+  /**
+   * Save cover types to settings.
+   */
+  static async _saveCoverTypesToSettings() {
+    const promises = [];
+    for ( const coverType of this.coverTypesMap ) promises.push(ct.saveToSettings());
+    return Promises.allSettled(promises);
+  }
+
+  /**
+   * Create default effects and store in the map. Resets anything already in the map.
+   * Typically used on game load.
+   */
+  static _constructDefaultCoverTypes() {
+    const data = this._defaultCoverTypeData();
+    this.coverTypesMap.clear();
+    Object.values(data).forEach(d => new CoverType(d));
+    this.#coverTypesModified ||= true;
+  }
+
+  static _defaultCoverTypeData() {
+    switch ( game.system.id ) {
+      case "dnd5e": return dnd5eCoverTypes; break;
+      case "pf2e": return pf2eCoverTypesForToken; break;
+      case "sfrpg": return sfrpgCoverTypesForToken; break;
+      default: return genericCoverTypes;
     }
   }
 
-  // Test cover types without a set priority.
-  for ( const type of COVER.OTHER ) {
-    // If there is already a type, cannot use a non-overlapping type.
-    if ( !type.canOverlap && types.length ) continue;
-    if ( percentCoverFn(type) <= type.percentThreshold ) types.push(type);
-  }
-  return types;
+  /**
+   * Determine what cover types apply to a target token given an attacking token.
+   * @param {Token} attackingToken
+   * @param {Token} targetToken
+   * @returns {coverType[]}
+   */
+  static coverTypesForToken(attackingToken, targetToken) {
+    const calc = attackingToken.coverCalculator;
+    const coverTypeAppliesTest = coverTypeAppliesTestFn(attackingToken, targetToken);
+    calc.target = targetToken;
+    const types = [];
 
-  // TODO: Handle ignore cover flags.
+    // Test cover types in priority order.
+    for ( const type of this.coverTypesOrdered ) {
+      if ( coverTypeAppliesTest(type) ) types.push(type);
+    }
+
+    // Test cover types without a set priority.
+    for ( const type of this.coverTypesUnordered ) {
+      // If there is already a type, cannot use a non-overlapping type.
+      if ( !type.config.canOverlap && types.length ) continue;
+      if ( coverTypeAppliesTest(type) ) types.push(type);
+    }
+    return types;
+  }
 }
 
+COVER.CoverType = CoverType;
+COVER.TYPES = CoverType.coverTypesMap;
+
+// ----- NOTE: Helper functions ----- //
 /**
  * Helper that tests for percent cover, caching it for the combinations of
  * including walls and tokens.
  * @param {CoverCalculator} calc    Cover calculator to use; must have target set
  * @returns {function}
- *   - @param {CoverType} coverType     Cover type to test
- *   - @returns {number} percentCover   Percent cover for this type
+ *   - @param {CoverType} coverType       Cover type to test
+ *   - @returns {boolean} Whether this cover type applies.
  */
-function coverTypePercentTestFn(calc) {
+function coverTypeAppliesTestFn(attackingToken, targetToken) {
   const coverCategories = Array(4);
-
   return type => {
-    let percentCover;
-    const { includeWalls, includeTokens } = type;
+    const { includeWalls, includeTokens } = type.config;
     const option = (includeWalls * 2) + includeTokens;
-    switch ( option ) {
-      case 0: percentCover = coverCategories[option] ??= calc.percentCover({ includeWalls: false, includeTokens: false }); break;
-      case 1: percentCover = coverCategories[option] ??= calc.percentCover({ includeWalls: false, includeTokens: true }); break;
-      case 2: percentCover = coverCategories[option] ??= calc.percentCover({ includeWalls: true, includeTokens: false }); break;
-      case 3: percentCover = coverCategories[option] ??= calc.percentCover({ includeWalls: true, includeTokens: true }); break;
-    }
-    return percentCover;
+    return coverCategories[option] ??= type.coverTypeApplies(attackingToken, targetToken);
   }
 }
-
-
-export function defaultCoverTest(percentCover) {
-  for ( const type of COVER.ORDER ) {
-    if ( percentCover <= type.percentThreshold ) return type;
-  }
-  return COVER.NONE;
-}
-
-export function updateCoverOrder() {
-  COVER.OTHER = [];
-  COVER.ORDER = [];
-  for ( const type of Object.values(COVER.TYPES) ) {
-    if ( type.priority == null ) COVER.OTHER.push(type);
-    else COVER.ORDER.push(type);
-  }
-  COVER.ORDER.sort((a, b) => b.priority - a.priority);
-}
-
-export function setDefaultCoverData() {
-  switch ( game.system.id ) {
-    case "dnd5e": {
-      COVER.TYPES ??= dnd5eCoverTypes;
-      COVER.coverTypesForToken ??= dnd5eCoverTypesForToken;
-      break;
-    }
-
-    case "pf2e": {
-      COVER.TYPES ??= pf2eCoverTypes;
-      COVER.coverTypesForToken ??= pf2eCoverTypesForToken;
-      break;
-    }
-
-    case "sfrpg": {
-      COVER.TYPES ??= sfrpgCoverTypes;
-      COVER.coverTypesForToken ??= sfrpgCoverTypesForToken;
-      break;
-    }
-
-    default: {
-      COVER.TYPES ??= genericCoverTypes;
-      COVER.coverTypesForToken ??= coverTypesForToken;
-      break;
-    }
-  }
-
-  updateCoverOrder();
-}
-
-
-

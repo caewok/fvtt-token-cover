@@ -12,7 +12,7 @@ import { registerGeometry } from "./geometry/registration.js";
 import { registerElevationConfig } from "./geometry/elevation_configs.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
-import { setDefaultCoverData, COVER } from "./cover_types.js";
+import { COVER } from "./cover_types.js";
 
 // Cover effect token control
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
@@ -45,7 +45,6 @@ import "./cover_application.js";
 
 Hooks.once("init", function() {
   registerGeometry();
-  setDefaultCoverData();
   addDND5eCoverFeatFlags();
 
   // Set CONFIGS used by this module.
@@ -119,6 +118,8 @@ Hooks.once("setup", function() {
   initializePatching();
   registerElevationConfig("TileConfig", "Alt. Token Cover");
 
+  // Construct default types after init, so that world scripts have a chance to modify.
+  COVER.CoverType._constructDefaultCoverTypes();
 });
 
 Hooks.once("ready", function() {
@@ -127,6 +128,9 @@ Hooks.once("ready", function() {
 
   // Transitions to newer data.
   transitionTokenMaximumCoverFlags();
+
+  // Update cover types with settings data.
+  COVER.CoverType._updateCoverTypesFromSettings();
 });
 
 // Add pathfinding button to token controls.
