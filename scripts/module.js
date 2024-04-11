@@ -16,6 +16,7 @@ import { COVER } from "./CoverType.js";
 
 // Cover effect token control
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
+import { ExtendActiveEffect } from "./CoverEffect.js";
 
 // For API
 import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
@@ -72,7 +73,9 @@ Hooks.once("init", function() {
      * Should be between (0, 1).
      * @type {number}
      */
-    renderTextureResolution: 1
+    renderTextureResolution: 1,
+
+    CoverEffect: ExtendActiveEffect(),
   };
 
   game.modules.get(MODULE_ID).api = {

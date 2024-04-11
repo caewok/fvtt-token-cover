@@ -38,6 +38,12 @@ export const FLAGS = {
   COVER_TYPE: "coverType",
 
   /**
+   * Store an identifier that links an active effect to its stored data.
+   * @type {string}
+   */
+  COVER_EFFECT_ID: "id",
+
+  /**
    * For updating flag data to new versions of the module.
    * @type {string} Version of the module that saved this data.
    */
