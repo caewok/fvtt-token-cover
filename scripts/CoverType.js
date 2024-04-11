@@ -31,42 +31,24 @@ import { Settings } from "./settings.js";
 
 /* Cover handling
 
-Default CoverTypes are defined for given systems but can be modified by the GM by changing
-variables in `CONFIG.tokencover`.
+A CoverType represents a defined cover that may apply to tokens. It has an icon that can be
+displayed on the token locally. So if a player selects a token, that player only sees a cover
+icon for all other tokens that the player can view. (Other tokens on the canvas have the
+defined cover but the icon is not viewable.)
 
-Cover types are stored in an array in `CONFIG.tokencover.COVER.TYPES.` By default, these are tested
-in order from left to right in the array. If a token's percent cover is less than or equal to the percentThreshold
-for that cover type, it is considered to have that cover type. This can be modified by changing
-`COVER.typeFromPercentFn`.
+A CoverType with priority is evaluated from highest to lowest priority. So if "high cover"
+requires that the covered token is ≥ 75% covered from an attacking token, and "medium cover"
+requires ≥ 50%, then if "high cover" has higher priority, it will be applied for cover of 60%.
+If "medium cover" has priority, then it will be applied for cover of 60%.
 
-There are also two preset values:
-`CONFIG.tokencover.COVER.NONE = 0`          No cover applies.
-`CONFIG.tokencover.COVER.EXCLUDE = -1`      The token cannot be attacked, and thus no cover applies.
+If a CoverType has `canOverlap=true`, it can be applied in addition to other cover types. Otherwise,
+the highest priority that meets its threshold will be applied. Cover types without priority are
+evaluated last, in no particular order.
 
-`CONFIG.tokencover.COVER.typeFromPercentFn` can be modified to determine cover given system-specific rules.
-It returns a cover type, or no cover, for a given
-   This function determines cover type given a percent cover between 0 and 1.
-   If coverToken and attackingToken is provided, this function can adjust the cover for system-specific,
-   token-specific rules.
-   - @param {number} percentCover     A percent cover from a given token
-   - @param {Token} [coverToken]      Optional token for which cover should be measured
-   - @param {Token} [attackingToken]  Optional token from which cover should be measured
-   - @returns {CoverType|COVER.NONE}  The cover type for that percentage.
-
-// TODO: This is probably not correct if walls and tokens block. Ideally, this function could
-// be passed blocking objects.
-
-*/
-
-/* TODO:
-- percentCover should take an option to include walls, include tokens.
-- percentCover should take a flag to not clear the blocked objects, for expert use.
-- CoverCalculator should have a method to test if an array of tokens block.
-  - run cover calculator as normal.
-  - if no tokens in blocking objects, return 0
-  - otherwise, remove blocking tokens not in the array and re-run
-  - take a flag to avoid running cover calc as normal first
-- When running CoverCalculator on limited set, it should always reset to the full objects after
+An active effect ("Cover Effect") can be associated with a CoverType. This allows active effects
+to be applied when a token has a certain cover type. Active effects are saved to the
+server database and thus are async and seen by all users. This somewhat limits their usefulness,
+although they can be used in attack/damage workflows.
 */
 
 
