@@ -4,7 +4,7 @@
 "use strict";
 
 import { MODULE_ID, FLAGS } from "./const.js";
-import { COVER } from "./cover_types.js";
+import { COVER } from "./CoverType.js";
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
 
 export const PATCHES = {};

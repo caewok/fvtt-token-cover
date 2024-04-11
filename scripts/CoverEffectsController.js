@@ -10,7 +10,7 @@ SearchFilter
 
 import { Settings } from "./settings.js";
 import { MODULE_ID, FLAGS } from "./const.js";
-import { COVER } from "./cover_types.js";
+import { COVER } from "./CoverType.js";
 import { log } from "./util.js";
 import { coverTypes as dnd5eCoverTypes } from "./coverDefaults/dnd5e.js";
 import { coverTypes as pf2eCoverTypes } from "./coverDefaults/pf2e.js";

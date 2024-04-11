@@ -11,7 +11,7 @@ ui
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { COVER } from "./cover_types.js";
+import { COVER } from "./CoverType.js";
 import { log } from "./util.js";
 
 /**

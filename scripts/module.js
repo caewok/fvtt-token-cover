@@ -12,7 +12,7 @@ import { registerGeometry } from "./geometry/registration.js";
 import { registerElevationConfig } from "./geometry/elevation_configs.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
-import { COVER } from "./cover_types.js";
+import { COVER } from "./CoverType.js";
 
 // Cover effect token control
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
