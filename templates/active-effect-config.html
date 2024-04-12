@@ -6,14 +6,9 @@
     <div class="form-group">
       <label for="tokencover.coverType">{{ localize "tokencover.active-effect-config.coverType.name" }}</label>
       <div class="form-fields">
-        <ul>
-          {{#each tokencover.coverTypes as |coverType|}}
-          <li>
-            <label for="{{coverType.id}}">{{localize coverType.name}}</label>
-            <input type="checkbox" id="{{coverType.id}}" name="{{coverType.id}}" value="{{coverType.name}}" {{checked coverType.checked}}/>
-          </li>
-          {{/each}}
-        </ul>
+        <select multiple id="{{coverType.id}}" name="{{coverType.id}}">
+          {{selectOptions tokencover.coverTypes selected=tokencover.selected nameAttr="id" labelAttr="name" sort="true" }}
+        </select>
       </div>
       <p class="hint">{{ localize "tokencover.active-effect-config.coverType.hint" }}</p>
     </div>

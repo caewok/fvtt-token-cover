@@ -32,13 +32,14 @@ async function renderActiveEffectConfig(app, html, data) {
   // Need an array of all status effect names and ids.
   // Then determine from the ae flag which are checked.
   const coverTypes = [];
+  const selected = [];
   const currCoverIds = new Set(app.object.getFlag(MODULE_ID, FLAGS.COVER_TYPES) ?? []);
   CoverType.coverObjectsMap.forEach(obj => {
      const checked = currCoverIds.has(obj.id);
      const ct = { id: obj.id, name: obj.config.name, checked };
+     if ( checked ) selected.push(obj.id);
      coverTypes.push(ct);
   });
-  coverTypes.sort((a, b) => game.i18n.localize(a.name) > game.i18n.localize(b.name));
 
 //   let coverTypes = Object.values(COVER.TYPES).map(ct => {
 //     return { key: ct.id, label: ct.name }
@@ -46,7 +47,7 @@ async function renderActiveEffectConfig(app, html, data) {
 //   coverTypes.unshift({ key: "none", label: "None" });
 
   const renderData = {};
-  renderData[MODULE_ID] = { coverTypes };
+  renderData[MODULE_ID] = { coverTypes, selected };
   foundry.utils.mergeObject(data, renderData, { inplace: true });
 
   // Insert the new configuration fields into the active effect config.
