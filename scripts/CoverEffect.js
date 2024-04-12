@@ -2,11 +2,11 @@
 */
 "use strict";
 
-import { MODULE_ID, FLAGS } from "./const.js";
+import { MODULE_ID, FLAGS, COVER } from "./const.js";
 import { CoverType } from "./CoverType.js";
 import { Settings } from "./settings.js";
 import { AbstractCoverObject } from "./AbstractCoverObject.js";
-
+import { CoverEffectConfig } from "./CoverEffectConfig.js";
 import { coverEffects as dnd5eCoverEffects, coverEffects_midiqol } from "./coverDefaults/dnd5e.js";
 import { coverEffects as genericCoverEffects } from "./coverDefaults/generic.js";
 
@@ -27,12 +27,13 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {ActiveEffectData} [coverEffectData={}]
    */
   _configure(coverEffectData = {}) {
-    super._configure(coverTypeData);
+    super._configure(coverEffectData);
 
     // Ensure the necessary flags are present.
     this.config.flags ??= {};
     this.config.flags[MODULE_ID] ??= {};
-    this.config.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= `${MODULE_ID}.${game.system.id}.${foundry.utils.randomID()}`;
+    this.config.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= coverEffectData.id
+      ?? `${MODULE_ID}.${game.system.id}.${foundry.utils.randomID()}`;
     const coverTypes = this.config.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [];
 
     // Move cover types to flags.
@@ -40,6 +41,9 @@ export class CoverEffect extends AbstractCoverObject {
       coverEffectData.coverTypes.forEach(id => coverTypes.push(id));
       delete coverEffectData.coverTypes;
     }
+
+    // Remove id from the main config.
+    delete coverEffectData.id;
 
     // Name is required to instantiate an ActiveEffect.
     this.config.name ??= "New Cover Effect";
@@ -83,7 +87,7 @@ export class CoverEffect extends AbstractCoverObject {
    * Render the AE configuration window.
    */
   async renderConfig() {
-    const app = new CoverEffectConfig({ this.id })
+    const app = new CoverEffectConfig(this)
     app.render(true);
   }
 
@@ -98,7 +102,7 @@ export class CoverEffect extends AbstractCoverObject {
    * Retrieve an id from cover data.
    * @param {object} coverEffectData
    */
-  static idFromData(coverEffectData) { return coverEffectData?.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT_ID]; }
+  static idFromData(coverEffectData) { return coverEffectData?.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT_ID] ?? coverEffectData.id; }
 
 
   /** @type {string} */
@@ -118,12 +122,12 @@ export class CoverEffect extends AbstractCoverObject {
   /**
    * Update the cover types from settings.
    */
-  static _updateCoverTypesFromSettings = AbstractCoverObject._updateCoverTypesFromSettings.bind(this);
+  static _updateFromSettings = AbstractCoverObject._updateFromSettings.bind(this);
 
   /**
    * Save cover types to settings.
    */
-  static _saveCoverTypesToSettings = AbstractCoverObject._saveCoverTypesToSettings.bind(this);
+  static _saveToSettings = AbstractCoverObject._saveToSettings.bind(this);
 
   /**
    * Save all cover types to a json file.
@@ -143,72 +147,14 @@ export class CoverEffect extends AbstractCoverObject {
   static _constructDefaultCoverObjects = AbstractCoverObject._constructDefaultCoverObjects.bind(this);
 
   static _defaultCoverTypeData() {
-    switch ( this.systemId() ) {
+    switch ( this.systemId ) {
       case "dnd5e": return dnd5eCoverEffects; break;
-      const "dnd5e_midiqol": return coverEffects_midiqol; break;
+      case "dnd5e_midiqol": return coverEffects_midiqol; break;
       case "pf2e": return {}; break;
       case "sfrpg": return {}; break;
       default: return genericCoverTypes;
     }
   }
-
 }
 
-
-export function ExtendActiveEffect() {
-
-  /**
-   * Class to manage cover effects.
-   * These are active effects with a few additional properties and methods.
-   * Namely, they can be linked to a specific CoverType.
-   */
-  class CoverEffect extends CONFIG.ActiveEffect.documentClass {
-    // ----- NOTE: Static methods ----- //
-
-    /** @type {string} */
-    static get systemId() {
-      const id = game.system.id;
-      if ( (id === "dnd5e" || id === "sw5e")
-        && game.modules.get("midi-qol")?.active ) id += "_midiqol";
-      return id;
-    }
-
-    // ----- NOTE: Getters and other properties ----- //
-
-    /**
-     * Identifier used to store this active effect in settings.
-     * @type {string}
-     */
-    get coverIdentifier() { return this.getFlag(MODULE_ID, COVER_EFFECT_ID) ?? foundry.utils.randomID(); }
-
-    /**
-     * Retrieve the cover type for this CoverEffect.
-     */
-    get coverType() {
-      const type = this.getFlag(MODULE_ID, FLAGS.COVER_TYPE);
-      return CoverType.coverTypesMap.get(type);
-    }
-
-    // ----- NOTE: Methods ----- //
-
-
-
-    /**
-     * Save to the stored setting.
-     */
-    async saveToSettings() {
-      const allStatusEffects = Settings.get(Settings.KEYS.COVER.EFFECTS);
-      const systemId = this.constructor.systemId;
-      allStatusEffects[systemId] ??= {};
-      allStatusEffects[systemId][this.coverIdentifier] = this.toJSON();
-    }
-
-
-
-
-  }
-
-
-
-  return CoverEffect;
-}
+COVER.EFFECTS = CoverEffect.coverObjectsMap;

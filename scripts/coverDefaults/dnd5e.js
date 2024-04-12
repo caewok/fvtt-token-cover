@@ -95,7 +95,7 @@ coverEffects.threeQuarters = {
   name: "DND5E.CoverThreeQuarters",
   id: `${MODULE_ID}.${SYSTEM_ID}.three_quarters`,
   icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
-  coverTypes: [ coverTypes.three_quarters.id ],
+  coverTypes: [ coverTypes.threeQuarters.id ],
   changes: [
     {
       key: "system.attributes.ac.cover",
@@ -133,8 +133,10 @@ coverEffects.total = {
 
 export const coverEffects_midiqol = duplicate(coverEffects);
 coverEffects_midiqol.total.changes = [
+  {
     key: "flags.midi-qol.grants.attack.fail.all",
     mode: 0,
     value: "1"
+  }
 ];
 

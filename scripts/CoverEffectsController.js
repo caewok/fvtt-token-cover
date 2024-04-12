@@ -9,8 +9,7 @@ SearchFilter
 "use strict";
 
 import { Settings } from "./settings.js";
-import { MODULE_ID, FLAGS } from "./const.js";
-import { COVER } from "./CoverType.js";
+import { MODULE_ID, FLAGS, COVER } from "./const.js";
 import { log } from "./util.js";
 import { coverTypes as dnd5eCoverTypes } from "./coverDefaults/dnd5e.js";
 import { coverTypes as pf2eCoverTypes } from "./coverDefaults/pf2e.js";
@@ -18,6 +17,7 @@ import { coverTypes as sfrpgCoverTypes } from "./coverDefaults/sfrpg.js";
 import { coverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
 import { CoverEffectConfig } from "./CoverEffectConfig.js";
 import { CoverTypesListConfig } from "./CoverTypesListConfig.js";
+import { CoverEffect } from "./CoverEffect.js";
 
 
 // Much of this is from
@@ -35,16 +35,11 @@ export class CoverEffectsController {
    * @returns {Object} the data to pass to the template
    */
   get data() {
-    const effects = importAllCoverEffectData();
+    const effects = [];
+    CoverEffect.coverObjectsMap.forEach(ce => effects.push({ name: ce.config.name, id: ce.id, icon: ce.config.icon }));
     return {
       isGM: game.user.isGM,
-      effects: effects.map(([id, data]) => {
-        return {
-          name: data.name,
-          id,
-          icon: data.icon
-        }
-      })
+      effects
     };
   }
 
@@ -76,12 +71,8 @@ export class CoverEffectsController {
   async onEditCoverEffect(effectItem) {
     log("CoverEffectsController|onEditCoverEffect");
     const data = effectItem.data ? effectItem.data() : effectItem.currentTarget.dataset;
-    const coverEffectId = data.effectId;
-    const app = new CoverEffectConfig({ coverEffectId })
-    app.render(true);
-
-    // const activeEffect = importCoverEffect(effectId);
-    // activeEffect.sheet.render(true);
+    const ce = CoverEffect.coverObjectsMap.get(data.effectId);
+    if ( ce ) return ce.renderConfig();
   }
 
   /**

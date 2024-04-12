@@ -7,7 +7,7 @@ import { coverTypes as pf2eCoverTypes } from "./coverDefaults/pf2e.js";
 import { coverTypes as sfrpgCoverTypes } from "./coverDefaults/sfrpg.js";
 import { coverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
 import { Settings } from "./settings.js";
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, COVER } from "./const.js";
 import { AbstractCoverObject } from "./AbstractCoverObject.js";
 
 /**
@@ -53,10 +53,6 @@ server database and thus are async and seen by all users. This somewhat limits t
 although they can be used in attack/damage workflows.
 */
 
-
-export const COVER = {};
-COVER.NONE = 0;
-COVER.EXCLUDE = -1;
 
 /**
  * Class to manage the cover types.
@@ -179,12 +175,12 @@ export class CoverType extends AbstractCoverObject {
   /**
    * Update the cover types from settings.
    */
-  static _updateCoverTypesFromSettings = AbstractCoverObject._updateCoverTypesFromSettings.bind(this);
+  static _updateFromSettings = AbstractCoverObject._updateFromSettings.bind(this);
 
   /**
    * Save cover types to settings.
    */
-  static _saveCoverTypesToSettings = AbstractCoverObject._saveCoverTypesToSettings.bind(this);
+  static _saveToSettings = AbstractCoverObject._saveToSettings.bind(this);
 
   /**
    * Save all cover types to a json file.
@@ -239,7 +235,6 @@ export class CoverType extends AbstractCoverObject {
   }
 }
 
-CoverType._constructDefaultCoverTypes = CoverType._constructDefaultCoverObjects
 
 COVER.TYPES = CoverType.coverObjectsMap;
 

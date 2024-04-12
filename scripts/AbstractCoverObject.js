@@ -55,7 +55,7 @@ export class AbstractCoverObject {
    */
   update(config = {}) {
     const id = this.constructor.idFromData(config);
-    if ( id && id !== this.id ) { // If ids are the same, can result in infinite loop. See _updateCoverTypesFromSettings.
+    if ( id && id !== this.id ) { // If ids are the same, can result in infinite loop. See _updateFromSettings.
       const coverObjectsMap = this.constructor.coverObjectsMap;
       coverObjectsMap.delete(this.id);
       coverObjectsMap.set(id, this);
@@ -132,14 +132,14 @@ export class AbstractCoverObject {
   /**
    * Update the cover types from settings.
    */
-  static _updateCoverTypesFromSettings() {
+  static _updateFromSettings() {
     this.coverObjectsMap.forEach(ct => ct.fromSettings());
   }
 
   /**
    * Save cover types to settings.
    */
-  static async _saveCoverTypesToSettings() {
+  static async _saveToSettings() {
     const promises = [];
     this.coverObjectsMap.forEach(ct => promises.push(ct.saveToSettings()));
     return Promise.allSettled(promises);

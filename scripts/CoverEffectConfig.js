@@ -7,6 +7,7 @@ ActiveEffect
 
 import { MODULE_ID } from "./const.js";
 import { Settings } from "./settings.js";
+import { CoverType } from "./CoverType.js";
 
 // Adapted from https://github.com/death-save/combat-utility-belt/blob/master/modules/enhanced-conditions/enhanced-effect-config.js
 // @example
@@ -14,24 +15,16 @@ import { Settings } from "./settings.js";
 // effectConfig.render(true)
 
 export class CoverEffectConfig extends ActiveEffectConfig {
+  /** @type {CoverEffect} */
+  coverEffect;
+
   /**
    * Force the constructor to use the cover setting.
    */
-  constructor(opts = {}) {
+  constructor(coverEffect, opts = {}) {
     super(opts);
-
-    this.options.coverEffectId = opts.coverEffectId;
-    let data = { name: "New Cover Effect" };
-    const id = this.options.coverEffectId;
-    if ( id ) {
-      const allStatusEffects = Settings.get(Settings.KEYS.COVER.EFFECTS);
-      const statusEffects = allStatusEffects[game.system.id] || allStatusEffects.generic;
-      if ( Object.hasOwn(statusEffects, id) ) data = { ...statusEffects[id] };
-    }
-    data.flags ??= {};
-    data.flags[MODULE_ID] ??= {};
-    data.flags[MODULE_ID].coverType ??= "none";
-    this.object = new ActiveEffect(data);
+    this.coverEffect = coverEffect;
+    this.object = coverEffect.createActiveEffect();
   }
 
   /**
@@ -41,6 +34,7 @@ export class CoverEffectConfig extends ActiveEffectConfig {
    */
   getData(options) { // eslint-disable-line no-unused-vars
     const effect = this.object.toObject();
+
     return {
       effect: effect, // Backwards compatibility
       data: this.object.toObject(),
@@ -70,15 +64,22 @@ export class CoverEffectConfig extends ActiveEffectConfig {
    */
   async _onSubmit(...args) {
     await super._onSubmit(...args);
-    const allStatusEffects = Settings.get(Settings.KEYS.COVER.EFFECTS);
-    let systemId = game.system.id;
-    if ( (systemId === "dnd5e" || systemId === "sw5e")
-      && game.modules.get("midi-qol")?.active ) systemId = `${systemId}_midiqol`;
 
-    if ( !Object.hasOwn(allStatusEffects, systemId) ) allStatusEffects[systemId] = duplicate(allStatusEffects.generic);
+    // Update the CoverEffect.
+    this.coverEffect.update(this.object.toJSON());
 
-    const coverEffectId = this.options.coverEffectId
-    allStatusEffects[systemId][coverEffectId] = this.object.toJSON();;
-    await Settings.set(Settings.KEYS.COVER.EFFECTS, allStatusEffects);
+    // Store to settings.
+    this.coverEffect._saveToSettings();
+
+//     const allStatusEffects = Settings.get(Settings.KEYS.COVER.EFFECTS);
+//     let systemId = game.system.id;
+//     if ( (systemId === "dnd5e" || systemId === "sw5e")
+//       && game.modules.get("midi-qol")?.active ) systemId = `${systemId}_midiqol`;
+//
+//     if ( !Object.hasOwn(allStatusEffects, systemId) ) allStatusEffects[systemId] = duplicate(allStatusEffects.generic);
+//
+//     const coverEffectId = this.options.coverEffectId
+//     allStatusEffects[systemId][coverEffectId] = this.object.toJSON();;
+//     await Settings.set(Settings.KEYS.COVER.EFFECTS, allStatusEffects);
   }
 }

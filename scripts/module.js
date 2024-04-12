@@ -5,18 +5,19 @@ Hooks
 */
 "use strict";
 
-import { MODULE_ID, FLAGS, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, FLAGS, COVER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 import { registerElevationConfig } from "./geometry/elevation_configs.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
-import { COVER, CoverType } from "./CoverType.js";
 
-// Cover effect token control
+
+// Cover objects
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
-import { ExtendActiveEffect } from "./CoverEffect.js";
+import { CoverEffect } from "./CoverEffect.js";
+import { CoverType } from "./CoverType.js";
 
 // For API
 import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
@@ -74,8 +75,6 @@ Hooks.once("init", function() {
      * @type {number}
      */
     renderTextureResolution: 1,
-
-    CoverEffect: ExtendActiveEffect(),
   };
 
   game.modules.get(MODULE_ID).api = {
@@ -101,6 +100,7 @@ Hooks.once("init", function() {
     CoverDialog,
     COVER,
     CoverType,
+    CoverEffect,
     setCoverIgnoreHandler,
     Settings,
 
@@ -123,7 +123,8 @@ Hooks.once("setup", function() {
   registerElevationConfig("TileConfig", "Alt. Token Cover");
 
   // Construct default types after init, so that world scripts have a chance to modify.
-  CoverType._constructDefaultCoverTypes();
+  CoverType._constructDefaultCoverObjects();
+  CoverEffect._constructDefaultCoverObjects();
 });
 
 Hooks.once("ready", function() {
@@ -134,7 +135,8 @@ Hooks.once("ready", function() {
   transitionTokenMaximumCoverFlags();
 
   // Update cover types with settings data.
-  CoverType._updateCoverTypesFromSettings();
+  CoverType._updateFromSettings();
+  CoverEffect._updateFromSettings();
 });
 
 // Add pathfinding button to token controls.

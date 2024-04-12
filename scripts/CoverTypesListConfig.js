@@ -10,8 +10,8 @@ ui
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
-import { COVER, CoverType } from "./CoverType.js";
+import { MODULE_ID, COVER } from "./const.js";
+import { CoverType } from "./CoverType.js";
 import { log } from "./util.js";
 
 /**
@@ -85,7 +85,7 @@ export class CoverTypesListConfig extends FormApplication  {
       if ( !storedCoverType ) continue;
       storedCoverType.update(coverTypeData);
     }
-    await CoverType._saveCoverTypesToSettings();
+    await CoverType._saveToSettings();
   }
 
   /**
