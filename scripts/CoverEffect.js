@@ -7,6 +7,9 @@ import { CoverType } from "./CoverType.js";
 import { Settings } from "./settings.js";
 import { AbstractCoverObject } from "./AbstractCoverObject.js";
 
+import { coverEffects as dnd5eCoverEffects, coverEffects_midiqol } from "./coverDefaults/dnd5e.js";
+import { coverEffects as genericCoverEffects } from "./coverDefaults/generic.js";
+
 
 /**
  * Handles active effects that should be treated as cover.
@@ -20,24 +23,6 @@ import { AbstractCoverObject } from "./AbstractCoverObject.js";
 export class CoverEffect extends AbstractCoverObject {
 
   /**
-   * A cover effect, representing rules for displaying the given icon on the token and
-   * optionally triggering active effects.
-   * @param {ActiveEffectData} [coverEffectData={}]
-   */
-//   constructor(coverEffectData = {}) {
-//     // Enforce singleton.
-//     const id = coverEffectData?.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT_ID];
-//     const coverObjectsMap = CoverEffect.coverObjectsMap;
-//     if ( coverObjectsMap.has(id) ) return coverObjectsMap.get(id);
-//
-//     // Construct the object
-//     super(coverEffectData);
-//
-//     // Unique cover type per id.
-//     coverObjectsMap.set(id, this);
-//   }
-
-  /**
    * Configure the object using the default provided data.
    * @param {ActiveEffectData} [coverEffectData={}]
    */
@@ -48,7 +33,13 @@ export class CoverEffect extends AbstractCoverObject {
     this.config.flags ??= {};
     this.config.flags[MODULE_ID] ??= {};
     this.config.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= `${MODULE_ID}.${game.system.id}.${foundry.utils.randomID()}`;
-    this.config.flags[MODULE_ID][FLAGS.COVER_TYPE] ??= "none";
+    const coverTypes = this.config.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [];
+
+    // Move cover types to flags.
+    if ( coverEffectData.coverTypes ) {
+      coverEffectData.coverTypes.forEach(id => coverTypes.push(id));
+      delete coverEffectData.coverTypes;
+    }
 
     // Name is required to instantiate an ActiveEffect.
     this.config.name ??= "New Cover Effect";
@@ -82,6 +73,19 @@ export class CoverEffect extends AbstractCoverObject {
   /**
    * Create a new ActiveEffect from this configuration.
    */
+  createActiveEffect() {
+    const data = { ...this.config };
+    delete data.id;
+    return new CONFIG.ActiveEffect.documentClass(data);
+  }
+
+  /**
+   * Render the AE configuration window.
+   */
+  async renderConfig() {
+    const app = new CoverEffectConfig({ this.id })
+    app.render(true);
+  }
 
 
   // ----- NOTE: Static: Track Cover effects ----- //
@@ -138,12 +142,12 @@ export class CoverEffect extends AbstractCoverObject {
    */
   static _constructDefaultCoverObjects = AbstractCoverObject._constructDefaultCoverObjects.bind(this);
 
-
   static _defaultCoverTypeData() {
-    switch ( game.system.id ) {
-      case "dnd5e": return dnd5eCoverTypes; break;
-      case "pf2e": return pf2eCoverTypesForToken; break;
-      case "sfrpg": return sfrpgCoverTypesForToken; break;
+    switch ( this.systemId() ) {
+      case "dnd5e": return dnd5eCoverEffects; break;
+      const "dnd5e_midiqol": return coverEffects_midiqol; break;
+      case "pf2e": return {}; break;
+      case "sfrpg": return {}; break;
       default: return genericCoverTypes;
     }
   }

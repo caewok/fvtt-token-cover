@@ -65,24 +65,6 @@ COVER.EXCLUDE = -1;
  */
 export class CoverType extends AbstractCoverObject {
   /**
-   * A cover type, representing rules for displaying the given icon on the token and
-   * optionally triggering active effects.
-   * @param {CoverTypeData} [coverTypeData]
-   */
-//   constructor(coverTypeData = {}) {
-//     // Enforce singleton.
-//     const id = coverTypeData.id;
-//     const coverObjectsMap = CoverType.coverObjectsMap;
-//     if ( coverObjectsMap.has(id) ) return coverObjectsMap.get(id);
-//
-//     // Construct the object
-//     super(coverTypeData);
-//
-//     // Unique cover type per id.
-//     coverObjectsMap.set(id, this);
-//   }
-
-  /**
    * Configure the object using the default provided data.
    * @param {CoverTypeData} [CoverTypeData]
    */

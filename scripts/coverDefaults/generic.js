@@ -6,6 +6,8 @@ import { MODULE_ID, ICONS } from "../const.js";
 
 const SYSTEM_ID = "generic";
 
+// ----- NOTE: Cover types ----- //
+
 export const coverTypes = {};
 coverTypes.low = {
   name: `${MODULE_ID}.cover.low`,
@@ -53,4 +55,25 @@ coverTypes.tokensBlock = {
   includeWalls: false,
   includeTokens: true,
   priority: null
+};
+
+// ----- NOTE: Cover effects ----- //
+export const coverEffects = {};
+
+coverEffects.low = {
+  name: `${MODULE_ID}.cover.low`,
+  id: `${MODULE_ID}.${SYSTEM_ID}.low`,
+  coverTypes: [ coverTypes.low.id, coverTypes.tokensBlock.id ]
+};
+
+coverEffects.medium = {
+  name:  `${MODULE_ID}.cover.medium`,
+  id: `${MODULE_ID}.${SYSTEM_ID}.medium`,
+  coverTypes: [ coverTypes.medium.id ]
+};
+
+coverEffects.high = {
+  name: `${MODULE_ID}.cover.high`,
+  id: `${MODULE_ID}.${SYSTEM_ID}.high`,
+  coverTypes: [ coverTypes.high.id ]
 };

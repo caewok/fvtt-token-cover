@@ -33,9 +33,9 @@ export const FLAGS = {
 
   /**
    * Identify what cover type should be associated with this active effect.
-   * @type {string} Cover type id or "none"
+   * @type {string[]} Array of cover type ids
    */
-  COVER_TYPE: "coverType",
+  COVER_TYPES: "coverTypes",
 
   /**
    * Store an identifier that links an active effect to its stored data.

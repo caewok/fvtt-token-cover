@@ -5,10 +5,12 @@ import { MODULE_ID, ICONS } from "../const.js";
 
 const SYSTEM_ID = "dnd5e"
 
-
 // https://5thsrd.org/combat/cover/
 // If a target is behind multiple sources of cover, only the most protective degree of cover applies;
 // the degrees aren't added together.
+
+
+// ----- NOTE: Cover types ----- //
 export const coverTypes = {};
 
 // Optional rule that tokens provide at most half-cover.
@@ -63,4 +65,76 @@ coverTypes.total = {
   priority: 3
 };
 
+// ----- NOTE: Cover effects ----- //
+export const coverEffects = {};
+
+coverEffects.half = {
+  name: "DND5E.CoverHalf",
+  id: `${MODULE_ID}.${SYSTEM_ID}.half`,
+  icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
+  coverTypes: [
+    coverTypes.half.id,
+    coverTypes.halfToken.id
+  ],
+  changes: [
+    {
+      key: "system.attributes.ac.cover",
+      mode: 2,
+      value: "+2"
+    },
+
+    {
+      key: "system.abilities.dex.bonuses.save",
+      mode: 2,
+      value: "+2"
+    }
+  ]
+};
+
+coverEffects.threeQuarters = {
+  name: "DND5E.CoverThreeQuarters",
+  id: `${MODULE_ID}.${SYSTEM_ID}.three_quarters`,
+  icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
+  coverTypes: [ coverTypes.three_quarters.id ],
+  changes: [
+    {
+      key: "system.attributes.ac.cover",
+      mode: 2,
+      value: "+5"
+    },
+
+    {
+      key: "system.abilities.dex.bonuses.save",
+      mode: 2,
+      value: "+5"
+    }
+  ]
+};
+
+coverEffects.total = {
+  name: "DND5E.CoverTotal",
+  id: `${MODULE_ID}.${SYSTEM_ID}.total`,
+  icon: ICONS.SHIELD_THIN_GRAY.FULL,
+  coverTypes: [ coverTypes.total ],
+  changes: [
+    {
+      key: "system.attributes.ac.cover",
+      mode: 2,
+      value: "+99"
+    },
+
+    {
+      key: "system.abilities.dex.bonuses.save",
+      mode: 2,
+      value: "+99"
+    }
+  ]
+};
+
+export const coverEffects_midiqol = duplicate(coverEffects);
+coverEffects_midiqol.total.changes = [
+    key: "flags.midi-qol.grants.attack.fail.all",
+    mode: 0,
+    value: "1"
+];
 
