@@ -5,7 +5,7 @@ game,
 ActiveEffect
 */
 
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, FLAGS } from "./const.js";
 import { Settings } from "./settings.js";
 import { CoverType } from "./CoverType.js";
 
@@ -55,6 +55,16 @@ export class CoverEffectConfig extends ActiveEffectConfig {
    * @override
    */
   async _updateObject(event, formData) {
+    // Record the checked cover types in the flags.
+    formData.flags ??= {};
+    formData.flags[MODULE_ID] ??= {};
+    const coverTypes = formData.flags[MODULE_ID][FLAGS.COVER_TYPES] = [];
+    for ( const [key, selected] of Object.entries(foundry.utils.flattenObject(formData.coverTypeCheckBoxes)) ) {
+      if ( selected ) coverTypes.push(key);
+    }
+    delete formData.coverTypeCheckBoxes;
+
+    // Update the object.
     this.object.updateSource(formData);
     if (this._state === 2) await this.render();
   }
@@ -69,7 +79,7 @@ export class CoverEffectConfig extends ActiveEffectConfig {
     this.coverEffect.update(this.object.toJSON());
 
     // Store to settings.
-    this.coverEffect._saveToSettings();
+    this.coverEffect.saveToSettings();
 
 //     const allStatusEffects = Settings.get(Settings.KEYS.COVER.EFFECTS);
 //     let systemId = game.system.id;

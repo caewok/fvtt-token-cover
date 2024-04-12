@@ -169,8 +169,8 @@
 
     "tokencover.cover-effects-menu.listCoverTypes": "List Cover Types (Advanced Edit)",
 
-    "tokencover.active-effect-config.coverType.name": "Cover Type",
-    "tokencover.active-effect-config.coverType.hint": "Associate this active effect with a specific cover type. Depending on ATV module settings, this will cause the active effect to be automatically assigned to a token prior to an attack. Also used by ATV module macros that apply cover to a token.",
+    "tokencover.active-effect-config.coverType.name": "Cover Types",
+    "tokencover.active-effect-config.coverType.hint": "Associate this active effect with one or more specific cover types. Depending on ATV module settings, this will cause the active effect to be automatically assigned to a token prior to an attack. Also used by ATV module macros that apply cover to a token.",
 
     "tokencover.controls.cover-effects-control.name": "Cover Effects",
 
@@ -180,8 +180,6 @@
     "tokencover.cover-types-list-config.add": "Add Cover Type",
     "tokencover.cover-types-list-config.import": "Import Cover Types",
     "tokencover.cover-types-list-config.export": "Export Cover Types",
-
-
 
     "tokencover.cover.None": "No Cover",
     "tokencover.cover.Low": "Low Cover",

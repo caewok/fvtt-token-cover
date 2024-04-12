@@ -1,17 +1,17 @@
 <!-- https://www.sitelint.com/blog/how-to-implement-multiple-selection-with-check-boxes-in-an-html-without-external-libraries -->
 
-
+<fieldset>
 <legend>{{ localize "tokencover.name" }}</legend>
-
-  <div class="form-group">
-    <label for="tokencover.coverType">{{ localize "tokencover.active-effect-config.coverType.name" }}</label>
+  <h3> {{ localize "tokencover.active-effect-config.coverType.name" }} </h3>
         {{#each tokencover.coverTypes as |coverType|}}
-          <div class="form-fields slim">
+          <div class="form-group">
           <label for="{{coverType.id}}">{{localize coverType.name}}</label>
-          <input type="checkbox" id="{{coverType.id}}" name="{{coverType.id}}" value="{{coverType.name}}" {{checked coverType.checked}}/>
+          <div class="form-fields">
+          <input type="checkbox" id="{{coverType.id}}" name="{{coverType.id}}" {{checked coverType.checked}}/>
+          </div>
           </div>
         {{/each}}
     <p class="hint">{{ localize "tokencover.active-effect-config.coverType.hint" }}</p>
-  </div>
 
 </legend>
+</fieldset>
