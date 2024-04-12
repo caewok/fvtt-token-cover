@@ -8,6 +8,7 @@ import { coverTypes as sfrpgCoverTypes } from "./coverDefaults/sfrpg.js";
 import { coverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
 import { Settings } from "./settings.js";
 import { MODULE_ID } from "./const.js";
+import { AbstractCoverObject } from "./AbstractCoverObject.js";
 
 /**
  * @typedef {object} CoverTypeData
@@ -62,43 +63,31 @@ COVER.EXCLUDE = -1;
  * Each instantiation takes CoverTypeData and constructs the cover type.
  * Loading and saving controlled here.
  */
-export class CoverType {
-  /** @type {CoverTypeData} */
-  config = {};
-
+export class CoverType extends AbstractCoverObject {
   /**
    * A cover type, representing rules for displaying the given icon on the token and
    * optionally triggering active effects.
    * @param {CoverTypeData} [coverTypeData]
    */
-  constructor(coverTypeData = {}) {
-    // Unique cover type per id.
-    const coverTypes = this.constructor.coverTypesMap;
-    if ( coverTypes.has(coverTypeData.id) ) return coverTypes.get(coverTypeData.id);
-
-    // Create and cache the new type
-    this._configure(coverTypeData);
-    coverTypes.set(this.config.id, this);
-    this.constructor.coverTypesUpdated();
-  }
-
-  /**
-   * Delete the setting associated with this cover type.
-   * Typically used if destroying the cover type or resetting to defaults.
-   */
-  async deleteSetting() {
-    const allStatusEffects = Settings.get(Settings.KEYS.COVER.TYPES);
-    allStatusEffects[game.system.id] ??= {};
-    delete allStatusEffects[game.system.id][this.config.id];
-    return Settings.set(Settings.KEYS.COVER.TYPES, allStatusEffects);
-  }
+//   constructor(coverTypeData = {}) {
+//     // Enforce singleton.
+//     const id = coverTypeData.id;
+//     const coverObjectsMap = CoverType.coverObjectsMap;
+//     if ( coverObjectsMap.has(id) ) return coverObjectsMap.get(id);
+//
+//     // Construct the object
+//     super(coverTypeData);
+//
+//     // Unique cover type per id.
+//     coverObjectsMap.set(id, this);
+//   }
 
   /**
    * Configure the object using the default provided data.
    * @param {CoverTypeData} [CoverTypeData]
    */
   _configure(coverTypeData = {}) {
-    this.config = coverTypeData;
+    super._configure(coverTypeData);
 
     // Set reasonable defaults.
     this.config.id ??= `${MODULE_ID}.${game.system.id}.${foundry.utils.randomID()}`;
@@ -111,6 +100,13 @@ export class CoverType {
     if ( !(this.config.tint instanceof Color) ) this.config.tint = new Color(this.config.tint ?? 0);
     // priority, icon can be null or undefined.
   }
+
+  // ----- NOTE: Getters, setters, related properties ----- //
+
+  /** @type {string} */
+  get id() { return this.config.id ?? super.id; }
+
+  // ----- NOTE: Methods ----- //
 
   /**
    * Test if this cover type applies to a target token given an attacking token.
@@ -133,20 +129,13 @@ export class CoverType {
     return calc.percentCover({ includeWalls, includeTokens });
   }
 
-  /**
-   * Export this cover type data to JSON.
-   * @returns {object}
-   */
-  toJSON() { return this.config; }
 
   /**
    * Update the cover type with a new full or partial config object.
    * @param {object} [config={}]
    */
   update(config = {}) {
-    if ( config.id ) this.constructor.coverTypesMap.delete(this.config.id);
-    for ( const [key, value] of Object.entries(config) ) this.config[key] = value;
-    if ( config.id ) this.constructor.coverTypesMap.set(this.config.id, this);
+    super.update(config);
 
     // Fix tint to always be a Color class.
     const tint = this.config.tint;
@@ -158,41 +147,10 @@ export class CoverType {
     this.constructor.coverTypesUpdated();
   }
 
-  /**
-   * Import data from JSON and overwrite.
-   */
-  fromJSON(json) {
-    try {
-      json = JSON.parse(json);
-    } catch ( error ) {
-      console.error(`${MODULE_ID}|CoverType#fromJSON`, error);
-      return;
-    }
-    this.update(json);
-  }
-
-  /**
-   * Sync from the stored setting, if any.
-   */
-  fromSettings() {
-    const allStatusEffects = Settings.get(Settings.KEYS.COVER.TYPES);
-    const json = allStatusEffects[game.system.id]?.[this.id];
-    if ( json ) this.fromJSON(json);
-  }
-
-  /**
-   * Save to the stored setting.
-   */
-  async saveToSettings() {
-    const allStatusEffects = Settings.get(Settings.KEYS.COVER.TYPES);
-    allStatusEffects[game.system.id] ??= {};
-    allStatusEffects[game.system.id][this.config.id] = this.toJSON();
-    await Settings.set(Settings.KEYS.COVER.TYPES, allStatusEffects);
-  }
 
   // ----- NOTE: Static: Track Cover types ----- //
   /** @type {Map<string,CoverType>} */
-  static coverTypesMap = new Map();
+  static coverObjectsMap = new Map();
 
   /** @type {CoverType[]} */
   static #coverTypesOrdered = [];
@@ -221,7 +179,7 @@ export class CoverType {
   static #updateCoverTypesOrder() {
     this.#coverTypesOrdered.length = 0;
     this.#coverTypesUnordered.length = 0;
-    for ( const coverType of this.coverTypesMap ) {
+    for ( const coverType of this.coverObjectsMap ) {
       if ( coverType.priority == null ) this.#coverTypesUnordered.push(coverType);
       else this.#coverTypesOrdered.push(coverType);
     }
@@ -229,97 +187,39 @@ export class CoverType {
     this.#coverTypesModified = false;
   }
 
-  // ----- NOTE: Static other properties ----- //
+  // ----- NOTE: Static getter, setters, related properties ----- //
 
+  /** @type {string} */
+  static get settingsKey() { return Settings.KEYS.COVER.TYPES; }
 
   // ----- NOTE: Static methods ----- //
 
   /**
    * Update the cover types from settings.
    */
-  static _updateCoverTypesFromSettings() {
-    this.coverTypesMap.forEach(ct => ct.fromSettings());
-    this.#coverTypesModified ||= true;
-  }
+  static _updateCoverTypesFromSettings = AbstractCoverObject._updateCoverTypesFromSettings.bind(this);
 
   /**
    * Save cover types to settings.
    */
-  static async _saveCoverTypesToSettings() {
-    const promises = [];
-    this.coverTypesMap.forEach(ct => promises.push(ct.saveToSettings()));
-    return Promise.allSettled(promises);
-  }
+  static _saveCoverTypesToSettings = AbstractCoverObject._saveCoverTypesToSettings.bind(this);
 
   /**
    * Save all cover types to a json file.
    */
-  static saveToJSON() {
-    const data = { coverTypes: [], flags: {} };
-    this.coverTypesMap.forEach(c => data.coverTypes.push(c.toJSON()));
-    data.flags.exportSource = {
-      world: game.world.id,
-      system: game.system.id,
-      coreVersion: game.version,
-      systemVersion: game.system.version,
-      [`${MODULE_ID}Version`]: game.modules.get(MODULE_ID).version
-    };
-    const filename = `${MODULE_ID}_${this.name}_CoverTypes`;
-    saveDataToFile(JSON.stringify(data, null, 2), "text/json", `${filename}.json`);
-  }
+  static saveToJSON = AbstractCoverObject.saveToJSON.bind(this);
 
   /**
    * Import all cover types from a json file.
    * @param {JSON} json   Data to import
    */
-  static importFromJSON(json) {
-    json = JSON.parse(json);
-    if ( !json.flags?.exportSource?.[`${MODULE_ID}Version`] ) {
-      console.error("JSON file not recognized.");
-      return;
-    }
-    this.coverTypesMap.clear();
-    json.coverTypes.forEach(ct => new CoverType(ct));
-  }
-
-  static async importFromJSONDialog() {
-    new Dialog({
-      title: "Import Cover Types",
-      content: await renderTemplate("templates/apps/import-data.html", {
-        hint1: "You may import cover types from an exported JSON file.",
-        hint2: "This operation will update the cover types and cannot be undone."
-      }),
-      buttons: {
-        import: {
-          icon: '<i class="fas fa-file-import"></i>',
-          label: "Import",
-          callback: html => {
-            const form = html.find("form")[0];
-            if ( !form.data.files.length ) return ui.notifications.error("You did not upload a data file!");
-            readTextFromFile(form.data.files[0]).then(json => this.importFromJSON(json));
-          }
-        },
-        no: {
-          icon: '<i class="fas fa-times"></i>',
-          label: "Cancel"
-        }
-      },
-      default: "import"
-    }, {
-      width: 400
-    }).render(true);
-  }
+  static importFromJSON = AbstractCoverObject.importFromJSON.bind(this);
 
   /**
    * Create default effects and store in the map. Resets anything already in the map.
    * Typically used on game load.
    */
-  static _constructDefaultCoverTypes() {
-    const data = this._defaultCoverTypeData();
-    this.coverTypesMap.clear();
-    Object.values(data).forEach(d => new CoverType(d));
-    this.#coverTypesModified ||= true;
-  }
+  static _constructDefaultCoverObjects = AbstractCoverObject._constructDefaultCoverObjects.bind(this);
 
   static _defaultCoverTypeData() {
     switch ( game.system.id ) {
@@ -357,7 +257,9 @@ export class CoverType {
   }
 }
 
-COVER.TYPES = CoverType.coverTypesMap;
+CoverType._constructDefaultCoverTypes = CoverType._constructDefaultCoverObjects
+
+COVER.TYPES = CoverType.coverObjectsMap;
 
 // ----- NOTE: Helper functions ----- //
 /**
