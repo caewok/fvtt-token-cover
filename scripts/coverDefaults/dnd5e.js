@@ -80,13 +80,7 @@ coverEffects.half = {
   ],
   changes: [
     {
-      key: "system.attributes.ac.flat",
-      mode: 2,
-      value: "+2"
-    },
-
-    {
-      key: "system.attributes.ac.armor",
+      key: "system.attributes.ac.cover",
       mode: 2,
       value: "+2"
     },
@@ -106,13 +100,7 @@ coverEffects.threeQuarters = {
   coverTypes: [ coverTypes.threeQuarters.id ],
   changes: [
     {
-      key: "system.attributes.ac.flat",
-      mode: 2,
-      value: "+5"
-    },
-
-    {
-      key: "system.attributes.ac.armor",
+      key: "system.attributes.ac.cover",
       mode: 2,
       value: "+5"
     },
