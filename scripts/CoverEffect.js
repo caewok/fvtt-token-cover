@@ -10,7 +10,6 @@ import { CoverEffectConfig } from "./CoverEffectConfig.js";
 import { coverEffects as dnd5eCoverEffects, coverEffects_midiqol } from "./coverDefaults/dnd5e.js";
 import { coverEffects as genericCoverEffects } from "./coverDefaults/generic.js";
 
-
 /**
  * Handles active effects that should be treated as cover.
  * Applies the cover effect to tokens.
@@ -56,11 +55,12 @@ export class CoverEffect extends AbstractCoverObject {
     return this.config.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ?? super.id;
   }
 
+  /** @type {string[]} */
+  get #coverTypesArray() { return this.config.flags[MODULE_ID][FLAGS.COVER_TYPES]; }
+
   /** @type {CoverType|COVER.NONE} */
-  get coverType() {
-    const typeId = this.config.flags[MODULE_ID][FLAGS.COVER_TYPE];
-    if ( !typeId || typeId === "none" ) return COVER.NONE;
-    return CoverType.coverTypesMap.get(typeId) ?? COVER.NONE;
+  get coverTypes() {
+    return this.#coverTypesArray.map(typeId => CoverType.coverTypesMap.get(typeId));
   }
 
   set coverType(value) {
@@ -72,16 +72,55 @@ export class CoverEffect extends AbstractCoverObject {
     this.config.flags[MODULE_ID][FLAGS.COVER_TYPE] = value.config.id;
   }
 
+  /**
+   * Get data for an active effect.
+   */
+  get #activeEffectData() {
+    const data = { ...this.config };
+    delete data.id;
+    return data;
+  }
+
   // ----- NOTE: Methods ----- //
+
+  /**
+   * Add a single cover type to this effect.
+   * @param {CoverType|string} coverType      CoverType object or its id.
+   */
+  _addCoverType(coverType) {
+    if ( typeof coverType === "string" ) coverType = CoverType.coverTypesMap.get(coverType);
+    if ( !(coverType instanceof CoverType) ) {
+      console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
+      return;
+    }
+    this.#coverTypesArray.push(coverType.id);
+  }
+
+  /**
+   * Remove a single cover type.
+   * @param {CoverType|string} coverType      CoverType object or its id.
+   */
+  _removeCoverType(coverType) {
+    if ( typeof coverType === "string" ) coverType = CoverType.coverTypesMap.get(coverType);
+    if ( !(coverType instanceof CoverType) ) {
+      console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
+      return;
+    }
+    const idx = this.#coverTypesArray.findIndex(ct => ct.id === coverType.id);
+    if ( ~idx ) this.#coverTypesArray.splice(idx, 1);
+  }
+
+  /**
+   * Clear all cover types
+   */
+  _removeAllCoverTypes() { this.#coverTypesArray.length = 0; }
+
+
 
   /**
    * Create a new ActiveEffect from this configuration.
    */
-  createActiveEffect() {
-    const data = { ...this.config };
-    delete data.id;
-    return new CONFIG.ActiveEffect.documentClass(data);
-  }
+  createActiveEffect() { return new CONFIG.ActiveEffect.documentClass(this.#activeEffectData); }
 
   /**
    * Render the AE configuration window.
@@ -91,6 +130,28 @@ export class CoverEffect extends AbstractCoverObject {
     app.render(true);
   }
 
+  // ----- NOTE: Methods to apply this active effect to a token ----- //
+
+  /**
+   * Add this cover effect (the underlying active effect) to a token.
+   * @param {Token} token
+   */
+  async addToToken(token) {
+    return token.actor.createEmbeddedDocuments("ActiveEffect", [this.#activeEffectData])
+  }
+
+  /**
+   * Remove this cover effect (the underlying active effect) from a token.
+   * @param {Token} token
+   */
+  async removeFromToken(token) {
+    // Find all instances of this effect on the token (almost always singular effect).
+    const ids = [];
+    token.actor.effects.forEach(ae => {
+      if ( this.constructor.idFromData(ae) === this.id ) ids.push(ae.id);
+    });
+    return token.actor.deleteEmbeddedDocuments("ActiveEffect", ids);
+  }
 
   // ----- NOTE: Static: Track Cover effects ----- //
   /** @type {Map<string,CoverType>} */
@@ -103,7 +164,6 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {object} coverEffectData
    */
   static idFromData(coverEffectData) { return coverEffectData?.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT_ID] ?? coverEffectData.id; }
-
 
   /** @type {string} */
   static get settingsKey() { return Settings.KEYS.COVER.EFFECTS; }
