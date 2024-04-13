@@ -12,7 +12,6 @@ import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
 import { PATCHES as PATCHES_ActiveEffectConfig } from "./ActiveEffectConfig.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
 import { PATCHES as PATCHES_Item } from "./Item.js";
-import { PATCHES as PATCHES_SettingsConfig } from "./SettingsConfig.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
 
 // LOS
@@ -38,7 +37,6 @@ const PATCHES = {
   Combat: PATCHES_Combat,
   Item: PATCHES_Item,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
-  SettingsConfig: PATCHES_SettingsConfig,
   Tile: PATCHES_Tile,
   Token: foundry.utils.mergeObject(PATCHES_Token, PATCHES_TokenLOS),
   TokenConfig: PATCHES_TokenConfig,
