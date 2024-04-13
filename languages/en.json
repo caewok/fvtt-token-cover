@@ -2,17 +2,34 @@
     "tokencover.name": "Alt. Token Cover",
     "tokencover.nameAbbr": "ATC",
 
-    "tokencover.settings.use-cover-icon.Name": "Display Cover Icons",
-    "tokencover.settings.use-cover-icon.Hint": "When enabled, cover icons will be displayed locally (per user) on tokens to indicate if they have cover from controlled tokens. This cover display does not account for token-specific features that might ignore cover.",
+    "tokencover.settings.never": "Never",
+    "tokencover.settings.combat": "During Combat",
+    "tokencover.settings.always": "Always",
+    "tokencover.settings.targeting": "When Targeting",
+    "tokencover.settings.attack": "During Attack",
 
-    "tokencover.settings.cover-icon-low.Name": "Low Cover Icon",
-    "tokencover.settings.cover-icon-low.Hint": "Icon displayed locally on tokens to indicate they have low cover versus controlled tokens.",
+    "tokencover.settings.cover-workflow-confirm-user": "Ask User",
+    "tokencover.settings.cover-workflow-confirm-user-cancel": "Ask User (cancel only)",
+    "tokencover.settings.cover-workflow-confirm-gm": "Ask GM",
+    "tokencover.settings.cover-workflow-confirm-automatic": "Automatically apply",
 
-    "tokencover.settings.cover-icon-medium.Name": "Medium Cover Icon",
-    "tokencover.settings.cover-icon-medium.Hint": "Icon displayed locally on tokens to indicate they have medium cover versus controlled tokens.",
+    "tokencover.settings.use-cover-types.Name": "Display Cover Types",
+    "tokencover.settings.use-cover-types.Hint": "When enabled, icons representing cover types will be displayed locally (per user) on tokens to indicate if they have cover from controlled tokens. If multiple tokens selected, cover will be the minimum from the group. This cover display does not account for some system-specific features that might ignore cover (such as ignoring cover for only certain attack types).",
 
-    "tokencover.settings.cover-icon-high.Name": "High Cover Icon",
-    "tokencover.settings.cover-icon-high.Hint": "Icon displayed locally on tokens to indicate they have high cover versus controlled tokens.",
+    "tokencover.settings.use-cover-effects.Name": "Apply Cover Effects",
+    "tokencover.settings.use-cover-effects.Hint": "Apply cover effects (active effects) to tokens during combat. 'When Targeting' will apply effects when the user is the current combatant and the user targets one or more tokens, based on cover from the current combatant. For dnd5e, effects applied during targeting may be updated if an attack is made. See the cover workflow settings in Cover Settings.",
+
+    "tokencover.settings.cover-chat-message.Name": "Display Cover in Chat",
+    "tokencover.settings.cover-chat-message.Hint": "When rolling an attack, display cover types for targets in the chat.",
+
+    "tokencover.settings.cover-workflow-confirm.Name": "Confirm Cover?",
+    "tokencover.settings.cover-workflow-confirm.Hint": "When an attack is made, should a dialog be presented to allow the user to confirm the cover calculation? This affects the underlying cover calculation. It also will affect Cover Types or Cover Effects, if these settings are enabled.",
+
+    "tokencover.settings.cover-workflow-confirm-change-only.Name": "Only Confirm on Change",
+    "tokencover.settings.cover-workflow-confirm-change-only.Hint": "The confirmation dialog, if enabled, will only be presented if the cover type or effect(s) differ on the token than what has been calculated.",
+
+    "tokencover.settings.cover-workflow-confirm-no-cover.Name": "Confirm No Cover",
+    "tokencover.settings.cover-workflow-confirm-no-cover.Hint": "When enabled, the confirmation will be presented when the cover calculation estimates the token has no cover.",
 
     "tokencover.settings.points-center": "Token center only (1 point)",
     "tokencover.settings.points-four": "Token corners (4 points)",
@@ -55,43 +72,6 @@
     "tokencover.settings.button-dnd5e-dmg.Name": "",
     "tokencover.settings.button-dnd5e-dmg.Label": "Reset to DND5e DMG",
     "tokencover.settings.button-dnd5e-dmg.Notification": "Settings changed to D&D 5e",
-
-    "tokencover.settings.cover-trigger-percent-low.Name": "Low Cover Trigger",
-    "tokencover.settings.cover-trigger-percent-low.Hint": "If greater than or equal to this percent of the corners or token area (depending on algorithm) is not viewable, the token will have low cover.",
-    "tokencover.settings.cover-trigger-percent-medium.Name": "Medium cover trigger",
-    "tokencover.settings.cover-trigger-percent-medium.Hint": "If greater than or equal to this percent of the corners or token area (depending on algorithm) is not viewable, the token will have medium cover.",
-    "tokencover.settings.cover-trigger-percent-high.Name": "High cover trigger",
-    "tokencover.settings.cover-trigger-percent-high.Hint": "If greater than or equal to this percent of the corner or token area (depending on algorithm) is not viewable, the token will have high cover.",
-
-    "tokencover.settings.cover-trigger-center.Name": "Trigger",
-    "tokencover.settings.cover-trigger-center.Hint": "When the line from one token center to another token center is blocked, use this cover type. (PF2e uses Medium, or Standard, cover.)",
-
-    "tokencover.settings.midiqol-covercheck.Name": "Cover: Attack Workflow",
-    "tokencover.settings.midiqol-covercheck.Hint": "When rolling an attack in dnd5e with targeted tokens, should cover be applied automatically or require a confirmation dialog from the GM or user?",
-    "tokencover.settings.midiqol-covercheck-none": "Do not apply cover",
-    "tokencover.settings.midiqol-covercheck-user": "Ask user to confirm",
-    "tokencover.settings.midiqol-covercheck-user-cancel": "Ask user (cancel only)",
-    "tokencover.settings.midiqol-covercheck-gm": "Ask GM to confirm",
-    "tokencover.settings.midiqol-covercheck-auto": "Automatically apply",
-
-    "tokencover.settings.midiqol-covercheck-if-changed.Name": "Confirm cover only on change",
-    "tokencover.settings.midiqol-covercheck-if-changed.Hint": "Only ask for cover attack workflow confirmation if the calculated cover varies from the current token status. Does nothing if cover attack workflow does not require confirmation.",
-
-    "tokencover.settings.cover-combat-auto.Name": "Combat: Targeting Applies Cover",
-    "tokencover.settings.cover-combat-auto.Hint": "If in combat, when a user that owns the current combatant is targeting a token, apply cover effects to the targeted token based on cover from the current combatant.",
-
-    "tokencover.settings.cover-chat-message.Name": "Display Cover in Chat",
-    "tokencover.settings.cover-chat-message.Hint": "When rolling an attack, test and display cover for targets in the chat. Currently only in dnd5e.",
-
-    "tokencover.settings.menu-cover-effects-low.Name": "Low Cover Active Effect",
-    "tokencover.settings.menu-cover-effects-low.Label": "Configure Low Cover",
-
-    "tokencover.settings.menu-cover-effects-medium.Name": "Medium Cover Active Effect",
-    "tokencover.settings.menu-cover-effects-medium.Label": "Configure Medium Cover",
-
-    "tokencover.settings.menu-cover-effects-high.Name": "High Cover Active Effect",
-    "tokencover.settings.menu-cover-effects-high.Hint": "Configure the label, icon, and active effects for cover. Settings are stored per system. Separate settings are stored when the midi-qol module is active. If DFred's Convenient Effects module is active, those status effects will be used instead.",
-    "tokencover.settings.menu-cover-effects-high.Label": "Configure High Cover",
 
     "tokencover.settings.dead-tokens-block.Name": "Dead Tokens Grant Cover",
     "tokencover.settings.dead-tokens-block.Hint": "If enabled, tokens with 0 or less hit points will grant cover. This may be further modified by the dead token's prone status.",
@@ -138,7 +118,7 @@
     "tokencover.template.settings-config.tabs.other": "Cover Options",
 
     "tokencover.settings.submenu.Name": "",
-    "tokencover.settings.submenu.Label": "Cover Settings",
+    "tokencover.settings.submenu.Label": "GM Cover Settings",
     "tokencover.settings.submenu.title": "Alternative Token Cover Settings",
 
     "tokencover.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
