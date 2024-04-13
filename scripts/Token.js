@@ -134,8 +134,8 @@ PATCHES.DEBUG.HOOKS = {
  * Helper function: determine whether to use the cover icon.
  */
 function useCoverIcon() {
-  const choice = Settings.get(Settings.KEYS.USE_COVER_ICON);
-  const choices = Settings.KEYS.USE_COVER_ICON_CHOICES;
+  const choice = Settings.get(Settings.KEYS.COVER_TYPES.USE);
+  const choices = Settings.KEYS.COVER_TYPES.USE_CHOICES;
   switch ( choice ) {
     case choices.NEVER: return false;
     case choices.ALWAYS: return true;

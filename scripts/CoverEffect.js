@@ -167,7 +167,7 @@ export class CoverEffect extends AbstractCoverObject {
   static idFromData(coverEffectData) { return coverEffectData?.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT_ID] ?? coverEffectData.id; }
 
   /** @type {string} */
-  static get settingsKey() { return Settings.KEYS.COVER.EFFECTS; }
+  static get settingsKey() { return Settings.KEYS.COVER_EFFECTS.DATA; }
 
 
   /** @type {string} */
