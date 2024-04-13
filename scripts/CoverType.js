@@ -168,7 +168,7 @@ export class CoverType extends AbstractCoverObject {
   // ----- NOTE: Static getter, setters, related properties ----- //
 
   /** @type {string} */
-  static get settingsKey() { return Settings.KEYS.COVER.TYPES; }
+  static get settingsKey() { return Settings.KEYS.COVER_TYPES.DATA; }
 
   // ----- NOTE: Static methods ----- //
 
