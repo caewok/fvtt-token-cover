@@ -135,7 +135,7 @@ PATCHES.DEBUG.HOOKS = {
  */
 function useCoverIcon() {
   const choice = Settings.get(Settings.KEYS.COVER_TYPES.USE);
-  const choices = Settings.KEYS.COVER_TYPES.USE_CHOICES;
+  const choices = Settings.KEYS.COVER_TYPES.CHOICES;
   switch ( choice ) {
     case choices.NEVER: return false;
     case choices.ALWAYS: return true;

@@ -93,7 +93,9 @@ async function rollAttack(wrapper, options = {}) {
   if ( !targets.size ) return wrapper(options);
 
   // Construct dialogs, if applicable
-  if ( await coverWorkflow(token, targets, actionType) ) return wrapper(options);
+  // if ( await coverWorkflow(token, targets, actionType) ) return wrapper(options);
+
+  return wrapper(options);
 
   // If coverWorkflow returns false, user canceled or eliminated all targets; simply return.
 }

@@ -72,15 +72,20 @@ export class CoverEffect extends AbstractCoverObject {
     this.config.flags[MODULE_ID][FLAGS.COVER_TYPE] = value.config.id;
   }
 
+  /** @type {Set<string} */
+  #activeEffectIds = new Set(); // Track created active effect ids, to make finding them on actors easier.
+
   /**
    * Get data for an active effect.
    */
   get #activeEffectData() {
     const data = { ...this.config };
     delete data.id;
+    data._id = foundry.utils.randomID();
     data.name = game.i18n.format("tokencover.phrases.xCoverEffect", { cover: game.i18n.localize(data.name) });
     return data;
   }
+
 
   // ----- NOTE: Methods ----- //
 
@@ -116,6 +121,30 @@ export class CoverEffect extends AbstractCoverObject {
    */
   _removeAllCoverTypes() { this.#coverTypesArray.length = 0; }
 
+  /**
+   * Add the effect locally to an actor.
+   * @param {Token|Actor} actor
+   */
+  addToActorLocally(actor) {
+    if ( actor instanceof Token ) actor = actor.actor;
+    const ae = actor.effects.createDocument(this.#activeEffectData);
+    actor.effects.set(ae.id, ae);
+    this.#activeEffectIds.add(ae.id);
+    actor.prepareData(); // Trigger active effect update on the actor data.
+  }
+
+  /**
+   * Remove the effect locally from an actor.
+   * @param {Token|Actor} actor
+   */
+  removeFromActorLocally(actor) {
+    if ( actor instanceof Token ) actor = actor.actor;
+    const id = (new Set([...actor.effects.keys()])).intersection(this.#activeEffectIds).first();
+    if ( !id ) return;
+    actor.effects.delete(id);
+    this.#activeEffectIds.delete(id);
+    actor.prepareData(); // Trigger active effect update on the actor data.
+  }
 
 
   /**
