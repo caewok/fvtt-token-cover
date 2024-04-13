@@ -112,8 +112,7 @@ export class CoverEffect extends AbstractCoverObject {
       console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
       return;
     }
-    const idx = this.#coverTypesArray.findIndex(ct => ct.id === coverType.id);
-    if ( ~idx ) this.#coverTypesArray.splice(idx, 1);
+    this.#coverTypesArray.findSplice(ct => ct.id === coverType.id);
   }
 
   /**
