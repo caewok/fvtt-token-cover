@@ -5,15 +5,19 @@ Hooks
 */
 "use strict";
 
-import { MODULE_ID, FLAGS, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, FLAGS, COVER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 import { registerElevationConfig } from "./geometry/elevation_configs.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
-import { setDefaultCoverData, COVER } from "./cover_types.js";
 
+
+// Cover objects
+import { CoverEffectsApp } from "./CoverEffectsApp.js";
+import { CoverEffect } from "./CoverEffect.js";
+import { CoverType } from "./CoverType.js";
 
 // For API
 import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
@@ -43,7 +47,6 @@ import "./cover_application.js";
 
 Hooks.once("init", function() {
   registerGeometry();
-  setDefaultCoverData();
   addDND5eCoverFeatFlags();
 
   // Set CONFIGS used by this module.
@@ -71,7 +74,7 @@ Hooks.once("init", function() {
      * Should be between (0, 1).
      * @type {number}
      */
-    renderTextureResolution: 1
+    renderTextureResolution: 1,
   };
 
   game.modules.get(MODULE_ID).api = {
@@ -96,6 +99,8 @@ Hooks.once("init", function() {
     CoverCalculator,
     CoverDialog,
     COVER,
+    CoverType,
+    CoverEffect,
     setCoverIgnoreHandler,
     Settings,
 
@@ -117,6 +122,9 @@ Hooks.once("setup", function() {
   initializePatching();
   registerElevationConfig("TileConfig", "Alt. Token Cover");
 
+  // Construct default types after init, so that world scripts have a chance to modify.
+  CoverType._constructDefaultCoverObjects();
+  CoverEffect._constructDefaultCoverObjects();
 });
 
 Hooks.once("ready", function() {
@@ -125,8 +133,28 @@ Hooks.once("ready", function() {
 
   // Transitions to newer data.
   transitionTokenMaximumCoverFlags();
+
+  // Update cover types with settings data.
+  CoverType._updateFromSettings();
+  CoverEffect._updateFromSettings();
 });
 
+// Add pathfinding button to token controls.
+const COVER_EFFECTS_CONTROL = {
+  name: Settings.KEYS.CONTROLS.COVER_EFFECTS,
+  title: `${MODULE_ID}.controls.${Settings.KEYS.CONTROLS.COVER_EFFECTS}.name`,
+  icon: "fas fa-book",
+  button: true,
+  onClick: () => { new CoverEffectsApp().render(true); },
+  visible: true
+};
+
+// Render the cover effects book control if setting enabled.
+Hooks.on("getSceneControlButtons", controls => {
+  if ( !canvas.scene ) return;
+  const tokenTools = controls.find(c => c.name === "token");
+  tokenTools.tools.push(COVER_EFFECTS_CONTROL);
+});
 
 /**
  * Transition token maximum cover flags.

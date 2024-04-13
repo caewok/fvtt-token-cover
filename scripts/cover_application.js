@@ -12,6 +12,7 @@ socketlib
 import { MODULE_ID, COVER, MODULES_ACTIVE } from "./const.js";
 import { isFirstGM, keyForValue } from "./util.js";
 import { CoverDialog } from "./CoverDialog.js";
+import { CoverEffect } from "./CoverEffect.js";
 
 /* Testing
 Draw = CONFIG.GeometryLib.Draw
