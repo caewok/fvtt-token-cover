@@ -181,6 +181,10 @@
     "tokencover.cover-types-list-config.import": "Import Cover Types",
     "tokencover.cover-types-list-config.export": "Export Cover Types",
 
+    "tokencover.phrases.xCoverEffect": "{cover} Cover Effect",
+    "tokencover.phrases.xCoverType": "{cover} Cover Type",
+    "tokencover.phrases.xCover": "{cover} Cover",
+
     "tokencover.cover.None": "No Cover",
     "tokencover.cover.Low": "Low Cover",
     "tokencover.cover.Medium": "Medium Cover",

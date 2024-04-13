@@ -15,7 +15,7 @@ export const coverTypes = {};
 
 // Optional rule that tokens provide at most half-cover.
 coverTypes.halfToken = {
-  name: "Tokens Max Half Cover",
+  name: "Tokens Max Half",
   id: `${MODULE_ID}.${SYSTEM_ID}.half_token_only`,
   percentThreshold: 0.5,
   icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,

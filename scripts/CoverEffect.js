@@ -78,7 +78,7 @@ export class CoverEffect extends AbstractCoverObject {
   get #activeEffectData() {
     const data = { ...this.config };
     delete data.id;
-    data.name = game.i18n.localize(data.name);
+    data.name = game.i18n.format("tokencover.phrases.xCoverEffect", { cover: game.i18n.localize(data.name) });
     return data;
   }
 
