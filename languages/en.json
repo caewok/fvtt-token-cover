@@ -197,5 +197,6 @@
     "tokencover.phrases.CoverByTarget": "Cover by Target",
     "tokencover.phrases.Done": "Done",
     "tokencover.phrases.ConfirmCover": "Confirm Cover",
-    "tokencover.phrases.AllAttacks": "All Attacks"
+    "tokencover.phrases.AllAttacks": "All Attacks",
+    "tokencover.phrases.newEffect": "New Cover Effect"
 }

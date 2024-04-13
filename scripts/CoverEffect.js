@@ -45,7 +45,7 @@ export class CoverEffect extends AbstractCoverObject {
     delete coverEffectData.id;
 
     // Name is required to instantiate an ActiveEffect.
-    this.config.name ??= "New Cover Effect";
+    this.config.name ??= "tokencover.phrases.newEffect";
   }
 
   // ----- NOTE: Getters, setters, and related properties ----- //
@@ -78,6 +78,7 @@ export class CoverEffect extends AbstractCoverObject {
   get #activeEffectData() {
     const data = { ...this.config };
     delete data.id;
+    data.name = game.i18n.localize(data.name);
     return data;
   }
 
