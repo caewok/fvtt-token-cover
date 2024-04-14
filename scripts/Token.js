@@ -220,7 +220,7 @@ function refreshCoverIcons() {
 
   // Trigger token icons update if there was a change.
   const changed = CoverType.replaceCoverTypes(this, currCoverTypes);
-  this.renderFlags.set({ redrawEffects: true });
+  if ( changed ) this.renderFlags.set({ redrawEffects: true });
 }
 
 /**
