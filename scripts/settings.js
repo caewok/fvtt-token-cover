@@ -18,17 +18,13 @@ import {
   MediumCoverEffectConfig,
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
-const TYPE_USE_CHOICES = {
+const USE_CHOICES = {
   NEVER: "never",
   COMBAT: "combat",
+  TARGETING: "targeting",
+  ATTACK: "attack",
   ALWAYS: "always"
 };
-
-const EFFECT_USE_CHOICES = {
-  NEVER: "never",
-  TARGETING: "targeting",
-  ATTACK: "attack"
-}
 
 const CONFIRM_CHOICES = {
   USER: "cover-workflow-confirm-user",
@@ -46,13 +42,13 @@ export const SETTINGS = {
 
   COVER_TYPES: {
     USE: "use-cover-types",
-    CHOICES: TYPE_USE_CHOICES,
+    CHOICES: USE_CHOICES,
     DATA: "cover-types-data"
   },
 
   COVER_EFFECTS: {
     USE: "use-cover-effects",
-    CHOICES: EFFECT_USE_CHOICES,
+    CHOICES: USE_CHOICES,
     DATA: "cover-effects-data"
   },
 
@@ -269,12 +265,15 @@ export class Settings extends ModuleSettingsAbstract {
     Object.values(LTYPES).forEach(type => losChoices[type] = localize(type));
     Object.values(PT_TYPES).forEach(type => ptChoices[type] = localize(type));
 
-    Object.values(TYPE_USE_CHOICES).forEach(type => coverTypeUseChoices[type] = localize(type));
-    Object.values(EFFECT_USE_CHOICES).forEach(type => coverEffectUseChoices[type] = localize(type));
+    Object.values(USE_CHOICES).forEach(type => coverTypeUseChoices[type] = localize(type));
+    Object.values(USE_CHOICES).forEach(type => coverEffectUseChoices[type] = localize(type));
     Object.values(CONFIRM_CHOICES).forEach(type => coverConfirmChoices[type] = localize(type));
 
     // For most systems, no hooks set up into their attack sequence, so applying effects on attack is out.
-    if ( game.system.id !== "dnd5e" ) delete coverEffectUseChoices[EFFECT_USE_CHOICES.ATTACK];
+    if ( game.system.id !== "dnd5e" ) {
+      delete coverTypeUseChoices[USE_CHOICES.ATTACK];
+      delete coverEffectUseChoices[USE_CHOICES.ATTACK];
+    }
 
     register(KEYS.COVER_TYPES.USE, {
       name: localize(`${KEYS.COVER_TYPES.USE}.Name`),

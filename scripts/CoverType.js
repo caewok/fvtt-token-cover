@@ -90,7 +90,7 @@ export class CoverType extends AbstractCoverObject {
    * Test if this cover type applies to a target token given an attacking token.
    * Use the static coverTypesForToken for more efficient tests for all cover types at once.
    */
-  coverTypeApplies(attackingToken, targetToken) {
+  coverTypeApplies(attackingToken, targetToken, opts = {}) {
     return this.percentCover(attackingToken, targetToken) >= this.config.percentThreshold;
   }
 
@@ -125,6 +125,58 @@ export class CoverType extends AbstractCoverObject {
     this.constructor.coverTypesUpdated();
   }
 
+  /**
+   * Add this cover type to the token.
+   * Adds unless already present.
+   * Removes others unless canOverlap is true
+   * @param {Token} token
+   * @returns {boolean} True if change was made.
+   */
+  addToToken(token) {
+    const icon = this.config.icon;
+
+    // If already present, we are done.
+    change = token.document.effects.every(e => e !== icon);
+    if ( !change ) return false;
+
+    // If this type can overlap, it can be added b/c it is not already present.
+    if ( this.config.canOverlap ) {
+      token.document.effects.push(icon);
+      return true;
+    }
+
+    // If this type cannot overlap, then any non-overlapping icons must be removed first.
+    const tokenEffectIcons = new Set(token.dcument.effects);
+    const otherCoverTypes = CoverType.coverObjectsMap.values().filter(ct => ct.config.icon !== icon && !ct.config.canOverlap);
+    for ( const otherCoverType of otherCoverTypes ) {
+      if ( tokenEffectIcons.has(otherCoverType.config.icon) ) otherCoverType.removeFromToken(token);
+    }
+
+    // Add the new cover type icon to the token.
+    token.document.effects.push(icon);
+    return true;
+  }
+
+  /**
+   * Remove this cover type from the token.
+   * @param {Token} token
+   * @returns {boolean} True if change was made
+   */
+  removeFromToken(token) {
+    const change = token.document.effects.some(e => e === this.config.icon);
+    if ( change ) token.document.effects = token.document.effects.filter(e => e !== this.config.icon);
+    return change;
+  }
+
+  /**
+   * Add cover effects linked to this type to token.
+   * @param {Token} token
+   */
+  addCoverEffectsToToken(token, update = true) {
+    CoverEffect.coverObjectsMap
+      .filter(ce => ce.coverTypes.some(ct => ct === this))
+      .forEach(ce => ce.addToActorLocally(token, update));
+  }
 
   // ----- NOTE: Static: Track Cover types ----- //
   /** @type {Map<string,CoverType>} */
@@ -173,6 +225,66 @@ export class CoverType extends AbstractCoverObject {
   // ----- NOTE: Static methods ----- //
 
   /**
+   * Replace cover types on token with these.
+   * @param {Token} token
+   * @param {CoverType[]|Set<CoverType>} coverTypes
+   * @returns {boolean} True if a change was made.
+   */
+  static replaceCoverTypes(token, coverTypes = []) {
+    if ( !(coverTypes instanceof Set) ) coverTypes = new Set(coverTypes);
+
+    if ( !coverTypes.size ) {
+      if ( !token.document.effects.length ) return false;
+      token.document.effects.length = 0;
+      return true;
+    }
+
+    // Remove all cover types in the array that are not the wanted cover types.
+    const tokenEffectIcons = new Set(token.document.effects);
+    const toKeep = coverTypes.map(ct => ct.config.icon);
+    const toRemove = tokenEffectIcons.difference(toKeep);
+    const changed = toRemove.size
+    if ( changed ) token.document.effects = token.document.effects.filter(e => !toRemove.has(e));
+
+    // Add each of the cover types.
+    const res = coverTypes.values().reduce((acc, ct) => {
+      const out = ct.addToToken(token);
+      acc ||= out;
+    }, false);
+    return res || changed;
+  }
+
+  /**
+   * Determine minimum cover types for a token from a group of attacking tokens.
+   * @param {Token} targetToken
+   * @param {Token[]} attackingTokens
+   * @returns {Set<CoverType>}
+   */
+  static minimumCoverFromAttackers(targetToken, attackingTokens = []) {
+    if ( !attackingTokens.length ) return new Set();
+
+    // For priority cover, smallest priority wins.
+    // For other cover, only if this token has that cover from all attackers.
+    let minCoverType;
+    let otherCoverTypes;
+    for ( const attackingToken of attackingTokens ) {
+      const coverTypes = targetToken.coverFromToken(attackingToken);
+      const otherTypes = new Set();
+      coverTypes.forEach(ct => {
+        if ( ct.priority == null ) otherTypes.add(ct);
+        else if ( typeof minCoverType === undefined || minCoverType.priority > ct.priority ) minCoverType = ct;
+      })
+
+      if ( !otherCoverTypes ) otherCoverTypes = otherTypes;
+      else otherCoverTypes = otherCoverTypes.intersection(otherTypes);
+    }
+
+    minCoverType = new Set(minCoverType ? [minCoverType] : []);
+    otherCoverTypes ||= new Set();
+    return minCoverType.union(otherCoverTypes);
+  }
+
+  /**
    * Update the cover types from settings.
    */
   static _updateFromSettings = AbstractCoverObject._updateFromSettings.bind(this);
@@ -214,9 +326,9 @@ export class CoverType extends AbstractCoverObject {
    * @param {Token} targetToken
    * @returns {coverType[]}
    */
-  static coverTypesForToken(attackingToken, targetToken) {
+  static coverTypesForToken(attackingToken, targetToken, opts) {
     const calc = attackingToken.coverCalculator;
-    const coverTypeAppliesTest = coverTypeAppliesTestFn(attackingToken, targetToken);
+    const coverTypeAppliesTest = coverTypeAppliesTestFn(attackingToken, targetToken, opts);
     calc.target = targetToken;
     const types = [];
 
@@ -247,11 +359,11 @@ COVER.TYPES = CoverType.coverObjectsMap;
  *   - @param {CoverType} coverType       Cover type to test
  *   - @returns {boolean} Whether this cover type applies.
  */
-function coverTypeAppliesTestFn(attackingToken, targetToken) {
+function coverTypeAppliesTestFn(attackingToken, targetToken, opts) {
   const coverCategories = Array(4);
   return type => {
     const { includeWalls, includeTokens } = type.config;
     const option = (includeWalls * 2) + includeTokens;
-    return coverCategories[option] ??= type.coverTypeApplies(attackingToken, targetToken);
+    return coverCategories[option] ??= type.coverTypeApplies(attackingToken, targetToken, opts);
   }
 }

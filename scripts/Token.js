@@ -17,6 +17,39 @@ PATCHES.DEBUG = {};
 PATCHES.sfrpg = {};
 PATCHES.NO_PF2E = {};
 
+/* Token Cover
+
+Track cover types and cover effects for each token behind the scenes.
+Token properties:
+- coverCalculator. For calculating whether other tokens have cover from this token.
+- coverFromMap. Map of cover types for every other token on the scene.
+- coverAttackers. What tokens are considered to be attacking this token, for setting cover types
+- coverTypes. Cover types given the current attackers.
+- coverEffects. Cover effects given the current attackers.
+
+Attackers are always the selected token(s) unless Combatant is chosen.
+Settings control whether attackers are tracked and how types are assigned.
+- Never: Not tracked.
+- Attack: Not tracked. Handled at the moment of attack.
+- Targeting: Only assign cover types, effects to targeted tokens.
+- Combat:
+  - Always: Track regardless of combat.
+  - Combat: Only track during combat.
+  - Combatant: Only the current user; combatant is the attacker.
+
+Token methods:
+- coverPercentFromToken
+- coverTypeFromToken
+- coverTypesForAttackers
+- coverEffectsForAttackers
+
+
+
+
+*/
+
+
+
 
 // ----- NOTE: Debug Hooks ----- //
 
@@ -132,14 +165,17 @@ PATCHES.DEBUG.HOOKS = {
 
 /**
  * Helper function: determine whether to use the cover icon.
+ * @param {"COVER_TYPES"|"COVER_EFFECTS"} objectType
  */
-function useCoverIcon() {
-  const choice = Settings.get(Settings.KEYS.COVER_TYPES.USE);
-  const choices = Settings.KEYS.COVER_TYPES.CHOICES;
+function useCoverObject(objectType, token) {
+  const choice = Settings.get(Settings.KEYS[objectType].USE);
+  const choices = Settings.KEYS[objectType].CHOICES;
   switch ( choice ) {
     case choices.NEVER: return false;
     case choices.ALWAYS: return true;
     case choices.COMBAT: return Boolean(game.combats.active);
+    case choices.TARGETING: return game.user.targets.has(token);
+    case choices.ATTACK: return false;
     default: return false;
   }
 }
@@ -170,10 +206,16 @@ function updateToken(tokenD, change, _options, _userId) {
     t.coverFromMap.delete(id);
   });
 
-  if ( useCoverIcon()  ) {
-    // If tokens are controlled, update.
-    const tokens = canvas.tokens.controlled;
-    if ( tokens.length ) updateCoverForAttackingTokens(tokens);
+  const attackingTokens = canvas.tokens.controlled;
+  if ( attackingTokens.length
+    && useCoverObject("COVER_TYPES", token) ) {
+      token.updateCoverForAttackingTokens(attackingTokens);
+
+  }
+
+  if ( attackingTokens.length && useCoverObject("COVER_EFFECTS", token) ) {
+      const coverTypes = CoverType.minimumCoverFromAttackers(token, attackingTokens);
+      CoverEffect.replaceLocalEffectsOnActor(token, coverTypes);
   }
 }
 
@@ -181,7 +223,7 @@ function updateToken(tokenD, change, _options, _userId) {
  * Hook: controlToken
  * When the user selects the token, add a cover status for all tokens relative to that one.
  * When the user deselects the token, remove all cover status.
- * Only if a single token is controlled.
+ * If multiple tokens controlled,
  * @param {PlaceableObject} object The object instance which is selected/deselected.
  * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
  */
@@ -189,19 +231,19 @@ function controlToken(controlledToken, _controlled) {
   if ( !useCoverIcon()) return;
   const tokens = canvas.tokens;
   if ( tokens.controlled.length ) updateCoverForAttackingTokens(tokens.controlled);
-  else tokens.placeables.forEach(t => t.updateCoverIcon()); // Remove all cover status.
+  else tokens.placeables.forEach(t => t.updateCoverIcons()); // Remove all cover status.
 }
 
 /**
  * Helper to recalculate cover status for a controlled token versus all other tokens.
  * Used when controlling a token or moving a controlled token.
- * @param {Token} attackingToken     Token seeking other tokens (The token assumed to be controlled.)
+ * @param {Token} attackingTokens     Tokens seeking other tokens (The token assumed to be controlled.)
  */
-function updateCoverForAttackingTokens(attackingTokens) {
+function updateCoverForAttackingTokens(attackingTokens = []) {
   attackingTokens = new Set(attackingTokens);
   canvas.tokens.placeables.forEach(t => {
     if ( attackingTokens.has(t) ) return;
-    t.updateCoverIcon(attackingTokens);
+    t.updateCoverIcons(attackingTokens);
   });
 }
 
@@ -212,17 +254,17 @@ function updateCoverForAttackingTokens(attackingTokens) {
  * @param {Token} token      The targeted Token
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
-// function targetTokenDebug(user, target, targeted) {
-//   if ( !targeted || game.user !== user ) return;
-//   for ( const token of canvas.tokens.controlled ) {
-//     if ( !token[MODULE_ID]?.coverCalc ) continue;
-//     const coverCalc = token.coverCalculator;
-//     if ( !coverCalc.calc.popoutIsRendered ) continue;
-//     coverCalc.target = target;
-//     coverCalc.percentCover();
-//     coverCalc.calc._draw3dDebug();
-//   }
-// }
+function targetTokenDebug(user, target, targeted) {
+  if ( !targeted || game.user !== user ) return;
+  for ( const token of canvas.tokens.controlled ) {
+    if ( !token[MODULE_ID]?.coverCalc ) continue;
+    const coverCalc = token.coverCalculator;
+    if ( !coverCalc.calc.popoutIsRendered ) continue;
+    coverCalc.target = target;
+    coverCalc.percentCover();
+    coverCalc.calc._draw3dDebug();
+  }
+}
 
 /**
  * Hook: destroyToken
@@ -240,23 +282,34 @@ function destroyToken(token) { if ( token[MODULE_ID]?.coverCalc ) token.coverCal
  * @param {Token} token      The targeted Token
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
-// async function targetToken(user, target, targeted) {
-//   if ( !isFirstGM()
-//     || !Settings.get(SETTINGS.COVER.COMBAT_AUTO)
-//     || !game.combat?.started // If not in combat, do nothing because it is unclear who is targeting what...
-//     || !isUserCombatTurn(user)  // Ignore targeting by other users
-//   ) return;
-//
-//   if ( !targeted ) return await CoverCalculator.disableAllCover(target.id);
-//
-//   // Target from the current combatant to the target token
-//   const c = game.combats.active?.combatant;
-//   if ( !c ) return; // Apparently combatant is not always defined.
-//   const combatToken = c.token.object;
-//   const coverCalc = combatToken.coverCalculator;
-//   coverCalc.target = target;
-//   return await coverCalc.setTargetCoverEffect();
-// }
+async function targetToken(user, target, targeted) {
+  if ( !game.combat?.started ) return; // If not in combat, do nothing because it is unclear who is targeting
+  const updateCoverTypes = Settings.get(Settings.KEYS.COVER_TYPES.USE) === Settings.KEYS.COVER_TYPES.CHOICES.TARGETING;
+  const updateCoverEffects = Settings.get(Settings.KEYS.COVER_EFFECTS.USE) === Settings.KEYS.COVER_EFFECTS.CHOICES.TARGETING;
+  if ( !(updateCoverTypes || updateCoverEffects) ) return;
+
+  // If no targets, then disable the former target's icons and effects.
+  if ( !targeted ) {
+    if ( updateCoverTypes ) CoverType.replaceCoverTypes(target);
+    if ( updateCoverEffects ) CoverEffect.replaceLocalEffectsOnActor(target);
+    return;
+  }
+
+  // If targets, update the cover types and cover effects.
+  const attackingTokens = canvas.tokens.controlled;
+  if ( updateCoverTypes ) target.updateCoverForAttackingTokens(tokens)
+
+
+  if ( !targeted ) return await CoverCalculator.disableAllCover(target.id);
+
+  // Target from the current combatant to the target token
+  const c = game.combats.active?.combatant;
+  if ( !c ) return; // Apparently combatant is not always defined.
+  const combatToken = c.token.object;
+  const coverCalc = combatToken.coverCalculator;
+  coverCalc.target = target;
+  return await coverCalc.setTargetCoverEffect();
+}
 
 /**
  * For Starfinder, hook apply token status effect to add the cover item as needed.
@@ -281,105 +334,65 @@ PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 
 
 // ----- NOTE: Methods ----- //
-/**
- * Token.prototype.setCoverType
- * Set cover type for this token.
- * @param {COVER.TYPES} value
- */
-async function setCoverType(value) { return this.coverCalculator.setTargetCoverEffect(value); }
 
 /**
  * Helper to update whether this token has cover from another token.
  * @param {Token} tokenToUpdate   Token whose cover should be calcualted
- * @param {Token} otherToken      Other token from which this token may have cover
- * @returns {number} Cover percent, for convenience.
+ * @param {Token} attackingToken  Other token from which this token may have cover
+ * @returns {CoverTypes[]} Array of cover types, for convenience.
  */
 function updateCoverFromToken(tokenToUpdate, attackingToken) {
-  const coverPercent = tokenToUpdate.coverCalculator.percentCover(attackingToken);
-  tokenToUpdate.coverFromMap.set(attackingToken.id, coverPercent);
-  return coverPercent;
+  const coverTypes = attackingToken.coverCalculator.coverTypes(tokenToUpdate);
+  tokenToUpdate.coverFromMap.set(attackingToken.id, coverTypes);
+  return coverTypes;
 }
 
 /**
- * New method: Token.prototype.coverTypeFromToken
+ * New method: Token.prototype.coverFromToken
  * Returns the stored cover type or calculates it, as necessary.
  * @param {Token} attackingToken   Other token from which this token may have cover
  * @returns {COVER_TYPES}
  */
 function coverFromToken(attackingToken) {
   const coverFromMap = this.coverFromMap;
-  const percentCover = coverFromMap.get(attackingToken.id) ?? updateCoverFromToken(this, attackingToken);
-  return CoverCalculator.typeForPercentage(percentCover);
+  return coverFromMap.get(attackingToken.id) ?? updateCoverFromToken(this, attackingToken);
 }
 
 /**
- * New method: Token.prototype.updateCoverIcon
- * Set the cover icon representing whether this token has cover from a specified token.
- * Only one status icon should be present at a time.
- * @param {Token[]|Set<Token>} [attackingToken]   Other tokens from which this token may have cover
- *                                                If length/size 0, all cover icons are removed
+ * New method: Token.prototype.updateCoverTypes
+ * Update cover types for this token based on a group of attackers.
+ * @param {Token[]|Set<Token>} [attackingTokens=[]]   Other tokens from which this token may have cover
+ *                                                    If length/size 0, no cover.
  */
-async function updateCoverIcon(attackingTokens = []) {
-  const mod = this[MODULE_ID] ??= {};
-  const currentIcon = mod.currentCoverIcon; // Store here b/c cannot add property to src string.
-  let changed = false;
+function updateCoverTypes(attackingTokens = []) {
+  const coverTypes = this.coverTypes;
+  coverTypes.clear();
+  CoverType.minimumCoverFromAttackers(this, attackingTokens).forEach(ct => coverTypes.add(ct));
+}
 
-  // Determine the minimum cover from the attacking tokens.
-  let coverType = Number.POSITIVE_INFINITY;
-  for ( const attackingToken of attackingTokens ) {
-    coverType = Math.min(coverType, this.coverFromToken(attackingToken));
-    if ( !coverType ) break; // If no cover, then we are done.
-  }
-  if ( !Number.isFinite(coverType) ) coverType = COVER.TYPES.NONE;
-
-  // No cover; remove cover icon
-  if ( currentIcon && !coverType ) {
-    this.document.effects = this.document.effects.filter(e => e !== currentIcon);
-    changed ||= true;
-    mod.currentCoverIcon = undefined;
-  }
-
-  // Cover; remove old, add new, unless already same.
-  else if ( currentIcon && coverType ) {
-    mod.currentCoverIcon = Settings.get(Settings.KEYS.COVER_ICON[keyForValue(COVER.TYPES, coverType)]);
-    if ( currentIcon !== mod.currentCoverIcon ) {
-      this.document.effects = this.document.effects.filter(e => e !== currentIcon);
-      this.document.effects.push(mod.currentCoverIcon);
-      changed ||= true;
-    }
-  }
-
-  // Cover; add the new source.
-  else if ( !currentIcon && coverType ) {
-    mod.currentCoverIcon = Settings.get(Settings.KEYS.COVER_ICON[keyForValue(COVER.TYPES, coverType)]);
-    this.document.effects.push(mod.currentCoverIcon);
-    changed ||= true;
-  }
-
-  // if ( !currentIcon && !coverType ) <-- No cover and no current cover icon, so nothing to do.
+/**
+ * New method: Token.prototype.updateCoverIcons
+ * Set the cover icons representing whether this token currently has cover from tokens.
+ */
+function refreshCoverIcons() {
+  const changed = CoverType.replaceCoverTypes(token, this.coverTypes);
 
   // Trigger effects update if there was a change.
   if ( changed ) this.renderFlags.set({ redrawEffects: true });
 }
 
-
-PATCHES.BASIC.METHODS = { setCoverType, coverFromToken, updateCoverIcon };
+PATCHES.BASIC.METHODS = { coverFromToken };
 
 // ----- NOTE: Getters ----- //
 
 /**
- * New getter: Token.prototype.coverType
+ * New getter: Token.prototype.coverTypes
  * Determine what type of cover the token has, if any.
- * @type {COVER_TYPES}
+ * @type {Set<COVER_TYPES>}
  */
-function coverType() {
-  const statuses = this.actor?.statuses;
-  if ( !statuses ) return COVER.TYPES.NONE;
-  const coverModule = MODULES_ACTIVE.DFREDS_CE ? "dfreds-convenient-effects" : MODULE_ID;
-  return statuses.has(COVER.CATEGORIES.HIGH[coverModule]) ? COVER.TYPES.HIGH
-    : statuses.has(COVER.CATEGORIES.MEDIUM[coverModule]) ? COVER.TYPES.MEDIUM
-      : statuses.has(COVER.CATEGORIES.LOW[coverModule]) ? COVER.TYPES.LOW
-        : COVER.TYPES.NONE;
+function coverTypes() {
+  this[MODULE_ID] ??= {};
+  return this[MODULE_ID][FLAGS.COVER_TYPES] ??= new Set();
 }
 
 /**
@@ -403,7 +416,7 @@ function coverCalculator() {
 
 /**
  * New getter: Token.prototype.coverFromMap
- * Return a map that records the cover percentage of this token versus every other token on the scene.
+ * Return a map that records the cover types of this token versus every other token on the scene.
  * Updated on token movement.
  * Map is not guaranteed to have any specific token in the map.
  * @type {Map<string|number>} Map of token ids and percentage cover
@@ -415,10 +428,12 @@ function coverFromMap() {
 
 PATCHES.BASIC.GETTERS = {
   coverCalculator,
-  coverType,
+  coverTypes,
   ignoresCoverType,
   coverFromMap
 };
+
+
 
 
 // ----- NOTE: Helper functions ----- //
@@ -435,4 +450,21 @@ function isUserCombatTurn(user) {
   const players = game.combats.active?.combatant?.players;
   if ( !players?.length ) return user.isGM;
   return players.some(player => user.name === player.name);
+}
+
+/**
+ * Determine what tokens should be deemed "attacking."
+ * If in combat and it is the user's turn, assume the combatant is the attacker.
+ * Otherwise, user's selected tokens are attackers.
+ * @param {Token} [target]      If provided, the target is excluded from attackers.
+ * @returns {Token[]}
+ */
+function attackingTokens(target) {
+  if ( game.combats.active
+    && game.combat.combatant.isOwner
+    && tokens.controlled.length < 2
+    && target !== game.combat.combatant) return [game.combat.combatant.token];
+
+  if ( target ) return canvas.tokens.controlled.filter(t => t !== target);
+  return canvas.tokens.controlled;
 }

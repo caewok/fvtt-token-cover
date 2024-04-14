@@ -58,7 +58,7 @@ export class CoverEffect extends AbstractCoverObject {
   /** @type {string[]} */
   get #coverTypesArray() { return this.config.flags[MODULE_ID][FLAGS.COVER_TYPES]; }
 
-  /** @type {CoverType|COVER.NONE} */
+  /** @type {CoverType[]} */
   get coverTypes() {
     return this.#coverTypesArray.map(typeId => CoverType.coverTypesMap.get(typeId));
   }
@@ -124,25 +124,25 @@ export class CoverEffect extends AbstractCoverObject {
    * Add the effect locally to an actor.
    * @param {Token|Actor} actor
    */
-  addToActorLocally(actor) {
+  addToActorLocally(actor, update = true) {
     if ( actor instanceof Token ) actor = actor.actor;
     const ae = actor.effects.createDocument(this.#activeEffectData);
     actor.effects.set(ae.id, ae);
     this.#activeEffectIds.add(ae.id);
-    actor.prepareData(); // Trigger active effect update on the actor data.
+    if ( update ) actor.prepareData(); // Trigger active effect update on the actor data.
   }
 
   /**
    * Remove the effect locally from an actor.
    * @param {Token|Actor} actor
    */
-  removeFromActorLocally(actor) {
+  removeFromActorLocally(actor, update = true) {
     if ( actor instanceof Token ) actor = actor.actor;
     const id = (new Set([...actor.effects.keys()])).intersection(this.#activeEffectIds).first();
     if ( !id ) return;
     actor.effects.delete(id);
     this.#activeEffectIds.delete(id);
-    actor.prepareData(); // Trigger active effect update on the actor data.
+    if ( update ) actor.prepareData(); // Trigger active effect update on the actor data.
   }
 
 
@@ -207,6 +207,34 @@ export class CoverEffect extends AbstractCoverObject {
   }
 
   // ----- NOTE: Static methods ----- //
+
+  /**
+   * Retrieve all Cover Effects on the actor.
+   * @param {Token|Actor} actor
+   * @returns {Set<CoverEffect>} Set of cover effects on the actor.
+   */
+  static getAllOnActor(actor) {
+    const out = new Set();
+    if ( actor instanceof Token ) actor = actor.actor;
+    return actor.effects
+      .map(e => e.getFlag(MODULE_ID, COVER_EFFECT_ID) === this.id)
+      .filter(id => id === this.id)
+      .map(id => this.coverObjectsMap.get(id));
+  }
+
+  /**
+   * Replace local cover effects on token with these.
+   * @param {Token|Actor} actor
+   * @param {CoverEffect[]|Set<CoverEffect>} coverTypes
+   */
+  static replaceLocalEffectsOnActor(actor, coverTypes = []) {
+    if ( actor instanceof Token ) actor = actor.actor;
+    const coverEffects = CoverEffect.getAllOnActor(actor);
+    coverEffects.forEach(ce => ce.removeFromActorLocally(actor, false))
+    coverEffects.forEach(ce => ct.addToActorLocally(actor, false));
+    token.actor.prepareData();
+  }
+
 
   /**
    * Update the cover types from settings.
