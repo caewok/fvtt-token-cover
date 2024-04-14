@@ -13,6 +13,7 @@ import { SOCKETS } from "./cover_application.js";
 import { keyForValue } from "./util.js";
 import { CoverDialog } from "./CoverDialog.js";
 import { AbstractCalculator } from "./LOS/AbstractCalculator.js";
+import { CoverType } from "./CoverType.js";
 
 
 /* Testing

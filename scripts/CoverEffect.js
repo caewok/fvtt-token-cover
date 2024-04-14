@@ -227,14 +227,15 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {Token|Actor} actor
    * @param {CoverEffect[]|Set<CoverEffect>} coverTypes
    */
-  static replaceLocalEffectsOnActor(actor, coverTypes = []) {
+  static replaceLocalEffectsOnActor(actor, coverEffects = new Set()) {
     if ( actor instanceof Token ) actor = actor.actor;
-    const coverEffects = CoverEffect.getAllOnActor(actor);
-    coverEffects.forEach(ce => ce.removeFromActorLocally(actor, false))
+    if ( !(coverEffects instanceof Set) ) coverEffects = new Set(coverEffects);
+    const previousEffects = CoverEffect.getAllOnActor(actor);
+    if ( coverEffects.equals(previousEffects) ) return;
+    previousEffects.forEach(ce => ce.removeFromActorLocally(actor, false))
     coverEffects.forEach(ce => ct.addToActorLocally(actor, false));
     token.actor.prepareData();
   }
-
 
   /**
    * Update the cover types from settings.

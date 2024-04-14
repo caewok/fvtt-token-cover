@@ -14,6 +14,8 @@ import { isFirstGM, keyForValue } from "./util.js";
 import { CoverDialog } from "./CoverDialog.js";
 import { CoverEffect } from "./CoverEffect.js";
 
+const NULL_SET = new Set(); // Set intended to signify no items, as a placeholder.
+
 /* Testing
 Draw = CONFIG.GeometryLib.Draw
 Point3d = CONFIG.GeometryLib.threeD.Point3d;
@@ -181,7 +183,7 @@ async function disableAllCoverATV(tokenD) {
   if ( !tokenD.actor || !tokenD.actor.statuses ) return;
 
   // Drop all cover statuses.
-  const coverStatuses = tokenD.actor.statuses?.intersection(COVER.IDS[MODULE_ID]) ?? new Set();
+  const coverStatuses = tokenD.actor.statuses?.intersection(COVER.IDS[MODULE_ID]) ?? NULL_SET;
   if ( !coverStatuses.size ) return;
   const promises = coverStatuses.map(id => tokenD.toggleActiveEffect({ id }, { active: false }));
   return Promise.allSettled(promises);
@@ -197,7 +199,7 @@ async function disableAllCoverDFreds(tokenD) {
   if ( !tokenD.actor || !tokenD.actor.statuses ) return;
 
   // Determine what cover statuses are already applied.
-  const coverStatuses = tokenD.actor.statuses?.intersection(COVER.IDS["dfreds-convenient-effects"]) ?? new Set();
+  const coverStatuses = tokenD.actor.statuses?.intersection(COVER.IDS["dfreds-convenient-effects"]) ?? NULL_SET;
   if ( !coverStatuses.size ) return;
 
   // Drop all cover statuses.

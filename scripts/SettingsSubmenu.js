@@ -134,20 +134,6 @@ export class SettingsSubmenu extends FormApplication {
     html.find(`[name="${MODULE_ID}-button-threeD"]`).click(this.submitSettingUpdates.bind(this, "threeD"));
   }
 
-//   async _onSubmit(event, opts) {
-//     await super._onSubmit(event, opts);
-//   }
-
-  async close(opts) {
-    await super.close(opts);
-
-    // Update the underlying setting sheet view.
-    const TARGET = SETTINGS.LOS.TARGET;
-    const centerOnly = Settings.get(TARGET.POINT_OPTIONS.NUM_POINTS) === SETTINGS.POINT_TYPES.CENTER
-      && Settings.get(TARGET.ALGORITHM) === TARGET.TYPES.POINTS;
-    game.settings._sheet._coverAlgorithmChanged(centerOnly);
-  }
-
   /**
    * Comparable to SettingsConfig.prototype._updateObject
    */

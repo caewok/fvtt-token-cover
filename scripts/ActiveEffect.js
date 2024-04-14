@@ -58,7 +58,7 @@ async function _onCreateDocuments(wrapper, documents, context) {
 //
 //     // Do the existing actor statuses need to be removed?
 //     const actor = effect.parent;
-//     const coverStatuses = actor.statuses?.intersection(COVER.IDS.ALL) ?? new Set();
+//     const coverStatuses = actor.statuses?.intersection(COVER.IDS.ALL) ?? Set.NULL_SET;
 //     const toRemove = coverStatuses.difference(docCoverStatuses);
 //     if ( !toRemove.size ) continue;;
 //

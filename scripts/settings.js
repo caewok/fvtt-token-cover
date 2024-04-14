@@ -21,7 +21,7 @@ import {
 const USE_CHOICES = {
   NEVER: "never",
   COMBAT: "combat",
-  TARGETING: "targeting",
+  COMBATANT: "combatant",
   ATTACK: "attack",
   ALWAYS: "always"
 };
@@ -43,13 +43,15 @@ export const SETTINGS = {
   COVER_TYPES: {
     USE: "use-cover-types",
     CHOICES: USE_CHOICES,
-    DATA: "cover-types-data"
+    DATA: "cover-types-data",
+    TARGETING: "cover-types-targeting"
   },
 
   COVER_EFFECTS: {
     USE: "use-cover-effects",
     CHOICES: USE_CHOICES,
-    DATA: "cover-effects-data"
+    DATA: "cover-effects-data",
+    TARGETING: "cover-effects-targeting"
   },
 
   COVER_WORKFLOW: {
@@ -286,6 +288,15 @@ export class Settings extends ModuleSettingsAbstract {
       requiresReload: true // Otherwise, would need to clear all icons from all users.
     });
 
+    register(KEYS.COVER_TYPES.TARGETING, {
+      name: localize(`${KEYS.COVER_TYPES.TARGETING}.Name`),
+      hint: localize(`${KEYS.COVER_TYPES.TARGETING}.Hint`),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: false
+    });
+
     // ----- Main Settings Menu ----- //
     registerMenu(KEYS.SUBMENU, {
       name: localize(`${KEYS.SUBMENU}.Name`),
@@ -409,6 +420,16 @@ export class Settings extends ModuleSettingsAbstract {
       type: String,
       choices: coverEffectUseChoices,
       default: KEYS.COVER_EFFECTS.CHOICES.NEVER,
+      tab: "workflow"
+    });
+
+    register(KEYS.COVER_EFFECTS.TARGETING, {
+      name: localize(`${KEYS.COVER_EFFECTS.TARGETING}.Name`),
+      hint: localize(`${KEYS.COVER_EFFECTS.TARGETING}.Hint`),
+      scope: "world",
+      config: false,
+      type: Boolean,
+      default: false,
       tab: "workflow"
     });
 
