@@ -248,7 +248,7 @@ export class CoverType extends AbstractCoverObject {
     // Add each of the cover types.
     const res = coverTypes.values().reduce((acc, ct) => {
       const out = ct.addToToken(token);
-      acc ||= out;
+      return acc || out;
     }, false);
     return res || changed;
   }

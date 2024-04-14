@@ -265,14 +265,14 @@ export class CoverCalculator extends AbstractCalculator {
       blockingTokens.delete(t);
       calc._blockingObjectsChanged();
       const percentMinusOneToken = 1 - calc.percentVisible();
-      tPercentage.push(percent - percentMinusOneToken);
+      tPercentage.push(totalPercent - percentMinusOneToken);
       blockingTokens.add(t);
       calc._blockingObjectsChanged();
     });
 
     // Prorate each token's percentage contribution to the total token contribution to
     // cover by the maximum cover for each respective token.
-    const diff = percent - percentNoTokens;
+    const diff = totalPercent - percentNoTokens;
     const nTokens = tPercentage.length;
     const denom = tPercentage.reduce((curr, acc) => acc + curr) || nTokens;
     tPercentage = tPercentage.map(x => x / denom);

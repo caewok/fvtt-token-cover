@@ -58,7 +58,9 @@ Triggers:
 
 // ----- NOTE: Hooks ----- //
 
-
+function preUpdateToken(tokenD, change, _options, _userId) {
+  return true;
+}
 
 /**
  * Hook: updateToken
@@ -142,10 +144,9 @@ function applyTokenStatusEffect(token, statusId, active) {
     : CoverCalculator.disableAllCover(token);
 }
 
-PATCHES.BASIC.HOOKS = { destroyToken, updateToken, controlToken, targetToken };
+PATCHES.BASIC.HOOKS = { destroyToken, updateToken, controlToken, targetToken, preUpdateToken };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 // PATCHES.NO_PF2E.HOOKS = { targetToken };
-
 
 // ----- NOTE: Methods ----- //
 
@@ -219,7 +220,7 @@ function refreshCoverIcons() {
 
   // Trigger token icons update if there was a change.
   const changed = CoverType.replaceCoverTypes(this, currCoverTypes);
-  if ( changed ) this.renderFlags.set({ redrawEffects: true });
+  this.renderFlags.set({ redrawEffects: true });
 }
 
 /**
