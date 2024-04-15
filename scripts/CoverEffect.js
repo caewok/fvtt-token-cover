@@ -130,14 +130,16 @@ export class CoverEffect extends AbstractCoverObject {
     const activeEffectIds = this.constructor._activeEffectIds;
     for ( const key of actor.effects.keys() ) {
       if ( !activeEffectIds.has(key) ) continue;
-      if ( activeEffectIds.get(key) !== this ) return;
+      if ( activeEffectIds.get(key) !== this ) return false;
     }
 
     const ae = actor.effects.createDocument(this.#activeEffectData);
     log(`CoverEffect#addToActorLocally|${actor.name} adding ${ae.id} ${this.config.name}`);
     actor.effects.set(ae.id, ae);
     this.constructor._activeEffectIds.set(ae.id, this);
-    actor.prepareData(); // Trigger active effect update on the actor data.
+
+    if ( update ) refreshActorCoverEffect(actor);
+    return true;
   }
 
   /**
@@ -161,7 +163,8 @@ export class CoverEffect extends AbstractCoverObject {
       changed ||= true;
     }
 
-    if ( changed ) actor.prepareData(); // Trigger active effect update on the actor data.
+    if ( update && changed ) refreshActorCoverEffect(actor);
+    return changed;
   }
 
 
@@ -256,9 +259,11 @@ export class CoverEffect extends AbstractCoverObject {
     if ( !(coverEffects instanceof Set) ) coverEffects = new Set(coverEffects);
     const previousEffects = CoverEffect.getAllOnActor(actor);
     if ( coverEffects.equals(previousEffects) ) return;
+
+    // TODO: Catch if any change actually occurs.
     previousEffects.forEach(ce => ce.removeFromActorLocally(actor, false))
     coverEffects.forEach(ce => ce.addToActorLocally(actor, false));
-    actor.prepareData();
+    refreshActorCoverEffect(actor);
   }
 
   /**
@@ -300,3 +305,13 @@ export class CoverEffect extends AbstractCoverObject {
 }
 
 COVER.EFFECTS = CoverEffect.coverObjectsMap;
+
+// ----- NOTE: Helper functions ----- //
+
+/**
+ * Refresh the actor so that the local cover effect is used and visible.
+ */
+function refreshActorCoverEffect(actor) {
+  actor.prepareData(); // Trigger active effect update on the actor data.
+  if ( actor.sheet.rendered ) actor.sheet.render(true);
+}
