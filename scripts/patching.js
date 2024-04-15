@@ -14,6 +14,7 @@ import { PATCHES as PATCHES_Combat } from "./Combat.js";
 import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
 import { PATCHES as PATCHES_TokenDocument } from "./TokenDocument.js";
+import { PATCHES as PATCHES_Actor } from "./Actor.js";
 
 // LOS
 import { PATCHES as PATCHES_PointSourcePolygon } from "./LOS/PointSourcePolygon.js";
@@ -34,6 +35,7 @@ import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
   ActiveEffectConfig: PATCHES_ActiveEffectConfig,
+  Actor: PATCHES_Actor,
   ClientSettings: PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
   Item: PATCHES_Item,

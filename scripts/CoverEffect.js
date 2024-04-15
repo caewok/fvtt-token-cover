@@ -9,6 +9,7 @@ import { AbstractCoverObject } from "./AbstractCoverObject.js";
 import { CoverEffectConfig } from "./CoverEffectConfig.js";
 import { coverEffects as dnd5eCoverEffects, coverEffects_midiqol } from "./coverDefaults/dnd5e.js";
 import { coverEffects as genericCoverEffects } from "./coverDefaults/generic.js";
+import { log } from "./util.js";
 
 /**
  * Handles active effects that should be treated as cover.
@@ -60,20 +61,17 @@ export class CoverEffect extends AbstractCoverObject {
 
   /** @type {CoverType[]} */
   get coverTypes() {
-    return this.#coverTypesArray.map(typeId => CoverType.coverTypesMap.get(typeId));
+    return this.#coverTypesArray.map(typeId => CoverType.coverObjectsMap.get(typeId));
   }
 
   set coverType(value) {
-    if ( typeof value === "string" ) value = CoverType.coverTypesMap.get(value);
+    if ( typeof value === "string" ) value = CoverType.coverObjectsMap.get(value);
     if ( !(value instanceof CoverType) ) {
       console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
       return;
     }
     this.config.flags[MODULE_ID][FLAGS.COVER_TYPE] = value.config.id;
   }
-
-  /** @type {Set<string} */
-  #activeEffectIds = new Set(); // Track created active effect ids, to make finding them on actors easier.
 
   /**
    * Get data for an active effect.
@@ -94,7 +92,7 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {CoverType|string} coverType      CoverType object or its id.
    */
   _addCoverType(coverType) {
-    if ( typeof coverType === "string" ) coverType = CoverType.coverTypesMap.get(coverType);
+    if ( typeof coverType === "string" ) coverType = CoverType.coverObjectsMap.get(coverType);
     if ( !(coverType instanceof CoverType) ) {
       console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
       return;
@@ -107,7 +105,7 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {CoverType|string} coverType      CoverType object or its id.
    */
   _removeCoverType(coverType) {
-    if ( typeof coverType === "string" ) coverType = CoverType.coverTypesMap.get(coverType);
+    if ( typeof coverType === "string" ) coverType = CoverType.coverObjectsMap.get(coverType);
     if ( !(coverType instanceof CoverType) ) {
       console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
       return;
@@ -126,10 +124,20 @@ export class CoverEffect extends AbstractCoverObject {
    */
   addToActorLocally(actor, update = true) {
     if ( actor instanceof Token ) actor = actor.actor;
+    log(`CoverEffect#addToActorLocally|${actor.name} ${this.config.name}`);
+
+    // Is this effect already on the actor?
+    const activeEffectIds = this.constructor._activeEffectIds;
+    for ( const key of actor.effects.keys() ) {
+      if ( !activeEffectIds.has(key) ) continue;
+      if ( activeEffectIds.get(key) !== this ) return;
+    }
+
     const ae = actor.effects.createDocument(this.#activeEffectData);
+    log(`CoverEffect#addToActorLocally|${actor.name} adding ${ae.id} ${this.config.name}`);
     actor.effects.set(ae.id, ae);
-    this.#activeEffectIds.add(ae.id);
-    if ( update ) actor.prepareData(); // Trigger active effect update on the actor data.
+    this.constructor._activeEffectIds.set(ae.id, this);
+    actor.prepareData(); // Trigger active effect update on the actor data.
   }
 
   /**
@@ -138,11 +146,22 @@ export class CoverEffect extends AbstractCoverObject {
    */
   removeFromActorLocally(actor, update = true) {
     if ( actor instanceof Token ) actor = actor.actor;
-    const id = (new Set([...actor.effects.keys()])).intersection(this.#activeEffectIds).first();
-    if ( !id ) return;
-    actor.effects.delete(id);
-    this.#activeEffectIds.delete(id);
-    if ( update ) actor.prepareData(); // Trigger active effect update on the actor data.
+
+    log(`CoverEffect#removeFromActorLocally|${actor.name} ${this.config.name}`);
+    const activeEffectIds = this.constructor._activeEffectIds;
+    let changed = false;
+
+    // Is this effect on the actor?
+    for ( const key of actor.effects.keys() ) {
+      if ( !activeEffectIds.has(key) ) continue;
+      if ( activeEffectIds.get(key) !== this ) continue;
+      log(`CoverEffect#removeFromActorLocally|${actor.name} removing ${key} ${this.config.name}`);
+      actor.effects.delete(key);
+      activeEffectIds.delete(key);
+      changed ||= true;
+    }
+
+    if ( changed ) actor.prepareData(); // Trigger active effect update on the actor data.
   }
 
 
@@ -206,6 +225,9 @@ export class CoverEffect extends AbstractCoverObject {
     return id;
   }
 
+  /** @type {Map<string, CoverEffect>} */
+  static _activeEffectIds = new Map(); // Track created active effect ids, to make finding them on actors easier.
+
   // ----- NOTE: Static methods ----- //
 
   /**
@@ -217,9 +239,9 @@ export class CoverEffect extends AbstractCoverObject {
     const out = new Set();
     if ( actor instanceof Token ) actor = actor.actor;
     return actor.effects
-      .map(e => e.getFlag(MODULE_ID, COVER_EFFECT_ID) === this.id)
-      .filter(id => id === this.id)
-      .map(id => this.coverObjectsMap.get(id));
+      .filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))
+      .map(e => this._activeEffectIds.get(e.id))
+      .filter(e => Boolean(e))
   }
 
   /**
@@ -228,13 +250,15 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {CoverEffect[]|Set<CoverEffect>} coverTypes
    */
   static replaceLocalEffectsOnActor(actor, coverEffects = new Set()) {
+    log(`CoverEffect#replaceLocalEffectsOnActor|${actor.name}`);
+
     if ( actor instanceof Token ) actor = actor.actor;
     if ( !(coverEffects instanceof Set) ) coverEffects = new Set(coverEffects);
     const previousEffects = CoverEffect.getAllOnActor(actor);
     if ( coverEffects.equals(previousEffects) ) return;
     previousEffects.forEach(ce => ce.removeFromActorLocally(actor, false))
-    coverEffects.forEach(ce => ct.addToActorLocally(actor, false));
-    token.actor.prepareData();
+    coverEffects.forEach(ce => ce.addToActorLocally(actor, false));
+    actor.prepareData();
   }
 
   /**

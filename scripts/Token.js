@@ -9,7 +9,7 @@ game
 import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { SETTINGS, Settings } from "./settings.js";
-import { isFirstGM, keyForValue } from "./util.js";
+import { isFirstGM, keyForValue, log } from "./util.js";
 import { CoverType } from "./CoverType.js";
 import { CoverEffect } from "./CoverEffect.js";
 
@@ -207,7 +207,7 @@ function _coverTypes() {
  */
 function _coverEffects() {
   const coverTypes = CoverType.minimumCoverFromAttackers(this, this._coverAttackers("COVER_EFFECTS"));
-  return CoverEffect.coverObjectsMap.values().filter(ce => coverTypes.intersects(ce.coverTypes));
+  return CoverEffect.coverObjectsMap.values().filter(ce => coverTypes.intersects(new Set(ce.coverTypes)));
 }
 
 /**
@@ -228,9 +228,10 @@ function refreshCoverIcons() {
  * Set the cover icons representing whether this token currently has cover from tokens.
  */
 function refreshCoverEffects() {
+  log(`Token#refreshCoverEffects|${this.name}`);
   const targetsOnly = Settings.get(Settings.KEYS.COVER_TYPES.TARGETING);
-  const currCoverEffects = (targetsOnly && !this.isTargeted) ? NULL_SET : this._coverTypes();
-  CoverType.replaceLocalEffectsOnActor(this, currCoverEffects);
+  const currCoverEffects = (targetsOnly && !this.isTargeted) ? NULL_SET : this._coverEffects();
+  CoverEffect.replaceLocalEffectsOnActor(this, currCoverEffects);
 }
 
 PATCHES.BASIC.METHODS = {
