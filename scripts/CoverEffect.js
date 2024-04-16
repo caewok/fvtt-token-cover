@@ -9,6 +9,7 @@ import { AbstractCoverObject } from "./AbstractCoverObject.js";
 import { CoverEffectConfig } from "./CoverEffectConfig.js";
 import { coverEffects as dnd5eCoverEffects, coverEffects_midiqol } from "./coverDefaults/dnd5e.js";
 import { coverEffects as genericCoverEffects } from "./coverDefaults/generic.js";
+import { AsyncQueue } from "./AsyncQueue.js";
 import { log } from "./util.js";
 
 /**
@@ -321,15 +322,37 @@ COVER.EFFECTS = CoverEffect.coverObjectsMap;
 function refreshActorCoverEffect(actor) {
   log(`CoverEffect#refreshActorCoverEffect|${actor.name}`);
   actor.prepareData(); // Trigger active effect update on the actor data.
-  if ( actor.sheet.rendered ) {
-    log(`CoverEffect#refreshActorCoverEffect|Refreshing sheet for ${actor.name}`);
-    actor.sheet.render(true); // Async.
-  }
+  queueSheetRefresh(actor);
 }
 
 /**
- * Handle multiple sheet refreshes by setting a queue.
+ * Handle multiple sheet refreshes by using an async queue.
+ * If the actor sheet is rendering, wait for it to finish.
  */
+const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
 
+const renderQueue = new AsyncQueue();
 
+const queueObjectFn = function(ms, actor) {
+  return async function rerenderActorSheet() {
+    log(`CoverEffect#refreshActorCoverEffect|Testing sheet for ${actor.name}`);
 
+    // Give up after too many iterations.
+    const MAX_ITER = 10;
+    let iter = 0;
+    while ( iter < MAX_ITER && actor.sheet?._state === Application.RENDER_STATES.RENDERING ) {
+      iter += 1;
+      await sleep(ms);
+    }
+    if ( actor.sheet?.rendered ) {
+      log(`CoverEffect#refreshActorCoverEffect|Refreshing sheet for ${actor.name}`);
+      await actor.sheet.render(true);
+    }
+  }
+}
+
+function queueSheetRefresh(actor) {
+  log(`CoverEffect#refreshActorCoverEffect|Queuing sheet refresh for ${actor.name}`);
+  const queueObject = queueObjectFn(100, actor);
+  renderQueue.enqueue(queueObject); // Could break up the queue per actor but probably unnecessary?
+}

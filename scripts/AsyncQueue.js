@@ -4,9 +4,6 @@ game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
-
-
-
 /**
  * Basic queue class
  */
@@ -24,7 +21,7 @@ class Queue {
  * Dequeue awaits the task. When completed (or errored out), next task in the queue is awaited.
  * From https://stackoverflow.com/questions/53540348/js-async-await-tasks-queue
  */
-class AsyncQueue extends Queue {
+export class AsyncQueue extends Queue {
   #pendingPromise = false;
 
   enqueue(action) {
@@ -53,25 +50,16 @@ class AsyncQueue extends Queue {
   }
 
   /**
-   * Create a queue object.
-   * @param {object} [opts]   Options used for the queue object structure
-   * @param {function} [opts.action]    Function or async function
-   * @param {function} [opts.resolve]   Function to handle the return of the action function
-   * @param {function} [opts.reject]    Function to handle errors with the action function
-   * @param {...} [...] Object properties for the queue object
-   * @returns {AsyncQueueObject}
+   * Create a function that can construct a queue object.
+   * @param {function} action   Function or async function to run in the queue
+   * @param {...} [...] Object properties passed to action
+   * @returns {function}
    */
-  static createQueueObject({ action, resolve, reject, ...properties } = {}) {
-    action ??= () => true;
-    action.resolve = resolve ?? (() => true);
-    action.reject = reject ?? ((e) => console.log(e));
-    for ( const [key, value] of Object.entries(properties) ) action[key] = value;
-    return action;
-  }
+//   static createQueueObjectFn(action) {
+//     return properties => () => new Promise(resolve => action(...properties));
+//   }
 }
 
-
-/
 
 
 // item = {
@@ -100,11 +88,62 @@ aQueue.enqueue(p4).then(({ url, data }) => console.log('%s DONE %fms', url, perf
 */
 
 /* Test object creation
+
+  sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
+
+  async function myTimeout(ms, foo) {
+    await sleep(ms);
+    return foo;
+  }
+
+  function myObj(ms, foo) {
+    console.log("myObj");
+    return async function myTimeout() {
+      console.log("myTimeout")
+      const t0 = performance.now();
+      await sleep(ms);
+      const t1 = performance.now()
+      console.log(`finished myTimeout in ${t1 - t0} ms`)
+      return foo;
+    }
+  }
+
+  let p1 = myObj(1000, {url: '❪𝟭❫', data: { w: 1 } });
+  res = await aQueue.enqueue(p1);
+  console.log(res)
+
+
+
+
+  let _ = ({ ms, ...foo } = {}) => () => myTimeout(ms, foo)
+
+
+  let queueObjectFn = ({ ms, actor } = {}) => () => new Promise(resolve => {
+    setTimeout
+  })
+
+
+
+
+  let _ = ({ ms, ...foo } = {}) => () => new Promise(resolve => setTimeout(resolve, ms, foo));
+  let p1 = _({ ms: 50, url: '❪𝟭❫', data: { w: 1 } });
+  aQueue.enqueue(p1).then(({ url, data }) => console.log('%s DONE %fms', url, performance.now() - start)); //          = 50
+
   queueObj = AsyncQueue.createQueueObject({
     action: async function() { console.log(this.token.name); },
     token: _token
   })
   aQueue.enqueue(queueObj)
 
+
+  queueObjFn = AsyncQueue.createQueueObjectFn(setTimeout)
+  queueObj = queueObjFn((url, data) => console.log('%s DONE %fms', url, performance.now() - start), 50, '(1)')
+
+  start = performance.now();
+  aQueue.enqueue(queueObj)
+
+  queueObjFn = AsyncQueue.createQueueObjectFn(setTimeout    ))
+  queueObj = queueObjFn({ ms: 50, url: '❪𝟭❫', data: { w: 1 } })
+  aQueue.enqueue(queueObj)
 
 */
