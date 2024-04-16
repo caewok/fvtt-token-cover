@@ -148,17 +148,21 @@ export class CoverEffectsController {
    * ActiveEffect type and data to make non-nested effects behave as core does
    * @param {DragEvent} event - event that corresponds to the drag start
    */
-  onEffectDragStart(_event) {
+  onEffectDragStart(event) {
     log(`CoverEffectsController|onEffectDragStart for ${event.target.dataset.effectName}`);
-//     const terrain = Terrain.fromEffectId(event.target.dataset.effectId);
-//     event.dataTransfer.setData(
-//       "text/plain",
-//       JSON.stringify({
-//         name: terrain.name,
-//         type: "ActiveEffect",
-//         data: terrain._effectHelper.effect
-//       })
-//     );
+    const coverEffectId = event.target.dataset.effectId;
+    const coverEffect = CoverEffect.coverObjectsMap.get(coverEffectId);
+    // const data = coverEffect.activeEffectData;
+    // data.parent = () => this.object;
+
+    event.dataTransfer.setData(
+      "text/plain",
+      JSON.stringify({
+        name: coverEffect.config.name,
+        type: "ActiveEffect",
+        data: coverEffect.createActiveEffect()
+      })
+    );
   }
 
   canDragStart() {

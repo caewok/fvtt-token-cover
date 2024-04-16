@@ -32,6 +32,9 @@ import { PATCHES as PATCHES_ClientSettings } from "./ModuleSettingsAbstract.js";
 // Token configuration
 import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 
+// Cover Effect Item
+import { PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./CoverEffect.js";
+
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
   ActiveEffectConfig: PATCHES_ActiveEffectConfig,
@@ -39,6 +42,8 @@ const PATCHES = {
   ClientSettings: PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
   Item: PATCHES_Item,
+  ItemDirectory: PATCHES_ItemDirectory,
+  SidebarTab: PATCHES_SidebarTab,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
   Tile: PATCHES_Tile,
   Token: foundry.utils.mergeObject(PATCHES_Token, PATCHES_TokenLOS),
@@ -57,6 +62,7 @@ export function initializePatching() {
   PATCHER.addPatchesFromRegistrationObject(PATCHES); // So lookupByClassName works
   PATCHER.registerGroup("BASIC");
   PATCHER.registerGroup("TILE");
+  PATCHER.registerGroup("COVER_EFFECT");
 
   // If ATV is not active, handle the LOS patches needed to run the calculator.
   if ( !MODULES_ACTIVE.TOKEN_VISIBILITY ) PATCHER.registerGroup("LOS");
