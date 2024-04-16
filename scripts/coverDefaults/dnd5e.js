@@ -117,7 +117,7 @@ coverEffects.total = {
   name: "DND5E.CoverTotal",
   id: `${MODULE_ID}.${SYSTEM_ID}.total`,
   icon: ICONS.SHIELD_THIN_GRAY.FULL,
-  coverTypes: [ coverTypes.total ],
+  coverTypes: [ coverTypes.total.id ],
   changes: [
     {
       key: "system.attributes.ac.cover",

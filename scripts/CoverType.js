@@ -169,7 +169,7 @@ export class CoverType extends AbstractCoverObject {
     const change = token.document.effects.some(e => e === this.config.icon);
     if ( change ) {
       log(`CoverType#addToToken|${token.name} removing ${this.config.name}`);
-      findSpliceAll(token.document.effects, e => e !== this.config.icon);
+      findSpliceAll(token.document.effects, e => e == this.config.icon);
     }
     return change;
   }
@@ -250,7 +250,7 @@ export class CoverType extends AbstractCoverObject {
     const toKeep = coverTypes.map(ct => ct.config.icon);
     const toRemove = tokenEffectIcons.difference(toKeep);
     const changed = toRemove.size
-    if ( changed ) findSpliceAll(token.document.effects, e => !toRemove.has(e));
+    if ( changed ) findSpliceAll(token.document.effects, e => toRemove.has(e));
 
     // Add each of the cover types.
     const res = coverTypes.values().reduce((acc, ct) => {
