@@ -9,6 +9,8 @@ import { AbstractCoverObject } from "./AbstractCoverObject.js";
 import { CoverEffectConfig } from "./CoverEffectConfig.js";
 import { coverEffects as dnd5eCoverEffects, coverEffects_midiqol } from "./coverDefaults/dnd5e.js";
 import { coverEffects as genericCoverEffects } from "./coverDefaults/generic.js";
+import { AsyncQueue } from "./AsyncQueue.js";
+import { log } from "./util.js";
 
 /**
  * Handles active effects that should be treated as cover.
@@ -58,13 +60,13 @@ export class CoverEffect extends AbstractCoverObject {
   /** @type {string[]} */
   get #coverTypesArray() { return this.config.flags[MODULE_ID][FLAGS.COVER_TYPES]; }
 
-  /** @type {CoverType|COVER.NONE} */
+  /** @type {CoverType[]} */
   get coverTypes() {
-    return this.#coverTypesArray.map(typeId => CoverType.coverTypesMap.get(typeId));
+    return this.#coverTypesArray.map(typeId => CoverType.coverObjectsMap.get(typeId));
   }
 
   set coverType(value) {
-    if ( typeof value === "string" ) value = CoverType.coverTypesMap.get(value);
+    if ( typeof value === "string" ) value = CoverType.coverObjectsMap.get(value);
     if ( !(value instanceof CoverType) ) {
       console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
       return;
@@ -78,9 +80,11 @@ export class CoverEffect extends AbstractCoverObject {
   get #activeEffectData() {
     const data = { ...this.config };
     delete data.id;
+    data._id = foundry.utils.randomID();
     data.name = game.i18n.format("tokencover.phrases.xCoverEffect", { cover: game.i18n.localize(data.name) });
     return data;
   }
+
 
   // ----- NOTE: Methods ----- //
 
@@ -89,7 +93,7 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {CoverType|string} coverType      CoverType object or its id.
    */
   _addCoverType(coverType) {
-    if ( typeof coverType === "string" ) coverType = CoverType.coverTypesMap.get(coverType);
+    if ( typeof coverType === "string" ) coverType = CoverType.coverObjectsMap.get(coverType);
     if ( !(coverType instanceof CoverType) ) {
       console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
       return;
@@ -102,13 +106,12 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {CoverType|string} coverType      CoverType object or its id.
    */
   _removeCoverType(coverType) {
-    if ( typeof coverType === "string" ) coverType = CoverType.coverTypesMap.get(coverType);
+    if ( typeof coverType === "string" ) coverType = CoverType.coverObjectsMap.get(coverType);
     if ( !(coverType instanceof CoverType) ) {
       console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
       return;
     }
-    const idx = this.#coverTypesArray.findIndex(ct => ct.id === coverType.id);
-    if ( ~idx ) this.#coverTypesArray.splice(idx, 1);
+    this.#coverTypesArray.findSplice(ct => ct.id === coverType.id);
   }
 
   /**
@@ -116,6 +119,54 @@ export class CoverEffect extends AbstractCoverObject {
    */
   _removeAllCoverTypes() { this.#coverTypesArray.length = 0; }
 
+  /**
+   * Add the effect locally to an actor.
+   * @param {Token|Actor} actor
+   */
+  addToActorLocally(actor, update = true) {
+    if ( actor instanceof Token ) actor = actor.actor;
+    log(`CoverEffect#addToActorLocally|${actor.name} ${this.config.name}`);
+
+    // Is this effect already on the actor?
+    const activeEffectIds = this.constructor._activeEffectIds;
+    for ( const key of actor.effects.keys() ) {
+      if ( !activeEffectIds.has(key) ) continue;
+      if ( activeEffectIds.get(key) !== this ) return false;
+    }
+
+    const ae = actor.effects.createDocument(this.#activeEffectData);
+    log(`CoverEffect#addToActorLocally|${actor.name} adding ${ae.id} ${this.config.name}`);
+    actor.effects.set(ae.id, ae);
+    this.constructor._activeEffectIds.set(ae.id, this);
+
+    if ( update ) refreshActorCoverEffect(actor);
+    return true;
+  }
+
+  /**
+   * Remove the effect locally from an actor.
+   * @param {Token|Actor} actor
+   */
+  removeFromActorLocally(actor, update = true) {
+    if ( actor instanceof Token ) actor = actor.actor;
+
+    log(`CoverEffect#removeFromActorLocally|${actor.name} ${this.config.name}`);
+    const activeEffectIds = this.constructor._activeEffectIds;
+    let changed = false;
+
+    // Is this effect on the actor?
+    for ( const key of actor.effects.keys() ) {
+      if ( !activeEffectIds.has(key) ) continue;
+      if ( activeEffectIds.get(key) !== this ) continue;
+      log(`CoverEffect#removeFromActorLocally|${actor.name} removing ${key} ${this.config.name}`);
+      actor.effects.delete(key);
+      activeEffectIds.delete(key);
+      changed ||= true;
+    }
+
+    if ( update && changed ) refreshActorCoverEffect(actor);
+    return changed;
+  }
 
 
   /**
@@ -178,7 +229,50 @@ export class CoverEffect extends AbstractCoverObject {
     return id;
   }
 
+  /** @type {Map<string, CoverEffect>} */
+  static _activeEffectIds = new Map(); // Track created active effect ids, to make finding them on actors easier.
+
   // ----- NOTE: Static methods ----- //
+
+  /**
+   * Retrieve all Cover Effects on the actor.
+   * @param {Token|Actor} actor
+   * @returns {CoverEffect[]} Array of cover effects on the actor.
+   */
+  static getAllOnActor(actor) {
+    if ( actor instanceof Token ) actor = actor.actor;
+    return actor.effects
+      .filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))
+      .map(e => this._activeEffectIds.get(e.id))
+      .filter(e => Boolean(e))
+  }
+
+  /**
+   * Replace local cover effects on token with these.
+   * @param {Token|Actor} actor
+   * @param {CoverEffect[]|Set<CoverEffect>} coverEffects
+   */
+  static replaceLocalEffectsOnActor(actor, coverEffects = new Set()) {
+    log(`CoverEffect#replaceLocalEffectsOnActor|${actor.name}`);
+
+    if ( actor instanceof Token ) actor = actor.actor;
+    if ( !(coverEffects instanceof Set) ) coverEffects = new Set(coverEffects);
+    const previousEffects = new Set(CoverEffect.getAllOnActor(actor));
+    if ( coverEffects.equals(previousEffects) ) return;
+
+
+    // Filter to only effects that must change.
+    const toRemove = previousEffects.difference(coverEffects);
+    const toAdd = coverEffects.difference(previousEffects);
+    if ( !(toRemove.size || toAdd.size) ) return;
+
+    // Remove unwanted effects then add new effects.
+    previousEffects.forEach(ce => ce.removeFromActorLocally(actor, false))
+    coverEffects.forEach(ce => ce.addToActorLocally(actor, false));
+
+    // At least on effect should have been changed, so refresh actor.
+    refreshActorCoverEffect(actor);
+  }
 
   /**
    * Update the cover types from settings.
@@ -219,3 +313,46 @@ export class CoverEffect extends AbstractCoverObject {
 }
 
 COVER.EFFECTS = CoverEffect.coverObjectsMap;
+
+// ----- NOTE: Helper functions ----- //
+
+/**
+ * Refresh the actor so that the local cover effect is used and visible.
+ */
+function refreshActorCoverEffect(actor) {
+  log(`CoverEffect#refreshActorCoverEffect|${actor.name}`);
+  actor.prepareData(); // Trigger active effect update on the actor data.
+  queueSheetRefresh(actor);
+}
+
+/**
+ * Handle multiple sheet refreshes by using an async queue.
+ * If the actor sheet is rendering, wait for it to finish.
+ */
+const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
+
+const renderQueue = new AsyncQueue();
+
+const queueObjectFn = function(ms, actor) {
+  return async function rerenderActorSheet() {
+    log(`CoverEffect#refreshActorCoverEffect|Testing sheet for ${actor.name}`);
+
+    // Give up after too many iterations.
+    const MAX_ITER = 10;
+    let iter = 0;
+    while ( iter < MAX_ITER && actor.sheet?._state === Application.RENDER_STATES.RENDERING ) {
+      iter += 1;
+      await sleep(ms);
+    }
+    if ( actor.sheet?.rendered ) {
+      log(`CoverEffect#refreshActorCoverEffect|Refreshing sheet for ${actor.name}`);
+      await actor.sheet.render(true);
+    }
+  }
+}
+
+function queueSheetRefresh(actor) {
+  log(`CoverEffect#refreshActorCoverEffect|Queuing sheet refresh for ${actor.name}`);
+  const queueObject = queueObjectFn(100, actor);
+  renderQueue.enqueue(queueObject); // Could break up the queue per actor but probably unnecessary?
+}

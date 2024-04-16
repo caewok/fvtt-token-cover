@@ -12,7 +12,7 @@ import { registerGeometry } from "./geometry/registration.js";
 import { registerElevationConfig } from "./geometry/elevation_configs.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
-
+import { AsyncQueue } from "./AsyncQueue.js";
 
 // Cover objects
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
@@ -87,6 +87,7 @@ Hooks.once("init", function() {
       Area3dLOSWebGL2,
       Area3dLOSHybrid
     },
+    AsyncQueue,
 
     OPEN_POPOUTS,
 

@@ -12,8 +12,9 @@ import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
 import { PATCHES as PATCHES_ActiveEffectConfig } from "./ActiveEffectConfig.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
 import { PATCHES as PATCHES_Item } from "./Item.js";
-import { PATCHES as PATCHES_SettingsConfig } from "./SettingsConfig.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
+import { PATCHES as PATCHES_TokenDocument } from "./TokenDocument.js";
+import { PATCHES as PATCHES_Actor } from "./Actor.js";
 
 // LOS
 import { PATCHES as PATCHES_PointSourcePolygon } from "./LOS/PointSourcePolygon.js";
@@ -34,14 +35,15 @@ import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
   ActiveEffectConfig: PATCHES_ActiveEffectConfig,
+  Actor: PATCHES_Actor,
   ClientSettings: PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
   Item: PATCHES_Item,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
-  SettingsConfig: PATCHES_SettingsConfig,
   Tile: PATCHES_Tile,
   Token: foundry.utils.mergeObject(PATCHES_Token, PATCHES_TokenLOS),
   TokenConfig: PATCHES_TokenConfig,
+  TokenDocument: PATCHES_TokenDocument,
   VisionSource: PATCHES_VisionSource,
   Wall: PATCHES_Wall,
 
@@ -49,9 +51,10 @@ const PATCHES = {
 };
 
 export const PATCHER = new Patcher();
-PATCHER.addPatchesFromRegistrationObject(PATCHES);
+
 
 export function initializePatching() {
+  PATCHER.addPatchesFromRegistrationObject(PATCHES); // So lookupByClassName works
   PATCHER.registerGroup("BASIC");
   PATCHER.registerGroup("TILE");
 

@@ -10,6 +10,23 @@ import { EPSILON, MODULE_ID } from "./const.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 
 /**
+ * Remove in place multiple elements of an array that would meet a find test.
+ * @param {Array} arr             The array to modify
+ * @param {function} find         Test for whether an element should be removed
+ *   - @param {object} element    Current element being processed
+ *   - @param {number} index      Index of the element being tested
+ *   - @param {Array} array       The array, possibly modified by removals
+ * @returns {*[]} The modified array, for convenience
+ */
+export function findSpliceAll(arr, find) {
+  for ( let i = arr.length - 1; i >= 0; i -= 1 ) {
+    if ( find(arr[i], i, arr) ) arr.splice(i, 1);
+  }
+  return arr;
+}
+
+
+/**
  * Log if this module's debug config is enabled.
  */
 export function log(...args) {

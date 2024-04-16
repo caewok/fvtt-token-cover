@@ -18,17 +18,13 @@ import {
   MediumCoverEffectConfig,
   HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
 
-const TYPE_USE_CHOICES = {
+const USE_CHOICES = {
   NEVER: "never",
   COMBAT: "combat",
+  COMBATANT: "combatant",
+  ATTACK: "attack",
   ALWAYS: "always"
 };
-
-const EFFECT_USE_CHOICES = {
-  NEVER: "never",
-  TARGETING: "targeting",
-  ATTACK: "attack"
-}
 
 const CONFIRM_CHOICES = {
   USER: "cover-workflow-confirm-user",
@@ -46,14 +42,16 @@ export const SETTINGS = {
 
   COVER_TYPES: {
     USE: "use-cover-types",
-    CHOICES: TYPE_USE_CHOICES,
-    DATA: "cover-types-data"
+    CHOICES: USE_CHOICES,
+    DATA: "cover-types-data",
+    TARGETING: "cover-types-targeting"
   },
 
   COVER_EFFECTS: {
     USE: "use-cover-effects",
-    CHOICES: EFFECT_USE_CHOICES,
-    DATA: "cover-effects-data"
+    CHOICES: USE_CHOICES,
+    DATA: "cover-effects-data",
+    TARGETING: "cover-effects-targeting"
   },
 
   COVER_WORKFLOW: {
@@ -269,12 +267,15 @@ export class Settings extends ModuleSettingsAbstract {
     Object.values(LTYPES).forEach(type => losChoices[type] = localize(type));
     Object.values(PT_TYPES).forEach(type => ptChoices[type] = localize(type));
 
-    Object.values(TYPE_USE_CHOICES).forEach(type => coverTypeUseChoices[type] = localize(type));
-    Object.values(EFFECT_USE_CHOICES).forEach(type => coverEffectUseChoices[type] = localize(type));
+    Object.values(USE_CHOICES).forEach(type => coverTypeUseChoices[type] = localize(type));
+    Object.values(USE_CHOICES).forEach(type => coverEffectUseChoices[type] = localize(type));
     Object.values(CONFIRM_CHOICES).forEach(type => coverConfirmChoices[type] = localize(type));
 
     // For most systems, no hooks set up into their attack sequence, so applying effects on attack is out.
-    if ( game.system.id !== "dnd5e" ) delete coverEffectUseChoices[EFFECT_USE_CHOICES.ATTACK];
+    if ( game.system.id !== "dnd5e" ) {
+      delete coverTypeUseChoices[USE_CHOICES.ATTACK];
+      delete coverEffectUseChoices[USE_CHOICES.ATTACK];
+    }
 
     register(KEYS.COVER_TYPES.USE, {
       name: localize(`${KEYS.COVER_TYPES.USE}.Name`),
@@ -285,6 +286,15 @@ export class Settings extends ModuleSettingsAbstract {
       choices: coverTypeUseChoices,
       default: KEYS.COVER_TYPES.CHOICES.ALWAYS,
       requiresReload: true // Otherwise, would need to clear all icons from all users.
+    });
+
+    register(KEYS.COVER_TYPES.TARGETING, {
+      name: localize(`${KEYS.COVER_TYPES.TARGETING}.Name`),
+      hint: localize(`${KEYS.COVER_TYPES.TARGETING}.Hint`),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: false
     });
 
     // ----- Main Settings Menu ----- //
@@ -410,6 +420,16 @@ export class Settings extends ModuleSettingsAbstract {
       type: String,
       choices: coverEffectUseChoices,
       default: KEYS.COVER_EFFECTS.CHOICES.NEVER,
+      tab: "workflow"
+    });
+
+    register(KEYS.COVER_EFFECTS.TARGETING, {
+      name: localize(`${KEYS.COVER_EFFECTS.TARGETING}.Name`),
+      hint: localize(`${KEYS.COVER_EFFECTS.TARGETING}.Hint`),
+      scope: "world",
+      config: false,
+      type: Boolean,
+      default: false,
       tab: "workflow"
     });
 

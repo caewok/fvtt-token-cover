@@ -68,6 +68,8 @@ coverTypes.total = {
 // ----- NOTE: Cover effects ----- //
 export const coverEffects = {};
 
+// TODO: use system.attributes.ac.cover and modify the DND5e calculation somewhere?
+
 coverEffects.half = {
   name: "DND5E.CoverHalf",
   id: `${MODULE_ID}.${SYSTEM_ID}.half`,
@@ -115,7 +117,7 @@ coverEffects.total = {
   name: "DND5E.CoverTotal",
   id: `${MODULE_ID}.${SYSTEM_ID}.total`,
   icon: ICONS.SHIELD_THIN_GRAY.FULL,
-  coverTypes: [ coverTypes.total ],
+  coverTypes: [ coverTypes.total.id ],
   changes: [
     {
       key: "system.attributes.ac.cover",
