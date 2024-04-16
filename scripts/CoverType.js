@@ -9,6 +9,7 @@ import { coverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
 import { Settings } from "./settings.js";
 import { MODULE_ID, COVER } from "./const.js";
 import { AbstractCoverObject } from "./AbstractCoverObject.js";
+import { findSpliceAll, log } from "./util.js";
 
 const NULL_SET = new Set(); // Set intended to signify no items, as a placeholder.
 
@@ -133,6 +134,7 @@ export class CoverType extends AbstractCoverObject {
    * @returns {boolean} True if change was made.
    */
   addToToken(token) {
+    log(`CoverType#addToToken|${token.name}`);
     const icon = this.config.icon;
 
     // If already present, we are done.
@@ -140,6 +142,7 @@ export class CoverType extends AbstractCoverObject {
 
     // If this type can overlap, it can be added b/c it is not already present.
     if ( this.config.canOverlap ) {
+      log(`CoverType#addToToken|${token.name} adding ${this.config.name}`);
       token.document.effects.push(icon);
       return true;
     }
@@ -152,6 +155,7 @@ export class CoverType extends AbstractCoverObject {
     }
 
     // Add the new cover type icon to the token.
+    log(`CoverType#addToToken|${token.name} adding ${this.config.name}`);
     token.document.effects.push(icon);
     return true;
   }
@@ -163,7 +167,10 @@ export class CoverType extends AbstractCoverObject {
    */
   removeFromToken(token) {
     const change = token.document.effects.some(e => e === this.config.icon);
-    if ( change ) token.document.effects = token.document.effects.filter(e => e !== this.config.icon);
+    if ( change ) {
+      log(`CoverType#addToToken|${token.name} removing ${this.config.name}`);
+      findSpliceAll(token.document.effects, e => e !== this.config.icon);
+    }
     return change;
   }
 
@@ -243,7 +250,7 @@ export class CoverType extends AbstractCoverObject {
     const toKeep = coverTypes.map(ct => ct.config.icon);
     const toRemove = tokenEffectIcons.difference(toKeep);
     const changed = toRemove.size
-    if ( changed ) token.document.effects = token.document.effects.filter(e => !toRemove.has(e));
+    if ( changed ) findSpliceAll(token.document.effects, e => !toRemove.has(e));
 
     // Add each of the cover types.
     const res = coverTypes.values().reduce((acc, ct) => {

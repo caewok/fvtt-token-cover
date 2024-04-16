@@ -88,8 +88,14 @@ function updateToken(tokenD, change, _options, _userId) {
     t.coverFromMap.delete(id);
   });
 
-  if ( useCoverObject("COVER_TYPES") ) canvas.tokens.placeables.forEach(t => t.refreshCoverIcons());
-  if ( useCoverObject("COVER_EFFECTS") ) canvas.tokens.placeables.forEach(t => t.refreshCoverEffects());
+  if ( useCoverObject("COVER_TYPES") ) {
+    log(`updateToken hook|updating cover icons.`)
+    canvas.tokens.placeables.forEach(t => t.refreshCoverIcons());
+  }
+  if ( useCoverObject("COVER_EFFECTS") ) {
+    log(`updateToken hook|updating cover effects.`)
+    canvas.tokens.placeables.forEach(t => t.refreshCoverEffects());
+  }
 }
 
 /**
@@ -100,8 +106,14 @@ function updateToken(tokenD, change, _options, _userId) {
  * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
  */
 function controlToken(_controlledToken, _controlled) {
-  if ( useCoverObject("COVER_TYPES") ) canvas.tokens.placeables.forEach(t => t.refreshCoverIcons());
-  if ( useCoverObject("COVER_EFFECTS") ) canvas.tokens.placeables.forEach(t => t.refreshCoverEffects());
+  if ( useCoverObject("COVER_TYPES") ) {
+    log(`controlToken hook|updating cover icons. ${_controlledToken.name} ${_controlled ? "controlled" : "uncontrolled"}`)
+    canvas.tokens.placeables.forEach(t => t.refreshCoverIcons());
+  }
+  if ( useCoverObject("COVER_EFFECTS") ) {
+    log(`controlToken hook|updating cover effects. ${_controlledToken.name} ${_controlled ? "controlled" : "uncontrolled"}`)
+    canvas.tokens.placeables.forEach(t => t.refreshCoverEffects());
+  }
 }
 
 /**
@@ -111,6 +123,7 @@ function controlToken(_controlledToken, _controlled) {
 function destroyToken(token) { if ( token[MODULE_ID]?.coverCalc ) token.coverCalculator.destroy(); }
 
 /**
+ * Hook: targetToken
  * If a token is targeted, determine its cover status.
  *
  * A hook event that fires when a token is targeted or un-targeted.
@@ -120,11 +133,17 @@ function destroyToken(token) { if ( token[MODULE_ID]?.coverCalc ) token.coverCal
  * @param {Token} token      The targeted Token
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
-async function targetToken(user, target, targeted) {
+function targetToken(user, target, targeted) {
   const coverTypeTargetsOnly = Settings.get(Settings.KEYS.COVER_TYPES.TARGETING);
   const coverEffectTargetsOnly = Settings.get(Settings.KEYS.COVER_EFFECTS.TARGETING);
-  if ( coverTypeTargetsOnly && useCoverObject("COVER_TYPES") ) target.refreshCoverIcons();
-  if ( coverEffectTargetsOnly && useCoverObject("COVER_EFFECTS") ) target.refreshCoverEffects();
+  if ( coverTypeTargetsOnly && useCoverObject("COVER_TYPES") ) {
+    log(`targetToken hook|updating cover icons.`)
+    target.refreshCoverIcons();
+  }
+  if ( coverEffectTargetsOnly && useCoverObject("COVER_EFFECTS") ) {
+    log(`targetToken hook|updating cover effects.`)
+    target.refreshCoverEffects();
+  }
 }
 
 /**

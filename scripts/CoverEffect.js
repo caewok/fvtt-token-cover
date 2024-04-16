@@ -236,10 +236,9 @@ export class CoverEffect extends AbstractCoverObject {
   /**
    * Retrieve all Cover Effects on the actor.
    * @param {Token|Actor} actor
-   * @returns {Set<CoverEffect>} Set of cover effects on the actor.
+   * @returns {CoverEffect[]} Array of cover effects on the actor.
    */
   static getAllOnActor(actor) {
-    const out = new Set();
     if ( actor instanceof Token ) actor = actor.actor;
     return actor.effects
       .filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))
@@ -250,19 +249,27 @@ export class CoverEffect extends AbstractCoverObject {
   /**
    * Replace local cover effects on token with these.
    * @param {Token|Actor} actor
-   * @param {CoverEffect[]|Set<CoverEffect>} coverTypes
+   * @param {CoverEffect[]|Set<CoverEffect>} coverEffects
    */
   static replaceLocalEffectsOnActor(actor, coverEffects = new Set()) {
     log(`CoverEffect#replaceLocalEffectsOnActor|${actor.name}`);
 
     if ( actor instanceof Token ) actor = actor.actor;
     if ( !(coverEffects instanceof Set) ) coverEffects = new Set(coverEffects);
-    const previousEffects = CoverEffect.getAllOnActor(actor);
+    const previousEffects = new Set(CoverEffect.getAllOnActor(actor));
     if ( coverEffects.equals(previousEffects) ) return;
 
-    // TODO: Catch if any change actually occurs.
+
+    // Filter to only effects that must change.
+    const toRemove = previousEffects.difference(coverEffects);
+    const toAdd = coverEffects.difference(previousEffects);
+    if ( !(toRemove.size || toAdd.size) ) return;
+
+    // Remove unwanted effects then add new effects.
     previousEffects.forEach(ce => ce.removeFromActorLocally(actor, false))
     coverEffects.forEach(ce => ce.addToActorLocally(actor, false));
+
+    // At least on effect should have been changed, so refresh actor.
     refreshActorCoverEffect(actor);
   }
 
@@ -312,6 +319,17 @@ COVER.EFFECTS = CoverEffect.coverObjectsMap;
  * Refresh the actor so that the local cover effect is used and visible.
  */
 function refreshActorCoverEffect(actor) {
+  log(`CoverEffect#refreshActorCoverEffect|${actor.name}`);
   actor.prepareData(); // Trigger active effect update on the actor data.
-  if ( actor.sheet.rendered ) actor.sheet.render(true);
+  if ( actor.sheet.rendered ) {
+    log(`CoverEffect#refreshActorCoverEffect|Refreshing sheet for ${actor.name}`);
+    actor.sheet.render(true); // Async.
+  }
 }
+
+/**
+ * Handle multiple sheet refreshes by setting a queue.
+ */
+
+
+
