@@ -49,15 +49,27 @@ export class CoverEffect extends AbstractCoverObject {
    * Configure the object using the default provided data.
    * @param {ActiveEffectData} [coverEffectData={}]
    */
-  _configure(coverEffectData = {}) {
-    super._configure(coverEffectData);
+  _configure(coverEffectData = {}, overwrite = false) {
+    this.id ??= this.constructor.idFromData(coverObjectData);
+  }
+
+  /**
+   * Construct a new active effect if none present.
+   * @param {ActiveEffectData} [coverEffectData={}]     Data to use when constructing new effect
+   * @param {boolean} [overwrite=false]                 If true, update the active effect with this data
+   */
+  async initialize(coverEffectData = {}, overwrite = false) {
+    // Use existing data stored in the cover effects item.
+    if ( !overwrite && this.activeEffect ) return;
+
+    // Create new effect on the cover effects item
+    coverEffectData.delete(id);
 
     // Ensure the necessary flags are present.
-    this.config.flags ??= {};
-    this.config.flags[MODULE_ID] ??= {};
-    this.config.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= coverEffectData.id
-      ?? `${MODULE_ID}.${game.system.id}.${foundry.utils.randomID()}`;
-    const coverTypes = this.config.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [];
+    coverEffectData.flags ??= {};
+    coverEffectData.flags[MODULE_ID] ??= {};
+    coverEffectData.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] = this.id;
+    const coverTypes = coverEffectData.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [];
 
     // Move cover types to flags.
     if ( coverEffectData.coverTypes ) {
@@ -65,19 +77,17 @@ export class CoverEffect extends AbstractCoverObject {
       delete coverEffectData.coverTypes;
     }
 
-    // Remove id from the main config.
-    delete coverEffectData.id;
-
     // Name is required to instantiate an ActiveEffect.
-    this.config.name ??= "tokencover.phrases.newEffect";
+    coverEffectData.name ??= "tokencover.phrases.newEffect";
+
+    // Create the active effect.
+    return this.save(coverEffectData); // Async
   }
 
   // ----- NOTE: Getters, setters, and related properties ----- //
 
-  /** @type {string} */
-  get id() {
-    return this.config.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ?? super.id;
-  }
+  /** @type {object} */
+  get config() { return this.activeEffect.toJSON(); }
 
   /** @type {string[]} */
   get #coverTypesArray() { return this.config.flags[MODULE_ID][FLAGS.COVER_TYPES]; }
@@ -101,10 +111,9 @@ export class CoverEffect extends AbstractCoverObject {
    */
   get activeEffectData() {
     const data = { ...this.config };
-    delete data.id;
     data._id = foundry.utils.randomID();
-    data.name = game.i18n.format("tokencover.phrases.xCoverEffect", { cover: game.i18n.localize(data.name) });
-    data.origin = this.coverEffectItem.id;
+    data.name ??= game.i18n.format("tokencover.phrases.xCoverEffect", { cover: game.i18n.localize(data.name) });
+    data.origin ??= this.constructor.coverEffectItem.id;
     return data;
   }
 
@@ -114,48 +123,57 @@ export class CoverEffect extends AbstractCoverObject {
    */
   #activeEffect
 
-  get activeEffect() { return this.#activeEffect || (this.#activeEffect = this.#findOnCoverEffectItem); }
+  get activeEffect() { return this.#activeEffect || (this.#activeEffect = this.#findOnCoverEffectItem()); }
 
   // ----- NOTE: Methods ----- //
+
 
   /**
    * Locate this cover effect on the item.
    * @return {CoverEffect}
    */
   #findOnCoverEffectItem() {
-    const item = this.coverEffectItem;
+    const item = this.constructor.coverEffectItem;
     return item.effects.find(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === this.id);
   }
 
   /**
    * Add this effect to the effect item.
    */
-  async _addToCoverEffectItem() {
+  async _addToCoverEffectItem(activeEffectData) {
     const existing = this.#findOnCoverEffectItem();
-    if ( existing ) return existing;
-    const ae = await this.coverEffectItem.createEmbeddedDocuments("ActiveEffect", [this.activeEffectData()]);
+    if ( existing || !activeEffectData ) return existing;
+    const ae = await this.constructor.coverEffectItem.createEmbeddedDocuments("ActiveEffect", [activeEffectData]);
     this.#activeEffect = ae[0];
+    return ae[0];
   }
 
   /**
-   * Sync from the stored cover item effect, if any.
+   * Ignores, as config pulls directly from the active effect.
    */
-  fromSettings() { this.update(this.activeEffect); }
+  update() { console.warn("CoverEffect does not use update method."); }
+
+  /**
+   * Ignored, as config pulls directly from the active effect.
+   */
+  load() { console.warn("CoverEffect does not use load method."); }
 
   /**
    * Save to the stored cover item effect, if any.
+   * Requires explicit data in order to overwrite the existing effect.
+   * @param {object} activeEffectData
    */
-  async saveToSettings() {
-    const coverEffect = this.activeEffect;
-    if ( !coverEffect ) return this._addToCoverEffectItem();
-    return coverEffect.update(this.activeEffectData);
+  async save(activeEffectData) {
+    if ( !activeEffectData ) return;
+    const coverEffect = this.activeEffect ?? (await this._addToCoverEffectItem(activeEffectData));
+    return coverEffect.update(activeEffectData);
   }
 
   /**
    * Delete the setting associated with this cover type.
    * Typically used if destroying the cover type or resetting to defaults.
    */
-  async deleteSetting() {
+  async deleteSaveData() {
     const coverEffect = this.activeEffect;
     if ( !coverEffect ) return;
     this.#activeEffect = undefined;
@@ -251,8 +269,9 @@ export class CoverEffect extends AbstractCoverObject {
    * Render the AE configuration window.
    */
   async renderConfig() {
-    const app = new CoverEffectConfig(this)
-    app.render(true);
+    // const app = new CoverEffectConfig(this.activeEffect)
+    // app.render(true);
+    this.activeEffect.sheet.render(true);
   }
 
   // ----- NOTE: Methods to apply this active effect to a token ----- //
@@ -350,12 +369,14 @@ export class CoverEffect extends AbstractCoverObject {
   /**
    * Update the cover effects from settings.
    */
-  static _updateFromSettings = AbstractCoverObject._updateFromSettings.bind(this);
+  static _updateFromSettings() {
+    console.warn("CoverEffect does not use _updateFromSettings");
+  };
 
   /**
    * Save cover effects to settings.
    */
-  static _saveToSettings = AbstractCoverObject._saveToSettings.bind(this);
+  static save = AbstractCoverObject.save.bind(this);
 
   /**
    * Save all cover effects to a json file.
@@ -392,7 +413,7 @@ export class CoverEffect extends AbstractCoverObject {
   static COVER_EFFECTS_ITEM; // Added by initializeCoverEffectsItem.
 
   /** @type {Item} */
-  static get coverEffectsItem() {
+  static get coverEffectItem() {
     if ( !this.COVER_EFFECTS_ITEM ) {
       const item = game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECTS_ITEM));
       if ( !item ) console.error("Cover Effects Item not found. Must be initialized.");
@@ -408,22 +429,52 @@ export class CoverEffect extends AbstractCoverObject {
    */
   static async _initializeCoverEffectsItem() {
     const coverEffectItem = game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECTS_ITEM));
+    const promises = [];
     if ( coverEffectItem ) {
       this.COVER_EFFECTS_ITEM = coverEffectItem.id;
+
+      // Make sure all items are present
+      const promises = [];
+      this.coverObjectsMap.forEach(ce => promises.push(ce._addToCoverEffectItem()));
+
       return;
+    } else {
+      const item = await CONFIG.Item.documentClass.create({
+        name: "Cover Effects",
+        img: "icons/svg/ruins.svg",
+        type: "base",
+        flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECTS_ITEM]: true} }
+      });
+      this.COVER_EFFECTS_ITEM = item.id;
+      this.coverObjectsMap.forEach(ce => promises.push(ce._addToCoverEffectItem()));
     }
-    const item = await CONFIG.Item.documentClass.create({
-      name: "Cover Effects",
-      img: "icons/svg/ruins.svg",
-      type: "base",
-      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECTS_ITEM]: true} }
-    });
-    this.COVER_EFFECTS_ITEM = item.id;
-    const promises = [];
-    this.coverObjectsMap.forEach(ce => promises.push(ce.saveToSettings()));
+
     return Promise.allSettled(promises);
   }
 
+  /**
+   * Initialize the cover effects for this game.
+   */
+  static async initialize() {
+    await this._initializeCoverEffectsItem();
+    await this._constructDefaultCoverObjects();
+  }
+
+  /**
+   * Create default effects and store in the cover effects item.
+   * Typically used on game load.
+   * @param {boolean} [override=false]    Use existing cover effects unless enabled
+   */
+  static async _constructDefaultCoverObjects(override = false) {
+    const data = this._defaultCoverTypeData();
+    this.coverObjectsMap.clear();
+    const promises = [];
+    for ( const d of data ) {
+      const ce = new this(d);
+      promises.push(ce.initialize(d, override));
+    }
+    return Promise.allSettled(promises);
+  }
 }
 
 COVER.EFFECTS = CoverEffect.coverObjectsMap;

@@ -15,19 +15,22 @@ export class AbstractCoverObject {
   /** @type {object} */
   config = {};
 
+  /** @type {string} */
+  id;
+
   /**
    * @param {object} [coverObjectData={}]
    */
   constructor(coverObjectData = {}) {
-    const id = this.constructor.idFromData(coverObjectData);
+    this.id = this.constructor.idFromData(coverObjectData);
     const coverObjectsMap = this.constructor.coverObjectsMap;
-    if ( coverObjectsMap.has(id) ) return coverObjectsMap.get(id);
+    if ( coverObjectsMap.has(id) ) return coverObjectsMap.get(this.id);
 
     // Construct the object
     this._configure(coverObjectData);
 
     // Unique cover type per id.
-    coverObjectsMap.set(id, this);
+    coverObjectsMap.set(this.id, this);
   }
 
   /**
@@ -35,13 +38,12 @@ export class AbstractCoverObject {
    * @param {object} [coverObjectData={}]
    */
   _configure(coverObjectData = {}) {
+    this.id ??= this.constructor.idFromData(coverObjectData);
+    delete coverObjectData.id;
     this.config = coverObjectData;
   }
 
   // ----- NOTE: Getters, setters, related properties ----- //
-
-  /** @type {string} */
-  get id() { return `${MODULE_ID}.${this.systemId}.${foundry.utils.randomID()}`; }
 
   /** @type {string} */
   get systemId() { return game.system.id; }
@@ -66,7 +68,7 @@ export class AbstractCoverObject {
   /**
    * Sync from the stored setting, if any.
    */
-  fromSettings() {
+  load() {
     const allCoverObjects = Settings.get(this.constructor.settingsKey);
     const data = allCoverObjects[this.systemId]?.[this.id];
     if ( data ) this.update(data);
@@ -75,7 +77,7 @@ export class AbstractCoverObject {
   /**
    * Save to the stored setting.
    */
-  async saveToSettings() {
+  async save() {
     const settingsKey = this.constructor.settingsKey;
     const systemId = this.systemId;
     const allCoverObjects = Settings.get(settingsKey);
@@ -88,13 +90,22 @@ export class AbstractCoverObject {
    * Delete the setting associated with this cover type.
    * Typically used if destroying the cover type or resetting to defaults.
    */
-  async deleteSetting() {
+  async deleteSaveData() {
     const settingsKey = this.constructor.settingsKey;
     const systemId = this.systemId;
     const allCoverObjects = Settings.get(settingsKey);
     allCoverObjects[systemId] ??= {};
     delete allCoverObjects[systemId][this.id];
     return Settings.set(settingsKey, allCoverObjects);
+  }
+
+  /**
+   * Delete this cover object from the objects map and optionally remove saved data.
+   * @param {boolean} {deleteSaveData = false}    If true, save data is deleted. Async if true.
+   */
+  async delete(deleteSaveData = false) {
+    this.constructor.coverObjectsMap.delete(this.id);
+    if ( deleteSaveData ) return this.deleteSaveData();
   }
 
   /**
@@ -127,21 +138,21 @@ export class AbstractCoverObject {
    * Retrieve an id from cover data.
    * @param {object} coverObjectData
    */
-  static idFromData(coverObjectData) { return coverObjectData.id; }
+  static idFromData(coverObjectData) { return coverObjectData.id ?? `${MODULE_ID}.${this.systemId}.${foundry.utils.randomID()}`; }
 
   /**
    * Update the cover types from settings.
    */
   static _updateFromSettings() {
-    this.coverObjectsMap.forEach(ct => ct.fromSettings());
+    this.coverObjectsMap.forEach(ct => ct.load());
   }
 
   /**
    * Save cover types to settings.
    */
-  static async _saveToSettings() {
+  static async save() {
     const promises = [];
-    this.coverObjectsMap.forEach(ct => promises.push(ct.saveToSettings()));
+    this.coverObjectsMap.forEach(ct => promises.push(ct.save()));
     return Promise.allSettled(promises);
   }
 
@@ -214,8 +225,20 @@ export class AbstractCoverObject {
     Object.values(data).forEach(d => new this(d));
   }
 
+  /**
+   * Retrieve default data for this cover object.
+   * @returns {object}
+   */
   static _defaultCoverTypeData() {
     console.error("AbstractCoverObject#_defaultCoverTypeData|Must be handled by subclass.");
     return {};
+  }
+
+  /**
+   * Initialize the cover objects for this game.
+   */
+  static initialize() {
+    this._constructDefaultCoverObjects();
+    this._updateFromSettings();
   }
 }

@@ -51,9 +51,10 @@ the highest priority that meets its threshold will be applied. Cover types witho
 evaluated last, in no particular order.
 
 An active effect ("Cover Effect") can be associated with a CoverType. This allows active effects
-to be applied when a token has a certain cover type. Active effects are saved to the
-server database and thus are async and seen by all users. This somewhat limits their usefulness,
-although they can be used in attack/damage workflows.
+to be applied when a token has a certain cover type. Cover Effects are applied locally per-user,
+although a Cover Effect in most systems is an ActiveEffect that could be applied to a database.
+Applying an active effect via the database is less useful for cover, as it applies to all
+tokens equally regardless of user/attacker.
 */
 
 
@@ -84,8 +85,6 @@ export class CoverType extends AbstractCoverObject {
 
   // ----- NOTE: Getters, setters, related properties ----- //
 
-  /** @type {string} */
-  get id() { return this.config.id ?? super.id; }
 
   // ----- NOTE: Methods ----- //
 
@@ -298,7 +297,7 @@ export class CoverType extends AbstractCoverObject {
   /**
    * Save cover types to settings.
    */
-  static _saveToSettings = AbstractCoverObject._saveToSettings.bind(this);
+  static save = AbstractCoverObject.save.bind(this);
 
   /**
    * Save all cover types to a json file.
@@ -316,6 +315,11 @@ export class CoverType extends AbstractCoverObject {
    * Typically used on game load.
    */
   static _constructDefaultCoverObjects = AbstractCoverObject._constructDefaultCoverObjects.bind(this);
+
+  /**
+   * Initialize the cover types for this game.
+   */
+  static initialize = AbstractCoverObject.initialize.bind(this);
 
   static _defaultCoverTypeData() {
     switch ( game.system.id ) {

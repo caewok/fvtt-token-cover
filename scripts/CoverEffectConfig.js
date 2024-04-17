@@ -23,8 +23,9 @@ export class CoverEffectConfig extends ActiveEffectConfig {
    */
   constructor(coverEffect, opts = {}) {
     super(opts);
-    this.coverEffect = coverEffect;
-    this.object = coverEffect.createActiveEffect();
+    this.object = coverEffect;
+    // this.coverEffect = coverEffect;
+    // this.object = coverEffect.createActiveEffect();
   }
 
   /**
@@ -72,14 +73,14 @@ export class CoverEffectConfig extends ActiveEffectConfig {
   /**
    * Override default submission behavior to save the cover values.
    */
-  async _onSubmit(...args) {
-    await super._onSubmit(...args);
+//   async _onSubmit(...args) {
+//     await super._onSubmit(...args);
 
-    // Update the CoverEffect.
-    this.coverEffect.update(this.object.toJSON());
-
-    // Store to settings.
-    this.coverEffect.saveToSettings();
+//     // Update the CoverEffect.
+//     this.coverEffect.update(this.object.toJSON());
+//
+//     // Store to settings.
+//     this.coverEffect.save();
 
 //     const allStatusEffects = Settings.get(Settings.KEYS.COVER.EFFECTS);
 //     let systemId = game.system.id;
@@ -91,5 +92,5 @@ export class CoverEffectConfig extends ActiveEffectConfig {
 //     const coverEffectId = this.options.coverEffectId
 //     allStatusEffects[systemId][coverEffectId] = this.object.toJSON();;
 //     await Settings.set(Settings.KEYS.COVER.EFFECTS, allStatusEffects);
-  }
+//   }
 }

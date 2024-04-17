@@ -58,10 +58,10 @@ export class CoverEffectsController {
    */
   async onCreateCoverEffect(_event) {
     log("CoverEffectsController|onCreateCoverEffect");
-//     const terrain = new Terrain();
-//     await terrain.initialize();
-//     this._viewMvc.render();
-//     terrain.activeEffect.sheet.render(true);
+    const ce = new CoverEffect();
+    await ce.initialize();
+    this._viewMvc.render();
+    ce.renderConfig();
   }
 
   /**
@@ -70,9 +70,9 @@ export class CoverEffectsController {
    */
   async onEditCoverEffect(effectItem) {
     log("CoverEffectsController|onEditCoverEffect");
-    const data = effectItem.data ? effectItem.data() : effectItem.currentTarget.dataset;
-    const ce = CoverEffect.coverObjectsMap.get(data.effectId);
-    if ( ce ) return ce.renderConfig();
+    const ce = coverEffectForListItem(effectItem);
+    if ( !ce ) return;
+    return ce.renderConfig();
   }
 
   /**
@@ -81,16 +81,17 @@ export class CoverEffectsController {
    */
   async onDeleteCoverEffect(effectItem) {
     log("CoverEffectsController|onDeleteCoverEffect");
-    const effectId = effectItem.data().effectId;
-    const view = this._viewMvc;
+    const ce = coverEffectForListItem(effectItem);
+    if ( !ce ) return;
 
+    const view = this._viewMvc;
     return Dialog.confirm({
       title: "Remove Terrain",
       content:
         "<h4>Are You Sure?</h4><p>This will remove the terrain from all scenes.",
       yes: async () => {
         log("CoverEffectsController|onDeleteCoverEffect yes");
-        //await EffectHelper.deleteEffectById(effectId);
+        await ce.delete(true);
         view.render();
       }
     });
@@ -112,10 +113,10 @@ export class CoverEffectsController {
    */
   async onImportCoverEffect(effectItem) {
     log("CoverEffectsController|onImportCoverEffect");
-    const effectId = effectItem.data().effectId;
-//     const terrain = Terrain.fromEffectId(effectId);
-//     await terrain.importFromJSONDialog();
-//     this._viewMvc.render();
+    const ce = coverEffectForListItem(effectItem);
+    if ( !ce ) return;
+    await ce.importFromJSONDialog();
+    this._viewMvc.render();
   }
 
   /**
@@ -124,9 +125,9 @@ export class CoverEffectsController {
    */
   onExportCoverEffect(effectItem) {
     log("CoverEffectsController|onExportCoverEffect");
-    const effectId = effectItem.data().effectId;
-//     const terrain = Terrain.fromEffectId(effectId);
-//     terrain.exportToJSON();
+    const ce = coverEffectForListItem(effectItem);
+    if ( !ce ) return;
+    ce.saveToJSON();
   }
 
   /**
@@ -135,11 +136,14 @@ export class CoverEffectsController {
    */
   async onDuplicateCoverEffect(effectItem) {
     log("CoverEffectsController|onDuplicateCoverEffect");
-    const effectId = effectItem.data().effectId;
-//     const eHelper = EffectHelper.fromId(effectId);
-//     const dupe = await eHelper.duplicate();
-//     dupe.effect.name = `${dupe.effect.name} Copy`;
-//     this._viewMvc.render();
+    const ce = coverEffectForListItem(effectItem);
+    if ( !ce ) return;
+
+    const newCE = new CoverEffect();
+    const data = ce.activeEffectData;
+    data.name = `${data.name} Copy`;
+    await newCE.initialize(data);
+    this._viewMvc.render();
   }
 
   /**
@@ -160,7 +164,7 @@ export class CoverEffectsController {
       JSON.stringify({
         name: coverEffect.config.name,
         type: "ActiveEffect",
-        data: coverEffect.createActiveEffect()
+        data: coverEffect.activeEffectData() // coverEffect.createActiveEffect()
       })
     );
   }
@@ -213,4 +217,18 @@ async function setCoverEffect(type, value) {
   this.updateConfigStatusEffects(type);
 }
 
-
+/**
+ * Helper to retrieve an effect from an effect item.
+ * Throw an error if the effect is not found.
+ * @param {jQuery} effectItem - jQuery element representing the effect list item
+ * @returns {CoverEffect|undefined}
+ */
+function coverEffectForListItem(effectItem) {
+  const effectId = effectItem.data().effectId ?? effectItem.currentTarget.dataset;
+  const ce = CoverEffect.coverObjectsMap.get(data.effectId);
+  if ( !ce ) {
+    console.error(`CoverEffectsController#onDeleteCoverEffect|Cover Effect ${data.effectId} not found.`);
+    return;
+  }
+  return ce;
+}

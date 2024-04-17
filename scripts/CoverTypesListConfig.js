@@ -85,7 +85,7 @@ export class CoverTypesListConfig extends FormApplication  {
       if ( !storedCoverType ) continue;
       storedCoverType.update(coverTypeData);
     }
-    await CoverType._saveToSettings();
+    await CoverType.save();
   }
 
   /**

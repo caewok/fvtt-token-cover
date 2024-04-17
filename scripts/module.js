@@ -124,11 +124,8 @@ Hooks.once("setup", function() {
   registerElevationConfig("TileConfig", "Alt. Token Cover");
 
   // Construct default types after init, so that world scripts have a chance to modify.
-  CoverType._constructDefaultCoverObjects();
-  CoverEffect._constructDefaultCoverObjects();
-
-  // Construct the cover effect item and save default settings if the item did not previously exist.
-  CoverEffect._initializeCoverEffectsItem();
+  CoverType.initialize();
+  CoverEffect.initialize(); // Async
 });
 
 Hooks.once("ready", function() {
@@ -142,8 +139,6 @@ Hooks.once("ready", function() {
   CoverType._updateFromSettings();
   CoverEffect._updateFromSettings();
 });
-
-
 
 // Add pathfinding button to token controls.
 const COVER_EFFECTS_CONTROL = {
