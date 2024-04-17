@@ -51,9 +51,10 @@ the highest priority that meets its threshold will be applied. Cover types witho
 evaluated last, in no particular order.
 
 An active effect ("Cover Effect") can be associated with a CoverType. This allows active effects
-to be applied when a token has a certain cover type. Active effects are saved to the
-server database and thus are async and seen by all users. This somewhat limits their usefulness,
-although they can be used in attack/damage workflows.
+to be applied when a token has a certain cover type. Cover Effects are applied locally per-user,
+although a Cover Effect in most systems is an ActiveEffect that could be applied to a database.
+Applying an active effect via the database is less useful for cover, as it applies to all
+tokens equally regardless of user/attacker.
 */
 
 
@@ -69,23 +70,26 @@ export class CoverType extends AbstractCoverObject {
    */
   _configure(coverTypeData = {}) {
     super._configure(coverTypeData);
+    foundry.utils.mergeObject(this.config, coverTypeData);
 
-    // Set reasonable defaults.
-    this.config.id ??= `${MODULE_ID}.${game.system.id}.${foundry.utils.randomID()}`;
-    this.config.name ??= "New Cover Type";
-    this.config.percentThreshold ??= 1;
-    this.config.system = game.system.id;
-    this.config.includeWalls ??= true;    // Walls almost always provide cover.
-    this.config.includeTokens ??= false;  // Tokens less likely to provide cover.
-
+    // Make changes that cannot be handled by defaults.
     if ( !(this.config.tint instanceof Color) ) this.config.tint = new Color(this.config.tint ?? 0);
     // priority, icon can be null or undefined.
   }
 
   // ----- NOTE: Getters, setters, related properties ----- //
 
-  /** @type {string} */
-  get id() { return this.config.id ?? super.id; }
+  /** @type {object} */
+  #config = {
+    name: "New Cover Type",
+    percentThreshold: 1,
+    includeWalls: true,
+    includeTokens: true,
+    tint: new Color(0),
+    system: game.system.id
+  };
+
+  get config() { return this.#config; }
 
   // ----- NOTE: Methods ----- //
 
@@ -291,6 +295,13 @@ export class CoverType extends AbstractCoverObject {
   }
 
   /**
+   * Create a new cover object.
+   * To be used instead of the constructor in most situations.
+   * Creates object. Configures if no matching object already exists.
+   */
+  static create = AbstractCoverObject.create.bind(this);
+
+  /**
    * Update the cover types from settings.
    */
   static _updateFromSettings = AbstractCoverObject._updateFromSettings.bind(this);
@@ -298,7 +309,7 @@ export class CoverType extends AbstractCoverObject {
   /**
    * Save cover types to settings.
    */
-  static _saveToSettings = AbstractCoverObject._saveToSettings.bind(this);
+  static save = AbstractCoverObject.save.bind(this);
 
   /**
    * Save all cover types to a json file.
@@ -316,6 +327,11 @@ export class CoverType extends AbstractCoverObject {
    * Typically used on game load.
    */
   static _constructDefaultCoverObjects = AbstractCoverObject._constructDefaultCoverObjects.bind(this);
+
+  /**
+   * Initialize the cover types for this game.
+   */
+  static initialize = AbstractCoverObject.initialize.bind(this);
 
   static _defaultCoverTypeData() {
     switch ( game.system.id ) {

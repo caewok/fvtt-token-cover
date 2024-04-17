@@ -85,7 +85,7 @@ export class CoverTypesListConfig extends FormApplication  {
       if ( !storedCoverType ) continue;
       storedCoverType.update(coverTypeData);
     }
-    await CoverType._saveToSettings();
+    await CoverType.save();
   }
 
   /**
@@ -115,7 +115,7 @@ export class CoverTypesListConfig extends FormApplication  {
     event.preventDefault();
     log("AddCoverType clicked!");
     await this._onSubmit(event, { preventClose: true });
-    new CoverType();
+    CoverType.create();
     this.render();
   }
 

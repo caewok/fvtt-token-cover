@@ -44,6 +44,11 @@ export const FLAGS = {
   COVER_EFFECT_ID: "coverEffectId",
 
   /**
+   * Identify a specific item as one that holds cover effects.
+   */
+  COVER_EFFECTS_ITEM: "coverEffectItem",
+
+  /**
    * For updating flag data to new versions of the module.
    * @type {string} Version of the module that saved this data.
    */
