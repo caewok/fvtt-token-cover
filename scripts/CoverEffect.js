@@ -44,15 +44,6 @@ PATCHES_ItemDirectory.COVER_EFFECT.HOOKS = { renderItemDirectory: removeCoverEff
  * So it would be unhelpful to also instantiate the active effect here.
  */
 export class CoverEffect extends AbstractCoverObject {
-
-  /**
-   * Configure the object using the default provided data.
-   * @param {ActiveEffectData} [coverEffectData={}]
-   */
-  _configure(coverEffectData = {}, overwrite = false) {
-    this.id ??= this.constructor.idFromData(coverObjectData);
-  }
-
   /**
    * Construct a new active effect if none present.
    * @param {ActiveEffectData} [coverEffectData={}]     Data to use when constructing new effect
@@ -374,6 +365,13 @@ export class CoverEffect extends AbstractCoverObject {
   };
 
   /**
+   * Create a new cover object.
+   * To be used instead of the constructor in most situations.
+   * Creates object. Configures if no matching object already exists.
+   */
+  static create = AbstractCoverObject.create.bind(this);
+
+  /**
    * Save cover effects to settings.
    */
   static save = AbstractCoverObject.save.bind(this);
@@ -470,7 +468,7 @@ export class CoverEffect extends AbstractCoverObject {
     this.coverObjectsMap.clear();
     const promises = [];
     for ( const d of data ) {
-      const ce = new this(d);
+      const ce = this.constructor.create(d);
       promises.push(ce.initialize(d, override));
     }
     return Promise.allSettled(promises);

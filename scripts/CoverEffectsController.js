@@ -58,7 +58,7 @@ export class CoverEffectsController {
    */
   async onCreateCoverEffect(_event) {
     log("CoverEffectsController|onCreateCoverEffect");
-    const ce = new CoverEffect();
+    const ce = CoverEffect.create();
     await ce.initialize();
     this._viewMvc.render();
     ce.renderConfig();
@@ -139,7 +139,7 @@ export class CoverEffectsController {
     const ce = coverEffectForListItem(effectItem);
     if ( !ce ) return;
 
-    const newCE = new CoverEffect();
+    const newCE = CoverEffect.create();
     const data = ce.activeEffectData;
     data.name = `${data.name} Copy`;
     await newCE.initialize(data);

@@ -18,16 +18,26 @@ export class AbstractCoverObject {
   /**
    * @param {object} [coverObjectData={}]
    */
-  constructor(coverObjectData = {}) {
-    const id = this.id = this.constructor.idFromData(coverObjectData);
+  constructor(id) {
+    // Enforce unique cover type per id.
+    this.id = id ?? `${MODULE_ID}.${this.systemId}.${foundry.utils.randomID()}`;
     const coverObjectsMap = this.constructor.coverObjectsMap;
+    if ( coverObjectsMap.has(this.id) ) return coverObjectsMap.get(this.id);
+    coverObjectsMap.set(this.id, this);
+  }
+
+  /**
+   * Create a new cover object.
+   * To be used instead of the constructor in most situations.
+   * Creates object. Configures if no matching object already exists.
+   */
+  static create(coverObjectData = {}) {
+    const id = this.idFromData(coverObjectData);
+    const coverObjectsMap = this.coverObjectsMap;
     if ( coverObjectsMap.has(id) ) return coverObjectsMap.get(id);
 
-    // Construct the object
-    this._configure(coverObjectData);
-
-    // Unique cover type per id.
-    coverObjectsMap.set(id, this);
+    const obj = new this(id);
+    obj._configure(coverObjectData);
   }
 
   /**
@@ -43,6 +53,11 @@ export class AbstractCoverObject {
 
   /** @type {string} */
   get systemId() { return game.system.id; }
+
+  /** @type {object} */
+//   _config = {};
+//
+//   get config() { return this._config; }
 
   // ----- NOTE: Methods ----- //
 
@@ -179,7 +194,7 @@ export class AbstractCoverObject {
       return;
     }
     this.coverObjectsMap.clear();
-    json.coverObjects.forEach(ct => new this(ct));
+    json.coverObjects.forEach(ct => this.constructor.create(ct));
   }
 
   static async importFromJSONDialog() {
@@ -217,7 +232,7 @@ export class AbstractCoverObject {
   static _constructDefaultCoverObjects() {
     const data = this._defaultCoverTypeData()
     this.coverObjectsMap.clear();
-    Object.values(data).forEach(d => new this(d));
+    Object.values(data).forEach(d => this.create(d));
   }
 
   /**

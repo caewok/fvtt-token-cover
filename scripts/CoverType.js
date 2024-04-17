@@ -294,6 +294,13 @@ export class CoverType extends AbstractCoverObject {
   }
 
   /**
+   * Create a new cover object.
+   * To be used instead of the constructor in most situations.
+   * Creates object. Configures if no matching object already exists.
+   */
+  static create = AbstractCoverObject.create.bind(this);
+
+  /**
    * Update the cover types from settings.
    */
   static _updateFromSettings = AbstractCoverObject._updateFromSettings.bind(this);

@@ -115,7 +115,7 @@ export class CoverTypesListConfig extends FormApplication  {
     event.preventDefault();
     log("AddCoverType clicked!");
     await this._onSubmit(event, { preventClose: true });
-    new CoverType();
+    CoverType.create();
     this.render();
   }
 
