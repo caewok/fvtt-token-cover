@@ -70,15 +70,9 @@ export class CoverType extends AbstractCoverObject {
    */
   _configure(coverTypeData = {}) {
     super._configure(coverTypeData);
+    foundry.utils.mergeObject(this.config, coverTypeData);
 
-    // Set reasonable defaults.
-    this.config.id ??= `${MODULE_ID}.${game.system.id}.${foundry.utils.randomID()}`;
-    this.config.name ??= "New Cover Type";
-    this.config.percentThreshold ??= 1;
-    this.config.system = game.system.id;
-    this.config.includeWalls ??= true;    // Walls almost always provide cover.
-    this.config.includeTokens ??= false;  // Tokens less likely to provide cover.
-
+    // Make changes that cannot be handled by defaults.
     if ( !(this.config.tint instanceof Color) ) this.config.tint = new Color(this.config.tint ?? 0);
     // priority, icon can be null or undefined.
   }
@@ -86,7 +80,14 @@ export class CoverType extends AbstractCoverObject {
   // ----- NOTE: Getters, setters, related properties ----- //
 
   /** @type {object} */
-  #config = {};
+  #config = {
+    name: "New Cover Type",
+    percentThreshold: 1,
+    includeWalls: true,
+    includeTokens: true,
+    tint: new Color(0),
+    system: game.system.id
+  };
 
   get config() { return this.#config; }
 
