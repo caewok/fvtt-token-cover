@@ -85,6 +85,10 @@ export class CoverType extends AbstractCoverObject {
 
   // ----- NOTE: Getters, setters, related properties ----- //
 
+  /** @type {object} */
+  #config = {};
+
+  get config() { return this.#config; }
 
   // ----- NOTE: Methods ----- //
 

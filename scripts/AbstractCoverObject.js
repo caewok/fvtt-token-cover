@@ -12,9 +12,6 @@ import { MODULE_ID } from "./const.js";
  * Both are singletary, as only one instantiation per given id.
  */
 export class AbstractCoverObject {
-  /** @type {object} */
-  config = {};
-
   /** @type {string} */
   id;
 
@@ -40,14 +37,12 @@ export class AbstractCoverObject {
   _configure(coverObjectData = {}) {
     this.id ??= this.constructor.idFromData(coverObjectData);
     delete coverObjectData.id;
-    this.config = coverObjectData;
   }
 
   // ----- NOTE: Getters, setters, related properties ----- //
 
   /** @type {string} */
   get systemId() { return game.system.id; }
-
 
   // ----- NOTE: Methods ----- //
 
