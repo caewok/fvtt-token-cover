@@ -16,7 +16,7 @@
     "tokencover.settings.use-cover-types.Name": "Display Cover Types",
     "tokencover.settings.use-cover-types.Hint": "When enabled, icons representing cover types will be displayed locally (per user) on tokens to indicate if they have cover from controlled tokens. If multiple tokens selected, cover will be the minimum from the group. This cover display does not account for some system-specific features that might ignore cover (such as ignoring cover for only certain attack types).",
 
-    "tokencover.settings.cover-types-targeting.Name": "Cover Types Only When Targeting",
+    "tokencover.settings.cover-types-targeting.Name": "Apply Cover Types Only When Targeting",
     "tokencover.settings.cover-types-targeting.Hint": "If enabled, cover types will be applied only to targeted tokens. Otherwise, cover types will be applied to all non-controlled tokens. Only applicable when 'Display Cover Types' is enabled.",
 
     "tokencover.settings.use-cover-effects.Name": "Apply Cover Effects",
