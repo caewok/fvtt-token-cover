@@ -22,15 +22,15 @@ export class AbstractCoverObject {
    * @param {object} [coverObjectData={}]
    */
   constructor(coverObjectData = {}) {
-    this.id = this.constructor.idFromData(coverObjectData);
+    const id = this.id = this.constructor.idFromData(coverObjectData);
     const coverObjectsMap = this.constructor.coverObjectsMap;
-    if ( coverObjectsMap.has(id) ) return coverObjectsMap.get(this.id);
+    if ( coverObjectsMap.has(id) ) return coverObjectsMap.get(id);
 
     // Construct the object
     this._configure(coverObjectData);
 
     // Unique cover type per id.
-    coverObjectsMap.set(this.id, this);
+    coverObjectsMap.set(id, this);
   }
 
   /**
