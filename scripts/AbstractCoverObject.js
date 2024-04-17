@@ -32,7 +32,7 @@ export class AbstractCoverObject {
    * Creates object. Configures if no matching object already exists.
    */
   static create(coverObjectData = {}) {
-    const id = this.idFromData(coverObjectData);
+    const id = this.idFromData(coverObjectData) ?? `${MODULE_ID}.${this.systemId}.${foundry.utils.randomID()}`;
     const coverObjectsMap = this.coverObjectsMap;
     if ( coverObjectsMap.has(id) ) return coverObjectsMap.get(id);
 
@@ -45,7 +45,6 @@ export class AbstractCoverObject {
    * @param {object} [coverObjectData={}]
    */
   _configure(coverObjectData = {}) {
-    this.id ??= this.constructor.idFromData(coverObjectData);
     delete coverObjectData.id;
   }
 
@@ -148,7 +147,7 @@ export class AbstractCoverObject {
    * Retrieve an id from cover data.
    * @param {object} coverObjectData
    */
-  static idFromData(coverObjectData) { return coverObjectData.id ?? `${MODULE_ID}.${this.systemId}.${foundry.utils.randomID()}`; }
+  static idFromData(coverObjectData) { return coverObjectData.id; }
 
   /**
    * Update the cover types from settings.
