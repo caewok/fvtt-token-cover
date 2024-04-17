@@ -224,10 +224,10 @@ async function setCoverEffect(type, value) {
  * @returns {CoverEffect|undefined}
  */
 function coverEffectForListItem(effectItem) {
-  const effectId = effectItem.data().effectId ?? effectItem.currentTarget.dataset;
-  const ce = CoverEffect.coverObjectsMap.get(data.effectId);
+  const effectId = effectItem.data ? effectItem.data().effectId : effectItem.currentTarget.dataset.effectId;
+  const ce = CoverEffect.coverObjectsMap.get(effectId);
   if ( !ce ) {
-    console.error(`CoverEffectsController#onDeleteCoverEffect|Cover Effect ${data.effectId} not found.`);
+    console.error(`CoverEffectsController#onDeleteCoverEffect|Cover Effect ${effectId} not found.`);
     return;
   }
   return ce;
