@@ -105,6 +105,7 @@ export class CoverEffect extends AbstractCoverObject {
     data._id = foundry.utils.randomID();
     data.name ??= game.i18n.format("tokencover.phrases.xCoverEffect", { cover: game.i18n.localize(data.name) });
     data.origin ??= this.constructor.coverEffectItem.id;
+    data.transfer = false;
     return data;
   }
 
@@ -134,6 +135,11 @@ export class CoverEffect extends AbstractCoverObject {
   async _addToCoverEffectItem(activeEffectData) {
     const existing = this.#findOnCoverEffectItem();
     if ( existing || !activeEffectData ) return existing;
+
+    // Add necessary settings for the active effect.
+    activeEffectData.name ??= "New Cover Effect";
+    activeEffectData.transfer = false;
+
     const ae = await this.constructor.coverEffectItem.createEmbeddedDocuments("ActiveEffect", [activeEffectData]);
     this.#activeEffect = ae[0];
     return ae[0];
@@ -156,6 +162,11 @@ export class CoverEffect extends AbstractCoverObject {
    */
   async save(activeEffectData) {
     if ( !activeEffectData ) return;
+
+    // Add necessary settings for the active effect.
+    activeEffectData.name ??= "New Cover Effect";
+    activeEffectData.transfer = false;
+
     const coverEffect = this.activeEffect ?? (await this._addToCoverEffectItem(activeEffectData));
     return coverEffect.update(activeEffectData);
   }
@@ -250,11 +261,6 @@ export class CoverEffect extends AbstractCoverObject {
     if ( update && changed ) refreshActorCoverEffect(actor);
     return changed;
   }
-
-  /**
-   * Create a new ActiveEffect from this configuration.
-   */
-  createActiveEffect() { return new CONFIG.ActiveEffect.documentClass(this.activeEffectData); }
 
   /**
    * Render the AE configuration window.

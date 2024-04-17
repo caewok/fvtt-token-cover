@@ -164,7 +164,7 @@ export class CoverEffectsController {
       JSON.stringify({
         name: coverEffect.config.name,
         type: "ActiveEffect",
-        data: coverEffect.activeEffectData() // coverEffect.createActiveEffect()
+        data: coverEffect.activeEffectData
       })
     );
   }
