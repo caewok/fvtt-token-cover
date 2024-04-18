@@ -44,7 +44,12 @@ export class ModuleSettingsAbstract {
     const cached = this.cache.get(key);
     if ( typeof cached !== "undefined" ) {
       const origValue = game.settings.get(MODULE_ID, key);
-      if ( origValue !== cached ) {
+      let cacheEqual = origValue === cached;
+      if ( !cacheEqual
+        && origValue instanceof Object
+        && cached instanceof Object ) cacheEqual = foundry.utils.objectsEqual(origValue, cached);
+
+      if ( !cacheEqual ) {
         console.debug(`Settings cache fail: ${origValue} !== ${cached} for key ${key}`);
         return origValue;
       }
