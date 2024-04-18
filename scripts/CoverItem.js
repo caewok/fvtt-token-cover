@@ -91,15 +91,26 @@ export class CoverItem extends CoverEffect {
   // ----- NOTE: Static methods ----- //
 
   /**
+   * Find the storage document for given coverEffectData or id.
+   * Must be handled by child class.
+   * @param {object} coverEffectData
+   * @returns {Document|undefined} Undefined if no document found.
+   */
+  static findStorageDocument(coverEffectData) {
+    const id = this.idFromData(coverEffectData);
+    return game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === id);
+  }
+
+  /**
    * Retrieve all Cover Effects on the actor.
    * @param {Actor} actor
    * @returns {CoverEffect[]} Array of cover effects on the actor.
    */
-  static _allLocalEffectsOnActor(actor, self = this) {
+  static _allLocalEffectsOnActor(actor) {
     // Faster than calling _localEffectOnActor repeatedly.
     return actor.items
       .filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))
-      .map(e => self._documentIds.get(e.id))
+      .map(e => this._documentIds.get(e.id))
       .filter(e => Boolean(e))
   }
 
@@ -107,8 +118,8 @@ export class CoverItem extends CoverEffect {
    * Retrieve default cover effects data for different systems.
    * @returns {object}
    */
-  static _defaultCoverTypeData(self = this) {
-    switch ( self.systemId ) {
+  static _defaultCoverTypeData() {
+    switch ( this.systemId ) {
       case "sfrpg": return sfrpgCoverEffects; break;
       default: console.error("No default cover effects for generic systems have been implemented.");
     }

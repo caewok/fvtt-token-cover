@@ -113,8 +113,18 @@ export class CoverActiveEffect extends CoverEffect {
     return id;
   }
 
-
   // ----- NOTE: Static methods ----- //
+
+  /**
+   * Find the storage document for given coverEffectData or id.
+   * Must be handled by child class.
+   * @param {object} coverEffectData
+   * @returns {Document|undefined} Undefined if no document found.
+   */
+  static findStorageDocument(coverEffectData) {
+    const id = this.idFromData(coverEffectData);
+    return this.coverEffectItem.effects.find(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === id);
+  }
 
   /**
    * Retrieve all Cover Effects on the actor.
@@ -162,40 +172,8 @@ export class CoverActiveEffect extends CoverEffect {
   /**
    * Initialize the cover effects for this game.
    */
-  static async initialize(self = this) {
-    await self._initializeCoverEffectsItem();
-    return super.initialize.call(self);
+  static async initialize() {
+    await this._initializeCoverEffectsItem();
+    return super.initialize();
   }
-
-  // ----- NOTE: Bound static methods ----- //
-
-  /**
-   * Create a new cover object.
-   * To be used instead of the constructor in most situations.
-   * Creates object. Configures if no matching object already exists.
-   */
-  static create(self = this) { return CoverEffect.create(self); }
-
-  /**
-   * Save cover effects to settings.
-   */
-  static save(self = this) { return CoverEffect.save(self); }
-
-  /**
-   * Save all cover effects to a json file.
-   */
-  static saveToJSON(self = this) { return CoverEffect.saveToJSON(self); }
-
-  /**
-   * Import all cover types from a json file.
-   * @param {JSON} json   Data to import
-   */
-  static importFromJSON(self = this) { return CoverEffect.importFromJSON(self); }
-
-  /**
-   * Create default effects and store in the map. Resets anything already in the map.
-   * Typically used on game load.
-   */
-  static _constructDefaultCoverObjects(self = this) { return CoverEffect._constructDefaultCoverObjects(self); }
-
 }

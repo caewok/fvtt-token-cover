@@ -294,50 +294,11 @@ export class CoverType extends AbstractCoverObject {
     return minCoverType.union(otherCoverTypes);
   }
 
-  /**
-   * Create a new cover object.
-   * To be used instead of the constructor in most situations.
-   * Creates object. Configures if no matching object already exists.
-   */
-  static create = AbstractCoverObject.create.bind(this);
-
-  /**
-   * Update the cover types from settings.
-   */
-  static _updateFromSettings = AbstractCoverObject._updateFromSettings.bind(this);
-
-  /**
-   * Save cover types to settings.
-   */
-  static save = AbstractCoverObject.save.bind(this);
-
-  /**
-   * Save all cover types to a json file.
-   */
-  static saveToJSON = AbstractCoverObject.saveToJSON.bind(this);
-
-  /**
-   * Import all cover types from a json file.
-   * @param {JSON} json   Data to import
-   */
-  static importFromJSON = AbstractCoverObject.importFromJSON.bind(this);
-
-  /**
-   * Create default effects and store in the map. Resets anything already in the map.
-   * Typically used on game load.
-   */
-  static _constructDefaultCoverObjects = AbstractCoverObject._constructDefaultCoverObjects.bind(this);
-
-  /**
-   * Initialize the cover types for this game.
-   */
-  static initialize = AbstractCoverObject.initialize.bind(this);
-
   static _defaultCoverTypeData() {
     switch ( game.system.id ) {
       case "dnd5e": return dnd5eCoverTypes; break;
-      case "pf2e": return pf2eCoverTypesForToken; break;
-      case "sfrpg": return sfrpgCoverTypesForToken; break;
+      case "pf2e": return pf2eCoverTypes; break;
+      case "sfrpg": return sfrpgCoverTypes; break;
       default: return genericCoverTypes;
     }
   }
