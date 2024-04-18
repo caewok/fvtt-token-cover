@@ -33,6 +33,7 @@ const SYSTEM_ID = "sfrpg";
 // https://www.aonsrd.com/Rules.aspx?ID=129
 
 export const coverTypes = {};
+export const coverEffects = {};
 
 // A low obstacle (wall half your height) provides cover w/in 30'
 // Is not really a distinct cover type, so handle in TypeFromPercentFn.
@@ -102,4 +103,49 @@ coverTypes.total = {
   includeWalls: true,
   includeTokens: true,
   priority: 4
+};
+
+
+coverEffects.cover = {
+  name: "SFRPG.Vehicles.VehicleCoverTypes.Cover",
+  id: `${MODULE_ID}.${SYSTEM_ID}.half`,
+  img: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
+  coverTypes: [
+    coverTypes.cover.id
+  ],
+  type: "effect",
+  system: {
+    enabled: true,
+    requirements: "Condition",
+    showOnToken: true,
+    source: "CRB.276",
+    type: "condition",
+    modifiers: [
+      {
+        effectType: "rangedAttack",
+        enabled: true,
+        max: -4,
+        modifier: "-4",
+        modifierType: "constant",
+        name: "SFRPG.Vehicles.VehicleCoverTypes.Cover",
+        source: "condition",
+        subtab: "misc",
+        type: "armor",
+        valueAffected: ""
+      },
+
+      {
+        effectType: "save",
+        enabled: true,
+        max: 2,
+        modifier: "+2",
+        modifierType: "constant",
+        name: "Cover Reflex",
+        source: "condition",
+        subtab: "misc",
+        type: "armor",
+        valueAffected: "reflex"
+      }
+    ]
+  }
 };

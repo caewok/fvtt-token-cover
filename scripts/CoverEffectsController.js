@@ -36,7 +36,7 @@ export class CoverEffectsController {
    */
   get data() {
     const effects = [];
-    CoverEffect.coverObjectsMap.forEach(ce => effects.push({ name: ce.config.name, id: ce.id, icon: ce.config.icon }));
+    CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.forEach(ce => effects.push({ name: ce.config.name, id: ce.id, icon: ce.config.icon }));
     return {
       isGM: game.user.isGM,
       effects
@@ -58,7 +58,7 @@ export class CoverEffectsController {
    */
   async onCreateCoverEffect(_event) {
     log("CoverEffectsController|onCreateCoverEffect");
-    const ce = CoverEffect.create();
+    const ce = CONFIG[MODULE_ID].CoverEffect.create();
     await ce.initialize();
     this._viewMvc.render();
     ce.renderConfig();
@@ -139,7 +139,7 @@ export class CoverEffectsController {
     const ce = coverEffectForListItem(effectItem);
     if ( !ce ) return;
 
-    const newCE = CoverEffect.create();
+    const newCE = CONFIG[MODULE_ID].CoverEffect.create();
     const data = ce.activeEffectData;
     data.name = `${data.name} Copy`;
     await newCE.initialize(data);
@@ -155,7 +155,7 @@ export class CoverEffectsController {
   onEffectDragStart(event) {
     log(`CoverEffectsController|onEffectDragStart for ${event.target.dataset.effectName}`);
     const coverEffectId = event.target.dataset.effectId;
-    const coverEffect = CoverEffect.coverObjectsMap.get(coverEffectId);
+    const coverEffect = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.get(coverEffectId);
     // const data = coverEffect.activeEffectData;
     // data.parent = () => this.object;
 
@@ -225,7 +225,7 @@ async function setCoverEffect(type, value) {
  */
 function coverEffectForListItem(effectItem) {
   const effectId = effectItem.data ? effectItem.data().effectId : effectItem.currentTarget.dataset.effectId;
-  const ce = CoverEffect.coverObjectsMap.get(effectId);
+  const ce = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.get(effectId);
   if ( !ce ) {
     console.error(`CoverEffectsController#onDeleteCoverEffect|Cover Effect ${effectId} not found.`);
     return;

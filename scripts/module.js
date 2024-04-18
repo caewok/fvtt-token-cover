@@ -18,6 +18,8 @@ import { AsyncQueue } from "./AsyncQueue.js";
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
 import { CoverEffect } from "./CoverEffect.js";
 import { CoverType } from "./CoverType.js";
+import { CoverActiveEffect } from "./CoverActiveEffect.js";
+import { CoverItem, CoverItemSFRPG } from "./CoverItem.js";
 
 // For API
 import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
@@ -75,6 +77,11 @@ Hooks.once("init", function() {
      * @type {number}
      */
     renderTextureResolution: 1,
+
+    /**
+     * What cover effect class to use for this system.
+     */
+    CoverEffect
   };
 
   game.modules.get(MODULE_ID).api = {
@@ -102,6 +109,8 @@ Hooks.once("init", function() {
     COVER,
     CoverType,
     CoverEffect,
+    CoverItem,
+    CoverItemSFRPG,
     setCoverIgnoreHandler,
     Settings,
 
@@ -113,6 +122,12 @@ Hooks.once("init", function() {
 
     PATCHER
   };
+
+  switch ( game.system.id ) {
+    case "sfrpg": CONFIG[MODULE_ID].CoverEffect = CoverItemSFRPG; break;
+    case "pf2e": CONFIG[MODULE_ID].CoverEffect = CoverItem; break;
+    default: CONFIG[MODULE_ID].CoverEffect = CoverActiveEffect; break;
+  }
 
   if ( game.system.id === "dnd5e" ) {
     setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
@@ -133,7 +148,7 @@ Hooks.once("ready", function() {
   // Construct default types after init, so that world scripts have a chance to modify.
   // Must also be done after settings.
   CoverType.initialize();
-  CoverEffect.initialize(); // Async
+  CONFIG[MODULE_ID].CoverEffect.initialize(); // Async
 });
 
 // Add pathfinding button to token controls.

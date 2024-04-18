@@ -7,8 +7,6 @@ import { CoverType } from "./CoverType.js";
 import { Settings } from "./settings.js";
 import { AbstractCoverObject } from "./AbstractCoverObject.js";
 import { CoverEffectConfig } from "./CoverEffectConfig.js";
-import { coverEffects as dnd5eCoverEffects, coverEffects_midiqol } from "./coverDefaults/dnd5e.js";
-import { coverEffects as genericCoverEffects } from "./coverDefaults/generic.js";
 import { AsyncQueue } from "./AsyncQueue.js";
 import { log } from "./util.js";
 
@@ -35,15 +33,18 @@ PATCHES_SidebarTab.COVER_EFFECT.HOOKS = { changeSidebarTab: removeCoverEffectsIt
 PATCHES_ItemDirectory.COVER_EFFECT.HOOKS = { renderItemDirectory: removeCoverEffectsItemFromSidebar };
 
 /**
- * Handles active effects that should be treated as cover.
+ * Handles applying effects to tokens that should be treated as cover.
+ * Generic as to how exactly the effect is stored and applied, but presumes it is stored in a document.
  * Applies the cover effect to tokens.
  * Imports/exports effect data.
  * Stores/retrieves effect data.
  * Sets up default effects.
- * Does not extend ActiveEffect class primarily b/c adding an effect to a token creates a new effect.
- * So it would be unhelpful to also instantiate the active effect here.
  */
 export class CoverEffect extends AbstractCoverObject {
+
+  /** @prop {UUID} */
+  uuid;
+
   /**
    * Construct a new active effect if none present.
    * @param {ActiveEffectData} [coverEffectData={}]     Data to use when constructing new effect
@@ -68,8 +69,7 @@ export class CoverEffect extends AbstractCoverObject {
       delete coverEffectData.coverTypes;
     }
 
-    // Name is required to instantiate an ActiveEffect.
-    coverEffectData.name ??= "tokencover.phrases.newEffect";
+    coverEffectData = this.constructor._localizeDocumentData(coverEffectData);
 
     // Create the active effect.
     return this.save(coverEffectData); // Async
@@ -78,7 +78,7 @@ export class CoverEffect extends AbstractCoverObject {
   // ----- NOTE: Getters, setters, and related properties ----- //
 
   /** @type {object} */
-  get config() { return this.activeEffect.toJSON(); }
+  get config() { return this.document.toJSON(); }
 
   /** @type {string[]} */
   get #coverTypesArray() { return this.config.flags[MODULE_ID][FLAGS.COVER_TYPES]; }
@@ -98,55 +98,56 @@ export class CoverEffect extends AbstractCoverObject {
   }
 
   /**
-   * Get data for an active effect.
+   * Get data used to construct a Cover Effect document.
    */
-  get activeEffectData() {
+  get documentData() {
     const data = { ...this.config };
     data._id = foundry.utils.randomID();
     data.name ??= game.i18n.format("tokencover.phrases.xCoverEffect", { cover: game.i18n.localize(data.name) });
-    data.origin ??= this.constructor.coverEffectItem.id;
-    data.transfer = false;
-    return data;
+    return this.constructor._localizeDocumentData(data);
   }
 
   /**
    * Retrieve the active effect for this cover effect from the cover effect item.
-   * @returns {ActiveEffect}
+   * @returns {Document}
    */
-  #activeEffect
+  #document
 
-  get activeEffect() { return this.#activeEffect || (this.#activeEffect = this.#findOnCoverEffectItem()); }
+  get document() { return this.#document || (this.#document = this._findDocument()); }
 
   // ----- NOTE: Methods ----- //
 
+  /**
+   * Locate the document for this effect.
+   * @return {Document}
+   */
+  _findDocument() { return document = fromUuidSync(this.uuid); }
 
   /**
-   * Locate this cover effect on the item.
-   * @return {CoverEffect}
+   * Create the storage document or return the existing document.
+   * @param {object} coverEffectData
+   * @returns {Document}
    */
-  #findOnCoverEffectItem() {
-    const item = this.constructor.coverEffectItem;
-    return item.effects.find(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === this.id);
+  async createStorageDocument(coverEffectData) {
+    const existing = this._findDocument();
+    if ( existing || !coverEffectData ) return existing;
+    const doc = await this._createStorageDocument(coverEffectData);
+    this.uuid = doc.uuid;
+
+    return doc;
   }
 
   /**
-   * Add this effect to the effect item.
+   * Get the actual storage document, such as an ActiveEffect or an Item
+   * @param {object} coverEffectData     Data to store
+   * @returns {Document}
    */
-  async _addToCoverEffectItem(activeEffectData) {
-    const existing = this.#findOnCoverEffectItem();
-    if ( existing || !activeEffectData ) return existing;
-
-    // Add necessary settings for the active effect.
-    activeEffectData.name ??= "New Cover Effect";
-    activeEffectData.transfer = false;
-
-    const ae = await this.constructor.coverEffectItem.createEmbeddedDocuments("ActiveEffect", [activeEffectData]);
-    this.#activeEffect = ae[0];
-    return ae[0];
+  async _createStorageDocument(coverEffectData) {
+    console.error("CoverEffect#_createStorageDocument must be handled by child class.");
   }
 
   /**
-   * Ignores, as config pulls directly from the active effect.
+   * Ignored, as config pulls directly from the active effect.
    */
   update() { console.warn("CoverEffect does not use update method."); }
 
@@ -156,30 +157,37 @@ export class CoverEffect extends AbstractCoverObject {
   load() { console.warn("CoverEffect does not use load method."); }
 
   /**
-   * Save to the stored cover item effect, if any.
+   * Save to the storage document, creating a new document if necessary.
    * Requires explicit data in order to overwrite the existing effect.
-   * @param {object} activeEffectData
+   * @param {object} coverEffectData
+   * @param {Promise<*>} Result of document.update
    */
-  async save(activeEffectData) {
-    if ( !activeEffectData ) return;
-
-    // Add necessary settings for the active effect.
-    activeEffectData.name ??= "New Cover Effect";
-    activeEffectData.transfer = false;
-
-    const coverEffect = this.activeEffect ?? (await this._addToCoverEffectItem(activeEffectData));
-    return coverEffect.update(activeEffectData);
+  async save(coverEffectData) {
+    if ( !coverEffectData ) return;
+    coverEffectData = this.constructor._localizeDocumentData();
+    const doc = this.document ?? (await this.createStorageDocument(coverEffectData));
+    return doc.update(coverEffectData);
   }
 
   /**
-   * Delete the setting associated with this cover type.
-   * Typically used if destroying the cover type or resetting to defaults.
+   * Delete the stored document associated with this cover effect.
+   * Typically used if destroying the cover effect or resetting to defaults.
+   * @return {boolean} True if deleted.
    */
   async deleteSaveData() {
-    const coverEffect = this.activeEffect;
-    if ( !coverEffect ) return;
-    this.#activeEffect = undefined;
-    return await item.deleteEmbeddedDocuments("ActiveEffect", [coverEffect.id]);
+    if ( !this.document ) return false;
+    const res = await _deleteStorageDocument();
+    if ( res ) this.#document = undefined;
+    return res;
+  }
+
+  /**
+   * Delete the stored document associated with this cover effect.
+   * Child class creates.
+   * @return {boolean} Must return true if document is deleted.
+   */
+  async _deleteStorageDocument() {
+    console.error("CoverEffect#_deleteSaveData must be handled by child class.");
   }
 
   /**
@@ -214,85 +222,73 @@ export class CoverEffect extends AbstractCoverObject {
   _removeAllCoverTypes() { this.#coverTypesArray.length = 0; }
 
   /**
+   * Test if the local effect is already on the actor.
+   * Must be handled by child class.
+   * @param {Actor} actor
+   * @returns {boolean} True if local effect is on the actor.
+   */
+  _localEffectOnActor(actor) {
+    console.error("CoverEffect#_localEffectOnActor must be handled by child class.");
+  }
+
+  /**
    * Add the effect locally to an actor.
    * @param {Token|Actor} actor
+   * @param {boolean} Returns true if added.
    */
   addToActorLocally(actor, update = true) {
     if ( actor instanceof Token ) actor = actor.actor;
     log(`CoverEffect#addToActorLocally|${actor.name} ${this.config.name}`);
 
-    // Is this effect already on the actor?
-    const activeEffectIds = this.constructor._activeEffectIds;
-    for ( const key of actor.effects.keys() ) {
-      if ( !activeEffectIds.has(key) ) continue;
-      if ( activeEffectIds.get(key) !== this ) return false;
-    }
+    if ( this._localEffectOnActor(actor) ) return false;
+    const newId = this._addToActorLocally(actor);
+    if ( !newId ) return false;
+    this.constructor._documentIds.set(newId, this);
+    if ( update ) refreshActorCoverEffect(actor);
+    return true;
+  }
 
-    const ae = actor.effects.createDocument(this.activeEffectData);
-    log(`CoverEffect#addToActorLocally|${actor.name} adding ${ae.id} ${this.config.name}`);
-    actor.effects.set(ae.id, ae);
-    this.constructor._activeEffectIds.set(ae.id, this);
+  /**
+   * Add the effect locally to an actor.
+   * @param {Token|Actor} actor
+   * @returns {boolean} Returns true if added.
+   */
+  _addToActorLocally(actor) {
+    console.error("CoverEffect#_addToActorLocally must be handled by child class.");
+  }
 
+  /**
+   * Remove the effect locally from an actor.
+   * @param {Actor} actor
+   * @param {boolean} Returns true if change was required.
+   */
+  removeFromActorLocally(actor, update = true) {
+    log(`CoverEffect#removeFromActorLocally|${actor.name} ${this.config.name}`);
+    if ( actor instanceof Token ) actor = actor.actor;
+    if ( !this._localEffectOnActor(actor) ) return false;
+
+    // Remove documents associated with this cover effect from the actor.
+    const removedIds = this._removeFromActorLocally(actor);
+    if ( !removedIds.length ) return false;
+    removedIds.forEach(id => this.constructor.documentIds.delete(id));
     if ( update ) refreshActorCoverEffect(actor);
     return true;
   }
 
   /**
    * Remove the effect locally from an actor.
-   * @param {Token|Actor} actor
+   * Presumes the effect is on the actor.
+   * @param {Actor} actor
+   * @returns {boolean} Returns true if removed.
    */
-  removeFromActorLocally(actor, update = true) {
-    if ( actor instanceof Token ) actor = actor.actor;
-
-    log(`CoverEffect#removeFromActorLocally|${actor.name} ${this.config.name}`);
-    const activeEffectIds = this.constructor._activeEffectIds;
-    let changed = false;
-
-    // Is this effect on the actor?
-    for ( const key of actor.effects.keys() ) {
-      if ( !activeEffectIds.has(key) ) continue;
-      if ( activeEffectIds.get(key) !== this ) continue;
-      log(`CoverEffect#removeFromActorLocally|${actor.name} removing ${key} ${this.config.name}`);
-      actor.effects.delete(key);
-      activeEffectIds.delete(key);
-      changed ||= true;
-    }
-
-    if ( update && changed ) refreshActorCoverEffect(actor);
-    return changed;
+  _removeFromActorLocally(actor) {
+    console.error("CoverEffect#_addToActorLocally must be handled by child class.");
   }
 
   /**
-   * Render the AE configuration window.
+   * Render the cover effect configuration window.
    */
-  async renderConfig() {
-    // const app = new CoverEffectConfig(this.activeEffect)
-    // app.render(true);
-    this.activeEffect.sheet.render(true);
-  }
-
-  // ----- NOTE: Methods to apply this active effect to a token ----- //
-
-  /**
-   * Add this cover effect (the underlying active effect) to a token.
-   * @param {Token} token
-   */
-  async addToToken(token) {
-    return token.actor.createEmbeddedDocuments("ActiveEffect", [this.activeEffectData])
-  }
-
-  /**
-   * Remove this cover effect (the underlying active effect) from a token.
-   * @param {Token} token
-   */
-  async removeFromToken(token) {
-    // Find all instances of this effect on the token (almost always singular effect).
-    const ids = [];
-    token.actor.effects.forEach(ae => {
-      if ( this.constructor.idFromData(ae) === this.id ) ids.push(ae.id);
-    });
-    return token.actor.deleteEmbeddedDocuments("ActiveEffect", ids);
-  }
+  async renderConfig() { return this.document.sheet.render(true); }
 
   // ----- NOTE: Static: Track Cover effects ----- //
   /** @type {Map<string,CoverType>} */
@@ -301,39 +297,48 @@ export class CoverEffect extends AbstractCoverObject {
   // ----- NOTE: Other static getters, setters, related properties ----- //
 
   /**
+   * Link document ids (for effects on actors) to this effect.
+   * Makes it easier to determine if this cover effect has been applied to an actor.
+   * @type {Map<string, CoverEffect>}
+   */
+  static _documentIds = new Map();
+
+  /**
    * Retrieve an id from cover data.
    * @param {object} coverEffectData
    */
   static idFromData(coverEffectData) { return coverEffectData?.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT_ID] ?? coverEffectData.id; }
 
   /** @type {string} */
-  static get settingsKey() { return Settings.KEYS.COVER_EFFECTS.DATA; }
-
-
-  /** @type {string} */
-  static get systemId() {
-    const id = game.system.id;
-    if ( (id === "dnd5e" || id === "sw5e")
-      && game.modules.get("midi-qol")?.active ) id += "_midiqol";
-    return id;
-  }
-
-  /** @type {Map<string, CoverEffect>} */
-  static _activeEffectIds = new Map(); // Track created active effect ids, to make finding them on actors easier.
+  static get systemId() { return game.system.id; }
 
   // ----- NOTE: Static methods ----- //
+
+  /**
+   * Localize document data. Meant for subclasses that are aware of the document structure.
+   * @param {object} coverEffectData
+   * @returns {object} coverEffectData
+   */
+  static _localizeDocumentData(coverEffectData) { return coverEffectData; }
 
   /**
    * Retrieve all Cover Effects on the actor.
    * @param {Token|Actor} actor
    * @returns {CoverEffect[]} Array of cover effects on the actor.
    */
-  static getAllOnActor(actor) {
+  static allLocalEffectsOnActor(actor, self = this) {
     if ( actor instanceof Token ) actor = actor.actor;
-    return actor.effects
-      .filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))
-      .map(e => this._activeEffectIds.get(e.id))
-      .filter(e => Boolean(e))
+    return self._allLocalEffectsOnActor.call(self, actor);
+  }
+
+  /**
+   * Retrieve all Cover Effects on the actor.
+   * @param {Actor} actor
+   * @returns {CoverEffect[]} Array of cover effects on the actor.
+   */
+  static _allLocalEffectsOnActor(actor, self = this) {
+    return self.coverObjectsMap.values()
+      .filter(ce => ce._localEffectOnActor(actor))
   }
 
   /**
@@ -341,14 +346,13 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {Token|Actor} actor
    * @param {CoverEffect[]|Set<CoverEffect>} coverEffects
    */
-  static replaceLocalEffectsOnActor(actor, coverEffects = new Set()) {
+  static replaceLocalEffectsOnActor(actor, coverEffects = new Set(), self = this) {
     log(`CoverEffect#replaceLocalEffectsOnActor|${actor.name}`);
 
     if ( actor instanceof Token ) actor = actor.actor;
     if ( !(coverEffects instanceof Set) ) coverEffects = new Set(coverEffects);
-    const previousEffects = new Set(CoverEffect.getAllOnActor(actor));
+    const previousEffects = new Set(this.allLocalEffectsOnActor.call(self, actor));
     if ( coverEffects.equals(previousEffects) ) return;
-
 
     // Filter to only effects that must change.
     const toRemove = previousEffects.difference(coverEffects);
@@ -370,98 +374,12 @@ export class CoverEffect extends AbstractCoverObject {
     console.warn("CoverEffect does not use _updateFromSettings");
   };
 
-  /**
-   * Create a new cover object.
-   * To be used instead of the constructor in most situations.
-   * Creates object. Configures if no matching object already exists.
-   */
-  static create = AbstractCoverObject.create.bind(this);
-
-  /**
-   * Save cover effects to settings.
-   */
-  static save = AbstractCoverObject.save.bind(this);
-
-  /**
-   * Save all cover effects to a json file.
-   */
-  static saveToJSON = AbstractCoverObject.saveToJSON.bind(this);
-
-  /**
-   * Import all cover types from a json file.
-   * @param {JSON} json   Data to import
-   */
-  static importFromJSON = AbstractCoverObject.importFromJSON.bind(this);
-
-  /**
-   * Create default effects and store in the map. Resets anything already in the map.
-   * Typically used on game load.
-   */
-  static _constructDefaultCoverObjects = AbstractCoverObject._constructDefaultCoverObjects.bind(this);
-
-  /**
-   * Retrieve default cover effects data for different systems.
-   * @returns {object}
-   */
-  static _defaultCoverTypeData() {
-    switch ( this.systemId ) {
-      case "dnd5e": return dnd5eCoverEffects; break;
-      case "dnd5e_midiqol": return coverEffects_midiqol; break;
-      case "pf2e": return {}; break;
-      case "sfrpg": return {}; break;
-      default: return genericCoverTypes;
-    }
-  }
-
-  /** @type {string} */
-  static COVER_EFFECTS_ITEM; // Added by initializeCoverEffectsItem.
-
-  /** @type {Item} */
-  static get coverEffectItem() {
-    if ( !this.COVER_EFFECTS_ITEM ) {
-      const item = game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECTS_ITEM));
-      if ( !item ) console.error("Cover Effects Item not found. Must be initialized.");
-      this.COVER_EFFECTS_ITEM = item.id;
-    }
-    return game.items.get(this.COVER_EFFECTS_ITEM);
-  }
-
-  /**
-   * Create an item used to store cover effects.
-   * Once created, it will be stored in the world and becomes the method by which cover effects
-   * are saved.
-   */
-  static async _initializeCoverEffectsItem() {
-    const coverEffectItem = game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECTS_ITEM));
-    const promises = [];
-    if ( coverEffectItem ) {
-      this.COVER_EFFECTS_ITEM = coverEffectItem.id;
-
-      // Make sure all items are present
-      const promises = [];
-      this.coverObjectsMap.forEach(ce => promises.push(ce._addToCoverEffectItem()));
-
-      return;
-    } else {
-      const item = await CONFIG.Item.documentClass.create({
-        name: "Cover Effects",
-        img: "icons/svg/ruins.svg",
-        type: "base",
-        flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECTS_ITEM]: true} }
-      });
-      this.COVER_EFFECTS_ITEM = item.id;
-      this.coverObjectsMap.forEach(ce => promises.push(ce._addToCoverEffectItem()));
-    }
-
-    return Promise.allSettled(promises);
-  }
 
   /**
    * Initialize the cover effects for this game.
    */
-  static async initialize() {
-    await this._initializeCoverEffectsItem();
-    await this._constructDefaultCoverObjects();
+  static async initialize(self = this) {
+    await self._constructDefaultCoverObjects.call(self); // Ensure child class is passed through.
   }
 
   /**
@@ -469,19 +387,50 @@ export class CoverEffect extends AbstractCoverObject {
    * Typically used on game load.
    * @param {boolean} [override=false]    Use existing cover effects unless enabled
    */
-  static async _constructDefaultCoverObjects(override = false) {
-    const data = this._defaultCoverTypeData();
+  static async _constructDefaultCoverObjects(override = false, self = this) {
+    const data = self._defaultCoverTypeData.call(self);
     this.coverObjectsMap.clear();
     const promises = [];
     for ( const d of data ) {
-      const ce = this.constructor.create(d);
+      const ce = self.create(d);
       promises.push(ce.initialize(d, override));
     }
     return Promise.allSettled(promises);
   }
-}
 
-COVER.EFFECTS = CoverEffect.coverObjectsMap;
+  // ----- NOTE: Bound static methods ----- //
+
+  /**
+   * Create a new cover object.
+   * To be used instead of the constructor in most situations.
+   * Creates object. Configures if no matching object already exists.
+   */
+  static create(self = this) { return AbstractCoverObject.create(self); }
+
+  /**
+   * Save cover effects to settings.
+   */
+  static save(self = this) { return AbstractCoverObject.save(self); }
+
+  /**
+   * Save all cover effects to a json file.
+   */
+  static saveToJSON(self = this) { return AbstractCoverObject.saveToJSON(self); }
+
+  /**
+   * Import all cover types from a json file.
+   * @param {JSON} json   Data to import
+   */
+  static importFromJSON(self = this) { return AbstractCoverObject.importFromJSON(self); }
+
+  /**
+   * Create default effects and store in the map. Resets anything already in the map.
+   * Typically used on game load.
+   */
+  static _constructDefaultCoverObjects(self = this) { return AbstractCoverObject._constructDefaultCoverObjects(self); }
+
+  static _defaultCoverTypeData(self = this) { AbstractCoverObject._defaultCoverTypeData(self); }
+}
 
 // ----- NOTE: Helper functions ----- //
 

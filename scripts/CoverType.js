@@ -183,7 +183,7 @@ export class CoverType extends AbstractCoverObject {
    * @param {Token} token
    */
   addCoverEffectsToToken(token, update = true) {
-    CoverEffect.coverObjectsMap
+    CONFIG[MODULE_ID].CoverEffect.coverObjectsMap
       .filter(ce => ce.coverTypes.some(ct => ct === this))
       .forEach(ce => ce.addToActorLocally(token, update));
   }

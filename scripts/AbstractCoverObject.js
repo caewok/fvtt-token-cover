@@ -31,12 +31,12 @@ export class AbstractCoverObject {
    * To be used instead of the constructor in most situations.
    * Creates object. Configures if no matching object already exists.
    */
-  static create(coverObjectData = {}) {
-    const id = this.idFromData(coverObjectData) ?? `${MODULE_ID}.${this.systemId}.${foundry.utils.randomID()}`;
-    const coverObjectsMap = this.coverObjectsMap;
+  static create(coverObjectData = {}, self = this) {
+    const id = self.idFromData(coverObjectData) ?? `${MODULE_ID}.${this.systemId}.${foundry.utils.randomID()}`;
+    const coverObjectsMap = self.coverObjectsMap;
     if ( coverObjectsMap.has(id) ) return coverObjectsMap.get(id);
 
-    const obj = new this(id);
+    const obj = new self(id);
     obj._configure(coverObjectData);
   }
 
@@ -152,26 +152,26 @@ export class AbstractCoverObject {
   /**
    * Update the cover types from settings.
    */
-  static _updateFromSettings() {
-    this.coverObjectsMap.forEach(ct => ct.load());
+  static _updateFromSettings(self = this) {
+    self.coverObjectsMap.forEach(ct => ct.load());
   }
 
   /**
    * Save cover types to settings.
    */
-  static async save() {
+  static async save(self = this) {
     const promises = [];
-    this.coverObjectsMap.forEach(ct => promises.push(ct.save()));
+    self.coverObjectsMap.forEach(ct => promises.push(ct.save()));
     return Promise.allSettled(promises);
   }
 
   /**
    * Save all cover types to a json file.
    */
-  static saveToJSON() {
+  static saveToJSON(self = this) {
     const filename = `${MODULE_ID}_CoverObjects`;
     const data = { coverObjects: [], flags: {} };
-    this.coverObjectsMap.forEach(c => data.coverObjects.push(c.toJSON()));
+    self.coverObjectsMap.forEach(c => data.coverObjects.push(c.toJSON()));
     data.flags.exportSource = {
       world: game.world.id,
       system: game.system.id,
@@ -186,17 +186,17 @@ export class AbstractCoverObject {
    * Import all cover types from a json file.
    * @param {JSON} json   Data to import
    */
-  static importFromJSON(json) {
+  static importFromJSON(json, self = this) {
     json = JSON.parse(json);
     if ( !json.flags?.exportSource?.[`${MODULE_ID}Version`] ) {
       console.error("JSON file not recognized.");
       return;
     }
-    this.coverObjectsMap.clear();
+    self.coverObjectsMap.clear();
     json.coverObjects.forEach(ct => this.constructor.create(ct));
   }
 
-  static async importFromJSONDialog() {
+  static async importFromJSONDialog(self = this) {
     new Dialog({
       title: "Import Cover Objects",
       content: await renderTemplate("templates/apps/import-data.html", {
@@ -210,7 +210,7 @@ export class AbstractCoverObject {
           callback: html => {
             const form = html.find("form")[0];
             if ( !form.data.files.length ) return ui.notifications.error("You did not upload a data file!");
-            readTextFromFile(form.data.files[0]).then(json => this.importFromJSON(json));
+            readTextFromFile(form.data.files[0]).then(json => self.importFromJSON(json));
           }
         },
         no: {
@@ -228,10 +228,10 @@ export class AbstractCoverObject {
    * Create default effects and store in the map. Resets anything already in the map.
    * Typically used on game load.
    */
-  static _constructDefaultCoverObjects() {
-    const data = this._defaultCoverTypeData()
+  static _constructDefaultCoverObjects(self = this) {
+    const data = self._defaultCoverTypeData()
     this.coverObjectsMap.clear();
-    Object.values(data).forEach(d => this.create(d));
+    Object.values(data).forEach(d => self.create(d));
   }
 
   /**
@@ -246,8 +246,8 @@ export class AbstractCoverObject {
   /**
    * Initialize the cover objects for this game.
    */
-  static initialize() {
-    this._constructDefaultCoverObjects();
-    this._updateFromSettings();
+  static initialize(self = this) {
+    self._constructDefaultCoverObjects(self);
+    self._updateFromSettings(self);
   }
 }
