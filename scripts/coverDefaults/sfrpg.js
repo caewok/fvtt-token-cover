@@ -105,11 +105,85 @@ coverTypes.total = {
   priority: 4
 };
 
+coverEffects.soft = {
+  name: "SFRPG.Vehicles.VehicleCoverTypes.Soft",
+  id: `${MODULE_ID}.${SYSTEM_ID}.soft`,
+  img: ICONS.SHIELD_THICK_GRAY.SPLAT,
+  coverTypes: [
+    coverTypes.soft.id
+  ],
+  type: "effect",
+  system: {
+    enabled: true,
+    requirements: "Condition",
+    showOnToken: true,
+    source: "CRB.276",
+    type: "condition",
+    modifiers: [
+      {
+        effectType: "ranged-attacks",
+        enabled: true,
+        max: -4,
+        modifier: "-4",
+        modifierType: "constant",
+        name: "SFRPG.Vehicles.VehicleCoverTypes.Soft",
+        source: "Condition",
+        subtab: "misc",
+        type: "armor",
+        valueAffected: ""
+      }
+    ]
+  }
+};
+
+coverEffects.partial = {
+  name: "SFRPG.Vehicles.VehicleCoverTypes.Partial",
+  id: `${MODULE_ID}.${SYSTEM_ID}.partial`,
+  img: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
+  coverTypes: [
+    coverTypes.partial.id
+  ],
+  type: "effect",
+  system: {
+    enabled: true,
+    requirements: "Condition",
+    showOnToken: true,
+    source: "CRB.276",
+    type: "condition",
+    modifiers: [
+      {
+        effectType: "ranged-attacks",
+        enabled: true,
+        max: -2,
+        modifier: "-2",
+        modifierType: "constant",
+        name: "SFRPG.Vehicles.VehicleCoverTypes.Partial",
+        source: "Condition",
+        subtab: "misc",
+        type: "armor",
+        valueAffected: ""
+      },
+
+      {
+        effectType: "save",
+        enabled: true,
+        max: 1,
+        modifier: "+1",
+        modifierType: "constant",
+        name: "Partial Cover Reflex",
+        source: "",
+        subtab: "misc",
+        type: "armor",
+        valueAffected: "reflex"
+      }
+    ]
+  }
+};
 
 coverEffects.cover = {
   name: "SFRPG.Vehicles.VehicleCoverTypes.Cover",
   id: `${MODULE_ID}.${SYSTEM_ID}.half`,
-  img: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
+  img: ICONS.SHIELD_THIN_GRAY.HALF,
   coverTypes: [
     coverTypes.cover.id
   ],
@@ -122,13 +196,13 @@ coverEffects.cover = {
     type: "condition",
     modifiers: [
       {
-        effectType: "rangedAttack",
+        effectType: "ranged-attacks",
         enabled: true,
         max: -4,
         modifier: "-4",
         modifierType: "constant",
         name: "SFRPG.Vehicles.VehicleCoverTypes.Cover",
-        source: "condition",
+        source: "Condition",
         subtab: "misc",
         type: "armor",
         valueAffected: ""
@@ -141,6 +215,50 @@ coverEffects.cover = {
         modifier: "+2",
         modifierType: "constant",
         name: "Cover Reflex",
+        source: "",
+        subtab: "misc",
+        type: "armor",
+        valueAffected: "reflex"
+      }
+    ]
+  }
+};
+
+coverEffects.improved = {
+  name: "SFRPG.Vehicles.VehicleCoverTypes.Improved",
+  id: `${MODULE_ID}.${SYSTEM_ID}.improved`,
+  img: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
+  coverTypes: [
+    coverTypes.improved.id
+  ],
+  type: "effect",
+  system: {
+    enabled: true,
+    requirements: "Condition",
+    showOnToken: true,
+    source: "CRB.276",
+    type: "condition",
+    modifiers: [
+      {
+        effectType: "ranged-attacks",
+        enabled: true,
+        max: -8,
+        modifier: "-8",
+        modifierType: "constant",
+        name: "SFRPG.Vehicles.VehicleCoverTypes.Improved",
+        source: "Condition",
+        subtab: "misc",
+        type: "armor",
+        valueAffected: ""
+      },
+
+      {
+        effectType: "save",
+        enabled: true,
+        max: 4,
+        modifier: "+4",
+        modifierType: "constant",
+        name: "Improved Cover Reflex",
         source: "condition",
         subtab: "misc",
         type: "armor",
@@ -149,3 +267,89 @@ coverEffects.cover = {
     ]
   }
 };
+
+coverEffects.total = {
+  name: "SFRPG.Vehicles.VehicleCoverTypes.Total",
+  id: `${MODULE_ID}.${SYSTEM_ID}.total`,
+  img: ICONS.SHIELD_THIN_GRAY.FULL,
+  coverTypes: [
+    coverTypes.total.id
+  ],
+  type: "effect",
+  system: {
+    enabled: true,
+    requirements: "Condition",
+    showOnToken: true,
+    source: "CRB.276",
+    type: "condition",
+    modifiers: [
+      {
+        effectType: "all-attacks",
+        enabled: true,
+        max: -99,
+        modifier: "-99",
+        modifierType: "constant",
+        name: "SFRPG.Vehicles.VehicleCoverTypes.Total",
+        source: "Condition",
+        subtab: "misc",
+        type: "armor",
+        valueAffected: ""
+      },
+
+      {
+        effectType: "save",
+        enabled: true,
+        max: 99,
+        modifier: "+99",
+        modifierType: "constant",
+        name: "Total Cover Reflex",
+        source: "",
+        subtab: "misc",
+        type: "armor",
+        valueAffected: "reflex"
+      }
+    ]
+  }
+};
+
+
+data = {
+  name: "My New Item",
+  type: "effect",
+  img: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
+  system: {
+    enabled: true,
+    showOnToken: true,
+    type: "condition",
+    requirements: "Condition",
+    modifiers: [
+      {
+        effectType: "ranged-attacks",
+        enabled: true,
+        max: -2,
+        modifier: "-2",
+        modifierType: "constant",
+        name: "SFRPG.Vehicles.VehicleCoverTypes.Partial",
+        source: "Condition",
+        subtab: "misc",
+        type: "armor",
+        valueAffected: ""
+      },
+
+      {
+        effectType: "save",
+        enabled: true,
+        max: 1,
+        modifier: "+1",
+        modifierType: "constant",
+        name: "Partial Cover Reflex",
+        source: "",
+        subtab: "misc",
+        type: "armor",
+        valueAffected: "reflex"
+      }
+    ]
+  }
+};
+
+doc = (await CONFIG.Item.documentClass.create([{...data}]))[0]

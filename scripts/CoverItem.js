@@ -37,8 +37,8 @@ export class CoverItem extends CoverEffect {
    * @param {object} coverEffectData     Data to store
    * @returns {Item}
    */
-  async _createStorage(activeEffectData) {
-    return (await CONFIG.Item.documentClass.create([activeEffectData]))[0];
+  async _createStorage(coverEffectData) {
+    return (await CONFIG.Item.documentClass.create([coverEffectData]))[0];
   }
 
   /**
