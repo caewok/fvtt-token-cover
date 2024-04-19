@@ -111,11 +111,23 @@ export class CoverEffect extends AbstractCoverObject {
 
   /**
    * Retrieve the active effect for this cover effect from the cover effect item.
-   * @returns {Document}
+   * @return {Document}
    */
   #document
 
   get document() { return this.#document; }
+
+  /**
+   * Retrieve the cover effect icon for use in the list of cover effects.
+   * @return {string}
+   */
+  get icon() { return this.config.icon; }
+
+  /**
+   * Retrieve the name of the cover effect for use in the list of cover effects.
+   * @return {string}
+   */
+  get name() { return this.config.name; }
 
   // ----- NOTE: Methods ----- //
 

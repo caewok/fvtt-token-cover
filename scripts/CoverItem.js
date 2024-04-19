@@ -16,6 +16,12 @@ export class CoverItem extends CoverEffect {
   // Alias
   get effectItem() { return this.document; }
 
+  /**
+   * Retrieve the cover effect icon for use in the list of cover effects.
+   * @return {string}
+   */
+  get icon() { return this.config.img; }
+
   // ----- NOTE: Methods ----- //
 
   /**
