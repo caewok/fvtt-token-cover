@@ -26,16 +26,16 @@ PATCHES.sfrpg = {}; // Starfinder RPG system.
  * @returns {boolean|void}                        Explicitly return false to prevent creation of this Document
  */
 function preCreateItem(item, data, options, userId) {
-  if ( game.system.id !== "sfrpg" || userId !== game.userId ) return;
-
-  // Is this item a cover status?
-  const coverType = item.getFlag(MODULE_ID, "cover");
-  if ( !coverType ) return;
-
-  // Does this actor already have this item?
-  const actor = item.parent;
-  if ( actor.items.some(i => i.getFlag(MODULE_ID, "cover") === coverType) ) return false;
-  return true;
+//   if ( game.system.id !== "sfrpg" || userId !== game.userId ) return;
+//
+//   // Is this item a cover status?
+//   const coverType = item.getFlag(MODULE_ID, "cover");
+//   if ( !coverType ) return;
+//
+//   // Does this actor already have this item?
+//   const actor = item.parent;
+//   if ( actor.items.some(i => i.getFlag(MODULE_ID, "cover") === coverType) ) return false;
+//   return true;
 }
 
 /**
@@ -46,24 +46,24 @@ function preCreateItem(item, data, options, userId) {
  * @param {string} userId                         The ID of the requesting user, always game.user.id
  */
 function createItem(item, options, userId) {
-  if ( game.system.id !== "sfrpg" || userId !== game.userId ) return;
-
-  // Is this item a cover status?
-  const coverType = item.getFlag(MODULE_ID, "cover");
-  if ( !coverType ) return;
-
-  // Locate all other cover types on this actor.
-  const actor = item.parent;
-  const coverItems = actor.items.filter(i => {
-    const iCover = i.getFlag(MODULE_ID, "cover");
-    return iCover && iCover !== coverType;
-  });
-  if ( !coverItems.length ) return;
-
-  // Remove the other cover types.
-  // TODO: Is this a problem b/c it is async?
-  const coverIds = coverItems.map(i => i.id);
-  actor.deleteEmbeddedDocuments("Item", coverIds);
+//   if ( game.system.id !== "sfrpg" || userId !== game.userId ) return;
+//
+//   // Is this item a cover status?
+//   const coverType = item.getFlag(MODULE_ID, "cover");
+//   if ( !coverType ) return;
+//
+//   // Locate all other cover types on this actor.
+//   const actor = item.parent;
+//   const coverItems = actor.items.filter(i => {
+//     const iCover = i.getFlag(MODULE_ID, "cover");
+//     return iCover && iCover !== coverType;
+//   });
+//   if ( !coverItems.length ) return;
+//
+//   // Remove the other cover types.
+//   // TODO: Is this a problem b/c it is async?
+//   const coverIds = coverItems.map(i => i.id);
+//   actor.deleteEmbeddedDocuments("Item", coverIds);
 }
 
 PATCHES.sfrpg.HOOKS = { preCreateItem, createItem };

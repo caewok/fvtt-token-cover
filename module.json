@@ -49,14 +49,14 @@
   "packs": [
     {
       "name": "tokencover_macros",
-      "label": "ATV Macros",
+      "label": "ATC Macros",
       "path": "packs/macros",
       "type": "Macro",
       "private": false
     },
     {
       "name": "tokencover_items_sfrpg",
-      "label": "ATV Items",
+      "label": "ATC Items",
       "path": "packs/items/sfrpg",
       "type": "Item",
       "private": false,

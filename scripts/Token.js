@@ -336,7 +336,7 @@ function _coverTypes() {
  */
 function _coverEffects() {
   const coverTypes = CoverType.minimumCoverFromAttackers(this, this._coverAttackers("COVER_EFFECTS"));
-  return CoverEffect.coverObjectsMap.values().filter(ce => coverTypes.intersects(new Set(ce.coverTypes)));
+  return CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values().filter(ce => coverTypes.intersects(new Set(ce.coverTypes)));
 }
 
 /**
@@ -360,7 +360,7 @@ function refreshCoverEffects() {
   log(`Token#refreshCoverEffects|${this.name}`);
   const targetsOnly = Settings.get(Settings.KEYS.COVER_TYPES.TARGETING);
   const currCoverEffects = (targetsOnly && !this.isTargeted) ? NULL_SET : this._coverEffects();
-  CoverEffect.replaceLocalEffectsOnActor(this, currCoverEffects);
+  CONFIG[MODULE_ID].CoverEffect.replaceLocalEffectsOnActor(this, currCoverEffects);
 }
 
 PATCHES.BASIC.METHODS = {

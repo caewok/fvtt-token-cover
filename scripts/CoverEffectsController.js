@@ -36,7 +36,7 @@ export class CoverEffectsController {
    */
   get data() {
     const effects = [];
-    CoverEffect.coverObjectsMap.forEach(ce => effects.push({ name: ce.config.name, id: ce.id, icon: ce.config.icon }));
+    CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.forEach(ce => effects.push({ name: ce.name, id: ce.id, icon: ce.icon }));
     return {
       isGM: game.user.isGM,
       effects
@@ -58,7 +58,7 @@ export class CoverEffectsController {
    */
   async onCreateCoverEffect(_event) {
     log("CoverEffectsController|onCreateCoverEffect");
-    const ce = CoverEffect.create();
+    const ce = CONFIG[MODULE_ID].CoverEffect.create();
     await ce.initialize();
     this._viewMvc.render();
     ce.renderConfig();
@@ -88,7 +88,7 @@ export class CoverEffectsController {
     return Dialog.confirm({
       title: "Remove Terrain",
       content:
-        "<h4>Are You Sure?</h4><p>This will remove the terrain from all scenes.",
+        "<h4>Are You Sure?</h4><p>This will remove the cover effect from all scenes.",
       yes: async () => {
         log("CoverEffectsController|onDeleteCoverEffect yes");
         await ce.delete(true);
@@ -127,7 +127,7 @@ export class CoverEffectsController {
     log("CoverEffectsController|onExportCoverEffect");
     const ce = coverEffectForListItem(effectItem);
     if ( !ce ) return;
-    ce.saveToJSON();
+    ce.exportToJSON();
   }
 
   /**
@@ -139,10 +139,7 @@ export class CoverEffectsController {
     const ce = coverEffectForListItem(effectItem);
     if ( !ce ) return;
 
-    const newCE = CoverEffect.create();
-    const data = ce.activeEffectData;
-    data.name = `${data.name} Copy`;
-    await newCE.initialize(data);
+    await ce.duplicate();
     this._viewMvc.render();
   }
 
@@ -155,17 +152,11 @@ export class CoverEffectsController {
   onEffectDragStart(event) {
     log(`CoverEffectsController|onEffectDragStart for ${event.target.dataset.effectName}`);
     const coverEffectId = event.target.dataset.effectId;
-    const coverEffect = CoverEffect.coverObjectsMap.get(coverEffectId);
-    // const data = coverEffect.activeEffectData;
-    // data.parent = () => this.object;
+    const ce = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.get(coverEffectId);
 
     event.dataTransfer.setData(
       "text/plain",
-      JSON.stringify({
-        name: coverEffect.config.name,
-        type: "ActiveEffect",
-        data: coverEffect.activeEffectData
-      })
+      JSON.stringify(ce.dragData)
     );
   }
 
@@ -225,7 +216,7 @@ async function setCoverEffect(type, value) {
  */
 function coverEffectForListItem(effectItem) {
   const effectId = effectItem.data ? effectItem.data().effectId : effectItem.currentTarget.dataset.effectId;
-  const ce = CoverEffect.coverObjectsMap.get(effectId);
+  const ce = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.get(effectId);
   if ( !ce ) {
     console.error(`CoverEffectsController#onDeleteCoverEffect|Cover Effect ${effectId} not found.`);
     return;
