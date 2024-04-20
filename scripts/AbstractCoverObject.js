@@ -48,7 +48,6 @@ export class AbstractCoverObject {
    * @param {object} [coverObjectData={}]
    */
   _configure(coverObjectData = {}) {
-    delete coverObjectData.id;
   }
 
   // ----- NOTE: Getters, setters, related properties ----- //

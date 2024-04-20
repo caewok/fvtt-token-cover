@@ -131,6 +131,29 @@ export class CoverItem extends CoverEffect {
     }
   }
 
+  /**
+   * Create default effect objects and ensure their storage is created.
+   * Typically used on game load.
+   * If a compendium id is provided, items will be loaded from the compendium if not present.
+   * @param {boolean} [override=false]    Use existing cover effects unless enabled
+   */
+  static async _constructDefaultCoverObjects(override = false) {
+    const data = this._defaultCoverTypeData();
+    this.coverObjectsMap.clear();
+    const promises = [];
+    const pack = game.packs.get(`${MODULE_ID}.${MODULE_ID}_items_${game.system.id}`);
+    for ( const d of Object.values(data) ) {
+      // See if we need to pull the default item from the compendium.
+      if ( pack && d.compendiumId && !game.items.has(d.compendiumId) && !this.findStorageDocument(d) ) {
+        const doc = await pack.getDocument(d.compendiumId);
+        if ( doc ) game.items.set(d.compendiumId, doc);
+      }
+      const ce = this.create(d);
+      promises.push(ce.initialize(d, override));
+    }
+    return Promise.allSettled(promises);
+  }
+
 }
 
 export class CoverItemSFRPG extends CoverItem {

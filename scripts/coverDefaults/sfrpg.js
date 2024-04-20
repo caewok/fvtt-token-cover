@@ -105,251 +105,75 @@ coverTypes.total = {
   priority: 4
 };
 
+
+// Each effect lists an id by which to find the effect using the flag COVER_EFFECT_ID
+// Each effect is associated with 0+ cover types, used to trigger the effect.
 coverEffects.soft = {
-  name: "SFRPG.Vehicles.VehicleCoverTypes.Soft",
   id: `${MODULE_ID}.${SYSTEM_ID}.soft`,
-  img: ICONS.SHIELD_THICK_GRAY.SPLAT,
+  compendiumId: "aolmL82yGMgAlEcf",
   coverTypes: [
     coverTypes.soft.id
-  ],
-  type: "effect",
-  system: {
-    enabled: true,
-    requirements: "Condition",
-    showOnToken: true,
-    source: "CRB.276",
-    type: "condition",
-    modifiers: [
-      {
-        effectType: "ranged-attacks",
-        enabled: true,
-        max: -4,
-        modifier: "-4",
-        modifierType: "constant",
-        name: "SFRPG.Vehicles.VehicleCoverTypes.Soft",
-        source: "Condition",
-        subtab: "misc",
-        type: "armor",
-        valueAffected: ""
-      }
-    ]
-  }
+  ]
 };
 
 coverEffects.partial = {
-  name: "SFRPG.Vehicles.VehicleCoverTypes.Partial",
   id: `${MODULE_ID}.${SYSTEM_ID}.partial`,
-  img: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
+  compendiumId: "WhC815WlllSW8tT0",
   coverTypes: [
     coverTypes.partial.id
-  ],
-  type: "effect",
-  system: {
-    enabled: true,
-    requirements: "Condition",
-    showOnToken: true,
-    source: "CRB.276",
-    type: "condition",
-    modifiers: [
-      {
-        effectType: "ranged-attacks",
-        enabled: true,
-        max: -2,
-        modifier: "-2",
-        modifierType: "constant",
-        name: "SFRPG.Vehicles.VehicleCoverTypes.Partial",
-        source: "Condition",
-        subtab: "misc",
-        type: "armor",
-        valueAffected: ""
-      },
-
-      {
-        effectType: "save",
-        enabled: true,
-        max: 1,
-        modifier: "+1",
-        modifierType: "constant",
-        name: "Partial Cover Reflex",
-        source: "",
-        subtab: "misc",
-        type: "armor",
-        valueAffected: "reflex"
-      }
-    ]
-  }
+  ]
 };
 
 coverEffects.cover = {
-  name: "SFRPG.Vehicles.VehicleCoverTypes.Cover",
   id: `${MODULE_ID}.${SYSTEM_ID}.half`,
-  img: ICONS.SHIELD_THIN_GRAY.HALF,
+  compendiumId: "bjq4ho7JXhgUDvG6",
   coverTypes: [
     coverTypes.cover.id
-  ],
-  type: "effect",
-  system: {
-    enabled: true,
-    requirements: "Condition",
-    showOnToken: true,
-    source: "CRB.276",
-    type: "condition",
-    modifiers: [
-      {
-        effectType: "ranged-attacks",
-        enabled: true,
-        max: -4,
-        modifier: "-4",
-        modifierType: "constant",
-        name: "SFRPG.Vehicles.VehicleCoverTypes.Cover",
-        source: "Condition",
-        subtab: "misc",
-        type: "armor",
-        valueAffected: ""
-      },
-
-      {
-        effectType: "save",
-        enabled: true,
-        max: 2,
-        modifier: "+2",
-        modifierType: "constant",
-        name: "Cover Reflex",
-        source: "",
-        subtab: "misc",
-        type: "armor",
-        valueAffected: "reflex"
-      }
-    ]
-  }
+  ]
 };
 
 coverEffects.improved = {
-  name: "SFRPG.Vehicles.VehicleCoverTypes.Improved",
   id: `${MODULE_ID}.${SYSTEM_ID}.improved`,
-  img: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
+  compendiumId: "kaIYAWHJ7up8rwOy",
   coverTypes: [
     coverTypes.improved.id
-  ],
-  type: "effect",
-  system: {
-    enabled: true,
-    requirements: "Condition",
-    showOnToken: true,
-    source: "CRB.276",
-    type: "condition",
-    modifiers: [
-      {
-        effectType: "ranged-attacks",
-        enabled: true,
-        max: -8,
-        modifier: "-8",
-        modifierType: "constant",
-        name: "SFRPG.Vehicles.VehicleCoverTypes.Improved",
-        source: "Condition",
-        subtab: "misc",
-        type: "armor",
-        valueAffected: ""
-      },
-
-      {
-        effectType: "save",
-        enabled: true,
-        max: 4,
-        modifier: "+4",
-        modifierType: "constant",
-        name: "Improved Cover Reflex",
-        source: "condition",
-        subtab: "misc",
-        type: "armor",
-        valueAffected: "reflex"
-      }
-    ]
-  }
+  ]
 };
 
 coverEffects.total = {
-  name: "SFRPG.Vehicles.VehicleCoverTypes.Total",
   id: `${MODULE_ID}.${SYSTEM_ID}.total`,
-  img: ICONS.SHIELD_THIN_GRAY.FULL,
+  compendiumId: "o0CFBHsprfadKuyd",
   coverTypes: [
     coverTypes.total.id
-  ],
-  type: "effect",
-  system: {
-    enabled: true,
-    requirements: "Condition",
-    showOnToken: true,
-    source: "CRB.276",
-    type: "condition",
-    modifiers: [
-      {
-        effectType: "all-attacks",
-        enabled: true,
-        max: -99,
-        modifier: "-99",
-        modifierType: "constant",
-        name: "SFRPG.Vehicles.VehicleCoverTypes.Total",
-        source: "Condition",
-        subtab: "misc",
-        type: "armor",
-        valueAffected: ""
-      },
-
-      {
-        effectType: "save",
-        enabled: true,
-        max: 99,
-        modifier: "+99",
-        modifierType: "constant",
-        name: "Total Cover Reflex",
-        source: "",
-        subtab: "misc",
-        type: "armor",
-        valueAffected: "reflex"
-      }
-    ]
-  }
+  ]
 };
 
+/*
+const documentIndex = game.packs.get("my-pack").index.getName("My Rolltable Name");
+const doc = await game.packs.get("my-pack").getDocument(documentIndex._id);
 
-data = {
-  name: "My New Item",
-  type: "effect",
-  img: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
-  system: {
-    enabled: true,
-    showOnToken: true,
-    type: "condition",
-    requirements: "Condition",
-    modifiers: [
-      {
-        effectType: "ranged-attacks",
-        enabled: true,
-        max: -2,
-        modifier: "-2",
-        modifierType: "constant",
-        name: "SFRPG.Vehicles.VehicleCoverTypes.Partial",
-        source: "Condition",
-        subtab: "misc",
-        type: "armor",
-        valueAffected: ""
-      },
 
-      {
-        effectType: "save",
-        enabled: true,
-        max: 1,
-        modifier: "+1",
-        modifierType: "constant",
-        name: "Partial Cover Reflex",
-        source: "",
-        subtab: "misc",
-        type: "armor",
-        valueAffected: "reflex"
-      }
-    ]
-  }
-};
+softCover = game.items.get("aolmL82yGMgAlEcf")
+await softCover.setFlag(MODULE_ID, FLAGS.COVER_TYPES, [coverTypes.soft.id])
+await softCover.setFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID, `${MODULE_ID}.${SYSTEM_ID}.soft`)
 
-doc = (await CONFIG.Item.documentClass.create([{...data}]))[0]
+partialCover = game.items.get("WhC815WlllSW8tT0")
+await partialCover.setFlag(MODULE_ID, FLAGS.COVER_TYPES, [coverTypes.partial.id])
+await partialCover.setFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID, `${MODULE_ID}.${SYSTEM_ID}.partial`)
+
+cover = game.items.get("bjq4ho7JXhgUDvG6")
+await cover.setFlag(MODULE_ID, FLAGS.COVER_TYPES, [coverTypes.cover.id])
+await cover.setFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID, `${MODULE_ID}.${SYSTEM_ID}.half`)
+
+improvedCover = game.items.get("kaIYAWHJ7up8rwOy")
+await improvedCover.setFlag(MODULE_ID, FLAGS.COVER_TYPES, [coverTypes.improved.id])
+await improvedCover.setFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID, `${MODULE_ID}.${SYSTEM_ID}.improved`)
+
+totalCover = game.items.get("o0CFBHsprfadKuyd")
+await totalCover.setFlag(MODULE_ID, FLAGS.COVER_TYPES, [coverTypes.total.id])
+await totalCover.setFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID, `${MODULE_ID}.${SYSTEM_ID}.total`)
+
+To update the compendium, select the folder of cover items, right click, export to compendium.
+Compendium must be unlocked.
+
+*/

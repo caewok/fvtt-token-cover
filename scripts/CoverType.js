@@ -69,7 +69,7 @@ export class CoverType extends AbstractCoverObject {
    * @param {CoverTypeData} [CoverTypeData]
    */
   _configure(coverTypeData = {}) {
-    super._configure(coverTypeData);
+    delete coverTypeData.id;
     foundry.utils.mergeObject(this.config, coverTypeData);
 
     // Make changes that cannot be handled by defaults.
