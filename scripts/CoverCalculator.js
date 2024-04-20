@@ -13,7 +13,6 @@ import { SOCKETS } from "./cover_application.js";
 import { keyForValue } from "./util.js";
 import { CoverDialog } from "./CoverDialog.js";
 import { AbstractCalculator } from "./LOS/AbstractCalculator.js";
-import { CoverType } from "./CoverType.js";
 
 
 /* Testing
@@ -120,7 +119,7 @@ export class CoverCalculator extends AbstractCalculator {
 
   coverTypes(target, opts) {
     if ( target ) this.target = target;
-    return CoverType.coverTypesForToken(this.viewer, this.target, opts);
+    return CONFIG[MODULE_ID].CoverType.coverTypesForToken(this.viewer, this.target, opts);
   }
 
   coverTypesFromViewerAtLocation(location, target, opts) {

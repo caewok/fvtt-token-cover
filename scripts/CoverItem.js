@@ -6,6 +6,8 @@
 import { MODULE_ID, FLAGS, COVER } from "./const.js";
 import { CoverEffect } from "./CoverEffect.js";
 import { coverEffects as sfrpgCoverEffects } from "./coverDefaults/sfrpg.js";
+import { coverEffects as pf2eCoverEffects } from "./coverDefaults/pf2e.js";
+
 /**
  * Cover Effect for systems like sfrpg that use items to signify effects.
  */
@@ -142,6 +144,7 @@ export class CoverItem extends CoverEffect {
   static _defaultCoverTypeData() {
     switch ( this.systemId ) {
       case "sfrpg": return sfrpgCoverEffects; break;
+      case "pf2e": return pf2eCoverEffects; break;
       default: console.error("No default cover effects for generic systems have been implemented.");
     }
   }
@@ -171,6 +174,27 @@ export class CoverItem extends CoverEffect {
 
 }
 
+
+/**
+ * Specialized handling for cover effects (cover items) in pf2e.
+ */
+export class CoverItemPF2E extends CoverItem {
+
+  /**
+   * Create the actual Item storage document.
+   * @param {object} coverEffectData     Data to store
+   * @returns {Item}
+   */
+  async _createStorageDocument(coverEffectData) {
+    // Add necessary settings for the active effect.
+    // coverEffectData.type = "effect";
+    return super._createStorageDocument(coverEffectData);
+  }
+}
+
+/**
+ * Specialized handling for cover effects (cover items) in sfrpg.
+ */
 export class CoverItemSFRPG extends CoverItem {
 
   /**

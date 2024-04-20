@@ -335,3 +335,51 @@ export class CoverType extends AbstractCoverObject {
 COVER.TYPES = CoverType.coverObjectsMap;
 
 // ----- NOTE: Helper functions ----- //
+
+
+// Actor sizes, from smallest to largest, in pf2e.
+// See CONFIG.PF2E.actorSizes
+const ACTOR_SIZES = {
+  tiny: 1,
+  sm: 2,
+  med: 3,
+  lg: 4,
+  huge: 5,
+  grg: 6
+};
+Object.entries(ACTOR_SIZES).forEach(([key, value]) => ACTOR_SIZES[value] = key);
+
+
+/**
+ * Specialized handling of cover types in pf2e.
+ */
+export class CoverTypePF2E extends CoverType {
+  /**
+   * Determine what cover types apply to a target token given an attacking token.
+   * For pf2e, if lesser cover has been assigned, it will upgrade to standard cover
+   * if a blocking creature is 2+ sizes larger.
+   * See https://2e.aonprd.com/Rules.aspx?ID=2373
+   * @param {Token} attackingToken
+   * @param {Token} targetToken
+   * @returns {coverType[]}
+   */
+  static coverTypesForToken(attackingToken, targetToken, opts) {
+    const types = super.coverTypesForToken(attackingToken, targetToken, opts);
+    const standardCover = this.coverTypesObject.get("coverEffects.standard.id");
+
+    if ( standardCover && types.some(type.id === pf2eCoverTypes.lesser.id) ) {
+      const targetSize = ACTOR_SIZES[targetToken.system.traits.size.value] ?? ACTOR_SIZES.med;
+      const attackerSize = ACTOR_SIZES[attackingToken.system.traits.size.value] ?? ACTOR_SIZES.med;
+      const upgradeSize = Math.max(targetSize, attackerSize) + 1;
+      for ( const token of attackingToken.coverCalculator.calc.blockingObjects.tokens ) {
+        const blockingTokenSize = ACTOR_SIZES[token.system.traits.size.value] ?? ACTOR_SIZES.med;
+        if ( blockingTokenSize > upgradeSize ) {
+          findSpliceAll(types, type.id === pf2eCoverTypes.lesser.id);
+          types.push(standardCover);
+          break;
+        }
+      }
+    }
+    return types;
+  }
+}

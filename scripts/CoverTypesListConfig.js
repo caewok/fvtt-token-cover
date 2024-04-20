@@ -11,7 +11,6 @@ ui
 "use strict";
 
 import { MODULE_ID, COVER } from "./const.js";
-import { CoverType } from "./CoverType.js";
 import { log } from "./util.js";
 
 /**
@@ -85,7 +84,7 @@ export class CoverTypesListConfig extends FormApplication  {
       if ( !storedCoverType ) continue;
       storedCoverType.update(coverTypeData);
     }
-    await CoverType.save();
+    await CONFIG[MODULE_ID].CoverType.save();
   }
 
   /**
@@ -115,7 +114,7 @@ export class CoverTypesListConfig extends FormApplication  {
     event.preventDefault();
     log("AddCoverType clicked!");
     await this._onSubmit(event, { preventClose: true });
-    CoverType.create();
+    CONFIG[MODULE_ID].CoverType.create();
     this.render();
   }
 
@@ -136,7 +135,7 @@ export class CoverTypesListConfig extends FormApplication  {
       yes: async () => {
         log("CoverTypesListConfig|_onRemoveCoverType yes");
         COVER.TYPES.delete(id);
-        CoverType.coverTypesUpdated();
+        CONFIG[MODULE_ID].CoverType.coverTypesUpdated();
         this.render();
       }
     });
@@ -146,7 +145,7 @@ export class CoverTypesListConfig extends FormApplication  {
     event.stopPropagation();
     log("ImportCoverType clicked!");
     await this._onSubmit(event, { preventClose: true });
-    await CoverType.importFromJSONDialog();
+    await CONFIG[MODULE_ID].CoverType.importFromJSONDialog();
     this.render();
   }
 
@@ -154,7 +153,7 @@ export class CoverTypesListConfig extends FormApplication  {
     event.stopPropagation();
     log("ExportAllCoverTypes clicked!");
     await this._onSubmit(event, { preventClose: true });
-    CoverType.saveToJSON();
+    CONFIG[MODULE_ID].CoverType.saveToJSON();
   }
 
   /**

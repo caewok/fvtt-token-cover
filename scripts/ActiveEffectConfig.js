@@ -5,7 +5,6 @@
 
 import { MODULE_ID, FLAGS, COVER } from "./const.js";
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
-import { CoverType } from "./CoverType.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
@@ -34,7 +33,7 @@ async function renderActiveEffectConfig(app, html, data) {
   const coverTypes = [];
   const selected = [];
   const currCoverIds = new Set(app.object.getFlag(MODULE_ID, FLAGS.COVER_TYPES) ?? []);
-  CoverType.coverObjectsMap.forEach(obj => {
+  CONFIG[MODULE_ID].CoverType.coverObjectsMap.forEach(obj => {
      const checked = currCoverIds.has(obj.id);
      const ct = { id: `coverTypeCheckBoxes.${obj.id}`, name: obj.config.name, checked };
      if ( checked ) selected.push(`coverTypeCheckBoxes.${obj.id}`);

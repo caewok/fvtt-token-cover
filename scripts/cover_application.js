@@ -12,7 +12,6 @@ socketlib
 import { MODULE_ID, COVER, MODULES_ACTIVE } from "./const.js";
 import { isFirstGM, keyForValue } from "./util.js";
 import { CoverDialog } from "./CoverDialog.js";
-import { CoverEffect } from "./CoverEffect.js";
 
 const NULL_SET = new Set(); // Set intended to signify no items, as a placeholder.
 

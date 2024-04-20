@@ -61,8 +61,15 @@
       "type": "Item",
       "private": false,
       "system": "sfrpg"
+    },
+    {
+      "name": "tokencover_items_pf2e",
+      "label": "ATC Items",
+      "path": "packs/items/pf2e",
+      "type": "Item",
+      "private": false,
+      "system": "pf2e"
     }
-
   ],
   "languages": [
     {

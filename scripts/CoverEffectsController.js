@@ -11,13 +11,8 @@ SearchFilter
 import { Settings } from "./settings.js";
 import { MODULE_ID, FLAGS, COVER } from "./const.js";
 import { log } from "./util.js";
-import { coverTypes as dnd5eCoverTypes } from "./coverDefaults/dnd5e.js";
-import { coverTypes as pf2eCoverTypes } from "./coverDefaults/pf2e.js";
-import { coverTypes as sfrpgCoverTypes } from "./coverDefaults/sfrpg.js";
-import { coverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
 import { CoverEffectConfig } from "./CoverEffectConfig.js";
 import { CoverTypesListConfig } from "./CoverTypesListConfig.js";
-import { CoverEffect } from "./CoverEffect.js";
 
 
 // Much of this is from

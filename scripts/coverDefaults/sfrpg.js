@@ -3,6 +3,7 @@
 "use strict";
 
 import { MODULE_ID, ICONS } from "../const.js";
+import { CoverItem } from "../CoverItem.js";
 
 const SYSTEM_ID = "sfrpg";
 
@@ -177,3 +178,5 @@ To update the compendium, select the folder of cover items, right click, export 
 Compendium must be unlocked.
 
 */
+
+

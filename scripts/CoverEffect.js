@@ -3,7 +3,6 @@
 "use strict";
 
 import { MODULE_ID, FLAGS, COVER } from "./const.js";
-import { CoverType } from "./CoverType.js";
 import { Settings } from "./settings.js";
 import { AbstractCoverObject } from "./AbstractCoverObject.js";
 import { CoverEffectConfig } from "./CoverEffectConfig.js";
@@ -87,11 +86,11 @@ export class CoverEffect extends AbstractCoverObject {
 
   /** @type {CoverType[]} */
   get coverTypes() {
-    return this.#coverTypesArray.map(typeId => CoverType.coverObjectsMap.get(typeId));
+    return this.#coverTypesArray.map(typeId => CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(typeId));
   }
 
   set coverType(value) {
-    if ( typeof value === "string" ) value = CoverType.coverObjectsMap.get(value);
+    if ( typeof value === "string" ) value = CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(value);
     if ( !(value instanceof CoverType) ) {
       console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
       return;
@@ -214,7 +213,7 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {CoverType|string} coverType      CoverType object or its id.
    */
   _addCoverType(coverType) {
-    if ( typeof coverType === "string" ) coverType = CoverType.coverObjectsMap.get(coverType);
+    if ( typeof coverType === "string" ) coverType = CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(coverType);
     if ( !(coverType instanceof CoverType) ) {
       console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
       return;
@@ -227,7 +226,7 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {CoverType|string} coverType      CoverType object or its id.
    */
   _removeCoverType(coverType) {
-    if ( typeof coverType === "string" ) coverType = CoverType.coverObjectsMap.get(coverType);
+    if ( typeof coverType === "string" ) coverType = CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(coverType);
     if ( !(coverType instanceof CoverType) ) {
       console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
       return;
