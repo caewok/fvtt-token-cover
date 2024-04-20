@@ -152,17 +152,11 @@ export class CoverEffectsController {
   onEffectDragStart(event) {
     log(`CoverEffectsController|onEffectDragStart for ${event.target.dataset.effectName}`);
     const coverEffectId = event.target.dataset.effectId;
-    const coverEffect = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.get(coverEffectId);
-    // const data = coverEffect.activeEffectData;
-    // data.parent = () => this.object;
+    const ce = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.get(coverEffectId);
 
     event.dataTransfer.setData(
       "text/plain",
-      JSON.stringify({
-        name: coverEffect.config.name,
-        type: "ActiveEffect",
-        data: coverEffect.activeEffectData
-      })
+      JSON.stringify(ce.dragData)
     );
   }
 

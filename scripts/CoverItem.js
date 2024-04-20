@@ -22,6 +22,19 @@ export class CoverItem extends CoverEffect {
    */
   get icon() { return this.config.img; }
 
+  /**
+   * Data used when dragging a cover effect to an actor sheet.
+   */
+  get dragData() {
+    const out = {
+      name: this.name,
+      type: "Item",
+      data: this.documentData
+    };
+    out.uuid = this.document.uuid;
+    return out;
+  }
+
   // ----- NOTE: Methods ----- //
 
   /**

@@ -30,6 +30,17 @@ export class CoverActiveEffect extends CoverEffect {
     return data;
   }
 
+  /**
+   * Data used when dragging a cover effect to an actor sheet.
+   */
+  get dragData() {
+    return {
+      name: this.name,
+      type: "ActiveEffect",
+      data: this.documentData
+    };
+  }
+
   // ----- NOTE: Methods ----- //
 
   /**
