@@ -139,10 +139,7 @@ export class CoverEffectsController {
     const ce = coverEffectForListItem(effectItem);
     if ( !ce ) return;
 
-    const newCE = CONFIG[MODULE_ID].CoverEffect.create();
-    const data = ce.activeEffectData;
-    data.name = `${data.name} Copy`;
-    await newCE.initialize(data);
+    await ce.duplicate();
     this._viewMvc.render();
   }
 

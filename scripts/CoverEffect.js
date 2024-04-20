@@ -132,6 +132,15 @@ export class CoverEffect extends AbstractCoverObject {
   // ----- NOTE: Methods ----- //
 
   /**
+   * Duplicate this cover object but place in new object not connected to this one.
+   * @return {AbstractCoverObject}
+   */
+  async duplicate() {
+    newObj = await super.duplicate();
+    return newObj.initialize();
+  }
+
+  /**
    * Create the storage document or return the existing document.
    * @param {object} coverEffectData
    * @returns {Document}

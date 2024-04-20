@@ -85,6 +85,17 @@ export class AbstractCoverObject {
   }
 
   /**
+   * Duplicate this cover object but place in new object not connected to this one.
+   * @return {AbstractCoverObject}
+   */
+  async duplicate() {
+    const data = duplicate(this.config);
+    if ( data.name ) data.name += " Copy";
+    const newObj = this.create(data);
+    return newObj;
+  }
+
+  /**
    * Save to the stored setting.
    */
   async save() {
