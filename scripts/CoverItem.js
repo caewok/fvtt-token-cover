@@ -38,20 +38,22 @@ export class CoverItem extends CoverEffect {
   // ----- NOTE: Methods ----- //
 
   /**
+   * Create the actual Item storage document.
+   * @param {object} coverEffectData     Data to store
+   * @returns {Item}
+   */
+  async _createStorageDocument(coverEffectData) {
+    // Add necessary settings for the active effect.
+    coverEffectData.name ??= "New Cover Effect";
+    return await CONFIG.Item.documentClass.create(coverEffectData);
+  }
+
+  /**
    * Locate this cover effect item
    * @return {CoverEffect}
    */
   _findCoverEffect() {
     return game.items.find(i => i.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === this.id);
-  }
-
-  /**
-   * Create the actual Item storage document.
-   * @param {object} coverEffectData     Data to store
-   * @returns {Item}
-   */
-  async _createStorage(coverEffectData) {
-    return (await CONFIG.Item.documentClass.create([coverEffectData]))[0];
   }
 
   /**
@@ -170,12 +172,26 @@ export class CoverItem extends CoverEffect {
 }
 
 export class CoverItemSFRPG extends CoverItem {
+
+  /**
+   * Create the actual Item storage document.
+   * @param {object} coverEffectData     Data to store
+   * @returns {Item}
+   */
+  async _createStorageDocument(coverEffectData) {
+    // Add necessary settings for the active effect.
+    coverEffectData.type = "effect";
+    return super._createStorageDocument(coverEffectData);
+  }
+
   /**
    * Localize document data. Meant for subclasses that are aware of the document structure.
    * @param {object} coverEffectData
    * @returns {object} coverEffectData
    */
   static _localizeDocumentData(coverEffectData) {
+    if ( !coverEffectData.system?.modifiers ) return coverEffectData;
+
     coverEffectData.system.modifiers.forEach(mod => {
       mod.name = game.i18n.localize(mod.name);
     });

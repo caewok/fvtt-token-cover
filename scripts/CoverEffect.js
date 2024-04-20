@@ -53,7 +53,7 @@ export class CoverEffect extends AbstractCoverObject {
     // Move to a flag.
     coverEffectData.flags ??= {};
     coverEffectData.flags[MODULE_ID] ??= {};
-    const id = coverEffectData.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ?? coverEffectData.id;
+    const id = coverEffectData.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ?? coverEffectData.id ?? this.id;
     coverEffectData.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] = id;
     delete coverEffectData.id;
 
