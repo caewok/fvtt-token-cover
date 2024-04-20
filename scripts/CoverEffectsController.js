@@ -88,7 +88,7 @@ export class CoverEffectsController {
     return Dialog.confirm({
       title: "Remove Terrain",
       content:
-        "<h4>Are You Sure?</h4><p>This will remove the terrain from all scenes.",
+        "<h4>Are You Sure?</h4><p>This will remove the cover effect from all scenes.",
       yes: async () => {
         log("CoverEffectsController|onDeleteCoverEffect yes");
         await ce.delete(true);
@@ -127,7 +127,7 @@ export class CoverEffectsController {
     log("CoverEffectsController|onExportCoverEffect");
     const ce = coverEffectForListItem(effectItem);
     if ( !ce ) return;
-    ce.saveToJSON();
+    ce.exportToJSON();
   }
 
   /**

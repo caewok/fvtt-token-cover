@@ -47,8 +47,7 @@ export class AbstractCoverObject {
    * Configure the object using the default provided data.
    * @param {object} [coverObjectData={}]
    */
-  _configure(coverObjectData = {}) {
-  }
+  _configure(coverObjectData = {}) { }
 
   // ----- NOTE: Getters, setters, related properties ----- //
 
@@ -118,6 +117,22 @@ export class AbstractCoverObject {
     this.constructor.coverObjectsMap.delete(this.id);
     if ( deleteSaveData ) return this.deleteSaveData();
   }
+
+  /**
+   * Save a json file for this cover type.
+   */
+  exportToJSON() {
+    const filename = `${MODULE_ID}_CoverObject_${this.id}`;
+    const data = this.toJSON();
+    data.flags.exportSource = {
+      world: game.world.id,
+      system: game.system.id,
+      coreVersion: game.version,
+      systemVersion: game.system.version,
+      [`${MODULE_ID}Version`]: game.modules.get(MODULE_ID).version
+    };
+    saveDataToFile(JSON.stringify(data, null, 2), "text/json", `${filename}.json`);
+   }
 
   /**
    * Export this cover type data to JSON.

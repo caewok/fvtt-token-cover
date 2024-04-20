@@ -196,6 +196,11 @@ export class CoverEffect extends AbstractCoverObject {
   }
 
   /**
+   * Save a json file for this cover type.
+   */
+  exportToJSON() { this.document.exportToJSON(); }
+
+  /**
    * Add a single cover type to this effect.
    * @param {CoverType|string} coverType      CoverType object or its id.
    */
