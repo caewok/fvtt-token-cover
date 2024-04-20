@@ -58,7 +58,7 @@ export class CoverItem extends CoverEffect {
    * Delete the stored item associated with this cover effect.
    * @return {boolean} Must return true if document is deleted.
    */
-  async _deleteStorageDocument() { return this.constructor.coverEffectItem.delete(); }
+  async _deleteStorageDocument() { return this.document.delete(); }
 
   /**
    * Test if the local effect is already on the actor.

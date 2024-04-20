@@ -190,7 +190,7 @@ export class CoverEffect extends AbstractCoverObject {
    */
   async deleteSaveData() {
     if ( !this.document ) return false;
-    const res = await _deleteStorageDocument();
+    const res = await this._deleteStorageDocument();
     if ( res ) this.#document = undefined;
     return res;
   }

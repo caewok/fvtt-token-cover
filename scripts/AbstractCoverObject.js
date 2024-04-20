@@ -91,7 +91,7 @@ export class AbstractCoverObject {
   async duplicate() {
     const data = duplicate(this.config);
     if ( data.name ) data.name += " Copy";
-    const newObj = this.create(data);
+    const newObj = this.constructor.create(data);
     return newObj;
   }
 
