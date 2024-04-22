@@ -7,8 +7,10 @@ import { MODULE_ID, ICONS } from "../const.js";
 
 const SYSTEM_ID = "pf2e";
 
-export const coverTypes = {};
-export const coverEffects = {};
+const coverTypes = {};
+const coverEffects = {};
+export const defaultCoverTypes = new Map();
+export const defaultCoverEffects = new Map();
 
 /**
  * Determine what cover types apply to a target token given an attacking token.
@@ -82,7 +84,6 @@ Import the JSON into that item.
 Now you can use it like a regular item and store it in a compendium.
 */
 
-
 coverEffects.lesser = {
   id: `${MODULE_ID}.${SYSTEM_ID}.lesser`,
   compendiumId: "gtyY5xUZXqNLCrMV",
@@ -107,3 +108,5 @@ coverEffects.greater = {
   ]
 };
 
+Object.values(coverTypes).forEach(obj => defaultCoverTypes.set(obj.id, obj));
+Object.values(coverEffects).forEach(obj => defaultCoverEffects.set(obj.id, obj));

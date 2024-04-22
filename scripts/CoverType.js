@@ -2,10 +2,10 @@
 */
 "use strict";
 
-import { coverTypes as dnd5eCoverTypes } from "./coverDefaults/dnd5e.js";
-import { coverTypes as pf2eCoverTypes } from "./coverDefaults/pf2e.js";
-import { coverTypes as sfrpgCoverTypes } from "./coverDefaults/sfrpg.js";
-import { coverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
+import { defaultCoverTypes as dnd5eCoverTypes } from "./coverDefaults/dnd5e.js";
+import { defaultCoverTypes as pf2eCoverTypes } from "./coverDefaults/pf2e.js";
+import { defaultCoverTypes as sfrpgCoverTypes } from "./coverDefaults/sfrpg.js";
+import { defaultCoverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
 import { Settings } from "./settings.js";
 import { MODULE_ID, COVER } from "./const.js";
 import { AbstractCoverObject } from "./AbstractCoverObject.js";
@@ -64,34 +64,54 @@ tokens equally regardless of user/attacker.
  * Loading and saving controlled here.
  */
 export class CoverType extends AbstractCoverObject {
-  /**
-   * Configure the object using the default provided data.
-   * @param {CoverTypeData} [CoverTypeData]
-   */
-  _configure(coverTypeData = {}) {
-    delete coverTypeData.id;
-    foundry.utils.mergeObject(this.config, coverTypeData);
-
-    // Make changes that cannot be handled by defaults.
-    if ( !(this.config.tint instanceof Color) ) this.config.tint = new Color(this.config.tint ?? 0);
-    // priority, icon can be null or undefined.
-  }
-
   // ----- NOTE: Getters, setters, related properties ----- //
 
-  /** @type {object} */
-  #config = {
-    name: "New Cover Type",
-    percentThreshold: 1,
-    includeWalls: true,
-    includeTokens: true,
-    tint: new Color(0),
-    system: game.system.id
-  };
-
-  get config() { return this.#config; }
-
   // ----- NOTE: Methods ----- //
+
+  /**
+   * Find an existing local document to use for the storage.
+   * For cover type, this is an existing stored setting.
+   * @returns {Document|object|undefined}
+   */
+  findStorageDocument() {
+    const doc = this.constructor.storedCoverTypes[this.id]
+        ?? this.constructor._defaultCoverTypeData.get(this.id)
+        ?? this.constructor.newCoverTypeData;
+
+    // Fix tint to always be a Color class.
+    if ( !(doc.tint instanceof Color) ) doc.tint = typeof tint === "string"
+      ? Color.fromString(doc.tint) : new Color(doc.tint);
+    return doc;
+  }
+
+  /**
+   * Load an async document to use for storage.
+   * For cover type, this does nothing, as the setting can be accessed synchronously.
+   * @returns {Document|object|undefined}
+   */
+  async loadStorageDocument() { return this.findStorageDocument(); }
+
+  /**
+   * Create a storage document from scratch.
+   * For cover type, this does nothing, as the setting can be accessed synchronously.
+   * @returns {Document|object}
+   */
+  async createStorageDocument() { return this.findStorageDocument(); }
+
+  /**
+   * Update this object with the given data.
+   * @param {object} [config={}]    If config is not provided, update setting with current config.
+   */
+  async update(config) {
+    config ??= this.config;
+    const allCoverObjects = this.constructor.storedCoverTypes;
+    allCoverObjects[this.id] ??= {};
+    foundry.utils.mergeObject(allCoverObjects[this.id], config);
+    const settingsKey = this.settingsKey;
+    Settings.set(settingsKey, allCoverObjects);
+  }
+
+  // ----- NOTE: Cover type specific methods ----- //
 
   /**
    * Test if this cover type applies to a target token given an attacking token.
@@ -111,25 +131,6 @@ export class CoverType extends AbstractCoverObject {
     const { includeWalls, includeTokens } = this.config;
     return attackingToken.coverCalculator.percentCover(targetToken, { includeWalls, includeTokens });
   }
-
-
-  /**
-   * Update the cover type with a new full or partial config object.
-   * @param {object} [config={}]
-   */
-  update(config = {}) {
-    super.update(config);
-
-    // Fix tint to always be a Color class.
-    const tint = this.config.tint;
-    if ( !(tint instanceof Color) ) this.config.tint = typeof tint === "string"
-      ? Color.fromString(tint) : new Color(tint);
-    this.config.tint = new Color(this.config.tint);
-
-    // Mark that cover types may have been updated.
-    this.constructor.coverTypesUpdated();
-  }
-
   /**
    * Add this cover type to the token.
    * Adds unless already present.
@@ -232,7 +233,76 @@ export class CoverType extends AbstractCoverObject {
   /** @type {string} */
   static get settingsKey() { return Settings.KEYS.COVER_TYPES.DATA; }
 
+  /** @type {string[]} */
+  static get storedCoverObjectIds() {
+    // Cover types store the entire data object in settings. Fetch the ids only.
+    const storedObj = Settings.get(this.settingsKey) ?? {};
+    return storedObj.keys();
+  }
+
+  static get storedCoverTypes() {
+    return Settings.get(this.settingsKey);
+  }
+
+  static get newCoverObjectData() {
+    return {
+      name: `${MODULE_ID}.cover.tokensBlock`,
+      percentThreshold: 1,
+      icon: "modules/tokencover/assets/shield_virus_gray.svg",
+      tint: null,
+      canOverlap: true,
+      includeWalls: false,
+      includeTokens: true,
+      priority: null
+    }
+  }
+
   // ----- NOTE: Static methods ----- //
+
+  /**
+   * Set the cover object id from settings object.
+   * @param {string} id
+   */
+  static async addStoredCoverObjectId(id) {
+    // Because the entire Cover Type is stored, set the entire value.
+    const storedIds = new Set(this.storedCoverObjectIds);
+    if ( storedIds.has(id) ) return;
+
+    const coverType = this.coverObjectsMap.get(id);
+    if ( !coverType ) return;
+
+    // Force the cover type to update, which should add its id and data to the settings object.
+    return coverType.update();
+  }
+
+  /**
+   * Remove the cover object id from settings object.
+   * @param {string} id
+   */
+  static async removeStoredCoverObjectId(id) {
+    // Because the entire Cover Type is stored, remove the entire value.
+    const storedIds = new Set(this.storedCoverObjectIds);
+    if ( !storedIds.has(id) ) return;
+
+    const storedObj = this.storedCoverTypes;
+    delete storedObj[id];
+    return Settings.set(this.settingsKey, storedObj);
+  }
+
+  /**
+   * Get default cover types for different systems.
+   * @returns {Map<string, object>} Map of objects with keys corresponding to cover type object ids.
+   */
+  static _defaultCoverObjectData() {
+    switch ( game.system.id ) {
+      case "dnd5e": return dnd5eCoverTypes; break;
+      case "pf2e": return pf2eCoverTypes; break;
+      case "sfrpg": return sfrpgCoverTypes; break;
+      default: return genericCoverTypes;
+    }
+  }
+
+  // ----- NOTE: Static cover type specific methods ----- //
 
   /**
    * Replace cover types on token with these.
@@ -292,15 +362,6 @@ export class CoverType extends AbstractCoverObject {
     minCoverType = new Set(minCoverType ? [minCoverType] : []);
     otherCoverTypes ||= Set.NULL_SET;
     return minCoverType.union(otherCoverTypes);
-  }
-
-  static _defaultCoverTypeData() {
-    switch ( game.system.id ) {
-      case "dnd5e": return dnd5eCoverTypes; break;
-      case "pf2e": return pf2eCoverTypes; break;
-      case "sfrpg": return sfrpgCoverTypes; break;
-      default: return genericCoverTypes;
-    }
   }
 
   /**

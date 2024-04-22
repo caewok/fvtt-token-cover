@@ -8,6 +8,10 @@ import { AbstractCoverObject } from "./AbstractCoverObject.js";
 import { CoverEffectConfig } from "./CoverEffectConfig.js";
 import { AsyncQueue } from "./AsyncQueue.js";
 import { log } from "./util.js";
+import { defaultCoverEffects as dnd5eCoverEffects } from "./coverDefaults/dnd5e.js";
+import { defaultCoverEffects as pf2eCoverEffects } from "./coverDefaults/pf2e.js";
+import { defaultCoverEffects as sfrpgCoverEffects } from "./coverDefaults/sfrpg.js";
+import { defaultCoverEffects as genericCoverEffects } from "./coverDefaults/generic.js";
 
 // Patches to remove the cover effect item from the sidebar tab.
 export const PATCHES_SidebarTab = {};
@@ -41,45 +45,7 @@ PATCHES_ItemDirectory.COVER_EFFECT.HOOKS = { renderItemDirectory: removeCoverEff
  */
 export class CoverEffect extends AbstractCoverObject {
 
-  /**
-   * Construct a new active effect if none present.
-   * Create the associated storage document.
-   * @param {ActiveEffectData} [coverEffectData={}]     Data to use when constructing new effect
-   * @param {boolean} [overwrite=false]                 If true, update the active effect with this data
-   */
-  async initialize(coverEffectData = {}, overwrite = false) {
-    // By convention and for ease-of-use, doc id can be set at the base of the data or in a flag.
-    // Move to a flag.
-    coverEffectData.flags ??= {};
-    coverEffectData.flags[MODULE_ID] ??= {};
-    const id = coverEffectData.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ?? coverEffectData.id ?? this.id;
-    coverEffectData.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] = id;
-    delete coverEffectData.id;
-
-    // Do we already have a document defined?
-    const doc = this.#document ??= this.constructor.findStorageDocument(coverEffectData);
-    if ( !overwrite && doc ) return;
-
-    // Ensure necessary flags are present.
-    const coverTypes = coverEffectData.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [];
-
-    // Move cover types to flags.
-    if ( coverEffectData.coverTypes ) {
-      coverEffectData.coverTypes.forEach(id => coverTypes.push(id));
-      delete coverEffectData.coverTypes;
-    }
-    coverEffectData = this.constructor._localizeDocumentData(coverEffectData);
-
-    // Use save to overwrite; otherwise just create a new storage document if not present.
-    // Both options are async.
-    if ( doc ) return this.save(coverEffectData);
-    else return this.createStorageDocument(coverEffectData);
-  }
-
   // ----- NOTE: Getters, setters, and related properties ----- //
-
-  /** @type {object} */
-  get config() { return this.document.toJSON(); }
 
   /** @type {string[]} */
   get #coverTypesArray() { return this.config.flags[MODULE_ID][FLAGS.COVER_TYPES]; }
@@ -109,104 +75,51 @@ export class CoverEffect extends AbstractCoverObject {
   }
 
   /**
-   * Retrieve the active effect for this cover effect from the cover effect item.
-   * @return {Document}
-   */
-  #document
-
-  get document() { return this.#document; }
-
-  /**
    * Retrieve the cover effect icon for use in the list of cover effects.
-   * @return {string}
+   * @returns {string}
    */
-  get icon() { return this.config.icon; }
+  get icon() { return this.document.icon; }
 
   /**
    * Retrieve the name of the cover effect for use in the list of cover effects.
-   * @return {string}
+   * @returns {string}
    */
-  get name() { return this.config.name; }
+  get name() { return this.document.name; }
 
   // ----- NOTE: Methods ----- //
 
   /**
-   * Duplicate this cover object but place in new object not connected to this one.
-   * @return {AbstractCoverObject}
+   * Update this object with the given data.
+   * @param {object} [config={}]
    */
-  async duplicate() {
-    newObj = await super.duplicate();
-    return newObj.initialize();
-  }
-
-  /**
-   * Create the storage document or return the existing document.
-   * @param {object} coverEffectData
-   * @returns {Document}
-   */
-  async createStorageDocument(coverEffectData) {
-    if ( this.document || !coverEffectData ) return existing;
-    this.#document = await this._createStorageDocument(coverEffectData);
-    return this.#document;
-  }
-
-  /**
-   * Get the actual storage document, such as an ActiveEffect or an Item
-   * @param {object} coverEffectData     Data to store
-   * @returns {Document}
-   */
-  async _createStorageDocument(coverEffectData) {
-    console.error("CoverEffect#_createStorageDocument must be handled by child class.");
-  }
-
-  /**
-   * Ignored, as config pulls directly from the active effect.
-   */
-  update() { console.warn("CoverEffect does not use update method."); }
-
-  /**
-   * Ignored, as config pulls directly from the active effect.
-   */
-  load() { console.warn("CoverEffect does not use load method."); }
-
-  /**
-   * Save to the storage document, creating a new document if necessary.
-   * Requires explicit data in order to overwrite the existing effect.
-   * @param {object} coverEffectData
-   * @param {Promise<*>} Result of document.update
-   */
-  async save(coverEffectData) {
-    if ( !coverEffectData ) return;
-    coverEffectData = this.constructor._localizeDocumentData();
-    const doc = this.document ?? (await this.createStorageDocument(coverEffectData));
-    return doc.update(coverEffectData);
-  }
-
-  /**
-   * Delete the stored document associated with this cover effect.
-   * Typically used if destroying the cover effect or resetting to defaults.
-   * @return {boolean} True if deleted.
-   */
-  async deleteSaveData() {
-    if ( !this.document ) return false;
-    const res = await this._deleteStorageDocument();
-    if ( res ) this.#document = undefined;
-    return res;
-  }
+  async update(config = {}) { return this.document.update(config); }
 
   /**
    * Delete the stored document associated with this cover effect.
    * Child class creates.
-   * @return {boolean} Must return true if document is deleted.
+   * @returns {boolean} Must return true if document is deleted.
    */
   async _deleteStorageDocument() {
     console.error("CoverEffect#_deleteSaveData must be handled by child class.");
   }
 
   /**
+   * Export this cover type data to JSON.
+   * @returns {object}
+   */
+  toJSON() { return this.document.toJSON(); }
+
+  /**
    * Save a json file for this cover type.
    */
   exportToJSON() { this.document.exportToJSON(); }
+
+  /**
+   * Render the cover effect configuration window.
+   */
+  async renderConfig() { return this.document.sheet.render(true); }
+
+  // ----- NOTE: Methods specific to cover effects ----- //
 
   /**
    * Add a single cover type to this effect.
@@ -303,16 +216,14 @@ export class CoverEffect extends AbstractCoverObject {
     console.error("CoverEffect#_addToActorLocally must be handled by child class.");
   }
 
-  /**
-   * Render the cover effect configuration window.
-   */
-  async renderConfig() { return this.document.sheet.render(true); }
-
   // ----- NOTE: Static: Track Cover effects ----- //
   /** @type {Map<string,CoverType>} */
   static coverObjectsMap = new Map();
 
   // ----- NOTE: Other static getters, setters, related properties ----- //
+
+  /** @type {string} */
+  static get settingsKey() { return Settings.KEYS.COVER_EFFECTS.DATA; }
 
   /**
    * Link document ids (for effects on actors) to this effect.
@@ -321,26 +232,22 @@ export class CoverEffect extends AbstractCoverObject {
    */
   static _documentIds = new Map();
 
-  /**
-   * Retrieve an id from cover data.
-   * @param {object} coverEffectData
-   */
-  static idFromData(coverEffectData) { return coverEffectData?.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT_ID] ?? coverEffectData.id; }
-
-  /** @type {string} */
-  static get systemId() { return game.system.id; }
-
   // ----- NOTE: Static methods ----- //
 
   /**
-   * Find the storage document for given coverEffectData or id.
-   * Must be handled by child class.
-   * @param {object} coverEffectData
-   * @returns {Document|undefined} Undefined if no document found.
+   * Get default cover types for different systems.
+   * @returns {Map<string, object>} Map of objects with keys corresponding to cover type object ids.
    */
-  static findStorageDocument(coverEffectData) {
-    console.error("CoverEffect#findStorageDocument must be handled by child class.");
+  static _defaultCoverObjectData() {
+    switch ( game.system.id ) {
+      case "dnd5e": return dnd5eCoverEffects; break;
+      case "pf2e": return pf2eCoverEffects; break;
+      case "sfrpg": return sfrpgCoverEffects; break;
+      default: return genericCoverEffects;
+    }
   }
+
+  // ----- NOTE: Static methods specific to cover effects ----- //
 
   /**
    * Localize document data. Meant for subclasses that are aware of the document structure.
@@ -394,37 +301,6 @@ export class CoverEffect extends AbstractCoverObject {
     // At least on effect should have been changed, so refresh actor.
     refreshActorCoverEffect(actor);
   }
-
-  /**
-   * Update the cover effects from settings.
-   */
-  static _updateFromSettings() {
-    console.warn("CoverEffect does not use _updateFromSettings");
-  };
-
-
-  /**
-   * Initialize the cover effects for this game.
-   */
-  static async initialize() {
-    await this._constructDefaultCoverObjects();
-  }
-
-  /**
-   * Create default effect objects and ensure their storage is created.
-   * Typically used on game load.
-   * @param {boolean} [override=false]    Use existing cover effects unless enabled
-   */
-  static async _constructDefaultCoverObjects(override = false) {
-    const data = this._defaultCoverTypeData();
-    this.coverObjectsMap.clear();
-    const promises = [];
-    for ( const d of Object.values(data) ) {
-      const ce = this.create(d);
-      promises.push(ce.initialize(d, override));
-    }
-    return Promise.allSettled(promises);
-  }
 }
 
 // ----- NOTE: Helper functions ----- //
@@ -469,3 +345,5 @@ function queueSheetRefresh(actor) {
   const queueObject = queueObjectFn(100, actor);
   renderQueue.enqueue(queueObject); // Could break up the queue per actor but probably unnecessary?
 }
+
+

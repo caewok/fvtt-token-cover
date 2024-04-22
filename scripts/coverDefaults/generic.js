@@ -8,7 +8,11 @@ const SYSTEM_ID = "generic";
 
 // ----- NOTE: Cover types ----- //
 
-export const coverTypes = {};
+const coverTypes = {};
+const coverEffects = {};
+export const defaultCoverTypes = new Map();
+export const defaultCoverEffects = new Map();
+
 coverTypes.low = {
   name: `${MODULE_ID}.cover.low`,
   id: `${MODULE_ID}.${SYSTEM_ID}.low`,
@@ -58,7 +62,6 @@ coverTypes.tokensBlock = {
 };
 
 // ----- NOTE: Cover effects ----- //
-export const coverEffects = {};
 
 coverEffects.low = {
   name: `${MODULE_ID}.cover.low`,
@@ -77,3 +80,6 @@ coverEffects.high = {
   id: `${MODULE_ID}.${SYSTEM_ID}.high`,
   coverTypes: [ coverTypes.high.id ]
 };
+
+Object.values(coverTypes).forEach(obj => defaultCoverTypes.set(obj.id, obj));
+Object.values(coverEffects).forEach(obj => defaultCoverEffects.set(obj.id, obj));
