@@ -54,11 +54,11 @@ export class CoverActiveEffect extends CoverEffect {
    * Find the storage document for given cover effect id.
    * @returns {Document|undefined} Undefined if no document found.
    */
-  findStorageDocument() {
-    const coverItem = this.constructor.coverEffectItem;
-    if ( !coverItem ) return;
+  _findStorageDocument() {
+    const coverEffectItem = this.constructor.coverEffectItem;
+    if ( !coverEffectItem ) return;
     const id = this.id;
-    return this.coverEffectItem.effects.find(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === id);
+    return coverEffectItem.effects.find(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === id);
   }
 
   /**
@@ -66,7 +66,7 @@ export class CoverActiveEffect extends CoverEffect {
    * Async allows us to pull from compendiums or otherwise construct a default.
    * @param {}
    */
-  async loadStorageDocument() {
+  async _loadStorageDocument() {
     if ( !this.constructor.coverEffectItem ) await this.constructor._initializeCoverEffectsItem();
     return this.constructor.coverEffectItem.effects.find(e =>
       e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === this.id);
@@ -77,13 +77,13 @@ export class CoverActiveEffect extends CoverEffect {
    * @param {object} coverEffectData     Data to store
    * @returns {ActiveEffect}
    */
-  async createStorageDocument() {
+  async _createStorageDocument() {
     const coverItem = this.construtor.coverEffectItem;
     if ( !coverItem ) await this.constructor._initializeCoverEffectsItem();
 
     // Create default effects on-the-fly if not present.
     // Otherwise, create a new cover effect.
-    const data = this.constructor._defaultCoverObjectData.get(this.id) ?? this.newCoverObjectData;
+    const data = this.constructor.defaultCoverObjectData.get(this.id) ?? this.newCoverObjectData;
     return (await this.constructor.coverEffectItem.createEmbeddedDocuments("ActiveEffect", [data]))[0];
   }
 
@@ -117,7 +117,7 @@ export class CoverActiveEffect extends CoverEffect {
    */
   _addToActorLocally(actor) {
     const ae = actor.effects.createDocument(this.documentData);
-    log(`CoverActiveEffect#_addToActorLocally|${actor.name} adding ${ae.id} ${this.config.name}`);
+    log(`CoverActiveEffect#_addToActorLocally|${actor.name} adding ${ae.id} ${this.name}`);
     actor.effects.set(ae.id, ae);
     return ae.id;
   }
@@ -136,7 +136,7 @@ export class CoverActiveEffect extends CoverEffect {
     for ( const key of actor.effects.keys() ) {
       if ( !activeEffectIds.has(key) ) continue;
       if ( activeEffectIds.get(key) !== this ) continue;
-      log(`CoverActiveEffect#removeFromActorLocally|${actor.name} removing ${key} ${this.config.name}`);
+      log(`CoverActiveEffect#removeFromActorLocally|${actor.name} removing ${key} ${this.name}`);
       actor.effects.delete(key);
       removedIds.push(key);
     }
@@ -184,19 +184,6 @@ export class CoverActiveEffect extends CoverEffect {
   }
 
   /**
-   * Retrieve default cover effects data for different systems.
-   * @returns {object}
-   */
-  static _defaultCoverTypeData() {
-    switch ( this.systemId ) {
-      case "dnd5e": return dnd5eCoverEffects; break;
-      case "dnd5e_midiqol": return coverEffects_midiqol; break;
-      default: return genericCoverTypes;
-    }
-  }
-
-
-  /**
    * Create an item used to store cover effects.
    * Once created, it will be stored in the world and becomes the method by which cover effects
    * are saved.
@@ -211,13 +198,5 @@ export class CoverActiveEffect extends CoverEffect {
         flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECTS_ITEM]: true} }
       });
     }
-  }
-
-  /**
-   * Initialize the cover effects for this game.
-   */
-  static async initialize() {
-    await this._initializeCoverEffectsItem();
-    return super.initialize();
   }
 }

@@ -17,7 +17,7 @@ export class CoverItem extends CoverEffect {
    * Retrieve the cover effect icon for use in the list of cover effects.
    * @return {string}
    */
-  get icon() { return this.config.img; }
+  get icon() { return this.document.img; }
 
   /**
    * Data used when dragging a cover effect to an actor sheet.
@@ -38,7 +38,7 @@ export class CoverItem extends CoverEffect {
    * Find an existing local document to use for the storage.
    * @returns {Item|undefined}
    */
-  findStorageDocument() {
+  _findStorageDocument() {
     return game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === id);
   }
 
@@ -46,11 +46,11 @@ export class CoverItem extends CoverEffect {
    * Load an async document to use for storage from the compendium.
    * @returns {Document|object|undefined}
    */
-  async loadStorageDocument() {
+  async _loadStorageDocument() {
     const pack = game.packs.get(`${MODULE_ID}.${MODULE_ID}_items_${game.system.id}`);
     if ( !pack ) return;
 
-    const compendiumId = this._defaultCoverTypeData().get(this.id)?.compendiumId;
+    const compendiumId = this.defaultCoverObjectData.get(this.id)?.compendiumId;
     if ( !compendiumId ) return;
     return pack.getDocument(d.compendiumId); // Async
   }
@@ -59,7 +59,7 @@ export class CoverItem extends CoverEffect {
    * Create a storage document from scratch.
    * @returns {Item|object}
    */
-  async createStorageDocument() {
+  async _createStorageDocument() {
     // Add necessary settings for the active effect.
     const coverEffectData = {
       name: "New Cover Effect",
@@ -108,7 +108,7 @@ export class CoverItem extends CoverEffect {
    */
   _addToActorLocally(actor) {
     const item = actor.items.createDocument(this.documentData);
-    log(`CoverItem#_addToActorLocally|${actor.name} adding ${item.id} ${this.config.name}`);
+    log(`CoverItem#_addToActorLocally|${actor.name} adding ${item.id} ${this.name}`);
     actor.items.set(item.id, item);
     return item.id;
   }
@@ -127,7 +127,7 @@ export class CoverItem extends CoverEffect {
     for ( const key of actor.items.keys() ) {
       if ( !itemIds.has(key) ) continue;
       if ( itemIds.get(key) !== this ) continue;
-      log(`CoverItem#removeFromActorLocally|${actor.name} removing ${key} ${this.config.name}`);
+      log(`CoverItem#removeFromActorLocally|${actor.name} removing ${key} ${this.name}`);
       actor.items.delete(key);
       removedIds.push(key);
     }

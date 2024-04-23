@@ -73,9 +73,9 @@ export class CoverType extends AbstractCoverObject {
    * For cover type, this is an existing stored setting.
    * @returns {Document|object|undefined}
    */
-  findStorageDocument() {
+  _findStorageDocument() {
     const doc = this.constructor.storedCoverTypes[this.id]
-        ?? this.constructor._defaultCoverTypeData.get(this.id)
+        ?? this.constructor.defaultCoverObjectData.get(this.id)
         ?? this.constructor.newCoverTypeData;
 
     // Fix tint to always be a Color class.
@@ -89,21 +89,21 @@ export class CoverType extends AbstractCoverObject {
    * For cover type, this does nothing, as the setting can be accessed synchronously.
    * @returns {Document|object|undefined}
    */
-  async loadStorageDocument() { return this.findStorageDocument(); }
+  async _loadStorageDocument() { return this._findStorageDocument(); }
 
   /**
    * Create a storage document from scratch.
    * For cover type, this does nothing, as the setting can be accessed synchronously.
    * @returns {Document|object}
    */
-  async createStorageDocument() { return this.findStorageDocument(); }
+  async _createStorageDocument() { return this._findStorageDocument(); }
 
   /**
    * Update this object with the given data.
    * @param {object} [config={}]    If config is not provided, update setting with current config.
    */
   async update(config) {
-    config ??= this.config;
+    config ??= this.document;
     const allCoverObjects = this.constructor.storedCoverTypes;
     allCoverObjects[this.id] ??= {};
     foundry.utils.mergeObject(allCoverObjects[this.id], config);
@@ -118,7 +118,7 @@ export class CoverType extends AbstractCoverObject {
    * Use the static coverTypesForToken for more efficient tests for all cover types at once.
    */
   coverTypeApplies(attackingToken, targetToken, opts = {}) {
-    return this.percentCover(attackingToken, targetToken) >= this.config.percentThreshold;
+    return this.percentCover(attackingToken, targetToken) >= this.document.percentThreshold;
   }
 
   /**
@@ -128,7 +128,7 @@ export class CoverType extends AbstractCoverObject {
    * @returns {number}
    */
   percentCover(attackingToken, targetToken) {
-    const { includeWalls, includeTokens } = this.config;
+    const { includeWalls, includeTokens } = this.document;
     return attackingToken.coverCalculator.percentCover(targetToken, { includeWalls, includeTokens });
   }
   /**
@@ -140,27 +140,27 @@ export class CoverType extends AbstractCoverObject {
    */
   addToToken(token) {
     log(`CoverType#addToToken|${token.name}`);
-    const icon = this.config.icon;
+    const icon = this.document.icon;
 
     // If already present, we are done.
     if ( token.document.effects.some(e => e === icon) ) return false;
 
     // If this type can overlap, it can be added b/c it is not already present.
-    if ( this.config.canOverlap ) {
-      log(`CoverType#addToToken|${token.name} adding ${this.config.name}`);
+    if ( this.document.canOverlap ) {
+      log(`CoverType#addToToken|${token.name} adding ${this.name}`);
       token.document.effects.push(icon);
       return true;
     }
 
     // If this type cannot overlap, then any non-overlapping icons must be removed first.
     const tokenEffectIcons = new Set(token.document.effects);
-    const otherCoverTypes = CoverType.coverObjectsMap.values().filter(ct => ct.config.icon !== icon && !ct.config.canOverlap);
+    const otherCoverTypes = CoverType.coverObjectsMap.values().filter(ct => ct.icon !== icon && !ct.config.canOverlap);
     for ( const otherCoverType of otherCoverTypes ) {
-      if ( tokenEffectIcons.has(otherCoverType.config.icon) ) otherCoverType.removeFromToken(token);
+      if ( tokenEffectIcons.has(otherCoverType.icon) ) otherCoverType.removeFromToken(token);
     }
 
     // Add the new cover type icon to the token.
-    log(`CoverType#addToToken|${token.name} adding ${this.config.name}`);
+    log(`CoverType#addToToken|${token.name} adding ${this.name}`);
     token.document.effects.push(icon);
     return true;
   }
@@ -171,10 +171,10 @@ export class CoverType extends AbstractCoverObject {
    * @returns {boolean} True if change was made
    */
   removeFromToken(token) {
-    const change = token.document.effects.some(e => e === this.config.icon);
+    const change = token.document.effects.some(e => e === this.icon);
     if ( change ) {
-      log(`CoverType#addToToken|${token.name} removing ${this.config.name}`);
-      findSpliceAll(token.document.effects, e => e == this.config.icon);
+      log(`CoverType#addToToken|${token.name} removing ${this.name}`);
+      findSpliceAll(token.document.effects, e => e == this.icon);
     }
     return change;
   }
@@ -221,10 +221,10 @@ export class CoverType extends AbstractCoverObject {
     this.#coverTypesOrdered.length = 0;
     this.#coverTypesUnordered.length = 0;
     for ( const coverType of this.coverObjectsMap.values() ) {
-      if ( coverType.config.priority == null ) this.#coverTypesUnordered.push(coverType);
+      if ( coverType.document.priority == null ) this.#coverTypesUnordered.push(coverType);
       else this.#coverTypesOrdered.push(coverType);
     }
-    this.#coverTypesOrdered.sort((a, b) => b.config.priority - a.config.priority);
+    this.#coverTypesOrdered.sort((a, b) => b.document.priority - a.document.priority);
     this.#coverTypesModified = false;
   }
 
@@ -237,14 +237,16 @@ export class CoverType extends AbstractCoverObject {
   static get storedCoverObjectIds() {
     // Cover types store the entire data object in settings. Fetch the ids only.
     const storedObj = Settings.get(this.settingsKey) ?? {};
-    return storedObj.keys();
+    return Object.keys(storedObj);
   }
 
+  /** @type {object} */
   static get storedCoverTypes() {
     return Settings.get(this.settingsKey);
   }
 
-  static get newCoverObjectData() {
+  /** @type {object} */
+  static get newCoverTypeData() {
     return {
       name: `${MODULE_ID}.cover.tokensBlock`,
       percentThreshold: 1,
@@ -257,6 +259,18 @@ export class CoverType extends AbstractCoverObject {
     }
   }
 
+  /**
+   * Get default cover types for different systems.
+   * @type {Map<string, object>} Map of objects with keys corresponding to cover type object ids.
+   */
+  static get defaultCoverObjectData() {
+    switch ( game.system.id ) {
+      case "dnd5e": return dnd5eCoverTypes; break;
+      case "pf2e": return pf2eCoverTypes; break;
+      case "sfrpg": return sfrpgCoverTypes; break;
+      default: return genericCoverTypes;
+    }
+  }
   // ----- NOTE: Static methods ----- //
 
   /**
@@ -289,19 +303,6 @@ export class CoverType extends AbstractCoverObject {
     return Settings.set(this.settingsKey, storedObj);
   }
 
-  /**
-   * Get default cover types for different systems.
-   * @returns {Map<string, object>} Map of objects with keys corresponding to cover type object ids.
-   */
-  static _defaultCoverObjectData() {
-    switch ( game.system.id ) {
-      case "dnd5e": return dnd5eCoverTypes; break;
-      case "pf2e": return pf2eCoverTypes; break;
-      case "sfrpg": return sfrpgCoverTypes; break;
-      default: return genericCoverTypes;
-    }
-  }
-
   // ----- NOTE: Static cover type specific methods ----- //
 
   /**
@@ -321,7 +322,7 @@ export class CoverType extends AbstractCoverObject {
 
     // Remove all cover types in the array that are not the wanted cover types.
     const tokenEffectIcons = new Set(token.document.effects);
-    const toKeep = coverTypes.map(ct => ct.config.icon);
+    const toKeep = coverTypes.map(ct => ct.icon);
     const toRemove = tokenEffectIcons.difference(toKeep);
     const changed = toRemove.size
     if ( changed ) findSpliceAll(token.document.effects, e => toRemove.has(e));
@@ -385,7 +386,7 @@ export class CoverType extends AbstractCoverObject {
     // Test cover types without a set priority.
     for ( const type of this.coverTypesUnordered ) {
       // If there is already a type, cannot use a non-overlapping type.
-      if ( !type.config.canOverlap && types.length ) continue;
+      if ( !type.document.canOverlap && types.length ) continue;
       if ( type.coverTypeApplies(attackingToken, targetToken, opts) ) types.push(type);
     }
     return types;

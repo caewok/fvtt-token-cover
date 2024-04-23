@@ -35,7 +35,7 @@ async function renderActiveEffectConfig(app, html, data) {
   const currCoverIds = new Set(app.object.getFlag(MODULE_ID, FLAGS.COVER_TYPES) ?? []);
   CONFIG[MODULE_ID].CoverType.coverObjectsMap.forEach(obj => {
      const checked = currCoverIds.has(obj.id);
-     const ct = { id: `coverTypeCheckBoxes.${obj.id}`, name: obj.config.name, checked };
+     const ct = { id: `coverTypeCheckBoxes.${obj.id}`, name: obj.document.name, checked };
      if ( checked ) selected.push(`coverTypeCheckBoxes.${obj.id}`);
      coverTypes.push(ct);
   });

@@ -44,7 +44,7 @@ export class CoverTypesListConfig extends FormApplication  {
     COVER.TYPES.forEach(ct => this.allCoverTypes.push(ct));
     this.#sortCoverTypes();
     return foundry.utils.mergeObject(data, {
-      allCoverTypes: this.allCoverTypes.map(ct => { return { ...ct.config }; })
+      allCoverTypes: this.allCoverTypes.map(ct => { return { ...ct.document }; })
     });
   }
 
@@ -54,11 +54,11 @@ export class CoverTypesListConfig extends FormApplication  {
    */
   #sortCoverTypes(coverTypes) {
     this.allCoverTypes.sort((a, b) => {
-      switch ( ( (a.config.priority == null) * 2) + (b.config.priority == null) ) {
+      switch ( ( (a.document.priority == null) * 2) + (b.document.priority == null) ) {
         case 0: return a.priority - b.priority;
         case 1: return 1; // b.priority is null
         case 2: return -1; // a.priority is null
-        case 3: return a.config.name.toLowerCase() < b.config.name.toLowerCase ? -1 : 1;
+        case 3: return a.name.toLowerCase() < b.name.toLowerCase ? -1 : 1;
       }
     });
   }

@@ -48,7 +48,7 @@ export class CoverEffect extends AbstractCoverObject {
   // ----- NOTE: Getters, setters, and related properties ----- //
 
   /** @type {string[]} */
-  get #coverTypesArray() { return this.config.flags[MODULE_ID][FLAGS.COVER_TYPES]; }
+  get #coverTypesArray() { return this.document.flags[MODULE_ID][FLAGS.COVER_TYPES]; }
 
   /** @type {CoverType[]} */
   get coverTypes() {
@@ -61,30 +61,18 @@ export class CoverEffect extends AbstractCoverObject {
       console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
       return;
     }
-    this.config.flags[MODULE_ID][FLAGS.COVER_TYPE] = value.config.id;
+    this.document.flags[MODULE_ID][FLAGS.COVER_TYPE] = value.document.id;
   }
 
   /**
    * Get data used to construct a Cover Effect document.
    */
   get documentData() {
-    const data = { ...this.config };
+    const data = this.toJSON();
     data._id = foundry.utils.randomID();
     data.name ??= game.i18n.format("tokencover.phrases.xCoverEffect", { cover: game.i18n.localize(data.name) });
     return this.constructor._localizeDocumentData(data);
   }
-
-  /**
-   * Retrieve the cover effect icon for use in the list of cover effects.
-   * @returns {string}
-   */
-  get icon() { return this.document.icon; }
-
-  /**
-   * Retrieve the name of the cover effect for use in the list of cover effects.
-   * @returns {string}
-   */
-  get name() { return this.document.name; }
 
   // ----- NOTE: Methods ----- //
 
@@ -169,7 +157,7 @@ export class CoverEffect extends AbstractCoverObject {
    */
   addToActorLocally(actor, update = true) {
     if ( actor instanceof Token ) actor = actor.actor;
-    log(`CoverEffect#addToActorLocally|${actor.name} ${this.config.name}`);
+    log(`CoverEffect#addToActorLocally|${actor.name} ${this.name}`);
 
     if ( this._localEffectOnActor(actor) ) return false;
     const newId = this._addToActorLocally(actor);
@@ -194,7 +182,7 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {boolean} Returns true if change was required.
    */
   removeFromActorLocally(actor, update = true) {
-    log(`CoverEffect#removeFromActorLocally|${actor.name} ${this.config.name}`);
+    log(`CoverEffect#removeFromActorLocally|${actor.name} ${this.name}`);
     if ( actor instanceof Token ) actor = actor.actor;
     if ( !this._localEffectOnActor(actor) ) return false;
 
@@ -232,13 +220,11 @@ export class CoverEffect extends AbstractCoverObject {
    */
   static _documentIds = new Map();
 
-  // ----- NOTE: Static methods ----- //
-
   /**
    * Get default cover types for different systems.
    * @returns {Map<string, object>} Map of objects with keys corresponding to cover type object ids.
    */
-  static _defaultCoverObjectData() {
+  static get defaultCoverObjectData() {
     switch ( game.system.id ) {
       case "dnd5e": return dnd5eCoverEffects; break;
       case "pf2e": return pf2eCoverEffects; break;
@@ -246,6 +232,8 @@ export class CoverEffect extends AbstractCoverObject {
       default: return genericCoverEffects;
     }
   }
+
+  // ----- NOTE: Static methods ----- //
 
   // ----- NOTE: Static methods specific to cover effects ----- //
 

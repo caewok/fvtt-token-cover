@@ -36,11 +36,9 @@ export class AbstractCoverObject {
    * @return {AbstractCoverObject}
    */
   static async create(id) {
-    if ( !coverObjectsMap.has(id) ) await this.constructor.addStoredCoverObjectIds(id);
+    if ( !this.coverObjectsMap.has(id) ) await this.addStoredCoverObjectId(id);
     const obj = new this(id);
-    if ( !obj.#document ) this.#document = this.findStorageDocument();
-    if ( !obj.#document ) this.#document = await this.loadStorageDocument();
-    if ( !obj.#document ) this.#document = await this.createStorageDocument();
+    await obj.initializeStorageDocument();
     return obj;
   }
 
@@ -51,25 +49,48 @@ export class AbstractCoverObject {
 
   get document() { return this.#document || (this.#document = this.findStorageDocument()); }
 
+  /**
+   * Retrieve the cover effect icon for use in the list of cover effects.
+   * @returns {string}
+   */
+  get icon() { return this.document.icon; }
+
+  /**
+   * Retrieve the name of the cover effect for use in the list of cover effects.
+   * @returns {string}
+   */
+  get name() { return this.document.name; }
+
   // ----- NOTE: Methods ----- //
+
+  /**
+   * Initialize the storage document for this id.
+   */
+  async initializeStorageDocument() {
+    if ( this.#document ) return;
+    if ( !this.#document ) this.#document = this._findStorageDocument();
+    if ( !this.#document ) this.#document = await this._loadStorageDocument();
+    if ( !this.#document ) this.#document = await this._createStorageDocument();
+    if ( !this.#document ) console.error("AbstractCoverObject#initializeStorageDocument|Storage document not initialized.");
+  }
 
   /**
    * Find an existing local document to use for the storage.
    * @returns {Document|object|undefined}
    */
-  findStorageDocument() { return { id: this.id }; }
+  _findStorageDocument() { return { id: this.id }; }
 
   /**
    * Load an async document to use for storage.
    * @returns {Document|object|undefined}
    */
-  async loadStorageDocument() { return { id: this.id }; }
+  async _loadStorageDocument() { return { id: this.id }; }
 
   /**
    * Create a storage document from scratch.
    * @returns {Document|object}
    */
-  async createStorageDocument() { return { id: this.id }; }
+  async _createStorageDocument() { return { id: this.id }; }
 
   /**
    * Update this object with the given data.
@@ -97,7 +118,7 @@ export class AbstractCoverObject {
    */
   async duplicate() {
     const newObj = await this.constructor.create();
-    await this.constructor.addStoredCoverObjectIds(newObj.id);
+    await this.constructor.addStoredCoverObjectId(newObj.id);
     newObj.update(this.toJSON())
     return newObj;
   }
@@ -164,14 +185,22 @@ export class AbstractCoverObject {
 
   /** @type {string[]} */
   static get storedCoverObjectIds() {
-    return Settings.get(MODULE_ID, this.settingsKey) ?? [];
+    const out = Settings.get(this.settingsKey);
+    if ( out instanceof Array ) return out;
+    return Object.keys(out);
   }
 
   /** @type {string} */
   static get systemId() { return game.system.id; }
 
   /** @type {object} */
-  static newCoverObjectData() { return {}; }
+  static get newCoverObjectData() { return {}; }
+
+  /**
+   * Get default cover object data for different systems.
+   * @returns {Map<string, object>} Map of objects with keys corresponding to cover type object ids.
+   */
+  static get defaultCoverObjectData() { return new Map(); }
 
   // ----- NOTE: Static methods ----- //
 
@@ -179,37 +208,31 @@ export class AbstractCoverObject {
    * Add an id to the stored cover object ids.
    * @param {string} id
    */
-  async addStoredCoverObjectId(id) {
+  static async addStoredCoverObjectId(id) {
     const storedIds = new Set(this.storedCoverObjectIds);
     if ( storedIds.has(id) ) return;
     storedIds.add(id);
-    return Settings.set(MODULE_ID, this.settingsKey, storedIds.values());
+    return Settings.set(this.settingsKey, storedIds.values());
   }
 
   /**
    * Remove an id from the stored cover object ids.
    * @param {string} id
    */
-  async removeStoredCoverObjectId(id) {
+  static async removeStoredCoverObjectId(id) {
     const storedIds = new Set(this.storedCoverObjectIds);
     if ( !storedIds.has(id) ) return;
     storedIds.delete(id);
-    return Settings.set(MODULE_ID, this.settingsKey, storedIds.values());
+    return Settings.set(this.settingsKey, storedIds.values());
   }
-
-  /**
-   * Get default cover object data for different systems.
-   * @returns {Map<string, object>} Map of objects with keys corresponding to cover type object ids.
-   */
-  static _defaultCoverObjectData() { return new Map(); }
 
   /**
    * Create an object for each stored id. If no ids in settings, create from default ids.
    */
   static async initialize() {
     let storedIds = this.storedCoverObjectIds;
-    if ( !storedIds.length ) storedIds = this._defaultCoverTypeData.keys();
-    for ( const id of this.storedCoverObjectIds ) await this.create(id);
+    if ( !storedIds.length ) storedIds = this.defaultCoverObjectData.keys();
+    for ( const id of storedIds ) await this.create(id);
   }
 
   /**
