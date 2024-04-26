@@ -83,6 +83,10 @@ export class CoverItem extends CoverEffect {
     const compendiumId = this.constructor.defaultCoverObjectData.get(this.id)?.compendiumId;
     if ( !compendiumId ) return;
     const doc = await pack.getDocument(compendiumId); // Async
+    doc.flags ??= {};
+    data.flags[MODULE_ID] ??= {};
+    data.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= this.id;
+
     return CONFIG.Item.documentClass.create(doc);
   }
 

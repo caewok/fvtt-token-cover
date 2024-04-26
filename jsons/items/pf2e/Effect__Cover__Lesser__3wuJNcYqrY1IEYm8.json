@@ -127,6 +127,12 @@
       "system": "pf2e",
       "coreVersion": "11.315",
       "systemVersion": "5.12.2"
+    },
+    "tokencover": {
+      "coverEffectId": "tokencover.pf2e.lesser",
+      "coverTypes": [
+        "tokencover.pf2e.lesser"
+      ]
     }
   },
   "_stats": {
@@ -134,7 +140,7 @@
     "systemVersion": "5.12.2",
     "coreVersion": "11.315",
     "createdTime": 1667058177773,
-    "modifiedTime": 1714139598703,
+    "modifiedTime": 1714149700313,
     "lastModifiedBy": "2pVrsrEmybzoncDe"
   },
   "_id": "3wuJNcYqrY1IEYm8",
