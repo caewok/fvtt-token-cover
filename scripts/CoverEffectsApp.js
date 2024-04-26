@@ -85,6 +85,7 @@ export class CoverEffectsApp extends Application {
   _initClickListeners() {
     this._createEffectButton.on("click", this._controller.onCreateCoverEffect.bind(this._controller));
     this._listCoverTypesButton.on("click", this._controller.onListCoverTypes.bind(this._controller));
+    this._resetToDefaultsButton.on("click", this._controller.onResetToDefaults.bind(this._controller));
     this._coverEffectItem.on("click", this._controller.onEditCoverEffect.bind(this._controller));
   }
 
@@ -139,6 +140,11 @@ export class CoverEffectsApp extends Application {
    * The button used to display a listing of all cover types.
    */
   get _listCoverTypesButton() { return this._rootView.find(".list-cover-types"); }
+
+  /**
+   * The button used to reset effects to default for the system.
+   */
+  get _resetToDefaultsButton() { return this._rootView.find(".reset-defaults"); }
 
   /**
    * The listed active effect target.

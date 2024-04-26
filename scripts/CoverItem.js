@@ -17,7 +17,7 @@ export class CoverItem extends CoverEffect {
    * Retrieve the cover effect icon for use in the list of cover effects.
    * @return {string}
    */
-  get icon() { return this.document.img; }
+  get icon() { return this.document?.img; }
 
   /**
    * Data used when dragging a cover effect to an actor sheet.
@@ -28,7 +28,7 @@ export class CoverItem extends CoverEffect {
       type: "Item",
       data: this.documentData
     };
-    out.uuid = this.document.uuid;
+    out.uuid = this.document?.uuid;
     return out;
   }
 
@@ -40,6 +40,28 @@ export class CoverItem extends CoverEffect {
     }
   }
 
+  /** @type {object|undefined} */
+  get defaultCoverObjectData() {
+    const data = super.defaultCoverObjectData;
+    if ( !data ) return undefined;
+    data.flags ??= {};
+    data.flags[MODULE_ID] ??= {};
+    data.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= this.id;
+
+    if ( data.coverTypes?.length ) data.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [...data.coverTypes];
+    else data.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [];
+
+    delete data.id;
+    delete data.compendiumId;
+    delete data.coverTypes;
+
+    data.type = "Item";
+    data.name ??= "New Cover Effect";
+
+    return data;
+  }
+
+
   // ----- NOTE: Methods ----- //
 
   /**
@@ -47,7 +69,7 @@ export class CoverItem extends CoverEffect {
    * @returns {Item|undefined}
    */
   _findStorageDocument() {
-    return game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === id);
+    return game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === this.id);
   }
 
   /**
@@ -58,9 +80,10 @@ export class CoverItem extends CoverEffect {
     const pack = game.packs.get(`${MODULE_ID}.${MODULE_ID}_items_${game.system.id}`);
     if ( !pack ) return;
 
-    const compendiumId = this.defaultCoverObjectData.get(this.id)?.compendiumId;
+    const compendiumId = this.constructor.defaultCoverObjectData.get(this.id)?.compendiumId;
     if ( !compendiumId ) return;
-    return pack.getDocument(d.compendiumId); // Async
+    const doc = await pack.getDocument(compendiumId); // Async
+    return CONFIG.Item.documentClass.create(doc);
   }
 
   /**
@@ -69,7 +92,7 @@ export class CoverItem extends CoverEffect {
    */
   async _createStorageDocument() {
     // Add necessary settings for the active effect.
-    const data = this.constructor.defaultCoverObjectData.get(this.id) ?? this.newCoverObjectData;
+    const data = this.defaultCoverObjectData ?? this.newCoverObjectData;
     return CONFIG.Item.documentClass.create(data); // Async
   }
 
@@ -86,6 +109,7 @@ export class CoverItem extends CoverEffect {
    * @return {boolean} Must return true if document is deleted.
    */
   async _deleteStorageDocument() {
+    if ( !this.document ) return;
     const out = await this.document.delete();
     super._deleteStorageDocument(); // Must come after so document is present.
     return out;
@@ -179,13 +203,18 @@ export class CoverItemPF2E extends CoverItem {
  */
 export class CoverItemSFRPG extends CoverItem {
 
+   /** @type {object|undefined} */
+  get defaultCoverObjectData() {
+    const data = super.defaultCoverObjectData;
+    data.type = "effect";
+    return data;
+  }
+
   /** @type {object} */
   get newCoverObjectData() {
-    return {
-      name: "New Cover Effect",
-      type: "effect",
-      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECT_ID]: this.id } }
-    }
+    const data = super.newCoverObjectData;
+    data.type = "effect";
+    return data;
   }
 
   /**

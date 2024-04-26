@@ -96,6 +96,8 @@
 
   <footer class="sheet-footer" style="margin: auto; padding-top: 30px">
     <div class="flex-table">
+
+      <!-- Button: Add cover type -->
       <div class="flexrow">
         <div class="flexcol" style="flex-grow: 1">
           <button class="button tm-add-coverType" type="submit" name="add" value="1"><i class="fas fa-square-plus"></i>{{localize "tokencover.cover-types-list-config.add"}}</button>
@@ -114,8 +116,17 @@
           <button class="button tm-export-coverType" type="submit" name="export" value="1"><i class="fas fa-file-arrow-down"></i>{{localize "tokencover.cover-types-list-config.export"}}</button>
         </div>
       </div>
-
     </div>
+
+    <div class="flexrow">
+      <!-- Button: Reset to defaults -->
+      <div class="flexrow">
+        <div class="flexcol" style="flex-grow: 1">
+          <button class="button tm-reset-defaults" type="submit" name="add" value="1"><i class="fas fa-rotate-left"></i>{{localize "tokencover.cover-types-list-config.reset"}}</button>
+        </div>
+      </div>
+   </div>
+
   </footer>
 
 </form

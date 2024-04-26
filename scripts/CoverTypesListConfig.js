@@ -106,6 +106,7 @@ export class CoverTypesListConfig extends FormApplication  {
     html.find("button.tm-remove-coverType").click(this._onRemoveCoverType.bind(this));
     html.find("button.tm-import-coverType").click(this._onImportCoverType.bind(this));
     html.find("button.tm-export-coverType").click(this._onExportAllCoverTypes.bind(this));
+    html.find("button.tm-reset-defaults").click(this._onResetToDefaults.bind(this));
   }
 
   /**
@@ -139,6 +140,15 @@ export class CoverTypesListConfig extends FormApplication  {
         this.render();
       }
     });
+  }
+
+  /**
+   * User clicked button to reset to defaults.
+   */
+  async _onResetToDefaults(_event) {
+    log("ResetToDefaults clicked!");
+    await CONFIG[MODULE_ID].CoverType.resetToDefaultsDialog();
+    this.render();
   }
 
   async _onImportCoverType(event) {

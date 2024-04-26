@@ -53,19 +53,23 @@ export class AbstractCoverObject {
    * Retrieve the cover effect icon for use in the list of cover effects.
    * @returns {string}
    */
-  get icon() { return this.document.icon; }
+  get icon() { return this.document?.icon; }
 
   /**
    * Retrieve the name of the cover effect for use in the list of cover effects.
    * @returns {string}
    */
-  get name() { return this.document.name; }
+  get name() { return this.document?.name; }
 
   /** @type {object} */
   get newCoverObjectData() { return {}; }
 
   /** @type {object|undefined} */
-  get defaultCoverObjectData() { return this.constructor.defaultCoverObjectData.get(this.id); }
+  get defaultCoverObjectData() {
+    const data = this.constructor.defaultCoverObjectData.get(this.id);
+    if ( !data ) return undefined;
+    return { ...data };
+  }
 
   // ----- NOTE: Methods ----- //
 
@@ -267,12 +271,15 @@ export class AbstractCoverObject {
   }
 
   /**
-   * Import a cover effect from JSON. If it already exists in cover objects, update.
-   * Otherwise, instantiate new object.
+   * Reset to the defaults for this cover object type.
    */
-//   static async importFromJSON(json) {
-//
-//   }
+  static async resetToDefaults() {
+    // Delete all existing.
+    const promises = [];
+    this.coverObjectsMap.forEach(c => promises.push(c.delete()));
+    await Promise.allSettled(promises);
+    return this.initialize();
+  }
 
   /**
    * Save all cover objects to a json file.
@@ -332,6 +339,29 @@ export class AbstractCoverObject {
         }
       },
       default: "import"
+    }, {
+      width: 400
+    }).render(true);
+  }
+
+  static async resetToDefaultsDialog() {
+    new Dialog({
+      title: "Reset Cover Objects",
+      content: "Reset cover objects to defaults? This cannot be undone.",
+      buttons: {
+        reset: {
+          icon: '<i class="fas fa-rotate-left"></i>',
+          label: "Reset",
+          callback: html => {
+            return this.resetToDefaults();
+          }
+        },
+        no: {
+          icon: '<i class="fas fa-times"></i>',
+          label: "Cancel"
+        }
+      },
+      default: "reset"
     }, {
       width: 400
     }).render(true);

@@ -42,9 +42,19 @@ export class CoverEffectsController {
    * Handles clicks on the list cover types button.
    * Displays a mini-configuration that lists all cover types, allows for quick editing.
    */
-  async onListCoverTypes() {
+  async onListCoverTypes(_event) {
     log("CoverEffectsController|onListCoverTypes");
     new CoverTypesListConfig().render(true);
+  }
+
+  /**
+   * Handles clicks on the reset cover types button.
+   * Displays a confirmation and then resets.
+   */
+  async onResetToDefaults(_event) {
+    log("CoverEffectsController|onResetToDefaults");
+    await CONFIG[MODULE_ID].CoverEffect.resetToDefaults();
+    this._viewMvc.render();
   }
 
   /**

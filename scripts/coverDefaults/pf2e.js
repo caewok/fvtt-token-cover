@@ -86,7 +86,7 @@ Now you can use it like a regular item and store it in a compendium.
 
 coverEffects.lesser = {
   id: `${MODULE_ID}.${SYSTEM_ID}.lesser`,
-  compendiumId: "gtyY5xUZXqNLCrMV",
+  compendiumId: "3wuJNcYqrY1IEYm8",
   coverTypes: [
     coverTypes.lesser.id
   ]
