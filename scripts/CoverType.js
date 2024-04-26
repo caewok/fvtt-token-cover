@@ -100,6 +100,7 @@ export class CoverType extends AbstractCoverObject {
 
   /**
    * Update this object with the given data.
+   * Cover Types can be saved to settings by passing an undefined config.
    * @param {object} [config={}]    If config is not provided, update setting with current config.
    */
   async update(config) {
@@ -107,7 +108,7 @@ export class CoverType extends AbstractCoverObject {
     const allCoverObjects = this.constructor.storedCoverTypes;
     allCoverObjects[this.id] ??= {};
     foundry.utils.mergeObject(allCoverObjects[this.id], config);
-    const settingsKey = this.settingsKey;
+    const settingsKey = this.constructor.settingsKey;
     Settings.set(settingsKey, allCoverObjects);
   }
 
@@ -174,7 +175,7 @@ export class CoverType extends AbstractCoverObject {
     const change = token.document.effects.some(e => e === this.icon);
     if ( change ) {
       log(`CoverType#addToToken|${token.name} removing ${this.name}`);
-      findSpliceAll(token.document.effects, e => e == this.icon);
+      findSpliceAll(token.document.effects, e => e === this.icon);
     }
     return change;
   }
@@ -221,7 +222,7 @@ export class CoverType extends AbstractCoverObject {
     this.#coverTypesOrdered.length = 0;
     this.#coverTypesUnordered.length = 0;
     for ( const coverType of this.coverObjectsMap.values() ) {
-      if ( coverType.document.priority == null ) this.#coverTypesUnordered.push(coverType);
+      if ( !coverType.document.priority ) this.#coverTypesUnordered.push(coverType);
       else this.#coverTypesOrdered.push(coverType);
     }
     this.#coverTypesOrdered.sort((a, b) => b.document.priority - a.document.priority);
@@ -232,13 +233,6 @@ export class CoverType extends AbstractCoverObject {
 
   /** @type {string} */
   static get settingsKey() { return Settings.KEYS.COVER_TYPES.DATA; }
-
-  /** @type {string[]} */
-  static get storedCoverObjectIds() {
-    // Cover types store the entire data object in settings. Fetch the ids only.
-    const storedObj = Settings.get(this.settingsKey) ?? {};
-    return Object.keys(storedObj);
-  }
 
   /** @type {object} */
   static get storedCoverTypes() {
@@ -352,7 +346,7 @@ export class CoverType extends AbstractCoverObject {
       const coverTypes = targetToken.coverTypesFromAttacker(attackingToken);
       const otherTypes = new Set();
       coverTypes.forEach(ct => {
-        if ( ct.priority == null ) otherTypes.add(ct);
+        if ( !ct.priority ) otherTypes.add(ct);
         else if ( typeof minCoverType === undefined || minCoverType.priority > ct.priority ) minCoverType = ct;
       })
 

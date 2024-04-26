@@ -53,8 +53,7 @@ export class CoverEffectsController {
    */
   async onCreateCoverEffect(_event) {
     log("CoverEffectsController|onCreateCoverEffect");
-    const ce = CONFIG[MODULE_ID].CoverEffect.create();
-    await ce.initialize();
+    const ce = await CONFIG[MODULE_ID].CoverEffect.create();
     this._viewMvc.render();
     ce.renderConfig();
   }

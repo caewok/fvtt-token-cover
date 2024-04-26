@@ -48,7 +48,7 @@ export class CoverEffect extends AbstractCoverObject {
   // ----- NOTE: Getters, setters, and related properties ----- //
 
   /** @type {string[]} */
-  get #coverTypesArray() { return this.document.flags[MODULE_ID][FLAGS.COVER_TYPES]; }
+  get #coverTypesArray() { return this.document.flags[MODULE_ID][FLAGS.COVER_TYPES] ?? []; }
 
   /** @type {CoverType[]} */
   get coverTypes() {
@@ -74,6 +74,29 @@ export class CoverEffect extends AbstractCoverObject {
     return this.constructor._localizeDocumentData(data);
   }
 
+  /**
+   * Data used when dragging a cover effect to an actor sheet.
+   */
+  get dragData() {
+    return {
+      name: this.name,
+      type: "Item",
+      data: this.documentData
+    };
+  }
+
+  /** @type {object|undefined} */
+  get defaultCoverObjectData() {
+    const data = super.defaultCoverObjectData;
+    if ( !data ) return undefined;
+    data.flags ??= {};
+    data.flags[MODULE_ID] ??= {};
+    data.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= this.id;
+    data.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [];
+    delete data.id;
+    return data;
+  }
+
   // ----- NOTE: Methods ----- //
 
   /**
@@ -81,15 +104,6 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {object} [config={}]
    */
   async update(config = {}) { return this.document.update(config); }
-
-  /**
-   * Delete the stored document associated with this cover effect.
-   * Child class creates.
-   * @returns {boolean} Must return true if document is deleted.
-   */
-  async _deleteStorageDocument() {
-    console.error("CoverEffect#_deleteSaveData must be handled by child class.");
-  }
 
   /**
    * Export this cover type data to JSON.

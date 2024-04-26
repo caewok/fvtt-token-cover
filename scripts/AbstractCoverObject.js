@@ -21,7 +21,7 @@ export class AbstractCoverObject {
    */
   constructor(id) {
     // Enforce unique cover type per id.
-    this.id = id ?? `${MODULE_ID}.${this.systemId}.${foundry.utils.randomID()}`;
+    this.id = id ?? `${MODULE_ID}.${this.constructor.systemId}.${foundry.utils.randomID()}`;
     const coverObjectsMap = this.constructor.coverObjectsMap;
     if ( coverObjectsMap.has(this.id) ) return coverObjectsMap.get(this.id);
     coverObjectsMap.set(this.id, this);
@@ -36,8 +36,8 @@ export class AbstractCoverObject {
    * @return {AbstractCoverObject}
    */
   static async create(id) {
-    if ( !this.coverObjectsMap.has(id) ) await this.addStoredCoverObjectId(id);
     const obj = new this(id);
+    await this.addStoredCoverObjectId(id); // Must happen after creation so coverObjectsMap is updated.
     await obj.initializeStorageDocument();
     return obj;
   }
@@ -47,7 +47,7 @@ export class AbstractCoverObject {
   /** @type {Document|object} */
   #document;
 
-  get document() { return this.#document || (this.#document = this.findStorageDocument()); }
+  get document() { return this.#document || (this.#document = this._findStorageDocument()); }
 
   /**
    * Retrieve the cover effect icon for use in the list of cover effects.
@@ -60,6 +60,12 @@ export class AbstractCoverObject {
    * @returns {string}
    */
   get name() { return this.document.name; }
+
+  /** @type {object} */
+  get newCoverObjectData() { return {}; }
+
+  /** @type {object|undefined} */
+  get defaultCoverObjectData() { return this.constructor.defaultCoverObjectData.get(this.id); }
 
   // ----- NOTE: Methods ----- //
 
@@ -130,7 +136,7 @@ export class AbstractCoverObject {
   async delete(deleteStorageDocument = false) {
     this.constructor.coverObjectsMap.delete(this.id);
     if ( deleteStorageDocument ) await this._deleteStorageDocument();
-    await this.constructor.removeStoredCoverObjectIds(newObj.id);
+    return this.constructor.removeStoredCoverObjectId(this.id); // Async
   }
 
   /**
@@ -173,6 +179,34 @@ export class AbstractCoverObject {
     return this.update(json);
   }
 
+  async importFromJSONDialog() {
+    new Dialog({
+      title: "Import Cover Objects",
+      content: await renderTemplate("templates/apps/import-data.html", {
+        hint1: "You may import a cover objects from an exported JSON file.",
+        hint2: `This operation will update the cover object ${this.name} and cannot be undone.`
+      }),
+      buttons: {
+        import: {
+          icon: '<i class="fas fa-file-import"></i>',
+          label: "Import",
+          callback: html => {
+            const form = html.find("form")[0];
+            if ( !form.data.files.length ) return ui.notifications.error("You did not upload a data file!");
+            readTextFromFile(form.data.files[0]).then(json => this.importFromJSON(json));
+          }
+        },
+        no: {
+          icon: '<i class="fas fa-times"></i>',
+          label: "Cancel"
+        }
+      },
+      default: "import"
+    }, {
+      width: 400
+    }).render(true);
+  }
+
   /**
    * Render the cover effect configuration window.
    */
@@ -193,9 +227,6 @@ export class AbstractCoverObject {
   /** @type {string} */
   static get systemId() { return game.system.id; }
 
-  /** @type {object} */
-  static get newCoverObjectData() { return {}; }
-
   /**
    * Get default cover object data for different systems.
    * @returns {Map<string, object>} Map of objects with keys corresponding to cover type object ids.
@@ -212,7 +243,7 @@ export class AbstractCoverObject {
     const storedIds = new Set(this.storedCoverObjectIds);
     if ( storedIds.has(id) ) return;
     storedIds.add(id);
-    return Settings.set(this.settingsKey, storedIds.values());
+    return Settings.set(this.settingsKey, [...storedIds.values()]);
   }
 
   /**
@@ -223,7 +254,7 @@ export class AbstractCoverObject {
     const storedIds = new Set(this.storedCoverObjectIds);
     if ( !storedIds.has(id) ) return;
     storedIds.delete(id);
-    return Settings.set(this.settingsKey, storedIds.values());
+    return Settings.set(this.settingsKey, [...storedIds.values()]);
   }
 
   /**

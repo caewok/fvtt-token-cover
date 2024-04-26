@@ -32,6 +32,14 @@ export class CoverItem extends CoverEffect {
     return out;
   }
 
+  /** @type {object} */
+  get newCoverObjectData() {
+    return {
+      name: "New Cover Effect",
+      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECT_ID]: this.id } }
+    }
+  }
+
   // ----- NOTE: Methods ----- //
 
   /**
@@ -61,11 +69,8 @@ export class CoverItem extends CoverEffect {
    */
   async _createStorageDocument() {
     // Add necessary settings for the active effect.
-    const coverEffectData = {
-      name: "New Cover Effect",
-      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECT_ID]: this.id } }
-    }
-    return CONFIG.Item.documentClass.create(coverEffectData); // Async
+    const data = this.constructor.defaultCoverObjectData.get(this.id) ?? this.newCoverObjectData;
+    return CONFIG.Item.documentClass.create(data); // Async
   }
 
   /**
@@ -81,8 +86,9 @@ export class CoverItem extends CoverEffect {
    * @return {boolean} Must return true if document is deleted.
    */
   async _deleteStorageDocument() {
-    super._deleteStorageDocument();
-    return this.document.delete(); // Async
+    const out = await this.document.delete();
+    super._deleteStorageDocument(); // Must come after so document is present.
+    return out;
   }
 
   // ----- NOTE: Methods specific to cover effects ----- //
@@ -136,14 +142,6 @@ export class CoverItem extends CoverEffect {
 
   // ----- NOTE: Static methods ----- //
 
-  /** @type {object} */
-  static get newCoverObjectData() {
-    return {
-      name: "New Cover Effect",
-      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECT_ID]: this.id } }
-    }
-  }
-
   // ----- NOTE: Static methods specific to cover effects ----- //
 
   /**
@@ -167,14 +165,12 @@ export class CoverItem extends CoverEffect {
 export class CoverItemPF2E extends CoverItem {
 
   /**
-   * Create the actual Item storage document.
-   * @param {object} coverEffectData     Data to store
-   * @returns {Item}
+   * Localize document data. Meant for subclasses that are aware of the document structure.
+   * @param {object} coverEffectData
+   * @returns {object} coverEffectData
    */
-  async createStorageDocument(coverEffectData) {
-    // Add necessary settings for the active effect.
-    // coverEffectData.type = "effect";
-    return super._createStorageDocument(coverEffectData);
+  static _localizeDocumentData(coverEffectData) {
+    return coverEffectData;
   }
 }
 
@@ -183,15 +179,13 @@ export class CoverItemPF2E extends CoverItem {
  */
 export class CoverItemSFRPG extends CoverItem {
 
-  /**
-   * Create the actual Item storage document.
-   * @param {object} coverEffectData     Data to store
-   * @returns {Item}
-   */
-  async createStorageDocument(coverEffectData) {
-    // Add necessary settings for the active effect.
-    coverEffectData.type = "effect";
-    return super._createStorageDocument(coverEffectData);
+  /** @type {object} */
+  get newCoverObjectData() {
+    return {
+      name: "New Cover Effect",
+      type: "effect",
+      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECT_ID]: this.id } }
+    }
   }
 
   /**

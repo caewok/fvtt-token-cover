@@ -48,6 +48,16 @@ export class CoverActiveEffect extends CoverEffect {
     };
   }
 
+  /** @type {object} */
+  get newCoverObjectData () {
+    return {
+      origin: this.constructor.coverEffectItem.id,
+      transfer: false,
+      name: "New Cover Effect",
+      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECT_ID]: this.id, [FLAGS.COVER_TYPES]: [] } }
+    };
+  }
+
   // ----- NOTE: Methods ----- //
 
   /**
@@ -68,8 +78,9 @@ export class CoverActiveEffect extends CoverEffect {
    */
   async _loadStorageDocument() {
     if ( !this.constructor.coverEffectItem ) await this.constructor._initializeCoverEffectsItem();
-    return this.constructor.coverEffectItem.effects.find(e =>
-      e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === this.id);
+
+    // It is possible that _findStorageDocument failed b/c of not initializing the cover item. Retry.
+    return this._findStorageDocument();
   }
 
   /**
@@ -78,12 +89,11 @@ export class CoverActiveEffect extends CoverEffect {
    * @returns {ActiveEffect}
    */
   async _createStorageDocument() {
-    const coverItem = this.construtor.coverEffectItem;
-    if ( !coverItem ) await this.constructor._initializeCoverEffectsItem();
+    if ( !this.constructor.coverEffectItem ) await this.constructor._initializeCoverEffectsItem();
 
     // Create default effects on-the-fly if not present.
     // Otherwise, create a new cover effect.
-    const data = this.constructor.defaultCoverObjectData.get(this.id) ?? this.newCoverObjectData;
+    const data = this.defaultCoverObjectData ?? this.newCoverObjectData;
     return (await this.constructor.coverEffectItem.createEmbeddedDocuments("ActiveEffect", [data]))[0];
   }
 
@@ -92,8 +102,9 @@ export class CoverActiveEffect extends CoverEffect {
    * @return {boolean} Must return true if document is deleted.
    */
   async _deleteStorageDocument() {
-    super._deleteStorageDocument();
-    return this.constructor.coverEffectItem.deleteEmbeddedDocuments("ActiveEffect", [this.document.id]);
+    const out = await this.constructor.coverEffectItem.deleteEmbeddedDocuments("ActiveEffect", [this.document.id]);
+    super._deleteStorageDocument(); // Must come after so document id is present.
+    return out;
   }
 
   /**
@@ -148,27 +159,7 @@ export class CoverActiveEffect extends CoverEffect {
   /** @type {Item} */
   static coverEffectItem; // Added by _initializeCoverEffectsItem.
 
-  static get newCoverObjectData() {
-    return {
-      origin: this.constructor.coverEffectItem.id,
-      transfer: false,
-      name: "New Cover Effect",
-      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECT_ID]: this.id } }
-    };
-  }
-
   // ----- NOTE: Static methods ----- //
-
- /**
-   * Find the storage document for given id in a compendium or by other async method.
-   * ActiveEffect documents currently are not stored in a compendium but instead created on-the-fly
-   * from defaults. This method presumes the cover effect item does not contain the effect. See findStorageDocument.
-   * @param {string} id               Id of the cover effect to use
-   * @returns {Document|undefined} Undefined if no document found.
-   */
-  static async findCompendiumDocument(id) {
-    //
-  }
 
   /**
    * Retrieve all Cover Effects on the actor.

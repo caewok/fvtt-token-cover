@@ -54,7 +54,7 @@ export class CoverTypesListConfig extends FormApplication  {
    */
   #sortCoverTypes(coverTypes) {
     this.allCoverTypes.sort((a, b) => {
-      switch ( ( (a.document.priority == null) * 2) + (b.document.priority == null) ) {
+      switch ( ( (!a.document.priority) * 2) + (!b.document.priority) ) {
         case 0: return a.priority - b.priority;
         case 1: return 1; // b.priority is null
         case 2: return -1; // a.priority is null
@@ -79,12 +79,13 @@ export class CoverTypesListConfig extends FormApplication  {
    */
   async _updateObject(_event, formData) {
     const expandedFormData = expandObject(formData);
+    const promises = [];
     for ( const [idx, coverTypeData] of Object.entries(expandedFormData.allCoverTypes) ) {
       const storedCoverType = this.allCoverTypes[idx];
       if ( !storedCoverType ) continue;
-      storedCoverType.update(coverTypeData);
+      promises.add(storedCoverType.update(coverTypeData));
     }
-    await CONFIG[MODULE_ID].CoverType.save();
+    return Promise.allSettled(promises);
   }
 
   /**
@@ -114,7 +115,7 @@ export class CoverTypesListConfig extends FormApplication  {
     event.preventDefault();
     log("AddCoverType clicked!");
     await this._onSubmit(event, { preventClose: true });
-    CONFIG[MODULE_ID].CoverType.create();
+    await CONFIG[MODULE_ID].CoverType.create();
     this.render();
   }
 
@@ -125,17 +126,16 @@ export class CoverTypesListConfig extends FormApplication  {
     event.preventDefault();
     log("RemoveCoverType clicked!");
     const idx = this._indexForEvent(event);
-    const id = this.allCoverTypes[idx]?.id;
-    if ( !id ) return;
+    const ct = this.allCoverTypes[idx];
+    if ( !ct ) return;
 
     return Dialog.confirm({
       title: "Remove Cover Type",
       content:
-        "<h4>Are You Sure?</h4><p>This will remove the cover type from all scenes.",
+        `<h4>Are You Sure?</h4><p>This will remove the cover type ${ct.name} from all scenes.`,
       yes: async () => {
         log("CoverTypesListConfig|_onRemoveCoverType yes");
-        COVER.TYPES.delete(id);
-        CONFIG[MODULE_ID].CoverType.coverTypesUpdated();
+        await ct.delete();
         this.render();
       }
     });
@@ -145,7 +145,7 @@ export class CoverTypesListConfig extends FormApplication  {
     event.stopPropagation();
     log("ImportCoverType clicked!");
     await this._onSubmit(event, { preventClose: true });
-    await CONFIG[MODULE_ID].CoverType.importFromJSONDialog();
+    await CONFIG[MODULE_ID].CoverType.importAllFromJSONDialog();
     this.render();
   }
 
@@ -153,7 +153,7 @@ export class CoverTypesListConfig extends FormApplication  {
     event.stopPropagation();
     log("ExportAllCoverTypes clicked!");
     await this._onSubmit(event, { preventClose: true });
-    CONFIG[MODULE_ID].CoverType.saveToJSON();
+    CONFIG[MODULE_ID].CoverType.saveAllToJSON();
   }
 
   /**
