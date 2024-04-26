@@ -2,10 +2,10 @@
 */
 "use strict";
 
-import { coverTypes as dnd5eCoverTypes } from "./coverDefaults/dnd5e.js";
-import { coverTypes as pf2eCoverTypes } from "./coverDefaults/pf2e.js";
-import { coverTypes as sfrpgCoverTypes } from "./coverDefaults/sfrpg.js";
-import { coverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
+import { defaultCoverTypes as dnd5eCoverTypes } from "./coverDefaults/dnd5e.js";
+import { defaultCoverTypes as pf2eCoverTypes } from "./coverDefaults/pf2e.js";
+import { defaultCoverTypes as sfrpgCoverTypes } from "./coverDefaults/sfrpg.js";
+import { defaultCoverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
 import { Settings } from "./settings.js";
 import { MODULE_ID, COVER } from "./const.js";
 import { AbstractCoverObject } from "./AbstractCoverObject.js";
@@ -64,41 +64,62 @@ tokens equally regardless of user/attacker.
  * Loading and saving controlled here.
  */
 export class CoverType extends AbstractCoverObject {
-  /**
-   * Configure the object using the default provided data.
-   * @param {CoverTypeData} [CoverTypeData]
-   */
-  _configure(coverTypeData = {}) {
-    delete coverTypeData.id;
-    foundry.utils.mergeObject(this.config, coverTypeData);
-
-    // Make changes that cannot be handled by defaults.
-    if ( !(this.config.tint instanceof Color) ) this.config.tint = new Color(this.config.tint ?? 0);
-    // priority, icon can be null or undefined.
-  }
-
   // ----- NOTE: Getters, setters, related properties ----- //
 
-  /** @type {object} */
-  #config = {
-    name: "New Cover Type",
-    percentThreshold: 1,
-    includeWalls: true,
-    includeTokens: true,
-    tint: new Color(0),
-    system: game.system.id
-  };
-
-  get config() { return this.#config; }
-
   // ----- NOTE: Methods ----- //
+
+  /**
+   * Find an existing local document to use for the storage.
+   * For cover type, this is an existing stored setting.
+   * @returns {Document|object|undefined}
+   */
+  _findStorageDocument() {
+    const doc = this.constructor.storedCoverTypes[this.id]
+        ?? this.constructor.defaultCoverObjectData.get(this.id)
+        ?? this.constructor.newCoverTypeData;
+
+    // Fix tint to always be a Color class.
+    if ( !(doc.tint instanceof Color) ) doc.tint = typeof tint === "string"
+      ? Color.fromString(doc.tint) : new Color(doc.tint);
+    return doc;
+  }
+
+  /**
+   * Load an async document to use for storage.
+   * For cover type, this does nothing, as the setting can be accessed synchronously.
+   * @returns {Document|object|undefined}
+   */
+  async _loadStorageDocument() { return this._findStorageDocument(); }
+
+  /**
+   * Create a storage document from scratch.
+   * For cover type, this does nothing, as the setting can be accessed synchronously.
+   * @returns {Document|object}
+   */
+  async _createStorageDocument() { return this._findStorageDocument(); }
+
+  /**
+   * Update this object with the given data.
+   * Cover Types can be saved to settings by passing an undefined config.
+   * @param {object} [config={}]    If config is not provided, update setting with current config.
+   */
+  async update(config) {
+    config ??= this.document;
+    const allCoverObjects = this.constructor.storedCoverTypes;
+    allCoverObjects[this.id] ??= {};
+    foundry.utils.mergeObject(allCoverObjects[this.id], config);
+    const settingsKey = this.constructor.settingsKey;
+    Settings.set(settingsKey, allCoverObjects);
+  }
+
+  // ----- NOTE: Cover type specific methods ----- //
 
   /**
    * Test if this cover type applies to a target token given an attacking token.
    * Use the static coverTypesForToken for more efficient tests for all cover types at once.
    */
   coverTypeApplies(attackingToken, targetToken, opts = {}) {
-    return this.percentCover(attackingToken, targetToken) >= this.config.percentThreshold;
+    return this.percentCover(attackingToken, targetToken) >= this.document.percentThreshold;
   }
 
   /**
@@ -108,28 +129,9 @@ export class CoverType extends AbstractCoverObject {
    * @returns {number}
    */
   percentCover(attackingToken, targetToken) {
-    const { includeWalls, includeTokens } = this.config;
+    const { includeWalls, includeTokens } = this.document;
     return attackingToken.coverCalculator.percentCover(targetToken, { includeWalls, includeTokens });
   }
-
-
-  /**
-   * Update the cover type with a new full or partial config object.
-   * @param {object} [config={}]
-   */
-  update(config = {}) {
-    super.update(config);
-
-    // Fix tint to always be a Color class.
-    const tint = this.config.tint;
-    if ( !(tint instanceof Color) ) this.config.tint = typeof tint === "string"
-      ? Color.fromString(tint) : new Color(tint);
-    this.config.tint = new Color(this.config.tint);
-
-    // Mark that cover types may have been updated.
-    this.constructor.coverTypesUpdated();
-  }
-
   /**
    * Add this cover type to the token.
    * Adds unless already present.
@@ -139,27 +141,27 @@ export class CoverType extends AbstractCoverObject {
    */
   addToToken(token) {
     log(`CoverType#addToToken|${token.name}`);
-    const icon = this.config.icon;
+    const icon = this.document.icon;
 
     // If already present, we are done.
     if ( token.document.effects.some(e => e === icon) ) return false;
 
     // If this type can overlap, it can be added b/c it is not already present.
-    if ( this.config.canOverlap ) {
-      log(`CoverType#addToToken|${token.name} adding ${this.config.name}`);
+    if ( this.document.canOverlap ) {
+      log(`CoverType#addToToken|${token.name} adding ${this.name}`);
       token.document.effects.push(icon);
       return true;
     }
 
     // If this type cannot overlap, then any non-overlapping icons must be removed first.
     const tokenEffectIcons = new Set(token.document.effects);
-    const otherCoverTypes = CoverType.coverObjectsMap.values().filter(ct => ct.config.icon !== icon && !ct.config.canOverlap);
+    const otherCoverTypes = CoverType.coverObjectsMap.values().filter(ct => ct.icon !== icon && !ct.config.canOverlap);
     for ( const otherCoverType of otherCoverTypes ) {
-      if ( tokenEffectIcons.has(otherCoverType.config.icon) ) otherCoverType.removeFromToken(token);
+      if ( tokenEffectIcons.has(otherCoverType.icon) ) otherCoverType.removeFromToken(token);
     }
 
     // Add the new cover type icon to the token.
-    log(`CoverType#addToToken|${token.name} adding ${this.config.name}`);
+    log(`CoverType#addToToken|${token.name} adding ${this.name}`);
     token.document.effects.push(icon);
     return true;
   }
@@ -170,10 +172,10 @@ export class CoverType extends AbstractCoverObject {
    * @returns {boolean} True if change was made
    */
   removeFromToken(token) {
-    const change = token.document.effects.some(e => e === this.config.icon);
+    const change = token.document.effects.some(e => e === this.icon);
     if ( change ) {
-      log(`CoverType#addToToken|${token.name} removing ${this.config.name}`);
-      findSpliceAll(token.document.effects, e => e == this.config.icon);
+      log(`CoverType#addToToken|${token.name} removing ${this.name}`);
+      findSpliceAll(token.document.effects, e => e === this.icon);
     }
     return change;
   }
@@ -220,10 +222,10 @@ export class CoverType extends AbstractCoverObject {
     this.#coverTypesOrdered.length = 0;
     this.#coverTypesUnordered.length = 0;
     for ( const coverType of this.coverObjectsMap.values() ) {
-      if ( coverType.config.priority == null ) this.#coverTypesUnordered.push(coverType);
+      if ( !coverType.document.priority ) this.#coverTypesUnordered.push(coverType);
       else this.#coverTypesOrdered.push(coverType);
     }
-    this.#coverTypesOrdered.sort((a, b) => b.config.priority - a.config.priority);
+    this.#coverTypesOrdered.sort((a, b) => b.document.priority - a.document.priority);
     this.#coverTypesModified = false;
   }
 
@@ -232,7 +234,70 @@ export class CoverType extends AbstractCoverObject {
   /** @type {string} */
   static get settingsKey() { return Settings.KEYS.COVER_TYPES.DATA; }
 
+  /** @type {object} */
+  static get storedCoverTypes() {
+    return Settings.get(this.settingsKey);
+  }
+
+  /** @type {object} */
+  static get newCoverTypeData() {
+    return {
+      name: `${MODULE_ID}.cover.tokensBlock`,
+      percentThreshold: 1,
+      icon: "modules/tokencover/assets/shield_virus_gray.svg",
+      tint: null,
+      canOverlap: true,
+      includeWalls: false,
+      includeTokens: true,
+      priority: null
+    }
+  }
+
+  /**
+   * Get default cover types for different systems.
+   * @type {Map<string, object>} Map of objects with keys corresponding to cover type object ids.
+   */
+  static get defaultCoverObjectData() {
+    switch ( game.system.id ) {
+      case "dnd5e": return dnd5eCoverTypes; break;
+      case "pf2e": return pf2eCoverTypes; break;
+      case "sfrpg": return sfrpgCoverTypes; break;
+      default: return genericCoverTypes;
+    }
+  }
   // ----- NOTE: Static methods ----- //
+
+  /**
+   * Set the cover object id from settings object.
+   * @param {string} id
+   */
+  static async addStoredCoverObjectId(id) {
+    // Because the entire Cover Type is stored, set the entire value.
+    const storedIds = new Set(this.storedCoverObjectIds);
+    if ( storedIds.has(id) ) return;
+
+    const coverType = this.coverObjectsMap.get(id);
+    if ( !coverType ) return;
+
+    // Force the cover type to update, which should add its id and data to the settings object.
+    return coverType.update();
+  }
+
+  /**
+   * Remove the cover object id from settings object.
+   * @param {string} id
+   */
+  static async removeStoredCoverObjectId(id) {
+    // Because the entire Cover Type is stored, remove the entire value.
+    const storedIds = new Set(this.storedCoverObjectIds);
+    if ( !storedIds.has(id) ) return;
+
+    const storedObj = this.storedCoverTypes;
+    delete storedObj[id];
+    return Settings.set(this.settingsKey, storedObj);
+  }
+
+  // ----- NOTE: Static cover type specific methods ----- //
 
   /**
    * Replace cover types on token with these.
@@ -251,7 +316,7 @@ export class CoverType extends AbstractCoverObject {
 
     // Remove all cover types in the array that are not the wanted cover types.
     const tokenEffectIcons = new Set(token.document.effects);
-    const toKeep = coverTypes.map(ct => ct.config.icon);
+    const toKeep = coverTypes.map(ct => ct.icon);
     const toRemove = tokenEffectIcons.difference(toKeep);
     const changed = toRemove.size
     if ( changed ) findSpliceAll(token.document.effects, e => toRemove.has(e));
@@ -281,7 +346,7 @@ export class CoverType extends AbstractCoverObject {
       const coverTypes = targetToken.coverTypesFromAttacker(attackingToken);
       const otherTypes = new Set();
       coverTypes.forEach(ct => {
-        if ( ct.priority == null ) otherTypes.add(ct);
+        if ( !ct.priority ) otherTypes.add(ct);
         else if ( typeof minCoverType === undefined || minCoverType.priority > ct.priority ) minCoverType = ct;
       })
 
@@ -292,15 +357,6 @@ export class CoverType extends AbstractCoverObject {
     minCoverType = new Set(minCoverType ? [minCoverType] : []);
     otherCoverTypes ||= Set.NULL_SET;
     return minCoverType.union(otherCoverTypes);
-  }
-
-  static _defaultCoverTypeData() {
-    switch ( game.system.id ) {
-      case "dnd5e": return dnd5eCoverTypes; break;
-      case "pf2e": return pf2eCoverTypes; break;
-      case "sfrpg": return sfrpgCoverTypes; break;
-      default: return genericCoverTypes;
-    }
   }
 
   /**
@@ -324,7 +380,7 @@ export class CoverType extends AbstractCoverObject {
     // Test cover types without a set priority.
     for ( const type of this.coverTypesUnordered ) {
       // If there is already a type, cannot use a non-overlapping type.
-      if ( !type.config.canOverlap && types.length ) continue;
+      if ( !type.document.canOverlap && types.length ) continue;
       if ( type.coverTypeApplies(attackingToken, targetToken, opts) ) types.push(type);
     }
     return types;
@@ -335,3 +391,51 @@ export class CoverType extends AbstractCoverObject {
 COVER.TYPES = CoverType.coverObjectsMap;
 
 // ----- NOTE: Helper functions ----- //
+
+
+// Actor sizes, from smallest to largest, in pf2e.
+// See CONFIG.PF2E.actorSizes
+const ACTOR_SIZES = {
+  tiny: 1,
+  sm: 2,
+  med: 3,
+  lg: 4,
+  huge: 5,
+  grg: 6
+};
+Object.entries(ACTOR_SIZES).forEach(([key, value]) => ACTOR_SIZES[value] = key);
+
+
+/**
+ * Specialized handling of cover types in pf2e.
+ */
+export class CoverTypePF2E extends CoverType {
+  /**
+   * Determine what cover types apply to a target token given an attacking token.
+   * For pf2e, if lesser cover has been assigned, it will upgrade to standard cover
+   * if a blocking creature is 2+ sizes larger.
+   * See https://2e.aonprd.com/Rules.aspx?ID=2373
+   * @param {Token} attackingToken
+   * @param {Token} targetToken
+   * @returns {coverType[]}
+   */
+  static coverTypesForToken(attackingToken, targetToken, opts) {
+    const types = super.coverTypesForToken(attackingToken, targetToken, opts);
+    const standardCover = this.coverTypesObject.get("coverEffects.standard.id");
+
+    if ( standardCover && types.some(type.id === pf2eCoverTypes.lesser.id) ) {
+      const targetSize = ACTOR_SIZES[targetToken.system.traits.size.value] ?? ACTOR_SIZES.med;
+      const attackerSize = ACTOR_SIZES[attackingToken.system.traits.size.value] ?? ACTOR_SIZES.med;
+      const upgradeSize = Math.max(targetSize, attackerSize) + 1;
+      for ( const token of attackingToken.coverCalculator.calc.blockingObjects.tokens ) {
+        const blockingTokenSize = ACTOR_SIZES[token.system.traits.size.value] ?? ACTOR_SIZES.med;
+        if ( blockingTokenSize > upgradeSize ) {
+          findSpliceAll(types, type.id === pf2eCoverTypes.lesser.id);
+          types.push(standardCover);
+          break;
+        }
+      }
+    }
+    return types;
+  }
+}

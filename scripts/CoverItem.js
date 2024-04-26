@@ -5,7 +5,7 @@
 
 import { MODULE_ID, FLAGS, COVER } from "./const.js";
 import { CoverEffect } from "./CoverEffect.js";
-import { coverEffects as sfrpgCoverEffects } from "./coverDefaults/sfrpg.js";
+
 /**
  * Cover Effect for systems like sfrpg that use items to signify effects.
  */
@@ -13,14 +13,11 @@ export class CoverItem extends CoverEffect {
 
   // ----- NOTE: Getters, setters, and related properties ----- //
 
-  // Alias
-  get effectItem() { return this.document; }
-
   /**
    * Retrieve the cover effect icon for use in the list of cover effects.
    * @return {string}
    */
-  get icon() { return this.config.img; }
+  get icon() { return this.document?.img; }
 
   /**
    * Data used when dragging a cover effect to an actor sheet.
@@ -31,21 +28,76 @@ export class CoverItem extends CoverEffect {
       type: "Item",
       data: this.documentData
     };
-    out.uuid = this.document.uuid;
+    out.uuid = this.document?.uuid;
     return out;
   }
+
+  /** @type {object} */
+  get newCoverObjectData() {
+    return {
+      name: "New Cover Effect",
+      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECT_ID]: this.id } }
+    }
+  }
+
+  /** @type {object|undefined} */
+  get defaultCoverObjectData() {
+    const data = super.defaultCoverObjectData;
+    if ( !data ) return undefined;
+    data.flags ??= {};
+    data.flags[MODULE_ID] ??= {};
+    data.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= this.id;
+
+    if ( data.coverTypes?.length ) data.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [...data.coverTypes];
+    else data.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [];
+
+    delete data.id;
+    delete data.compendiumId;
+    delete data.coverTypes;
+
+    data.type = "Item";
+    data.name ??= "New Cover Effect";
+
+    return data;
+  }
+
 
   // ----- NOTE: Methods ----- //
 
   /**
-   * Create the actual Item storage document.
-   * @param {object} coverEffectData     Data to store
-   * @returns {Item}
+   * Find an existing local document to use for the storage.
+   * @returns {Item|undefined}
    */
-  async _createStorageDocument(coverEffectData) {
+  _findStorageDocument() {
+    return game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === this.id);
+  }
+
+  /**
+   * Load an async document to use for storage from the compendium.
+   * @returns {Document|object|undefined}
+   */
+  async _loadStorageDocument() {
+    const pack = game.packs.get(`${MODULE_ID}.${MODULE_ID}_items_${game.system.id}`);
+    if ( !pack ) return;
+
+    const compendiumId = this.constructor.defaultCoverObjectData.get(this.id)?.compendiumId;
+    if ( !compendiumId ) return;
+    const doc = await pack.getDocument(compendiumId); // Async
+    doc.flags ??= {};
+    data.flags[MODULE_ID] ??= {};
+    data.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= this.id;
+
+    return CONFIG.Item.documentClass.create(doc);
+  }
+
+  /**
+   * Create a storage document from scratch.
+   * @returns {Item|object}
+   */
+  async _createStorageDocument() {
     // Add necessary settings for the active effect.
-    coverEffectData.name ??= "New Cover Effect";
-    return await CONFIG.Item.documentClass.create(coverEffectData);
+    const data = this.defaultCoverObjectData ?? this.newCoverObjectData;
+    return CONFIG.Item.documentClass.create(data); // Async
   }
 
   /**
@@ -60,7 +112,14 @@ export class CoverItem extends CoverEffect {
    * Delete the stored item associated with this cover effect.
    * @return {boolean} Must return true if document is deleted.
    */
-  async _deleteStorageDocument() { return this.document.delete(); }
+  async _deleteStorageDocument() {
+    if ( !this.document ) return;
+    const out = await this.document.delete();
+    super._deleteStorageDocument(); // Must come after so document is present.
+    return out;
+  }
+
+  // ----- NOTE: Methods specific to cover effects ----- //
 
   /**
    * Test if the local effect is already on the actor.
@@ -83,7 +142,7 @@ export class CoverItem extends CoverEffect {
    */
   _addToActorLocally(actor) {
     const item = actor.items.createDocument(this.documentData);
-    log(`CoverItem#_addToActorLocally|${actor.name} adding ${item.id} ${this.config.name}`);
+    log(`CoverItem#_addToActorLocally|${actor.name} adding ${item.id} ${this.name}`);
     actor.items.set(item.id, item);
     return item.id;
   }
@@ -102,7 +161,7 @@ export class CoverItem extends CoverEffect {
     for ( const key of actor.items.keys() ) {
       if ( !itemIds.has(key) ) continue;
       if ( itemIds.get(key) !== this ) continue;
-      log(`CoverItem#removeFromActorLocally|${actor.name} removing ${key} ${this.config.name}`);
+      log(`CoverItem#removeFromActorLocally|${actor.name} removing ${key} ${this.name}`);
       actor.items.delete(key);
       removedIds.push(key);
     }
@@ -111,16 +170,7 @@ export class CoverItem extends CoverEffect {
 
   // ----- NOTE: Static methods ----- //
 
-  /**
-   * Find the storage document for given coverEffectData or id.
-   * Must be handled by child class.
-   * @param {object} coverEffectData
-   * @returns {Document|undefined} Undefined if no document found.
-   */
-  static findStorageDocument(coverEffectData) {
-    const id = this.idFromData(coverEffectData);
-    return game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === id);
-  }
+  // ----- NOTE: Static methods specific to cover effects ----- //
 
   /**
    * Retrieve all Cover Effects on the actor.
@@ -134,54 +184,41 @@ export class CoverItem extends CoverEffect {
       .map(e => this._documentIds.get(e.id))
       .filter(e => Boolean(e))
   }
-
-  /**
-   * Retrieve default cover effects data for different systems.
-   * @returns {object}
-   */
-  static _defaultCoverTypeData() {
-    switch ( this.systemId ) {
-      case "sfrpg": return sfrpgCoverEffects; break;
-      default: console.error("No default cover effects for generic systems have been implemented.");
-    }
-  }
-
-  /**
-   * Create default effect objects and ensure their storage is created.
-   * Typically used on game load.
-   * If a compendium id is provided, items will be loaded from the compendium if not present.
-   * @param {boolean} [override=false]    Use existing cover effects unless enabled
-   */
-  static async _constructDefaultCoverObjects(override = false) {
-    const data = this._defaultCoverTypeData();
-    this.coverObjectsMap.clear();
-    const promises = [];
-    const pack = game.packs.get(`${MODULE_ID}.${MODULE_ID}_items_${game.system.id}`);
-    for ( const d of Object.values(data) ) {
-      // See if we need to pull the default item from the compendium.
-      if ( pack && d.compendiumId && !game.items.has(d.compendiumId) && !this.findStorageDocument(d) ) {
-        const doc = await pack.getDocument(d.compendiumId);
-        if ( doc ) game.items.set(d.compendiumId, doc);
-      }
-      const ce = this.create(d);
-      promises.push(ce.initialize(d, override));
-    }
-    return Promise.allSettled(promises);
-  }
-
 }
 
-export class CoverItemSFRPG extends CoverItem {
+
+/**
+ * Specialized handling for cover effects (cover items) in pf2e.
+ */
+export class CoverItemPF2E extends CoverItem {
 
   /**
-   * Create the actual Item storage document.
-   * @param {object} coverEffectData     Data to store
-   * @returns {Item}
+   * Localize document data. Meant for subclasses that are aware of the document structure.
+   * @param {object} coverEffectData
+   * @returns {object} coverEffectData
    */
-  async _createStorageDocument(coverEffectData) {
-    // Add necessary settings for the active effect.
-    coverEffectData.type = "effect";
-    return super._createStorageDocument(coverEffectData);
+  static _localizeDocumentData(coverEffectData) {
+    return coverEffectData;
+  }
+}
+
+/**
+ * Specialized handling for cover effects (cover items) in sfrpg.
+ */
+export class CoverItemSFRPG extends CoverItem {
+
+   /** @type {object|undefined} */
+  get defaultCoverObjectData() {
+    const data = super.defaultCoverObjectData;
+    data.type = "effect";
+    return data;
+  }
+
+  /** @type {object} */
+  get newCoverObjectData() {
+    const data = super.newCoverObjectData;
+    data.type = "effect";
+    return data;
   }
 
   /**

@@ -1,13 +1,13 @@
 {
   "name": "Cover",
   "type": "effect",
-  "img": "modules/tokenvisibility/assets/shield-halved-gray.svg",
+  "img": "modules/tokencover/assets/shield_half_gray.svg",
   "system": {
     "description": {
       "chat": "",
       "gmnotes": "",
       "short": "",
-      "value": "<p>&gt;@UUID[Compendium.sfrpg.rules.0yJjfyvWg5pDLcVR]{Conditions}</p><hr><p>You have cover versus a specific token. </p><p>You have a +4 bonus to AC and +2 bonus to Reflex saves against that token.</p><p>Cover does not necessarily block precise senses, but it does make it more difficult to hit a target. To determine whether your target has cover from your attack, choose a corner of your square. If any line from this corner to any corner of the target’s square passes through a square or border that blocks line of effect or provides cover, or through a square occupied by a creature, the target has cover. Cover grants you a +4 bonus to AC and a +2 bonus to Reflex saves against attacks that originate from a point on the other side of the cover from you. Note that spread effects can extend around corners and negate these bonuses.</p>",
+      "value": "<p>&gt;@UUID[Compendium.sfrpg.rules.0yJjfyvWg5pDLcVR]{Conditions}</p><hr /><p>You have cover versus a specific token. </p><p>You have a +4 bonus to AC and +2 bonus to Reflex saves against that token.</p><p>Cover does not necessarily block precise senses, but it does make it more difficult to hit a target. To determine whether your target has cover from your attack, choose a corner of your square. If any line from this corner to any corner of the target’s square passes through a square or border that blocks line of effect or provides cover, or through a square occupied by a creature, the target has cover. Cover grants you a +4 bonus to AC and a +2 bonus to Reflex saves against attacks that originate from a point on the other side of the cover from you. Note that spread effects can extend around corners and negate these bonuses.</p>",
       "unidentified": ""
     },
     "source": "CRB.276",
@@ -82,14 +82,20 @@
     "core": {},
     "tokenvisibility": {
       "cover": 2
+    },
+    "tokencover": {
+      "coverEffectId": "tokencover.sfrpg.half",
+      "coverTypes": [
+        "tokencover.sfrpg.cover"
+      ]
     }
   },
   "_stats": {
     "systemId": "sfrpg",
     "systemVersion": "0.25.2",
-    "coreVersion": "11.308",
+    "coreVersion": "11.315",
     "createdTime": 1693930613750,
-    "modifiedTime": 1693931937891,
+    "modifiedTime": 1713588789675,
     "lastModifiedBy": "JEcpXSsAPXNXDYnc"
   },
   "_id": "bjq4ho7JXhgUDvG6",

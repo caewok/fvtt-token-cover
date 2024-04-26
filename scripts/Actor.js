@@ -4,7 +4,6 @@ game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
-import { CoverType } from "./CoverType.js";
 import { MODULE_ID, FLAGS } from "./const.js";
 import { log } from "./util.js";
 

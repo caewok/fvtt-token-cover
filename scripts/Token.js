@@ -10,8 +10,6 @@ import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const
 import { CoverCalculator } from "./CoverCalculator.js";
 import { SETTINGS, Settings } from "./settings.js";
 import { isFirstGM, keyForValue, log } from "./util.js";
-import { CoverType } from "./CoverType.js";
-import { CoverEffect } from "./CoverEffect.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
@@ -326,7 +324,7 @@ function _coverAttackers(objectType = "COVER_TYPES") {
  * @type {Set<CoverType>}
  */
 function _coverTypes() {
-  return CoverType.minimumCoverFromAttackers(this, this._coverAttackers("COVER_TYPES"));
+  return CONFIG[MODULE_ID].CoverType.minimumCoverFromAttackers(this, this._coverAttackers("COVER_TYPES"));
 }
 
 /**
@@ -335,7 +333,7 @@ function _coverTypes() {
  * @type {Set<CoverEffect>}
  */
 function _coverEffects() {
-  const coverTypes = CoverType.minimumCoverFromAttackers(this, this._coverAttackers("COVER_EFFECTS"));
+  const coverTypes = CONFIG[MODULE_ID].CoverType.minimumCoverFromAttackers(this, this._coverAttackers("COVER_EFFECTS"));
   return CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values().filter(ce => coverTypes.intersects(new Set(ce.coverTypes)));
 }
 
@@ -348,7 +346,7 @@ function refreshCoverIcons() {
   const currCoverTypes = (targetsOnly && !this.isTargeted) ? NULL_SET : this._coverTypes();
 
   // Trigger token icons update if there was a change.
-  const changed = CoverType.replaceCoverTypes(this, currCoverTypes);
+  const changed = CONFIG[MODULE_ID].CoverType.replaceCoverTypes(this, currCoverTypes);
   if ( changed ) this.renderFlags.set({ redrawEffects: true });
 }
 

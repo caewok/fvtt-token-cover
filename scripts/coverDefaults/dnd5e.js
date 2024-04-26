@@ -11,7 +11,10 @@ const SYSTEM_ID = "dnd5e"
 
 
 // ----- NOTE: Cover types ----- //
-export const coverTypes = {};
+const coverTypes = {};
+const coverEffects = {};
+export const defaultCoverTypes = new Map();
+export const defaultCoverEffects = new Map();
 
 // Optional rule that tokens provide at most half-cover.
 coverTypes.halfToken = {
@@ -66,7 +69,6 @@ coverTypes.total = {
 };
 
 // ----- NOTE: Cover effects ----- //
-export const coverEffects = {};
 
 // TODO: use system.attributes.ac.cover and modify the DND5e calculation somewhere?
 
@@ -129,16 +131,15 @@ coverEffects.total = {
       key: "system.abilities.dex.bonuses.save",
       mode: 2,
       value: "+99"
+    },
+
+    {
+      key: "flags.midi-qol.grants.attack.fail.all",
+      mode: 0,
+      value: "1"
     }
   ]
 };
 
-export const coverEffects_midiqol = duplicate(coverEffects);
-coverEffects_midiqol.total.changes = [
-  {
-    key: "flags.midi-qol.grants.attack.fail.all",
-    mode: 0,
-    value: "1"
-  }
-];
-
+Object.values(coverTypes).forEach(obj => defaultCoverTypes.set(obj.id, obj));
+Object.values(coverEffects).forEach(obj => defaultCoverEffects.set(obj.id, obj));

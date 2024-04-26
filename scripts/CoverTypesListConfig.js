@@ -11,7 +11,6 @@ ui
 "use strict";
 
 import { MODULE_ID, COVER } from "./const.js";
-import { CoverType } from "./CoverType.js";
 import { log } from "./util.js";
 
 /**
@@ -45,7 +44,7 @@ export class CoverTypesListConfig extends FormApplication  {
     COVER.TYPES.forEach(ct => this.allCoverTypes.push(ct));
     this.#sortCoverTypes();
     return foundry.utils.mergeObject(data, {
-      allCoverTypes: this.allCoverTypes.map(ct => { return { ...ct.config }; })
+      allCoverTypes: this.allCoverTypes.map(ct => { return { ...ct.document }; })
     });
   }
 
@@ -55,11 +54,11 @@ export class CoverTypesListConfig extends FormApplication  {
    */
   #sortCoverTypes(coverTypes) {
     this.allCoverTypes.sort((a, b) => {
-      switch ( ( (a.config.priority == null) * 2) + (b.config.priority == null) ) {
+      switch ( ( (!a.document.priority) * 2) + (!b.document.priority) ) {
         case 0: return a.priority - b.priority;
         case 1: return 1; // b.priority is null
         case 2: return -1; // a.priority is null
-        case 3: return a.config.name.toLowerCase() < b.config.name.toLowerCase ? -1 : 1;
+        case 3: return a.name.toLowerCase() < b.name.toLowerCase ? -1 : 1;
       }
     });
   }
@@ -80,12 +79,13 @@ export class CoverTypesListConfig extends FormApplication  {
    */
   async _updateObject(_event, formData) {
     const expandedFormData = expandObject(formData);
+    const promises = [];
     for ( const [idx, coverTypeData] of Object.entries(expandedFormData.allCoverTypes) ) {
       const storedCoverType = this.allCoverTypes[idx];
       if ( !storedCoverType ) continue;
-      storedCoverType.update(coverTypeData);
+      promises.add(storedCoverType.update(coverTypeData));
     }
-    await CoverType.save();
+    return Promise.allSettled(promises);
   }
 
   /**
@@ -106,6 +106,7 @@ export class CoverTypesListConfig extends FormApplication  {
     html.find("button.tm-remove-coverType").click(this._onRemoveCoverType.bind(this));
     html.find("button.tm-import-coverType").click(this._onImportCoverType.bind(this));
     html.find("button.tm-export-coverType").click(this._onExportAllCoverTypes.bind(this));
+    html.find("button.tm-reset-defaults").click(this._onResetToDefaults.bind(this));
   }
 
   /**
@@ -115,7 +116,7 @@ export class CoverTypesListConfig extends FormApplication  {
     event.preventDefault();
     log("AddCoverType clicked!");
     await this._onSubmit(event, { preventClose: true });
-    CoverType.create();
+    await CONFIG[MODULE_ID].CoverType.create();
     this.render();
   }
 
@@ -126,27 +127,35 @@ export class CoverTypesListConfig extends FormApplication  {
     event.preventDefault();
     log("RemoveCoverType clicked!");
     const idx = this._indexForEvent(event);
-    const id = this.allCoverTypes[idx]?.id;
-    if ( !id ) return;
+    const ct = this.allCoverTypes[idx];
+    if ( !ct ) return;
 
     return Dialog.confirm({
       title: "Remove Cover Type",
       content:
-        "<h4>Are You Sure?</h4><p>This will remove the cover type from all scenes.",
+        `<h4>Are You Sure?</h4><p>This will remove the cover type ${ct.name} from all scenes.`,
       yes: async () => {
         log("CoverTypesListConfig|_onRemoveCoverType yes");
-        COVER.TYPES.delete(id);
-        CoverType.coverTypesUpdated();
+        await ct.delete();
         this.render();
       }
     });
+  }
+
+  /**
+   * User clicked button to reset to defaults.
+   */
+  async _onResetToDefaults(_event) {
+    log("ResetToDefaults clicked!");
+    await CONFIG[MODULE_ID].CoverType.resetToDefaultsDialog();
+    this.render();
   }
 
   async _onImportCoverType(event) {
     event.stopPropagation();
     log("ImportCoverType clicked!");
     await this._onSubmit(event, { preventClose: true });
-    await CoverType.importFromJSONDialog();
+    await CONFIG[MODULE_ID].CoverType.importAllFromJSONDialog();
     this.render();
   }
 
@@ -154,7 +163,7 @@ export class CoverTypesListConfig extends FormApplication  {
     event.stopPropagation();
     log("ExportAllCoverTypes clicked!");
     await this._onSubmit(event, { preventClose: true });
-    CoverType.saveToJSON();
+    CONFIG[MODULE_ID].CoverType.saveAllToJSON();
   }
 
   /**

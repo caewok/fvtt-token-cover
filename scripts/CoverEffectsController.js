@@ -11,13 +11,8 @@ SearchFilter
 import { Settings } from "./settings.js";
 import { MODULE_ID, FLAGS, COVER } from "./const.js";
 import { log } from "./util.js";
-import { coverTypes as dnd5eCoverTypes } from "./coverDefaults/dnd5e.js";
-import { coverTypes as pf2eCoverTypes } from "./coverDefaults/pf2e.js";
-import { coverTypes as sfrpgCoverTypes } from "./coverDefaults/sfrpg.js";
-import { coverTypes as genericCoverTypes } from "./coverDefaults/generic.js";
 import { CoverEffectConfig } from "./CoverEffectConfig.js";
 import { CoverTypesListConfig } from "./CoverTypesListConfig.js";
-import { CoverEffect } from "./CoverEffect.js";
 
 
 // Much of this is from
@@ -47,9 +42,19 @@ export class CoverEffectsController {
    * Handles clicks on the list cover types button.
    * Displays a mini-configuration that lists all cover types, allows for quick editing.
    */
-  async onListCoverTypes() {
+  async onListCoverTypes(_event) {
     log("CoverEffectsController|onListCoverTypes");
     new CoverTypesListConfig().render(true);
+  }
+
+  /**
+   * Handles clicks on the reset cover types button.
+   * Displays a confirmation and then resets.
+   */
+  async onResetToDefaults(_event) {
+    log("CoverEffectsController|onResetToDefaults");
+    await CONFIG[MODULE_ID].CoverEffect.resetToDefaults();
+    this._viewMvc.render();
   }
 
   /**
@@ -58,8 +63,7 @@ export class CoverEffectsController {
    */
   async onCreateCoverEffect(_event) {
     log("CoverEffectsController|onCreateCoverEffect");
-    const ce = CONFIG[MODULE_ID].CoverEffect.create();
-    await ce.initialize();
+    const ce = await CONFIG[MODULE_ID].CoverEffect.create();
     this._viewMvc.render();
     ce.renderConfig();
   }

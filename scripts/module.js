@@ -17,9 +17,9 @@ import { AsyncQueue } from "./AsyncQueue.js";
 // Cover objects
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
 import { CoverEffect } from "./CoverEffect.js";
-import { CoverType } from "./CoverType.js";
+import { CoverType, CoverTypePF2E } from "./CoverType.js";
 import { CoverActiveEffect } from "./CoverActiveEffect.js";
-import { CoverItem, CoverItemSFRPG } from "./CoverItem.js";
+import { CoverItem, CoverItemPF2E, CoverItemSFRPG} from "./CoverItem.js";
 
 // For API
 import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
@@ -79,6 +79,11 @@ Hooks.once("init", function() {
     renderTextureResolution: 1,
 
     /**
+     * What cover type class to use for this system.
+     */
+    CoverType,
+
+    /**
      * What cover effect class to use for this system.
      */
     CoverEffect
@@ -111,6 +116,7 @@ Hooks.once("init", function() {
     CoverEffect,
     CoverItem,
     CoverItemSFRPG,
+    CoverItemPF2E,
     setCoverIgnoreHandler,
     Settings,
 
@@ -124,9 +130,17 @@ Hooks.once("init", function() {
   };
 
   switch ( game.system.id ) {
-    case "sfrpg": CONFIG[MODULE_ID].CoverEffect = CoverItemSFRPG; break;
-    case "pf2e": CONFIG[MODULE_ID].CoverEffect = CoverItem; break;
-    default: CONFIG[MODULE_ID].CoverEffect = CoverActiveEffect; break;
+    case "sfrpg":
+      CONFIG[MODULE_ID].CoverEffect = CoverItemSFRPG;
+      break;
+
+    case "pf2e":
+      CONFIG[MODULE_ID].CoverType = CoverTypePF2E;
+      CONFIG[MODULE_ID].CoverEffect = CoverItemPF2E;
+      break;
+
+    default:
+      CONFIG[MODULE_ID].CoverEffect = CoverActiveEffect;
   }
 
   if ( game.system.id === "dnd5e" ) {
