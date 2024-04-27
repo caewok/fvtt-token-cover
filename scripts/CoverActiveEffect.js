@@ -1,10 +1,13 @@
 /* globals
-
+CONFIG,
+game
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS, COVER } from "./const.js";
+import { MODULE_ID, FLAGS } from "./const.js";
 import { CoverEffect } from "./CoverEffect.js";
+import { log } from "./util.js";
 
 /**
  * Cover Effect for systems like dnd5e that use Active Effect to signify effects.
@@ -74,7 +77,7 @@ export class CoverActiveEffect extends CoverEffect {
   /**
    * Find the storage document for the given cover effect id, asynchronously.
    * Async allows us to pull from compendiums or otherwise construct a default.
-   * @param {}
+   * @returns {Promise<Document>|undefined} Undefined if no document found.
    */
   async _loadStorageDocument() {
     if ( !this.constructor.coverEffectItem ) await this.constructor._initializeCoverEffectsItem();
@@ -189,5 +192,52 @@ export class CoverActiveEffect extends CoverEffect {
         flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECTS_ITEM]: true} }
       });
     }
+  }
+}
+
+/**
+ * Uses DFred's CE exclusively instead of AE stored on the token cover item.
+ */
+export class CoverActiveEffectDFreds extends CoverActiveEffect {
+
+  /**
+   * Find the storage document for given cover effect id.
+   * If id corresponds to DFred's effect, use that.
+   * @returns {ActiveEffect|undefined} Undefined if no document found.
+   */
+  _findStorageDocument() {
+    const defaultData = CONFIG[MODULE_ID].CoverEffect.defaultCoverObjectData.get(this.id);
+    if ( !defaultData ) return super._findStorageDocument();
+
+    const dFredsEffect = game.dfreds.effectInterface.findCustomEffectByName(defaultData.dFredsName);
+    if ( !dFredsEffect ) return undefined;
+
+    // Don't use unless it has the correct flags.
+    if ( dFredsEffect.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) ) return dFredsEffect;
+    return undefined;
+  }
+
+  /**
+   * Find the storage document for given cover effect id.
+   * If id corresponds to DFred's effect, use that after adding the necessary flags.
+   * @returns {ActiveEffect|undefined} Undefined if no document found
+   */
+  async _loadStorageDocument() {
+    const defaultData = CONFIG[MODULE_ID].CoverEffect.defaultCoverObjectData.get(this.id);
+    if ( !defaultData ) return super._loadStorageDocument();
+
+    let dFredsEffect = game.dfreds.effectInterface.findCustomEffectByName(defaultData.dFredsName);
+    if ( !dFredsEffect ) {
+      const ae = game.dfreds.effectInterface.findEffectByName(defaultData.dFredsName);
+      if ( !ae ) return super._loadStorageDocument();
+      dFredsEffect = await game.dfreds.effectInterface.createNewCustomEffectsWith({ activeEffects: [ae] })
+      dFredsEffect = dFredsEffect[0];
+    }
+    if ( !dFredsEffect ) return super._loadStorageDocument();
+
+    // Don't use unless it has the correct flags.
+    await dFredsEffect.setFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID, this.id);
+    await dFredsEffect.setFlag(MODULE_ID, FLAGS.COVER_TYPES, defaultData.documentData.flags[MODULE_ID][FLAGS.COVER_TYPES]);
+    return dFredsEffect;
   }
 }

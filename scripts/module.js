@@ -18,7 +18,7 @@ import { AsyncQueue } from "./AsyncQueue.js";
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
 import { CoverEffect } from "./CoverEffect.js";
 import { CoverType, CoverTypePF2E } from "./CoverType.js";
-import { CoverActiveEffect } from "./CoverActiveEffect.js";
+import { CoverActiveEffect, CoverActiveEffectDFreds } from "./CoverActiveEffect.js";
 import { CoverItem, CoverItemPF2E, CoverItemSFRPG} from "./CoverItem.js";
 
 // For API
@@ -145,6 +145,7 @@ Hooks.once("init", function() {
 
   if ( game.system.id === "dnd5e" ) {
     setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
+    if ( game.modules.get("dfreds-convenient-effects")?.active ) CONFIG[MODULE_ID].CoverEffect = CoverActiveEffectDFreds;
   }
 });
 

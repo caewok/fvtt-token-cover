@@ -1,5 +1,6 @@
 /* globals
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { MODULE_ID, ICONS } from "../const.js";
@@ -87,25 +88,16 @@ Now you can use it like a regular item and store it in a compendium.
 coverEffects.lesser = {
   id: `${MODULE_ID}.${SYSTEM_ID}.lesser`,
   compendiumId: "3wuJNcYqrY1IEYm8",
-  coverTypes: [
-    coverTypes.lesser.id
-  ]
 };
 
 coverEffects.standard = {
   id: `${MODULE_ID}.${SYSTEM_ID}.standard`,
   compendiumId: "AhFNqnvBZ9K46LUK",
-  coverTypes: [
-    coverTypes.standard.id
-  ]
 };
 
 coverEffects.greater = {
   id: `${MODULE_ID}.${SYSTEM_ID}.greater`,
   compendiumId: "hPLXDSGyHzlupBS2",
-  coverTypes: [
-    coverTypes.greater.id
-  ]
 };
 
 Object.values(coverTypes).forEach(obj => defaultCoverTypes.set(obj.id, obj));

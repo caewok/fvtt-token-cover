@@ -1,7 +1,9 @@
 /* globals
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
-import { MODULE_ID, ICONS } from "../const.js";
+
+import { MODULE_ID, ICONS, FLAGS } from "../const.js";
 
 const SYSTEM_ID = "dnd5e"
 
@@ -70,75 +72,103 @@ coverTypes.total = {
 
 // ----- NOTE: Cover effects ----- //
 
-// TODO: use system.attributes.ac.cover and modify the DND5e calculation somewhere?
-
+// documentData property is what the active effect or item uses.
+// Everything else is for the cover object class only, which should have name, id, and icon for display.
+//
 coverEffects.half = {
   name: "DND5E.CoverHalf",
   id: `${MODULE_ID}.${SYSTEM_ID}.half`,
+  dFredsName: "Cover (Half)",
   icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
-  coverTypes: [
-    coverTypes.half.id,
-    coverTypes.halfToken.id
-  ],
-  changes: [
-    {
-      key: "system.attributes.ac.cover",
-      mode: 2,
-      value: "+2"
+  documentData: {
+    name: "DND5E.CoverHalf",
+    icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.half`,
+        [FLAGS.COVER_TYPES]: [coverTypes.half.id, coverTypes.halfToken.id]
+      }
     },
+    changes: [
+      {
+        key: "system.attributes.ac.cover",
+        mode: 2,
+        value: "+2"
+      },
 
-    {
-      key: "system.abilities.dex.bonuses.save",
-      mode: 2,
-      value: "+2"
-    }
-  ]
+      {
+        key: "system.abilities.dex.bonuses.save",
+        mode: 2,
+        value: "+2"
+      }
+    ]
+  }
 };
 
 coverEffects.threeQuarters = {
   name: "DND5E.CoverThreeQuarters",
   id: `${MODULE_ID}.${SYSTEM_ID}.three_quarters`,
+  dFredsName: "Cover (Three-Quarters)",
   icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
-  coverTypes: [ coverTypes.threeQuarters.id ],
-  changes: [
-    {
-      key: "system.attributes.ac.cover",
-      mode: 2,
-      value: "+5"
+  documentData: {
+    name: "DND5E.CoverThreeQuarters",
+    icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.three_quarters`,
+        [FLAGS.COVER_TYPES]: [coverTypes.threeQuarters.id]
+      }
     },
+    changes: [
+      {
+        key: "system.attributes.ac.cover",
+        mode: 2,
+        value: "+5"
+      },
 
-    {
-      key: "system.abilities.dex.bonuses.save",
-      mode: 2,
-      value: "+5"
-    }
-  ]
+      {
+        key: "system.abilities.dex.bonuses.save",
+        mode: 2,
+        value: "+5"
+      }
+    ]
+  }
 };
 
 coverEffects.total = {
   name: "DND5E.CoverTotal",
   id: `${MODULE_ID}.${SYSTEM_ID}.total`,
+  dFredsName: "Cover (Total)",
   icon: ICONS.SHIELD_THIN_GRAY.FULL,
-  coverTypes: [ coverTypes.total.id ],
-  changes: [
-    {
-      key: "system.attributes.ac.cover",
-      mode: 2,
-      value: "+99"
+  documentData: {
+    name: "DND5E.CoverTotal",
+    icon: ICONS.SHIELD_THIN_GRAY.FULL,
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.total`,
+        [FLAGS.COVER_TYPES]: [coverTypes.total.id]
+      }
     },
+    changes: [
+      {
+        key: "system.attributes.ac.cover",
+        mode: 2,
+        value: "+99"
+      },
 
-    {
-      key: "system.abilities.dex.bonuses.save",
-      mode: 2,
-      value: "+99"
-    },
+      {
+        key: "system.abilities.dex.bonuses.save",
+        mode: 2,
+        value: "+99"
+      },
 
-    {
-      key: "flags.midi-qol.grants.attack.fail.all",
-      mode: 0,
-      value: "1"
-    }
-  ]
+      {
+        key: "flags.midi-qol.grants.attack.fail.all",
+        mode: 0,
+        value: "1"
+      }
+    ]
+  }
 };
 
 Object.values(coverTypes).forEach(obj => defaultCoverTypes.set(obj.id, obj));
