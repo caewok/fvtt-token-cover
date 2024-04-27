@@ -145,8 +145,8 @@ Hooks.once("init", function() {
 
   if ( game.system.id === "dnd5e" ) {
     setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
-    if ( game.modules.get("dfreds-convenient-effects")?.active ) CONFIG[MODULE_ID].CoverEffect = CoverActiveEffectDFreds;
   }
+  if ( game.modules.get("dfreds-convenient-effects")?.active ) CONFIG[MODULE_ID].CoverEffect = CoverActiveEffectDFreds;
 });
 
 Hooks.once("setup", function() {
