@@ -1,5 +1,10 @@
 /* globals
+Color,
+CONFIG,
+foundry,
+game
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { defaultCoverTypes as dnd5eCoverTypes } from "./coverDefaults/dnd5e.js";
@@ -118,7 +123,7 @@ export class CoverType extends AbstractCoverObject {
    * Test if this cover type applies to a target token given an attacking token.
    * Use the static coverTypesForToken for more efficient tests for all cover types at once.
    */
-  coverTypeApplies(attackingToken, targetToken, opts = {}) {
+  coverTypeApplies(attackingToken, targetToken, _opts = {}) {
     return this.percentCover(attackingToken, targetToken) >= this.document.percentThreshold;
   }
 
@@ -259,9 +264,9 @@ export class CoverType extends AbstractCoverObject {
    */
   static get defaultCoverObjectData() {
     switch ( game.system.id ) {
-      case "dnd5e": return dnd5eCoverTypes; break;
-      case "pf2e": return pf2eCoverTypes; break;
-      case "sfrpg": return sfrpgCoverTypes; break;
+      case "dnd5e": return dnd5eCoverTypes;
+      case "pf2e": return pf2eCoverTypes;
+      case "sfrpg": return sfrpgCoverTypes;
       default: return genericCoverTypes;
     }
   }
@@ -347,7 +352,7 @@ export class CoverType extends AbstractCoverObject {
       const otherTypes = new Set();
       coverTypes.forEach(ct => {
         if ( !ct.priority ) otherTypes.add(ct);
-        else if ( typeof minCoverType === undefined || minCoverType.priority > ct.priority ) minCoverType = ct;
+        else if ( (typeof minCoverType === "undefined") || (minCoverType.priority > ct.priority) ) minCoverType = ct;
       })
 
       if ( !otherCoverTypes ) otherCoverTypes = otherTypes;
@@ -423,14 +428,14 @@ export class CoverTypePF2E extends CoverType {
     const types = super.coverTypesForToken(attackingToken, targetToken, opts);
     const standardCover = this.coverTypesObject.get("coverEffects.standard.id");
 
-    if ( standardCover && types.some(type.id === pf2eCoverTypes.lesser.id) ) {
+    if ( standardCover && types.some(type => type.id === pf2eCoverTypes.lesser.id) ) {
       const targetSize = ACTOR_SIZES[targetToken.system.traits.size.value] ?? ACTOR_SIZES.med;
       const attackerSize = ACTOR_SIZES[attackingToken.system.traits.size.value] ?? ACTOR_SIZES.med;
       const upgradeSize = Math.max(targetSize, attackerSize) + 1;
       for ( const token of attackingToken.coverCalculator.calc.blockingObjects.tokens ) {
         const blockingTokenSize = ACTOR_SIZES[token.system.traits.size.value] ?? ACTOR_SIZES.med;
         if ( blockingTokenSize > upgradeSize ) {
-          findSpliceAll(types, type.id === pf2eCoverTypes.lesser.id);
+          findSpliceAll(types, type => type.id === pf2eCoverTypes.lesser.id);
           types.push(standardCover);
           break;
         }

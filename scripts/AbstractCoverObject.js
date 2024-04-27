@@ -1,5 +1,14 @@
 /* globals
+foundry,
+Dialog,
+duplicate,
+game,
+readTextFromFile,
+renderTemplate,
+saveDataToFile,
+ui
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { Settings } from "./settings.js";
@@ -68,7 +77,7 @@ export class AbstractCoverObject {
   get defaultCoverObjectData() {
     const data = this.constructor.defaultCoverObjectData.get(this.id);
     if ( !data ) return undefined;
-    return { ...data };
+    return duplicate(data); // So the underlying is not modified accidentally.
   }
 
   // ----- NOTE: Methods ----- //
@@ -137,16 +146,17 @@ export class AbstractCoverObject {
    * Delete this cover object from the objects map and optionally remove stored data.
    * @param {boolean} {deleteStorageDocument = false}    If true, save data is deleted. Async if true.
    */
-  async delete(deleteStorageDocument = false) {
+  async delete() {
     this.constructor.coverObjectsMap.delete(this.id);
-    if ( deleteStorageDocument ) await this._deleteStorageDocument();
+    if ( this.#document ) await this._deleteStorageDocument();
+    this.#document = undefined;
     return this.constructor.removeStoredCoverObjectId(this.id); // Async
   }
 
   /**
    * Delete the underlying stored document.
    */
-  async _deleteStorageDocument() { this.#document = undefined; }
+  async _deleteStorageDocument() {  }
 
   /**
    * Save a json file for this cover type.
@@ -219,7 +229,7 @@ export class AbstractCoverObject {
   // ----- NOTE: Static getter, setters, related properties ----- //
 
   /** @type {string} */
-  static get settingsKey() { console.error("Must be set by child class"); }
+  static get settingsKey() { console.error("Must be set by child class"); return undefined; }
 
   /** @type {string[]} */
   static get storedCoverObjectIds() {
@@ -352,7 +362,7 @@ export class AbstractCoverObject {
         reset: {
           icon: '<i class="fas fa-rotate-left"></i>',
           label: "Reset",
-          callback: html => {
+          callback: _html => {
             return this.resetToDefaults();
           }
         },

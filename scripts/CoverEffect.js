@@ -1,12 +1,19 @@
 /* globals
+Application,
+CONFIG,
+foundry,
+game,
+ItemDirectory,
+Token
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS, COVER } from "./const.js";
+import { MODULE_ID, FLAGS } from "./const.js";
 import { Settings } from "./settings.js";
 import { AbstractCoverObject } from "./AbstractCoverObject.js";
-import { CoverEffectConfig } from "./CoverEffectConfig.js";
 import { AsyncQueue } from "./AsyncQueue.js";
+import { CoverType } from "./CoverType.js";
 import { log } from "./util.js";
 import { defaultCoverEffects as dnd5eCoverEffects } from "./coverDefaults/dnd5e.js";
 import { defaultCoverEffects as pf2eCoverEffects } from "./coverDefaults/pf2e.js";
@@ -87,13 +94,18 @@ export class CoverEffect extends AbstractCoverObject {
 
   /** @type {object|undefined} */
   get defaultCoverObjectData() {
-    const data = super.defaultCoverObjectData;
+    const data = super.defaultCoverObjectData?.data;
     if ( !data ) return undefined;
+
+    // Confirm that necessary flags are present.
     data.flags ??= {};
     data.flags[MODULE_ID] ??= {};
     data.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= this.id;
     data.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [];
+
+    // Confirm there is no id property, which can conflict with active effect id getter.
     delete data.id;
+
     return data;
   }
 
@@ -160,7 +172,7 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {Actor} actor
    * @returns {boolean} True if local effect is on the actor.
    */
-  _localEffectOnActor(actor) {
+  _localEffectOnActor(_actor) {
     console.error("CoverEffect#_localEffectOnActor must be handled by child class.");
   }
 
@@ -186,7 +198,7 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {Token|Actor} actor
    * @returns {boolean} Returns true if added.
    */
-  _addToActorLocally(actor) {
+  _addToActorLocally(_actor) {
     console.error("CoverEffect#_addToActorLocally must be handled by child class.");
   }
 
@@ -214,7 +226,7 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {Actor} actor
    * @returns {boolean} Returns true if removed.
    */
-  _removeFromActorLocally(actor) {
+  _removeFromActorLocally(_actor) {
     console.error("CoverEffect#_addToActorLocally must be handled by child class.");
   }
 
@@ -240,9 +252,9 @@ export class CoverEffect extends AbstractCoverObject {
    */
   static get defaultCoverObjectData() {
     switch ( game.system.id ) {
-      case "dnd5e": return dnd5eCoverEffects; break;
-      case "pf2e": return pf2eCoverEffects; break;
-      case "sfrpg": return sfrpgCoverEffects; break;
+      case "dnd5e": return dnd5eCoverEffects;
+      case "pf2e": return pf2eCoverEffects;
+      case "sfrpg": return sfrpgCoverEffects;
       default: return genericCoverEffects;
     }
   }

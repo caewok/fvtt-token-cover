@@ -34,6 +34,7 @@ import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 
 // Cover Effect Item
 import { PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./CoverEffect.js";
+import { PATCHES as PATCHES_CoverActiveEffect } from "./CoverActiveEffect.js";
 
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
@@ -52,7 +53,9 @@ const PATCHES = {
   VisionSource: PATCHES_VisionSource,
   Wall: PATCHES_Wall,
 
-  Midiqol: PATCHES_Midiqol
+  Midiqol: PATCHES_Midiqol,
+
+  CoverActiveEffect: PATCHES_CoverActiveEffect
 };
 
 export const PATCHER = new Patcher();
@@ -78,6 +81,8 @@ export function initializePatching() {
   if ( game.system.id === "sfrpg" ) PATCHER.registerGroup("sfrpg");
 
   if ( game.system.id !== "pf2e" ) PATCHER.registerGroup("NO_PF2E");
+
+  if ( game.modules.get("dfreds-convenient-effects")?.active ) PATCHER.registerGroup("DFREDS");
 }
 
 export function registerArea3d() {

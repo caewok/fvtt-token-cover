@@ -1,5 +1,6 @@
 /* globals
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { MODULE_ID, ICONS } from "../const.js";

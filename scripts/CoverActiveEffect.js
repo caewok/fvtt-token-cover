@@ -1,10 +1,16 @@
 /* globals
-
+CONFIG,
+game
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS, COVER } from "./const.js";
+import { MODULE_ID, FLAGS } from "./const.js";
 import { CoverEffect } from "./CoverEffect.js";
+import { log } from "./util.js";
+
+export const PATCHES = {};
+PATCHES.DFREDS = {};
 
 /**
  * Cover Effect for systems like dnd5e that use Active Effect to signify effects.
@@ -74,7 +80,7 @@ export class CoverActiveEffect extends CoverEffect {
   /**
    * Find the storage document for the given cover effect id, asynchronously.
    * Async allows us to pull from compendiums or otherwise construct a default.
-   * @param {}
+   * @returns {Promise<Document>|undefined} Undefined if no document found.
    */
   async _loadStorageDocument() {
     if ( !this.constructor.coverEffectItem ) await this.constructor._initializeCoverEffectsItem();
@@ -102,9 +108,7 @@ export class CoverActiveEffect extends CoverEffect {
    * @return {boolean} Must return true if document is deleted.
    */
   async _deleteStorageDocument() {
-    const out = await this.constructor.coverEffectItem.deleteEmbeddedDocuments("ActiveEffect", [this.document.id]);
-    super._deleteStorageDocument(); // Must come after so document id is present.
-    return out;
+    return await this.constructor.coverEffectItem.deleteEmbeddedDocuments("ActiveEffect", [this.document.id]);
   }
 
   /**
@@ -191,3 +195,77 @@ export class CoverActiveEffect extends CoverEffect {
     }
   }
 }
+
+/**
+ * Uses DFred's CE exclusively instead of AE stored on the token cover item.
+ */
+export class CoverActiveEffectDFreds extends CoverActiveEffect {
+
+  /**
+   * Find the storage document for given cover effect id.
+   * If id corresponds to DFred's effect, use that.
+   * @returns {ActiveEffect|undefined} Undefined if no document found.
+   */
+  _findStorageDocument() {
+    const defaultData = CONFIG[MODULE_ID].CoverEffect.defaultCoverObjectData.get(this.id);
+    if ( !defaultData ) return super._findStorageDocument();
+
+    const dFredsEffect = game.dfreds.effectInterface.findCustomEffectByName(defaultData.dFredsName);
+    if ( !dFredsEffect ) return undefined;
+
+    // Don't use unless it has the correct flags.
+    if ( dFredsEffect.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) ) return dFredsEffect;
+    return undefined;
+  }
+
+  /**
+   * Find the storage document for given cover effect id.
+   * If id corresponds to DFred's effect, use that after adding the necessary flags.
+   * @returns {ActiveEffect|undefined} Undefined if no document found
+   */
+  async _loadStorageDocument() {
+    const defaultData = CONFIG[MODULE_ID].CoverEffect.defaultCoverObjectData.get(this.id);
+    if ( !defaultData ) return super._loadStorageDocument();
+
+    let dFredsEffect = game.dfreds.effectInterface.findCustomEffectByName(defaultData.dFredsName);
+    if ( !dFredsEffect ) {
+      const ae = game.dfreds.effectInterface.findEffectByName(defaultData.dFredsName);
+      if ( !ae ) return super._loadStorageDocument();
+      dFredsEffect = await game.dfreds.effectInterface.createNewCustomEffectsWith({ activeEffects: [ae] })
+      dFredsEffect = dFredsEffect[0];
+    }
+    if ( !dFredsEffect ) return super._loadStorageDocument();
+
+    // Don't use unless it has the correct flags.
+    await dFredsEffect.setFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID, this.id);
+    await dFredsEffect.setFlag(MODULE_ID, FLAGS.COVER_TYPES, defaultData.documentData.flags[MODULE_ID][FLAGS.COVER_TYPES]);
+    return dFredsEffect;
+  }
+
+  /**
+   * Delete the sotrage document for given cover effect id.
+   * If id corresponds to DFred's effect, delete the custom effect.
+   */
+  async _deleteStorageDocument() {
+    try { await this.document.delete() } catch {}
+  }
+}
+
+// ----- NOTE: Hooks ----- //
+
+/**
+ * Hook active effect deletion so we know if a DFred's custom effect has been deleted.
+ * @event deleteDocument
+ * @category Document
+ * @param {Document} document                       The existing Document which was deleted
+ * @param {DocumentModificationContext} options     Additional options which modified the deletion request
+ * @param {string} userId                           The ID of the User who triggered the deletion workflow
+ */
+function deleteActiveEffectHook(activeEffect, _options, _userId) {
+  const id = activeEffect.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID);
+  if ( !id || activeEffect.parent?.name !== "Custom Convenient Effects") return;
+  const ce =  CONFIG.tokencover.CoverEffect.coverObjectsMap.get(id);
+  if ( !ce ) return;
+  ce.delete();
+}
+

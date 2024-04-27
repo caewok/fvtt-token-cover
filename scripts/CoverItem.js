@@ -1,10 +1,13 @@
 /* globals
-
+CONFIG,
+game
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS, COVER } from "./const.js";
+import { MODULE_ID, FLAGS } from "./const.js";
 import { CoverEffect } from "./CoverEffect.js";
+import { log } from "./util.js";
 
 /**
  * Cover Effect for systems like sfrpg that use items to signify effects.
@@ -84,8 +87,8 @@ export class CoverItem extends CoverEffect {
     if ( !compendiumId ) return;
     const doc = await pack.getDocument(compendiumId); // Async
     doc.flags ??= {};
-    data.flags[MODULE_ID] ??= {};
-    data.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= this.id;
+    doc.flags[MODULE_ID] ??= {};
+    doc.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= this.id;
 
     return CONFIG.Item.documentClass.create(doc);
   }
@@ -113,10 +116,7 @@ export class CoverItem extends CoverEffect {
    * @return {boolean} Must return true if document is deleted.
    */
   async _deleteStorageDocument() {
-    if ( !this.document ) return;
-    const out = await this.document.delete();
-    super._deleteStorageDocument(); // Must come after so document is present.
-    return out;
+    return await this.document.delete();
   }
 
   // ----- NOTE: Methods specific to cover effects ----- //
