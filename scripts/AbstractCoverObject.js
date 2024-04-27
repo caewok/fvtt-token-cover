@@ -146,16 +146,17 @@ export class AbstractCoverObject {
    * Delete this cover object from the objects map and optionally remove stored data.
    * @param {boolean} {deleteStorageDocument = false}    If true, save data is deleted. Async if true.
    */
-  async delete(deleteStorageDocument = false) {
+  async delete() {
     this.constructor.coverObjectsMap.delete(this.id);
-    if ( deleteStorageDocument ) await this._deleteStorageDocument();
+    if ( this.#document ) await this._deleteStorageDocument();
+    this.#document = undefined;
     return this.constructor.removeStoredCoverObjectId(this.id); // Async
   }
 
   /**
    * Delete the underlying stored document.
    */
-  async _deleteStorageDocument() { this.#document = undefined; }
+  async _deleteStorageDocument() {  }
 
   /**
    * Save a json file for this cover type.

@@ -116,10 +116,7 @@ export class CoverItem extends CoverEffect {
    * @return {boolean} Must return true if document is deleted.
    */
   async _deleteStorageDocument() {
-    if ( !this.document ) return;
-    const out = await this.document.delete();
-    super._deleteStorageDocument(); // Must come after so document is present.
-    return out;
+    return await this.document.delete();
   }
 
   // ----- NOTE: Methods specific to cover effects ----- //

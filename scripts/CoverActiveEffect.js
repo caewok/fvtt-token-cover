@@ -9,6 +9,9 @@ import { MODULE_ID, FLAGS } from "./const.js";
 import { CoverEffect } from "./CoverEffect.js";
 import { log } from "./util.js";
 
+export const PATCHES = {};
+PATCHES.DFREDS = {};
+
 /**
  * Cover Effect for systems like dnd5e that use Active Effect to signify effects.
  */
@@ -105,9 +108,7 @@ export class CoverActiveEffect extends CoverEffect {
    * @return {boolean} Must return true if document is deleted.
    */
   async _deleteStorageDocument() {
-    const out = await this.constructor.coverEffectItem.deleteEmbeddedDocuments("ActiveEffect", [this.document.id]);
-    super._deleteStorageDocument(); // Must come after so document id is present.
-    return out;
+    return await this.constructor.coverEffectItem.deleteEmbeddedDocuments("ActiveEffect", [this.document.id]);
   }
 
   /**
@@ -240,4 +241,31 @@ export class CoverActiveEffectDFreds extends CoverActiveEffect {
     await dFredsEffect.setFlag(MODULE_ID, FLAGS.COVER_TYPES, defaultData.documentData.flags[MODULE_ID][FLAGS.COVER_TYPES]);
     return dFredsEffect;
   }
+
+  /**
+   * Delete the sotrage document for given cover effect id.
+   * If id corresponds to DFred's effect, delete the custom effect.
+   */
+  async _deleteStorageDocument() {
+    try { await this.document.delete() } catch {}
+  }
 }
+
+// ----- NOTE: Hooks ----- //
+
+/**
+ * Hook active effect deletion so we know if a DFred's custom effect has been deleted.
+ * @event deleteDocument
+ * @category Document
+ * @param {Document} document                       The existing Document which was deleted
+ * @param {DocumentModificationContext} options     Additional options which modified the deletion request
+ * @param {string} userId                           The ID of the User who triggered the deletion workflow
+ */
+function deleteActiveEffectHook(activeEffect, _options, _userId) {
+  const id = activeEffect.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID);
+  if ( !id || activeEffect.parent?.name !== "Custom Convenient Effects") return;
+  const ce =  CONFIG.tokencover.CoverEffect.coverObjectsMap.get(id);
+  if ( !ce ) return;
+  ce.delete();
+}
+
