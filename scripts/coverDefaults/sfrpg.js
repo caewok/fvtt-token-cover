@@ -6,33 +6,6 @@
 import { MODULE_ID, ICONS } from "../const.js";
 
 const SYSTEM_ID = "sfrpg";
-
-/**
- * Determine what cover types apply to a target token given an attacking token.
- * @param {Token} attackingToken
- * @param {Token} targetToken
- * @returns {coverType[]}
- */
-// export function coverTypesForToken(attackingToken, targetToken) {
-//   const types = genericCoverTypesForToken(attackingToken, targetToken);
-//
-//   // Test for walls within 30' for low obstacles
-//   if ( !types.some(t => t === coverTypes.cover || t === coverTypes.improved || t === coverTypes.total ) ) {
-//
-//
-//   }
-//
-//   const a = attackingToken.center
-//   const c = coverToken.center;
-//   for ( const interveningToken of canvas.tokens.placeables ) {
-//     if ( interveningToken === attackingToken || interveningToken === coverToken ) continue;
-//     if ( interveningToken.constrainedTokenBorder.lineSegmentIntersects(a, c) ) return [type, soft];
-//   }
-//   return type;
-// }
-
-// https://www.aonsrd.com/Rules.aspx?ID=129
-
 const coverTypes = {};
 const coverEffects = {};
 export const defaultCoverTypes = new Map();

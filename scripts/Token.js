@@ -394,10 +394,20 @@ function coverFromMap() {
   return (mod._coverFromMap ??= new Map());
 }
 
+/**
+ * New getter: Token.prototype.ignoresCoverType
+ * Instantiate a IgnoresCover class to determine if cover can be ignored for different attack types.
+ * @type {boolean}
+ */
+function ignoresCover() {
+  return this._ignoresCover || (this._ignoresCover = new IGNORES_COVER_HANDLER(this));
+}
+
 
 PATCHES.BASIC.GETTERS = {
   coverCalculator,
   coverFromMap,
+  ignoresCover
 };
 
 

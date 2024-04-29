@@ -368,16 +368,16 @@ export class CoverType extends AbstractCoverObject {
    * Determine what cover types apply to a target token given an attacking token.
    * @param {Token} attackingToken
    * @param {Token} targetToken
-   * @returns {coverType[]}
+   * @returns {Set<CoverType>}
    */
   static coverTypesForToken(attackingToken, targetToken, opts) {
-    const types = [];
+    const types = new Set();
 
     // Test cover types in priority order.
     for ( const type of this.coverTypesOrdered ) {
       const typeApplies = type.coverTypeApplies(attackingToken, targetToken, opts);
       if ( typeApplies ) {
-        types.push(type);
+        types.add(type);
         break;
       }
     }
@@ -386,7 +386,7 @@ export class CoverType extends AbstractCoverObject {
     for ( const type of this.coverTypesUnordered ) {
       // If there is already a type, cannot use a non-overlapping type.
       if ( !type.document.canOverlap && types.length ) continue;
-      if ( type.coverTypeApplies(attackingToken, targetToken, opts) ) types.push(type);
+      if ( type.coverTypeApplies(attackingToken, targetToken, opts) ) types.add(type);
     }
     return types;
   }
@@ -410,6 +410,44 @@ const ACTOR_SIZES = {
 };
 Object.entries(ACTOR_SIZES).forEach(([key, value]) => ACTOR_SIZES[value] = key);
 
+/**
+ * Specialized handling of cover types in dnd5e.
+ */
+export class CoverTypeDND5E extends CoverType {
+  /**
+   * Determine what cover types apply to a target token given an attacking token.
+   * For dnd5e, an action type is assumed or passed through the opts object.
+   * Some tokens can ignore certain action types.
+   * @param {Token} attackingToken
+   * @param {Token} targetToken
+   * @param {object} [opts]           Options used to determine cover types for specific tokens
+   * @param {CONFIG.DND5E.itemActionTypes} [opts.actionType]    Type of action the attacker is taking
+   * @returns {coverType[]}
+   */
+  static coverTypesForToken(attackingToken, targetToken, opts = {}) {
+    const coverTypes = super.coverTypesForToken(attackingToken, targetToken, opts);
+    if ( !coverTypes.size ) return coverTypes;
+
+    // Check if the cover type(s) should be ignored.
+    const ignoresCover = attacker.ignoresCover?.[opts.actionType ?? "all"];
+    if ( !ignoresCover ) return coverTypes;
+    for ( const coverType of coverTypes ) {
+      if ( coverType.document.percentThreshold <= ignoresCover ) coverTypes.delete(coverType);
+    }
+    return coverTypes;
+  }
+
+  /**
+   * Test if this cover type applies to a target token given an attacking token.
+   * Use the static coverTypesForToken for more efficient tests for all cover types at once.
+   */
+  coverTypeApplies(attackingToken, targetToken, opts = {}) {
+    // Check if this cover type should be ignored.
+    const ignoresCover = attacker.ignoresCover?.[opts.actionType ?? "all"];
+    if ( ignoresCover && ignoresCover >= this.document.percentThreshold ) return false;
+    return super.coverTypeApplies(attackingToken, targetToken, opts);
+  }
+}
 
 /**
  * Specialized handling of cover types in pf2e.
@@ -426,19 +464,24 @@ export class CoverTypePF2E extends CoverType {
    */
   static coverTypesForToken(attackingToken, targetToken, opts) {
     const types = super.coverTypesForToken(attackingToken, targetToken, opts);
-    const standardCover = this.coverTypesObject.get("coverEffects.standard.id");
+    if ( !types.size ) return types;
 
-    if ( standardCover && types.some(type => type.id === pf2eCoverTypes.lesser.id) ) {
-      const targetSize = ACTOR_SIZES[targetToken.system.traits.size.value] ?? ACTOR_SIZES.med;
-      const attackerSize = ACTOR_SIZES[attackingToken.system.traits.size.value] ?? ACTOR_SIZES.med;
-      const upgradeSize = Math.max(targetSize, attackerSize) + 1;
-      for ( const token of attackingToken.coverCalculator.calc.blockingObjects.tokens ) {
-        const blockingTokenSize = ACTOR_SIZES[token.system.traits.size.value] ?? ACTOR_SIZES.med;
-        if ( blockingTokenSize > upgradeSize ) {
-          findSpliceAll(types, type => type.id === pf2eCoverTypes.lesser.id);
-          types.push(standardCover);
-          break;
-        }
+    // If we don't have a lesser or standard cover defined, return.
+    // If types does not have lesser cover, nothing to upgrade; return.
+    const standardCover = this.coverTypesObject.get(pf2eCoverTypes.standard.id);
+    const lesserCover = this.coverTypesObject.get(pf2eCoverTypes.lesser.id);
+    if ( !standardCover || !lesserCover || !types.has(lesserCover) ) return types;
+
+    // Convert lesser cover to standard cover if the blocking creature is 2+ larger.
+    const targetSize = ACTOR_SIZES[targetToken.system.traits.size.value] ?? ACTOR_SIZES.med;
+    const attackerSize = ACTOR_SIZES[attackingToken.system.traits.size.value] ?? ACTOR_SIZES.med;
+    const upgradeSize = Math.max(targetSize, attackerSize) + 1;
+    for ( const token of attackingToken.coverCalculator.calc.blockingObjects.tokens ) {
+      const blockingTokenSize = ACTOR_SIZES[token.system.traits.size.value] ?? ACTOR_SIZES.med;
+      if ( blockingTokenSize > upgradeSize ) {
+        types.delete(lesserCover);
+        types.add(standardCover);
+        break;
       }
     }
     return types;

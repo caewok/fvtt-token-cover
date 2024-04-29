@@ -79,14 +79,13 @@ export async function coverWorkflow(token, targets, actionType) {
   // Update targets' cover if some targets are present
   if ( coverCalculations.size ) await coverDialog.updateTargetsCover(coverCalculations);
 
-  // Display in chat if requested.
-  let displayChat = Settings.get(SETTINGS.COVER.CHAT);
-  if ( displayChat && Settings.get(SETTINGS.MIDIQOL.COVERCHECK_IF_CHANGED) ) {
-    // Only display chat if the cover differs from what is already applied to tokens.
-    displayChat = !coverDialog._targetCoversMatchCalculations(coverCalculations);
-  }
+//
+//   if ( displayChat && Settings.get(SETTINGS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY) ) {
+//     // Only display chat if the cover differs from what is already applied to tokens.
+//     displayChat = !coverDialog._targetCoversMatchCalculations(coverCalculations);
+//   }
 
-  if ( displayChat ) {
+  if ( Settings.get(SETTINGS.COVER_WORKFLOW.CHAT) ) {
     const opts = {
       actionType,
       coverCalculations

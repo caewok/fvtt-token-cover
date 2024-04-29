@@ -81,9 +81,9 @@ export class CoverCalculator extends AbstractCalculator {
    * Ignore when token equals target.
    * @param {Token} token
    * @param {Token[]} targets
-   * @returns {Map<Token, COVER_TYPE>}
+   * @returns {Map<Token, Set<CoverType>>}
    */
-  static coverCalculations(viewer, targets, calcs) {
+  static coverCalculations(viewer, targets, calcs, opts) {
     if ( viewer instanceof Array ) {
       if ( viewer.length > 1 ) console.warn("You should pass a single token or vision source to CoverCalculator, not an array. Using the first object in the array.");
       viewer = viewer[0];
@@ -94,7 +94,7 @@ export class CoverCalculator extends AbstractCalculator {
     calcs ??= new Map();
     for ( const target of targets ) {
       coverCalc.target = target;
-      calcs.set(target, coverCalc.targetCover());
+      calcs.set(target, coverCalc.coverTypes(opts));
     }
     return calcs;
   }
@@ -117,16 +117,26 @@ export class CoverCalculator extends AbstractCalculator {
 
   // ----- NOTE: Cover Types ----- //
 
-  coverTypes(target, opts) {
-    if ( target ) this.target = target;
+  /**
+   * Determine cover types.
+   * Target must be set in advance.
+   * @param [object] opts     Options passed to coverTypesForToken, such as actionType (dnd5e)
+   * @returns {Set<CoverType>}
+   */
+  coverTypes(opts) {
     return CONFIG[MODULE_ID].CoverType.coverTypesForToken(this.viewer, this.target, opts);
   }
 
-  coverTypesFromViewerAtLocation(location, target, opts) {
+  /**
+   * Helper to determine cover types for a specific token at a specific location.
+   * Target must be set in advance.
+   * @param [object] opts     Options passed to coverTypesForToken, such as actionType (dnd5e)
+   * @returns {Set<CoverType>}
+   */
+  coverTypesFromLocation(location, opts) {
     this.calc.viewerPoint = location;
-    return this.coverTypes(target, opts);
+    return this.coverTypes(opts);
   }
-
 
   // ----- NOTE: Calculation methods ----- //
 
@@ -336,14 +346,6 @@ export class CoverCalculator extends AbstractCalculator {
     New formula: .40 + .10 * (1 * .5 + 0 * .75) = .45
     */
 
-
-
-  /**
-   * Calculate the target's cover.
-   * @returns {COVER_TYPES}
-   */
-  targetCover(target) { return this.constructor.typeForPercentage(this.percentCover(target)); }
-
   // ----- NOTE: Token cover application ----- //
   /**
    * Get a description for an attack type
@@ -351,29 +353,6 @@ export class CoverCalculator extends AbstractCalculator {
    * @returns {string}
    */
   static attackNameForType(type) { return game.i18n.localize(WEAPON_ATTACK_TYPES[type]); }
-
-  /**
-   * Set the target cover effect.
-   * If cover is none, disables any cover effects.
-   * @param {COVER.TYPE} type   Cover type. Default to calculating.
-   */
-  setTargetCoverEffect(type = this.targetCover()) {
-    const COVER_TYPES = this.constructor.COVER_TYPES;
-    if ( !keyForValue(COVER_TYPES, type) ) {
-      console.warn("Token.coverType|cover value not recognized.");
-      return;
-    }
-
-    switch ( type ) {
-      case COVER_TYPES.NONE:
-        this.constructor.disableAllCover(this.target.id);
-        break;
-      case COVER_TYPES.LOW:
-      case COVER_TYPES.MEDIUM:
-      case COVER_TYPES.HIGH:
-        this.constructor.enableCover(this.target.id, type);
-    }
-  }
 
   /**
    * Update one or more specific settings in the calculator.

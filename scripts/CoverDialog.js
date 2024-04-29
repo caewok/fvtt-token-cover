@@ -10,13 +10,13 @@ Token
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, COVER } from "./const.js";
+import { MODULE_ID } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { SOCKETS } from "./cover_application.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { SETTINGS, Settings } from "./settings.js";
 
-// Helper class to construct dialogs related to cover between token(s) and target(s).
+// Helper class to construct dialogs related to cover between attacker token and target(s).
 
 export class CoverDialog {
 
@@ -29,14 +29,15 @@ export class CoverDialog {
   /** @type {Map<Token, COVER_TYPE>} */
   #coverCalculations = new Map();
 
-  constructor(token, targets) {
-    token ??= game.user._lastSelected;
+  constructor(token, targets, config = {}) {
+    token ??= game.user._lastSelected || canvas.tokens.controlled[0];
     targets ??= game.user.targets;
     if ( targets instanceof Token ) targets = [targets];
 
-    // Store the provided token and targets.
+    // Store the provided token, targets, options used for the cover calculation.
     this.token = token;
     targets.forEach(t => this.targets.add(t));
+    this.config = config;
 
     // Mostly for debugging
     if ( !token || !(token instanceof Token) ) console.error("CoverDialog|no token provided.");
@@ -80,6 +81,8 @@ export class CoverDialog {
   _targetCoversMatchCalculations(coverCalculations) {
     coverCalculations ??= this.coverCalculations;
     for ( const [target, cover] of coverCalculations ) {
+
+
       if ( cover !== target.coverType ) return false;
     }
     return true;
@@ -243,7 +246,6 @@ ${html}
    */
   _htmlConfirmCover({ actionType } = {}) {
     const { token, targets, coverCalculations } = this;
-    const COVER_TYPES = CoverCalculator.COVER_TYPES;
 
     // Describe the type of action the token is taking and whether the token ignores certain cover.
     const ignoresCoverLabel = this._htmlIgnoresCover(actionType);
@@ -340,7 +342,6 @@ ${html}
 
     const { token, targets } = this;
     coverCalculations ??= this.coverCalculations;
-    const COVER_TYPES = CoverCalculator.COVER_TYPES;
     const token_center = new Point3d(token.center.x, token.center.y, token.topZ); // Measure from token vision point.
 
     let html = "";
@@ -462,6 +463,55 @@ ${html}
 }
 
 // NOTE: Helper functions
+
+/**
+ * Workflow to process cover for given token and targets.
+ * Used by midi-qol and dnd5e functions.
+ * @param {Token} token
+ * @param {Set<Token>} targets    Targeted token set. May be modified by user choices.
+ * @param {string} actionType
+ * @returns {boolean} True if attack should continue; false otherwise.
+ */
+export async function coverWorkflow(token, targets, actionType) {
+  // Construct dialogs, if applicable
+  // tokenCoverCalculations will be:
+  // - false if user canceled
+  // - undefined if covercheck is set to NONE. NONE may still require chat display.
+  // - Map otherwise
+  const coverDialog = new CoverDialog(token, targets);
+
+  const coverCalculations = await coverDialog.workflow(actionType);
+  if ( typeof coverCalculations === "undefined" ) return true; // Setting is do not use cover.
+  if ( coverCalculations === false ) return false;  // User canceled
+
+  // Check if the user removed one or more targets.
+  if ( coverCalculations.size !== coverDialog.coverCalculations.size ) {
+    if ( !coverCalculations.size ) return false; // All targets removed.
+
+    // Drop the removed targets.
+    const removed = coverDialog.targets.difference(new Set(coverCalculations.keys()));
+    removed.forEach(t => targets.delete(t));
+  }
+
+  // Update targets' cover if some targets are present
+  if ( coverCalculations.size ) await coverDialog.updateTargetsCover(coverCalculations);
+
+//
+//   if ( displayChat && Settings.get(SETTINGS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY) ) {
+//     // Only display chat if the cover differs from what is already applied to tokens.
+//     displayChat = !coverDialog._targetCoversMatchCalculations(coverCalculations);
+//   }
+
+  if ( Settings.get(SETTINGS.COVER_WORKFLOW.CHAT) ) {
+    const opts = {
+      actionType,
+      coverCalculations
+    };
+    await coverDialog.sendCoverCalculationsToChat(opts);
+  }
+
+  return true;
+}
 
 /**
  * Create new dialog with a callback function that can be used for dialogPromise.

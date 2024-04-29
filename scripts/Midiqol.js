@@ -3,7 +3,7 @@
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { coverWorkflow } from "./cover.js";
+import { coverWorkflow } from "./CoverDialog.js";
 
 // Patches for midiqol
 export const PATCHES = {};

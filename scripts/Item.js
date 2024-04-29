@@ -7,7 +7,7 @@ game
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { coverWorkflow } from "./cover.js";
+import { coverWorkflow } from "./CoverDialog.js";
 
 // Patches for the dnd5e Item class
 export const PATCHES = {};
