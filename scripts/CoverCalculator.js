@@ -1,5 +1,5 @@
 /* globals
-canvas,
+CONFIG,
 game,
 Token
 */
@@ -9,8 +9,6 @@ Token
 import { COVER, WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID } from "./const.js";
 import { SETTINGS, Settings } from "./settings.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
-import { SOCKETS } from "./cover_application.js";
-import { keyForValue } from "./util.js";
 import { CoverDialog } from "./CoverDialog.js";
 import { AbstractCalculator } from "./LOS/AbstractCalculator.js";
 
@@ -183,7 +181,7 @@ export class CoverCalculator extends AbstractCalculator {
       const res = this._partiallyBlockingTokens();
       partialBlockingTokens = res.partialBlockingTokens;
       if ( res.nonBlockingTokens.length ) {
-        nonBlockingTokens.forEach(t => calc.blockingObjects.tokens.delete(t));
+        res.nonBlockingTokens.forEach(t => calc.blockingObjects.tokens.delete(t));
         blockingObjectsChanged ||= true;
       }
 

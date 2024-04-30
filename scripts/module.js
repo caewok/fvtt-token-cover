@@ -1,6 +1,8 @@
 /* globals
+canvas,
 CONFIG,
 game,
+isNewerVersion,
 Hooks
 */
 "use strict";

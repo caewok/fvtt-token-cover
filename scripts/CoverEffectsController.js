@@ -1,17 +1,14 @@
 /* globals
-canvas,
+CONFIG,
 CONST,
 Dialog,
-game,
-SearchFilter
+game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { Settings } from "./settings.js";
-import { MODULE_ID, FLAGS, COVER } from "./const.js";
+import { MODULE_ID } from "./const.js";
 import { log } from "./util.js";
-import { CoverEffectConfig } from "./CoverEffectConfig.js";
 import { CoverTypesListConfig } from "./CoverTypesListConfig.js";
 
 
@@ -170,47 +167,6 @@ export class CoverEffectsController {
 }
 
 // ----- NOTE: Helper functions ----- //
-
-/**
- * Import active effect for a specific cover effect data from settings.
- * @param {string} id     Id for that cover effect.
- * @returns {ActiveEffect} The active effect
- */
-function importCoverEffect(id) {
-  const allStatusEffects = Settings.get(Settings.KEYS.COVER.EFFECTS);
-  const statusEffects = allStatusEffects[game.system.id] || allStatusEffects.generic;
-  const data = statusEffects[id];
-  data._id = null;
-  data.flags ??= {};
-  data.flags[MODULE_ID] ??= {};
-  data.flags[MODULE_ID][FLAGS.COVER_TYPE] ??= "";
-  return new ActiveEffect(data);
-}
-
-function importAllCoverEffectData() {
-//     api = game.modules.get("tokencover").api
-//     Settings = api.Settings;
-  const allStatusEffects = Settings.get(Settings.KEYS.COVER.EFFECTS);
-  const statusEffects = allStatusEffects[game.system.id] || allStatusEffects.generic;
-  return Object.entries(statusEffects);
-}
-
-/**
- * Store to GM settings the cover effect value provided for the provided type for this game system.
- * @param {object} value  Status effect
- */
-async function setCoverEffect(type, value) {
-  const allStatusEffects = this.get(SETTINGS.COVER.EFFECTS);
-  let systemId = game.system.id;
-  if ( (systemId === "dnd5e" || systemId === "sw5e")
-    && game.modules.get("midi-qol")?.active ) systemId = `${systemId}_midiqol`;
-
-  if ( !Object.hasOwn(allStatusEffects, systemId) ) allStatusEffects[systemId] = duplicate(allStatusEffects.generic);
-
-  allStatusEffects[systemId][type] = value;
-  await this.set(SETTINGS.COVER.EFFECTS, allStatusEffects);
-  this.updateConfigStatusEffects(type);
-}
 
 /**
  * Helper to retrieve an effect from an effect item.

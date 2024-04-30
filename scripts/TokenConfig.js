@@ -1,11 +1,11 @@
 /* globals
-foundry
+
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
 // Patches for Token configuration rendering.
 
-import { MODULE_ID, TEMPLATES, FLAGS, COVER } from "./const.js";
+import { MODULE_ID, TEMPLATES, FLAGS } from "./const.js";
 import { injectConfiguration } from "./util.js";
 
 export const PATCHES = {};

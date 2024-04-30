@@ -1,9 +1,13 @@
 /* globals
+CONFIG,
+FormDataExtended,
+foundry,
+renderTemplate
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS, COVER } from "./const.js";
+import { MODULE_ID, FLAGS } from "./const.js";
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
 
 export const PATCHES = {};
@@ -73,7 +77,7 @@ function _getSubmitData(wrapper, updateData={}) {
   const data = wrapper(updateData);
   const fd = new FormDataExtended(this.form, {editors: this.editors});
   const coverTypeCheckboxes = Object.entries(fd.object)
-    .filter(([key, value]) => key.includes("coverTypeCheckBoxes"));
+    .filter(([key, _value]) => key.includes("coverTypeCheckBoxes"));
   if ( !coverTypeCheckboxes.length ) return data;
 
   // Add cover types to the flag array.

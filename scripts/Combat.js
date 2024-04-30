@@ -34,7 +34,7 @@ function combatRound(combat, updateData, updateOptions) {
  *   - @property {number} updateData.turn
  * @param {object} updateOptions
  */
-function updateCombatCoverStatus(combat, updateData, updateOptions) {
+function updateCombatCoverStatus(combat, _updateData, _updateOptions) {
   if ( !Settings.get(SETTINGS.COVER.COMBAT_AUTO) ) return;
   const c = combat.combatant;
   const playerOwners = c.players;

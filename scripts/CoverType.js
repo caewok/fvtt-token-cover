@@ -429,7 +429,7 @@ export class CoverTypeDND5E extends CoverType {
     if ( !coverTypes.size ) return coverTypes;
 
     // Check if the cover type(s) should be ignored.
-    const ignoresCover = attacker.ignoresCover?.[opts.actionType ?? "all"];
+    const ignoresCover = attackingToken.ignoresCover?.[opts.actionType ?? "all"];
     if ( !ignoresCover ) return coverTypes;
     for ( const coverType of coverTypes ) {
       if ( coverType.document.percentThreshold <= ignoresCover ) coverTypes.delete(coverType);
@@ -443,7 +443,7 @@ export class CoverTypeDND5E extends CoverType {
    */
   coverTypeApplies(attackingToken, targetToken, opts = {}) {
     // Check if this cover type should be ignored.
-    const ignoresCover = attacker.ignoresCover?.[opts.actionType ?? "all"];
+    const ignoresCover = attackingToken.ignoresCover?.[opts.actionType ?? "all"];
     if ( ignoresCover && ignoresCover >= this.document.percentThreshold ) return false;
     return super.coverTypeApplies(attackingToken, targetToken, opts);
   }

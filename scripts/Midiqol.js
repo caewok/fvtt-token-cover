@@ -3,7 +3,7 @@
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { coverWorkflow } from "./CoverDialog.js";
+import { coverAttackWorkflow } from "./CoverDialog.js";
 
 // Patches for midiqol
 export const PATCHES = {};
@@ -21,7 +21,7 @@ async function midiqolPreambleComplete(workflow) {
 
   // Construct dialogs, if applicable
   const actionType = item?.system?.actionType;
-  return coverWorkflow(token, targets, actionType);
+  return coverAttackWorkflow(token, targets, actionType);
 }
 
 PATCHES.DND5E_MIDI.HOOKS = { "midi-qol.preambleComplete": midiqolPreambleComplete };

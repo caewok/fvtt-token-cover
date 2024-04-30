@@ -1,15 +1,16 @@
 /* globals
 canvas,
+CONFIG,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
 // Patches for the Token class
 
-import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const.js";
+import { MODULE_ID, COVER, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
-import { SETTINGS, Settings } from "./settings.js";
-import { isFirstGM, keyForValue, log } from "./util.js";
+import { Settings } from "./settings.js";
+import { log } from "./util.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
@@ -166,7 +167,7 @@ PATCHES.DEBUG.HOOKS = {
 
 // ----- NOTE: Hooks ----- //
 
-function preUpdateToken(tokenD, change, _options, _userId) {
+function preUpdateToken(_tokenD, _change, _options, _userId) {
   return true;
 }
 
@@ -241,7 +242,7 @@ function destroyToken(token) { if ( token[MODULE_ID]?.coverCalc ) token.coverCal
  * @param {Token} token      The targeted Token
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
-function targetToken(user, target, targeted) {
+function targetToken(user, target, _targeted) {
   const coverTypeTargetsOnly = Settings.get(Settings.KEYS.COVER_TYPES.TARGETING);
   const coverEffectTargetsOnly = Settings.get(Settings.KEYS.COVER_EFFECTS.TARGETING);
   if ( coverTypeTargetsOnly && useCoverObject("COVER_TYPES") ) {
@@ -412,20 +413,6 @@ PATCHES.BASIC.GETTERS = {
 
 
 // ----- NOTE: Helper functions ----- //
-
-/**
- * Determine if the user's token is the current combatant in the active tracker.
- * @param {User} user
- * @returns {boolean}
- */
-function isUserCombatTurn(user) {
-  if ( !game.combat?.started ) return false;
-
-  // If no players, than it must be a GM token
-  const players = game.combats.active?.combatant?.players;
-  if ( !players?.length ) return user.isGM;
-  return players.some(player => user.name === player.name);
-}
 
 /**
  * Helper function: determine whether to apply a cover icon or cover effect.

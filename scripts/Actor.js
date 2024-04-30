@@ -1,6 +1,4 @@
 /* globals
-canvas,
-game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 

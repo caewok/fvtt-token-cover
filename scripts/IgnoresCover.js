@@ -4,7 +4,7 @@ game
 */
 "use strict";
 
-import { MODULE_ID, FLAGS, COVER, MODULES_ACTIVE } from "./const.js";
+import { MODULE_ID, FLAGS, MODULES_ACTIVE } from "./const.js";
 
 /**
  * For DND5e, add the cover to the Token Config

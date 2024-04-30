@@ -2,6 +2,7 @@
 FormApplication
 foundry,
 game,
+getTemplate,
 SettingsConfig,
 ui
 */
@@ -13,7 +14,6 @@ import { Settings, SETTINGS } from "./settings.js";
 
 export class DefaultSettings {
   static get changeableSettings() {
-    const COVER = SETTINGS.COVER;
     const { VIEWER, TARGET } = SETTINGS.LOS;
     return [
       VIEWER.NUM_POINTS,

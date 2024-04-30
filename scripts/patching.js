@@ -1,4 +1,5 @@
 /* globals
+foundry,
 game,
 */
 "use strict";

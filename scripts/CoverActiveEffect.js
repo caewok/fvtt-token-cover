@@ -247,7 +247,7 @@ export class CoverActiveEffectDFreds extends CoverActiveEffect {
    * If id corresponds to DFred's effect, delete the custom effect.
    */
   async _deleteStorageDocument() {
-    try { await this.document.delete() } catch {}
+    try { await this.document.delete() } catch { /* empty */ }
   }
 }
 
@@ -268,4 +268,6 @@ function deleteActiveEffectHook(activeEffect, _options, _userId) {
   if ( !ce ) return;
   ce.delete();
 }
+
+PATCHES.DFREDS.HOOKS = { deleteActiveEffect: deleteActiveEffectHook };
 

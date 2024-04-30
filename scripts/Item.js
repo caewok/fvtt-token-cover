@@ -6,8 +6,7 @@ game
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
-import { coverWorkflow } from "./CoverDialog.js";
+import { coverAttackWorkflow } from "./CoverDialog.js";
 
 // Patches for the dnd5e Item class
 export const PATCHES = {};
@@ -93,11 +92,10 @@ async function rollAttack(wrapper, options = {}) {
   if ( !targets.size ) return wrapper(options);
 
   // Construct dialogs, if applicable
-  // if ( await coverWorkflow(token, targets, actionType) ) return wrapper(options);
-
+  await coverAttackWorkflow(token, targets, actionType);
   return wrapper(options);
 
-  // If coverWorkflow returns false, user canceled or eliminated all targets; simply return.
+  // If coverAttackWorkflow returns false, user canceled or eliminated all targets; simply return.
 }
 
 PATCHES.DND5E_NO_MIDI.MIXES = { rollAttack };

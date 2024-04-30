@@ -2,8 +2,11 @@
 CONFIG,
 foundry,
 fromUuidSync,
-PIXI
+game,
+PIXI,
+renderTemplate
 */
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { EPSILON, MODULE_ID } from "./const.js";
@@ -32,7 +35,7 @@ export function findSpliceAll(arr, find) {
 export function log(...args) {
   try {
     if ( CONFIG[MODULE_ID].debug ) console.debug(MODULE_ID, "|", ...args);
-  } catch(e) {
+  } catch(_e) {
     // Empty
   }
 }

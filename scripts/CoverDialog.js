@@ -55,8 +55,8 @@ export class CoverDialog {
     return this.#coverCalculations;
   }
 
-  copyTokenCoverCalculations() {
-    return new Map(this.#coverCalculations);
+  duplicateCoverCalculations() {
+    return new Map(this.coverCalculations);
   }
 
   resetCoverCalculations() { this.#coverCalculations.clear(); }
@@ -78,35 +78,15 @@ export class CoverDialog {
   }
 
   /**
-   * Determine if one or more calculated token covers vary from the current token cover.
-   * @param {Map<Token, Set<CoverType>} [coverCalculations]     Output from `coverCalculations`
-   * @param {boolean} [reset=true]                              Should the current cover be recalculated?
-   * @returns {boolean}
-   */
-  _targetCoversMatchCalculations(coverCalculations, reset = true) {
-    coverCalculations ??= this.coverCalculations;
-
-    // Now reset and re-calculate.
-    if ( reset  ) this.resetCoverCalculations;
-    const currentCoverCalculations = this.coverCalculations;
-
-    // All cover sets must be equal.
-    for ( const [target, cover] of coverCalculations ) {
-      if ( !currentCoverCalculations.get(target).equals(cover) ) return false;
-    }
-    return true;
-  }
-
-  /**
    * Request that the user or GM confirm cover for a given token and targets
    * @param {object} [opts]   Optional parameters used to construct the dialog
    * @param {boolean} [opts.askGM]      Should the GM get the cover confirmation dialog?
    * @param {string} [opts.actionType]  "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
    * @returns {Map<Token, Set<CoverType>>}
    */
-  async confirmCover({ askGM, actionType } = {}) {
+  async confirmCover({ askGM } = {}) {
     askGM ||= false;
-    const html = this._htmlConfirmCover({ actionType });
+    const html = this._htmlConfirmCover();
     const dialogData = { title: game.i18n.localize(`${MODULE_ID}.phrases.ConfirmCover`), content: html };
 
     let coverSelections;
@@ -119,7 +99,7 @@ export class CoverDialog {
     if ( "Close" === coverSelections ) return false;
 
     // Update the cover calculations with User or GM selections
-    const confirmedCalcs = this.copyTokenCoverCalculations();
+    const confirmedCalcs = this.duplicateCoverCalculations();
     const coverTypes = CONFIG[MODULE_ID].CoverType.coverObjectsMap;
     Object.entries(coverSelections).forEach(([id, selectedIndices]) => {
       const target = canvas.tokens.get(id);
@@ -163,16 +143,11 @@ export class CoverDialog {
    * 1. GM confirms / cancels
    * 2. User confirms / cancels
    * 3. User accepts / cancels
-   * @param {string} [actionType]  "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
    * @returns {Map<Token, COVER_TYPE>|false|undefined}
    *   Undefined if setting is to not calculate cover.
    *   False if the user/gm canceled by closing the dialog.
    */
-  async workflow(actionType) {
-    if ( actionType ) this.config.actionType = actionType;
-    if ( Settings.get(SETTINGS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY)
-      && this._targetCoversMatchCalculations(this.coverCalculations) ) return this.coverCalculations;
-
+  async workflow() {
     const coverCheckOption = Settings.get(SETTINGS.COVER_WORKFLOW.CONFIRM);
     const choices = SETTINGS.COVER_WORKFLOW.CONFIRM_CHOICES;
     let askGM = true;
@@ -181,7 +156,8 @@ export class CoverDialog {
       case choices.USER:
         askGM = false;
       case choices.GM: { // eslint-disable-line no-fallthrough
-        const coverCalculations = await this.confirmCover({ askGM, actionType });
+        const coverCalculations = await this.confirmCover({ askGM });
+        if ( coverCalculations === false ) return false; // User canceled.
         return coverCalculations;
       }
       case choices.USER_CANCEL: {
@@ -212,17 +188,32 @@ export class CoverDialog {
   }
 
   /**
-   * Update targets' cover based on token --> target cover calculations.
-   * @param {Map<Token, COVER_TYPE>} [coverCalculations]
-   * @returns {Promise<>}
+   * Update targets' cover types based on token --> target cover calculations.
+   * Temporarily overrides the cover types, but only until the next update (e.g., token move)
+   * Only local.
+   * @param {Map<Token, Set<CoverType>>} [coverCalculations]
    */
-  async updateTargetsCover(coverCalculations) {
+  updateTargetsCoverType(coverCalculations) {
     if ( coverCalculations === false ) return; // User canceled.
     coverCalculations ??= this.coverCalculations;
-    const promises = [];
-    coverCalculations.forEach((coverStatus, target) =>
-      promises.push(CoverCalculator.enableCover(target.id, coverStatus)));
-    return Promise.all(promises);
+    const CoverType = CONFIG[MODULE_ID].CoverType;
+    coverCalculations.forEach((coverTypes, target) => {
+      const changed = CoverType.replaceCoverTypes(target, coverTypes);
+      if ( changed ) target.renderFlags.set({ redrawEffects: true });
+    });
+  }
+
+  /**
+   * Update targets' cover effects based on token --> target cover calculations.
+   * Relies on existing cover types for the token, which may have been modified by
+   * `updateTargetsCoverType`.
+   * Only local changes.
+   * @param {Map<Token, Set<CoverType>>} [coverCalculations]
+   */
+  updateTargetsCoverEffects(coverCalculations) {
+    if ( coverCalculations === false ) return; // User canceled.
+    coverCalculations ??= this.coverCalculations;
+    coverCalculations.keys().forEach(target => target.refreshCoverEffects());
   }
 
   /**
@@ -289,10 +280,8 @@ ${html}
     include3dDistance = true,
     includeZeroCover = true,
     imageWidth = 50,
-    applied = false,
-    displayIgnored = true } = {}) {
+    applied = false } = {}) {
 
-    const { token } = this;
     const excludedColumns = include3dDistance ? NULL_SET : new Set("distance");
     const targetData = this._targetData();
     const htmlTable = this._htmlCoverTable({
@@ -568,7 +557,27 @@ ${html}
     return coverSelector;
   }
 
+  /**
+   * Determine if one or more calculated token covers vary from the current token cover.
+   * @param {Map<Token, Set<CoverType>} calcA     Output from `coverCalculations`
+   * @param {Map<Token, Set<CoverType>} calcB     Output from `coverCalculations`
+   * @param {boolean} [requireTargetMatch=true]   If false, targets not in both will be ignored.
+   * @returns {boolean} False if the two calculation maps are not equal.
+   */
+  static _coverCalculationsEqual(calcA, calcB, requireTargetMatch = true) {
+    if ( requireTargetMatch && calcA.size !== calcB.size ) return false;
 
+    // All cover sets must be equal.
+    for ( const [target, cover] of calcA ) {
+      const targetB = calcB.get(target);
+      if ( !targetB ) {
+        if ( requireTargetMatch ) return false;
+        continue;
+      }
+      if ( !targetB.equals(cover) ) return false;
+    }
+    return true;
+  }
 }
 
 // NOTE: Helper functions
@@ -585,51 +594,54 @@ function coverTypeNames(coverTypes) {
 }
 
 /**
- * Workflow to process cover for given token and targets.
+ * Workflow to process cover for given token and targets during attack.
  * Used by midi-qol and dnd5e functions.
  * @param {Token} token
  * @param {Set<Token>} targets    Targeted token set. May be modified by user choices.
  * @param {string} actionType
  * @returns {boolean} True if attack should continue; false otherwise.
  */
-export async function coverWorkflow(token, targets, actionType) {
+export async function coverAttackWorkflow(token, targets, actionType) {
   // Construct dialogs, if applicable
   // tokenCoverCalculations will be:
   // - false if user canceled
   // - undefined if covercheck is set to NONE. NONE may still require chat display.
   // - Map otherwise
+  const KEYS = SETTINGS.KEYS;
   const coverDialog = new CoverDialog(token, targets);
 
+  // Determine if change has occurred.
+  // Need to duplicate because this may change.
+  // Set actionType after; treat as a change.
+  const formerCalcs = coverDialog.duplicateCoverCalculations();
+
+  // Set action type and see if a change occurs.
+  coverDialog.config.actionType = actionType;
+  coverDialog.resetCoverCalculations();
+  const currCalcs = coverDialog.duplicateCoverCalculations();
+
+  if ( Settings.get(SETTINGS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY)
+    && CoverDialog._coverCalculationsEqual(formerCalcs, currCalcs, true) ) return currCalcs;
+
   const coverCalculations = await coverDialog.workflow(actionType);
-  if ( typeof coverCalculations === "undefined" ) return true; // Setting is do not use cover.
   if ( coverCalculations === false ) return false;  // User canceled
+  const changed = coverDialog._coverCalculationsEqual(formerCalcs, coverCalculations, false);
 
-  // Check if the user removed one or more targets.
-  if ( coverCalculations.size !== coverDialog.coverCalculations.size ) {
-    if ( !coverCalculations.size ) return false; // All targets removed.
-
-    // Drop the removed targets.
-    const removed = coverDialog.targets.difference(new Set(coverCalculations.keys()));
-    removed.forEach(t => targets.delete(t));
+  // Update targets' cover and effects
+  if ( changed ) {
+    const NEVER = KEYS.COVER_TYPES.CHOICES.NEVER;
+    if ( Settings.get(KEYS.COVER_TYPES.USE) !== NEVER ) coverDialog.updateTargetsCoverType(coverCalculations);
+    if ( Settings.get(KEYS.COVER_EFFECTS.USE) !== NEVER ) coverDialog.updateTargetsCoverEffects(coverCalculations);
   }
 
-  // Update targets' cover if some targets are present
-  if ( coverCalculations.size ) await coverDialog.updateTargetsCover(coverCalculations);
-
-//
-//   if ( displayChat && Settings.get(SETTINGS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY) ) {
-//     // Only display chat if the cover differs from what is already applied to tokens.
-//     displayChat = !coverDialog._targetCoversMatchCalculations(coverCalculations);
-//   }
-
-  if ( Settings.get(SETTINGS.COVER_WORKFLOW.CHAT) ) {
+  // Send to chat
+  if ( Settings.get(KEYS.COVER_WORKFLOW.CHAT) ) {
     const opts = {
       actionType,
       coverCalculations
     };
     await coverDialog.sendCoverCalculationsToChat(opts);
   }
-
   return true;
 }
 

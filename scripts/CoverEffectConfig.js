@@ -1,12 +1,11 @@
 /* globals
 ActiveEffectConfig,
 CONST,
-game,
-ActiveEffect
+foundry,
+game
 */
 
 import { MODULE_ID, FLAGS } from "./const.js";
-import { Settings } from "./settings.js";
 
 // Adapted from https://github.com/death-save/combat-utility-belt/blob/master/modules/enhanced-conditions/enhanced-effect-config.js
 // @example

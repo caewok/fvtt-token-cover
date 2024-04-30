@@ -1,6 +1,6 @@
 /* globals
-game,
-Settings
+foundry,
+game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
