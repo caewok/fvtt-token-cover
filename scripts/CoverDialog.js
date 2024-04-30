@@ -169,25 +169,19 @@ export class CoverDialog {
    *   False if the user/gm canceled by closing the dialog.
    */
   async workflow(actionType) {
-    if ( Settings.get(SETTINGS.MIDIQOL.COVERCHECK_IF_CHANGED)
+    if ( actionType ) this.config.actionType = actionType;
+    if ( Settings.get(SETTINGS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY)
       && this._targetCoversMatchCalculations(this.coverCalculations) ) return this.coverCalculations;
 
-    const coverCheckOption = Settings.get(SETTINGS.MIDIQOL.COVERCHECK);
-    const choices = SETTINGS.MIDIQOL.COVERCHECK_CHOICES;
+    const coverCheckOption = Settings.get(SETTINGS.COVER_WORKFLOW.CONFIRM);
+    const choices = SETTINGS.COVER_WORKFLOW.CONFIRM_CHOICES;
     let askGM = true;
     switch ( coverCheckOption ) {
-      case choices.NONE: return undefined;
       case choices.AUTO: return this.coverCalculations;
       case choices.USER:
         askGM = false;
       case choices.GM: { // eslint-disable-line no-fallthrough
         const coverCalculations = await this.confirmCover({ askGM, actionType });
-        if ( !coverCalculations ) return undefined;
-
-        // Allow the GM or user to omit targets.
-        coverCalculations.forEach((cover, token) => {
-          if ( cover === COVER.TYPES.TOTAL) coverCalculations.delete(token);
-        });
         return coverCalculations;
       }
       case choices.USER_CANCEL: {
