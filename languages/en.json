@@ -20,7 +20,7 @@
     "tokencover.settings.cover-types-targeting.Hint": "If enabled, cover types will be applied only to targeted tokens. Otherwise, cover types will be applied to all non-controlled tokens. Only applicable when 'Display Cover Types' is enabled.",
 
     "tokencover.settings.use-cover-effects.Name": "Apply Cover Effects",
-    "tokencover.settings.use-cover-effects.Hint": "Apply cover effects (active effects) to tokens during combat. 'When Targeting' will apply effects when the user is the current combatant and the user targets one or more tokens, based on cover from the current combatant. For dnd5e, effects applied during targeting may be updated if an attack is made. See the cover workflow settings in Cover Settings.",
+    "tokencover.settings.use-cover-effects.Hint": "Apply cover effects (active effects or system equivalent) to tokens during combat. 'When Targeting' will apply effects when the user is the current combatant and the user targets one or more tokens, based on cover from the current combatant. For dnd5e, the confirm cover settings below may later modify the cover actually applied during an attack.",
 
     "tokencover.settings.cover-effects-targeting.Name": "Cover Effects Only When Targeting",
     "tokencover.settings.cover-effects-targeting.Hint": "If enabled, cover effects will be applied only to targeted tokens. Otherwise, cover types will be applied to all non-controlled tokens. Only applicable when 'Apply Cover Effects' is enabled.",

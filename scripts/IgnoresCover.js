@@ -71,9 +71,7 @@ export class IgnoresCover {
    * @returns {number}
    */
   _getCoverFlag(flag) {
-    let flagValue = this.actor?.getFlag(MODULE_ID, flag);
-    flagValue ??= 0;
-    return flagValue;
+    return this.actor?.getFlag(MODULE_ID, flag) ?? 0;
   }
 
   /**
@@ -150,7 +148,7 @@ export class IgnoresCoverDND5e extends IgnoresCover {
 
     // For backwards-compatibility, set to three quarters.
     // Aligned with how Simbul's handles it.
-    if ( dndFlag === true || dndFlag === "true" ) dndFlag = COVER.TYPES.MEDIUM;
+    if ( dndFlag === true || dndFlag === "true" ) dndFlag = 0.75;
 
     return Math.max(super.all, dndFlag);
   }

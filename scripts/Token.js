@@ -395,7 +395,7 @@ function coverFromMap() {
 }
 
 /**
- * New getter: Token.prototype.ignoresCoverType
+ * New getter: Token.prototype.ignoresCover
  * Instantiate a IgnoresCover class to determine if cover can be ignored for different attack types.
  * @type {boolean}
  */

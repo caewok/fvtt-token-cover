@@ -160,7 +160,7 @@ export class CoverType extends AbstractCoverObject {
 
     // If this type cannot overlap, then any non-overlapping icons must be removed first.
     const tokenEffectIcons = new Set(token.document.effects);
-    const otherCoverTypes = CoverType.coverObjectsMap.values().filter(ct => ct.icon !== icon && !ct.config.canOverlap);
+    const otherCoverTypes = CoverType.coverObjectsMap.values().filter(ct => ct.icon !== icon && !ct.document.canOverlap);
     for ( const otherCoverType of otherCoverTypes ) {
       if ( tokenEffectIcons.has(otherCoverType.icon) ) otherCoverType.removeFromToken(token);
     }

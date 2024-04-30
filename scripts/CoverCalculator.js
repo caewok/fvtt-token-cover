@@ -127,23 +127,7 @@ export class CoverCalculator extends AbstractCalculator {
     return CONFIG[MODULE_ID].CoverType.coverTypesForToken(this.viewer, this.target, opts);
   }
 
-  /**
-   * Helper to determine cover types for a specific token at a specific location.
-   * Target must be set in advance.
-   * @param [object] opts     Options passed to coverTypesForToken, such as actionType (dnd5e)
-   * @returns {Set<CoverType>}
-   */
-  coverTypesFromLocation(location, opts) {
-    this.calc.viewerPoint = location;
-    return this.coverTypes(opts);
-  }
-
-  // ----- NOTE: Calculation methods ----- //
-
-  percentCoverFromViewerAtLocation(location, target) {
-    this.calc.viewerPoint = location;
-    return this._percentCover();
-  }
+  // ----- NOTE: Percent Cover ----- //
 
   /**
    * Calculate the percentage cover over all viewer points if more than one in settings.
