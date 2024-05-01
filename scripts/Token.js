@@ -203,6 +203,7 @@ function updateToken(tokenD, change, _options, _userId) {
   // Token moved
   // Clear this token's cover calculations.
   const token = tokenD.object;
+  log(`updateToken hook|${token.name} moved.`);
   token.coverFromMap.clear();
 
   // Clear all other token's cover calculations for this token.
@@ -221,8 +222,9 @@ function updateToken(tokenD, change, _options, _userId) {
  * @param {PlaceableObject} object The object instance which is selected/deselected.
  * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
  */
-function controlToken(_controlledToken, _controlled) {
-  updateAllTokenCover();
+function controlToken(controlledToken, controlled) {
+  log(`controlToken hook|${controlledToken.name} ${controlled ? "selected" : "unselected"}`);
+  updateAllUserTokenCover();
 }
 
 /**
@@ -257,11 +259,11 @@ function targetToken(user, target, _targeted) {
   const coverTypeTargetsOnly = Settings.get(Settings.KEYS.COVER_TYPES.TARGETING);
   const coverEffectTargetsOnly = Settings.get(Settings.KEYS.COVER_EFFECTS.TARGETING);
   if ( coverTypeTargetsOnly ) {
-    log(`targetToken hook|updating cover icons.`);
+    log(`targetToken hook|updating cover icons for ${target.name}.`);
     target.refreshCoverTypes();
   }
   if ( coverEffectTargetsOnly ) {
-    log(`targetToken hook|updating cover effects.`);
+    log(`targetToken hook|updating cover effects for ${target.name}.`);
     target.refreshCoverEffects();
   }
 }
@@ -286,6 +288,22 @@ function applyTokenStatusEffect(token, statusId, active) {
 PATCHES.BASIC.HOOKS = { destroyToken, updateToken, controlToken, targetToken };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 // PATCHES.NO_PF2E.HOOKS = { targetToken };
+
+// ----- NOTE: Wraps ----- //
+/**
+ * Wrap method: Token.prototype._applyRenderFlags
+ * Handle cover and effect refresh.
+ * Updates and refreshes.
+ */
+function _applyRenderFlags(wrapped, flags) {
+  wrapped(flags);
+  log(`Token#_applyRenderFlags|${this.name} > ${Object.keys(flags).join(", ")}`);
+  if ( flags.refreshCoverTypes && this.updateCoverTypes() ) this.refreshCoverTypes();
+  if ( flags.refreshCoverEffects && this.updateCoverEffects() ) this.refreshCoverEffects();
+}
+
+PATCHES.BASIC.WRAPS = { _applyRenderFlags };
+
 
 // ----- NOTE: Methods ----- //
 
@@ -500,6 +518,16 @@ function updateCoverFromToken(tokenToUpdate, attackingToken) {
  * Helper to update cover types and effects for all tokens on the canvas.
  */
 function updateAllTokenCover() {
+  canvas.tokens.placeables.forEach(t => {
+    t.renderFlags.set({ refreshCoverTypes: true });
+    t.renderFlags.set({ refreshCoverEffects: true });
+  });
+}
+
+/**
+ * Helper to update cover types and effects for all tokens for the current user on the canvas.
+ */
+function updateAllUserTokenCover() {
   canvas.tokens.placeables.forEach(t => {
     if ( t.updateCoverTypes() ) t.refreshCoverTypes();
     if ( t.updateCoverEffects() ) t.refreshCoverEffects();

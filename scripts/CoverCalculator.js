@@ -6,7 +6,7 @@ Token
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { COVER, WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID } from "./const.js";
+import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID } from "./const.js";
 import { SETTINGS, Settings } from "./settings.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 import { CoverDialog } from "./CoverDialog.js";
@@ -46,9 +46,6 @@ export class CoverCalculator extends AbstractCalculator {
     [Settings.KEYS.PRONE_TOKENS_BLOCK]: "proneTokensBlock"
   };
 
-  /** @type {object} */
-  static COVER_TYPES = COVER.TYPES;
-
   get liveForceHalfCover() {
     return this.calc.getConfiguration("liveTokensAlgorithm") === SETTINGS.LIVE_TOKENS.TYPES.HALF;
   }
@@ -70,7 +67,6 @@ export class CoverCalculator extends AbstractCalculator {
     this.calc._configure();
     this.calc._clearCache();
   }
-
 
   // ----- NOTE: Static methods ----- //
 
@@ -104,7 +100,7 @@ export class CoverCalculator extends AbstractCalculator {
    * @param {object} [options]  Options that affect the html creation
    * @param {boolean} [options.include3dDistance]   Include 3d distance calculation.
    * @param {boolean} [options.includeZeroCover]  Include targets that have no cover in the resulting html.
-   * @returns {object {html: {string}, nCover: {number}, coverResults: {COVER_TYPES[][]}}}
+   * @returns {object {html: {string}, nCover: {number}, coverResults: {CoverType[][]}}}
    *   String of html content that can be used in a Dialog or ChatMessage.
    */
   static htmlCoverTable(token, targets, opts) {

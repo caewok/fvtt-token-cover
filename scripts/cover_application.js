@@ -84,7 +84,7 @@ function applyCover(tokenUUID, coverType) {
 /**
  * Apply cover using default Foundry.
  * @param {TokenDocument} tokenD    Token document of token for which to apply cover
- * @param {COVER_TYPES} coverType   What cover to set; if 0, all cover removed
+ * @param {CoverType} coverType   What cover to set; if 0, all cover removed
  */
 async function applyCoverATV(tokenD, coverType) {
   if ( !coverType ) return disableAllCoverATV(tokenD);
@@ -94,7 +94,7 @@ async function applyCoverATV(tokenD, coverType) {
 /**
  * Apply cover using DFred's Convenient Effects.
  * @param {TokenDocument} tokenD    Token document of token for which to apply cover
- * @param {COVER_TYPES} coverType   What cover to set; if 0, all cover removed
+ * @param {CoverType} coverType   What cover to set; if 0, all cover removed
  */
 async function applyCoverDFred(tokenD, coverType) {
   if ( !coverType ) return disableAllCoverDFreds(tokenD);
@@ -104,7 +104,7 @@ async function applyCoverDFred(tokenD, coverType) {
 /**
  * Apply cover in the sfrpg system.
  * @param {TokenDocument} tokenD    Token document of token for which to apply cover
- * @param {COVER_TYPES} coverType   What cover to set; if 0, all cover removed
+ * @param {CoverType} coverType   What cover to set; if 0, all cover removed
  */
 async function applyCoverSFRPG(tokenD, coverType) {
   if ( !coverType ) return disableAllCoverSFRPG(tokenD);
@@ -116,7 +116,7 @@ async function applyCoverSFRPG(tokenD, coverType) {
  * Enable a cover status (ActiveEffect) for a token.
  * Note that ActiveEffect hooks prevent multiple cover application.
  * @param {TokenDocument} tokenD    Token document of token for which to apply cover
- * @param {COVER_TYPES} coverType   What cover to set; if 0, all cover removed
+ * @param {CoverType} coverType   What cover to set; if 0, all cover removed
  * @returns {Promise<boolean>} Return from toggleActiveEffect.
  */
 async function enableCoverATV(tokenD, coverType) {
@@ -132,7 +132,7 @@ async function enableCoverATV(tokenD, coverType) {
  * Enable a cover status (ActiveEffect) for a token.
  * Note that ActiveEffect hooks prevent multiple cover application.
  * @param {TokenDocument} tokenD    Token document of token for which to apply cover
- * @param {COVER_TYPES} coverType   What cover to set; if 0, all cover removed
+ * @param {CoverType} coverType   What cover to set; if 0, all cover removed
  * @returns {Promise<boolean>} Return from toggleActiveEffect.
  */
 async function enableCoverDFreds(tokenD, coverType) {
@@ -148,7 +148,7 @@ async function enableCoverDFreds(tokenD, coverType) {
 /**
  * Enable a cover status (ActiveEffect) for a token in Starfinder RPG.
  * @param {TokenDocument} tokenD    Token document of token for which to apply cover
- * @param {COVER_TYPES} coverType   What cover to set; if 0, all cover removed
+ * @param {CoverType} coverType   What cover to set; if 0, all cover removed
  * @returns {Promise<boolean>} Return from toggleActiveEffect.
  */
 async function enableCoverSFRPG(tokenD, coverType) {

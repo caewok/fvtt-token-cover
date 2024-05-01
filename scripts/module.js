@@ -149,6 +149,15 @@ Hooks.once("init", function() {
     setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
   }
   if ( game.modules.get("dfreds-convenient-effects")?.active ) CONFIG[MODULE_ID].CoverEffect = CoverActiveEffectDFreds;
+
+  // Create render flags for refreshing cover types and effects
+  // Register new render flag for elevation changes to placeables.
+  CONFIG.Token.objectClass.RENDER_FLAGS.refreshCoverTypes = {};
+  CONFIG.Token.objectClass.RENDER_FLAGS.refreshCoverEffects = {};
+  //CONFIG.Token.objectClass.RENDER_FLAGS.refreshSize.propagate.push("refreshCoverType", "refreshCoverEffect");
+  //CONFIG.Token.objectClass.RENDER_FLAGS.refreshPosition.propagate.push("refreshCoverType", "refreshCoverEffect");
+  //CONFIG.Token.objectClass.RENDER_FLAGS.refreshElevation.propagate.push("refreshCoverType", "refreshCoverEffect");
+  //CONFIG.Token.objectClass.RENDER_FLAGS.refreshTarget.propagate.push("refreshCoverType", "refreshCoverEffect");
 });
 
 Hooks.once("setup", function() {
