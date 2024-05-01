@@ -39,19 +39,38 @@ Effects require types, so greater number of attackers will be used.
 - Combatant: Only the current user; combatant is the attacker.
 - Targeting boolean: Only assign cover types, effects to targeted tokens.
 
+
+Token getters:
+- coverCalculator: Instantiation of CoverCalculator where this token is the attacker.
+- coverTypes: Set of CoverTypes currently assigned to this token.
+- coverEffects: Set of CoverEffects currently assigned to this token.
+- coverFromMap: Percentage and CoverTypes for this token relative to every other token (attackers)
+- ignoresCover: Instantiation fo IgnoresCover class to determine if this token ignores cover for attacks
+
 Token methods:
-- coverPercentFromAttacker
-- coverTypeFromAttacker
-- _coverAttackers. What tokens are considered to be attacking this token, for setting cover types
-- _coverTypes. Cover types given the current attackers.
-- _coverEffects. Cover effects given the current attackers.
-- refreshCoverIcons. Refresh the icons representing cover types.
-- refreshCoverEffects. Refresh the local cover effects.
+- coverPercentFromAttacker: Calculated/cached percent cover for this token from an attacker. Uses coverFromMap
+- coverTypeFromAttacker: Calculated/cached cover type for this token from an attacker. Uses coverFromMap
+- updateCoverTypes: Updates the cover types for this token given updated attackers
+- updateCoverEffects: Updates the cover effects for this token given updated attackers
+- refreshCoverIcons: Sets icons representing cover types on this token, given token.coverTypes and current display settings.
+                     Setting icons can be forced, e.g. during attack roll.
+- refreshCoverEffects: Sets effects representing cover effects on this token, given token.coverEffects and current display settings.
+                       Setting effects can be forced, e.g. during attack roll.
+
+The refresh methods can be triggered by renderFlags. Render flags affect the token for all users.
+
+
+Helper functions:
+- RefreshAllCover: When changing a setting, refresh all the cover for all users. Requires sockets.
+                   Loops through tokens and calls refresh on each.
+
 
 Triggers:
 - Token is targeted or untargeted. If targeting option is set.
 - Token is controlled or uncontrolled. If controlled option is set
 - Token is moved. Wipe existing cover calculations. Refresh based on control or target.
+- Combat.
+-
 */
 
 // ----- NOTE: Debug Hooks ----- //
@@ -320,22 +339,28 @@ function _coverAttackers(objectType = "COVER_TYPES") {
 }
 
 /**
- * New method: Token.prototype._coverTypes
- * Determine what type of cover the token has, if any.
- * @type {Set<CoverType>}
+ * New method: Token.prototype.updateCoverTypes
+ * Determine what cover types the token has, if any.
+ * @returns {boolean} True if the update resulted in a change to the existing set.
  */
-function _coverTypes() {
-  return CONFIG[MODULE_ID].CoverType.minimumCoverFromAttackers(this, this._coverAttackers("COVER_TYPES"));
+function updateCoverTypes() {
+  const existingCoverTypes = this.coverTypes; // Calling the getter ensures the property is there.
+  const newCoverTypes = this[MODULE_ID]._coverTypes = CONFIG[MODULE_ID].CoverType
+    .minimumCoverFromAttackers(this, this._coverAttackers("COVER_TYPES"));
+  return !existingCoverTypes.equals(newCoverTypes);
 }
 
 /**
- * New method: Token.prototype._coverEffects
+ * New method: Token.prototype.updateCoverEffects
  * Determine what type of effects could be applied to the token, if any.
- * @type {Set<CoverEffect>}
+ * Call `updateCoverTypes` first otherwise existing types will be used.
+ * @returns {boolean} True if the update resulted in a change to the existing set.
  */
-function _coverEffects() {
-  const coverTypes = CONFIG[MODULE_ID].CoverType.minimumCoverFromAttackers(this, this._coverAttackers("COVER_EFFECTS"));
-  return CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values().filter(ce => coverTypes.intersects(new Set(ce.coverTypes)));
+function updateCoverEffects() {
+  const coverTypes = this.coverTypes;
+  const existingCoverEffects = this.coverEffects; // Calling the getter ensures the property is there.
+  const newCoverEffects = this[MODULE_ID]._coverEffects = CONFIG[MODULE_ID].CoverEffect
+    .coverObjectsMap.values().filter(ce => coverTypes.intersects(new Set(ce.coverTypes)));
 }
 
 /**
@@ -379,8 +404,8 @@ PATCHES.BASIC.METHODS = {
  * Retrieve a valid cover calculator or construct a new one.
  */
 function coverCalculator() {
-  this[MODULE_ID] ??= {};
-  return (this[MODULE_ID].coverCalc ??= new CoverCalculator(this));
+  const mod = this[MODULE_ID] ??= {};
+  return (mod.coverCalc ??= new CoverCalculator(this));
 }
 
 /**
@@ -404,11 +429,33 @@ function ignoresCover() {
   return this._ignoresCover || (this._ignoresCover = new IGNORES_COVER_HANDLER(this));
 }
 
+/**
+ * New getter: Token.prototype.coverTypes
+ * Set of CoverTypes currently assigned to this token.
+ * @type {Set<CoverType>}
+ */
+function coverTypes() {
+  const mod = this[MODULE_ID] ??= {};
+  return (mod._coverTypes ??= new Set());
+}
+
+/**
+ * New getter: Token.prototype.coverEffects
+ * Set of CoverEffects currently assigned to this token.
+ * @type {Set<CoverEffect>}
+ */
+function coverEffects() {
+  const mod = this[MODULE_ID] ??= {};
+  return (mod._coverEffects ??= new Set());
+}
+
 
 PATCHES.BASIC.GETTERS = {
   coverCalculator,
   coverFromMap,
-  ignoresCover
+  ignoresCover,
+  coverTypes,
+  coverEffects
 };
 
 

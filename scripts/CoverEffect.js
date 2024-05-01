@@ -215,7 +215,7 @@ export class CoverEffect extends AbstractCoverObject {
     // Remove documents associated with this cover effect from the actor.
     const removedIds = this._removeFromActorLocally(actor);
     if ( !removedIds.length ) return false;
-    removedIds.forEach(id => this.constructor.documentIds.delete(id));
+    removedIds.forEach(id => this.constructor._documentIds.delete(id));
     if ( update ) refreshActorCoverEffect(actor);
     return true;
   }
