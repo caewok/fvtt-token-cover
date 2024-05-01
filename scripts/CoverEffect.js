@@ -13,7 +13,6 @@ import { MODULE_ID, FLAGS } from "./const.js";
 import { Settings } from "./settings.js";
 import { AbstractCoverObject } from "./AbstractCoverObject.js";
 import { AsyncQueue } from "./AsyncQueue.js";
-import { CoverType } from "./CoverType.js";
 import { log } from "./util.js";
 import { defaultCoverEffects as dnd5eCoverEffects } from "./coverDefaults/dnd5e.js";
 import { defaultCoverEffects as pf2eCoverEffects } from "./coverDefaults/pf2e.js";
@@ -52,23 +51,16 @@ PATCHES_ItemDirectory.COVER_EFFECT.HOOKS = { renderItemDirectory: removeCoverEff
  */
 export class CoverEffect extends AbstractCoverObject {
 
+
   // ----- NOTE: Getters, setters, and related properties ----- //
 
-  /** @type {string[]} */
-  get #coverTypesArray() { return this.document.flags[MODULE_ID][FLAGS.COVER_TYPES] ?? []; }
-
-  /** @type {CoverType[]} */
+  /** @type {Set<CoverType>} */
   get coverTypes() {
-    return this.#coverTypesArray.map(typeId => CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(typeId));
-  }
-
-  set coverType(value) {
-    if ( typeof value === "string" ) value = CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(value);
-    if ( !(value instanceof CoverType) ) {
-      console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
-      return;
-    }
-    this.document.flags[MODULE_ID][FLAGS.COVER_TYPE] = value.document.id;
+    const ids = this.document.flags[MODULE_ID][FLAGS.COVER_TYPES] ?? [];
+    const cts = ids
+      .map(id => CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(id))
+      .filter(ct => Boolean(ct));
+    return new Set(cts);
   }
 
   /**
@@ -134,37 +126,6 @@ export class CoverEffect extends AbstractCoverObject {
   async renderConfig() { return this.document.sheet.render(true); }
 
   // ----- NOTE: Methods specific to cover effects ----- //
-
-  /**
-   * Add a single cover type to this effect.
-   * @param {CoverType|string} coverType      CoverType object or its id.
-   */
-  _addCoverType(coverType) {
-    if ( typeof coverType === "string" ) coverType = CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(coverType);
-    if ( !(coverType instanceof CoverType) ) {
-      console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
-      return;
-    }
-    this.#coverTypesArray.push(coverType.id);
-  }
-
-  /**
-   * Remove a single cover type.
-   * @param {CoverType|string} coverType      CoverType object or its id.
-   */
-  _removeCoverType(coverType) {
-    if ( typeof coverType === "string" ) coverType = CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(coverType);
-    if ( !(coverType instanceof CoverType) ) {
-      console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
-      return;
-    }
-    this.#coverTypesArray.findSplice(ct => ct.id === coverType.id);
-  }
-
-  /**
-   * Clear all cover types
-   */
-  _removeAllCoverTypes() { this.#coverTypesArray.length = 0; }
 
   /**
    * Test if the local effect is already on the actor.
