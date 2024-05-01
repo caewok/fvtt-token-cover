@@ -52,7 +52,7 @@ Token methods:
 - coverTypeFromAttacker: Calculated/cached cover type for this token from an attacker. Uses coverFromMap
 - updateCoverTypes: Updates the cover types for this token given updated attackers
 - updateCoverEffects: Updates the cover effects for this token given updated attackers
-- refreshCoverIcons: Sets icons representing cover types on this token, given token.coverTypes and current display settings.
+- refreshCoverTypes: Sets icons representing cover types on this token, given token.coverTypes and current display settings.
                      Setting icons can be forced, e.g. during attack roll.
 - refreshCoverEffects: Sets effects representing cover effects on this token, given token.coverEffects and current display settings.
                        Setting effects can be forced, e.g. during attack roll.
@@ -186,10 +186,6 @@ PATCHES.DEBUG.HOOKS = {
 
 // ----- NOTE: Hooks ----- //
 
-function preUpdateToken(_tokenD, _change, _options, _userId) {
-  return true;
-}
-
 /**
  * Hook: updateToken
  * If the token moves, clear cover calculations
@@ -215,15 +211,7 @@ function updateToken(tokenD, change, _options, _userId) {
     if ( t === token ) return;
     t.coverFromMap.delete(id);
   });
-
-  if ( useCoverObject("COVER_TYPES") ) {
-    log(`updateToken hook|updating cover icons.`)
-    canvas.tokens.placeables.forEach(t => t.refreshCoverIcons());
-  }
-  if ( useCoverObject("COVER_EFFECTS") ) {
-    log(`updateToken hook|updating cover effects.`)
-    canvas.tokens.placeables.forEach(t => t.refreshCoverEffects());
-  }
+  updateAllTokenCover();
 }
 
 /**
@@ -234,21 +222,25 @@ function updateToken(tokenD, change, _options, _userId) {
  * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
  */
 function controlToken(_controlledToken, _controlled) {
-  if ( useCoverObject("COVER_TYPES") ) {
-    log(`controlToken hook|updating cover icons. ${_controlledToken.name} ${_controlled ? "controlled" : "uncontrolled"}`)
-    canvas.tokens.placeables.forEach(t => t.refreshCoverIcons());
-  }
-  if ( useCoverObject("COVER_EFFECTS") ) {
-    log(`controlToken hook|updating cover effects. ${_controlledToken.name} ${_controlled ? "controlled" : "uncontrolled"}`)
-    canvas.tokens.placeables.forEach(t => t.refreshCoverEffects());
-  }
+  updateAllTokenCover();
 }
 
 /**
  * Hook: destroyToken
  * @param {PlaceableObject} object    The object instance being destroyed
  */
-function destroyToken(token) { if ( token[MODULE_ID]?.coverCalc ) token.coverCalculator.destroy(); }
+function destroyToken(token) {
+  log(`destroyToken hook|destroying ${token.name}`);
+  if ( token[MODULE_ID]?.coverCalc ) token.coverCalculator.destroy();
+
+  // Clear all other token's cover calculations for this token.
+  const id = token.id;
+  canvas.tokens.placeables.forEach(t => {
+    if ( t === token ) return;
+    t.coverFromMap.delete(id);
+  });
+  updateAllTokenCover();
+}
 
 /**
  * Hook: targetToken
@@ -264,12 +256,12 @@ function destroyToken(token) { if ( token[MODULE_ID]?.coverCalc ) token.coverCal
 function targetToken(user, target, _targeted) {
   const coverTypeTargetsOnly = Settings.get(Settings.KEYS.COVER_TYPES.TARGETING);
   const coverEffectTargetsOnly = Settings.get(Settings.KEYS.COVER_EFFECTS.TARGETING);
-  if ( coverTypeTargetsOnly && useCoverObject("COVER_TYPES") ) {
-    log(`targetToken hook|updating cover icons.`)
-    target.refreshCoverIcons();
+  if ( coverTypeTargetsOnly ) {
+    log(`targetToken hook|updating cover icons.`);
+    target.refreshCoverTypes();
   }
-  if ( coverEffectTargetsOnly && useCoverObject("COVER_EFFECTS") ) {
-    log(`targetToken hook|updating cover effects.`)
+  if ( coverEffectTargetsOnly ) {
+    log(`targetToken hook|updating cover effects.`);
     target.refreshCoverEffects();
   }
 }
@@ -291,7 +283,7 @@ function applyTokenStatusEffect(token, statusId, active) {
     : CoverCalculator.disableAllCover(token);
 }
 
-PATCHES.BASIC.HOOKS = { destroyToken, updateToken, controlToken, targetToken, preUpdateToken };
+PATCHES.BASIC.HOOKS = { destroyToken, updateToken, controlToken, targetToken };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 // PATCHES.NO_PF2E.HOOKS = { targetToken };
 
@@ -330,10 +322,10 @@ function coverTypesFromAttacker(attackingToken) {
  * @returns {Token[]}
  */
 function _coverAttackers(objectType = "COVER_TYPES") {
-  if ( game.combats?.active && game.combat?.combatant?.isOwner && game.combat.combatant !== this ) {
+  if ( game.combat?.started && game.combat.combatant !== this && game.combat.combatant?.isOwner ) {
     const choice = Settings.get(Settings.KEYS[objectType].USE);
     const choices = Settings.KEYS[objectType].CHOICES;
-    if ( choice === choices.COMBATANT ) [game.combat.combatant];
+    if ( choice === choices.COMBATANT ) return [game.combat.combatant];
   }
   return canvas.tokens.controlled.filter(t => t !== this)
 }
@@ -359,41 +351,52 @@ function updateCoverTypes() {
 function updateCoverEffects() {
   const coverTypes = this.coverTypes;
   const existingCoverEffects = this.coverEffects; // Calling the getter ensures the property is there.
-  const newCoverEffects = this[MODULE_ID]._coverEffects = CONFIG[MODULE_ID].CoverEffect
-    .coverObjectsMap.values().filter(ce => coverTypes.intersects(new Set(ce.coverTypes)));
+  const newCoverEffects = this[MODULE_ID]._coverEffects = new Set(CONFIG[MODULE_ID].CoverEffect
+    .coverObjectsMap.values().filter(ce => coverTypes.intersects(ce.coverTypes)));
+  return !existingCoverEffects.equals(newCoverEffects);
 }
 
 /**
- * New method: Token.prototype.refreshCoverIcons
+ * New method: Token.prototype.refreshCoverTypes
  * Set the cover icons representing whether this token currently has cover from tokens.
+ * Observes settings that control whether icons should be displayed unless forced.
+ * @param {boolean} [force=false]   If true, ignore settings; just display icons corresponding to types
+ * @returns {boolean} True if a change occurred
  */
-function refreshCoverIcons() {
-  const targetsOnly = Settings.get(Settings.KEYS.COVER_TYPES.TARGETING);
-  const currCoverTypes = (targetsOnly && !this.isTargeted) ? NULL_SET : this._coverTypes();
+function refreshCoverTypes(force = false) {
+  log(`Token#refreshCoverTypes|${this.name}`);
+  const coverTypes = (force || useCoverObject("COVER_TYPES", this)) ? this.coverTypes : NULL_SET;
 
   // Trigger token icons update if there was a change.
-  const changed = CONFIG[MODULE_ID].CoverType.replaceCoverTypes(this, currCoverTypes);
+  const changed = CONFIG[MODULE_ID].CoverType.replaceCoverTypes(this, coverTypes);
   if ( changed ) this.renderFlags.set({ redrawEffects: true });
+  return changed;
 }
 
 /**
  * New method: Token.prototype.refreshCoverEffects
- * Set the cover icons representing whether this token currently has cover from tokens.
+ * Applies cover effects based on existing cover effects set.
+ * Observes settings that control whether effects should be applied unless forced.
+ * @param {boolean} [force=false]   If true, ignore settings; just display icons corresponding to types
+ * @returns {boolean} True if a change occurred
  */
-function refreshCoverEffects() {
+function refreshCoverEffects(force=false) {
   log(`Token#refreshCoverEffects|${this.name}`);
-  const targetsOnly = Settings.get(Settings.KEYS.COVER_TYPES.TARGETING);
-  const currCoverEffects = (targetsOnly && !this.isTargeted) ? NULL_SET : this._coverEffects();
-  CONFIG[MODULE_ID].CoverEffect.replaceLocalEffectsOnActor(this, currCoverEffects);
+  const coverEffects = (force || useCoverObject("COVER_EFFECTS", this)) ? this.coverEffects : NULL_SET;
+
+  // Trigger local effects update for actor; return changed state.
+  return CONFIG[MODULE_ID].CoverEffect.replaceLocalEffectsOnActor(this, coverEffects);
 }
 
 PATCHES.BASIC.METHODS = {
   coverPercentFromAttacker,
   coverTypesFromAttacker,
   _coverAttackers,
-  _coverTypes,
-  _coverEffects,
-  refreshCoverIcons,
+  coverTypes,
+  coverEffects,
+  updateCoverTypes,
+  updateCoverEffects,
+  refreshCoverTypes,
   refreshCoverEffects
 };
 
@@ -464,16 +467,19 @@ PATCHES.BASIC.GETTERS = {
 /**
  * Helper function: determine whether to apply a cover icon or cover effect.
  * @param {"COVER_TYPES"|"COVER_EFFECTS"} objectType
+ * @param {Token} token
+ * @returns {boolean}
  */
-function useCoverObject(objectType) {
-  const choice = Settings.get(Settings.KEYS[objectType].USE);
-  const choices = Settings.KEYS[objectType].CHOICES;
-  switch ( choice ) {
-    case choices.NEVER:
-    case choices.ATTACK: return false;
-    case choices.ALWAYS: return true;
-    case choices.COMBAT:
-    case choices.COMBATANT: return Boolean(game.combats?.active);
+function useCoverObject(objectType, token) {
+  const { TARGETING, USE, CHOICES } = Settings.KEYS[objectType];
+  const targetsOnly = Settings.get(TARGETING);
+  if ( targetsOnly && !token.isTargeted ) return false;
+  switch ( Settings.get(USE) ) {
+    case CHOICES.NEVER: return false;
+    case CHOICES.ATTACK: return false; // Handled by forcing application in the workflow.
+    case CHOICES.ALWAYS: return true;
+    case CHOICES.COMBAT: return Boolean(game.combat?.started);
+    case CHOICES.COMBATANT: return Boolean(game.combat?.started) && game.combat.combatants.has(token.id);
     default: return false;
   }
 }
@@ -488,4 +494,14 @@ function updateCoverFromToken(tokenToUpdate, attackingToken) {
   const percentCover = attackingToken.coverCalculator.percentCover(tokenToUpdate);
   const coverTypes = attackingToken.coverCalculator.coverTypes(tokenToUpdate);
   tokenToUpdate.coverFromMap.set(attackingToken.id, { coverTypes, percentCover});
+}
+
+/**
+ * Helper to update cover types and effects for all tokens on the canvas.
+ */
+function updateAllTokenCover() {
+  canvas.tokens.placeables.forEach(t => {
+    if ( t.updateCoverTypes() ) t.refreshCoverTypes();
+    if ( t.updateCoverEffects() ) t.refreshCoverEffects();
+  });
 }

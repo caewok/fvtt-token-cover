@@ -255,6 +255,7 @@ export class CoverEffect extends AbstractCoverObject {
    * Replace local cover effects on token with these.
    * @param {Token|Actor} actor
    * @param {CoverEffect[]|Set<CoverEffect>} coverEffects
+   * @param {boolean} True if a change was made
    */
   static replaceLocalEffectsOnActor(actor, coverEffects = new Set()) {
     log(`CoverEffect#replaceLocalEffectsOnActor|${actor.name}`);
@@ -262,19 +263,20 @@ export class CoverEffect extends AbstractCoverObject {
     if ( actor instanceof Token ) actor = actor.actor;
     if ( !(coverEffects instanceof Set) ) coverEffects = new Set(coverEffects);
     const previousEffects = new Set(this.allLocalEffectsOnActor(actor));
-    if ( coverEffects.equals(previousEffects) ) return;
+    if ( coverEffects.equals(previousEffects) ) return false;
 
     // Filter to only effects that must change.
     const toRemove = previousEffects.difference(coverEffects);
     const toAdd = coverEffects.difference(previousEffects);
-    if ( !(toRemove.size || toAdd.size) ) return;
+    if ( !(toRemove.size || toAdd.size) ) return false;
 
     // Remove unwanted effects then add new effects.
     previousEffects.forEach(ce => ce.removeFromActorLocally(actor, false))
     coverEffects.forEach(ce => ce.addToActorLocally(actor, false));
 
-    // At least on effect should have been changed, so refresh actor.
+    // At least one effect should have been changed, so refresh actor.
     refreshActorCoverEffect(actor);
+    return true;
   }
 }
 

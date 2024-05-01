@@ -199,7 +199,7 @@ export class CoverDialog {
     const CoverType = CONFIG[MODULE_ID].CoverType;
     coverCalculations.forEach((coverTypes, target) => {
       const changed = CoverType.replaceCoverTypes(target, coverTypes);
-      if ( changed ) target.renderFlags.set({ redrawEffects: true });
+      if ( changed ) target.refreshCoverTypes(true);
     });
   }
 
@@ -213,7 +213,7 @@ export class CoverDialog {
   updateTargetsCoverEffects(coverCalculations) {
     if ( coverCalculations === false ) return; // User canceled.
     coverCalculations ??= this.coverCalculations;
-    coverCalculations.keys().forEach(target => target.refreshCoverEffects());
+    coverCalculations.keys().forEach(target => target.refreshCoverEffects(true));
   }
 
   /**
@@ -625,7 +625,7 @@ export async function coverAttackWorkflow(token, targets, actionType) {
 
   const coverCalculations = await coverDialog.workflow(actionType);
   if ( coverCalculations === false ) return false;  // User canceled
-  const changed = coverDialog._coverCalculationsEqual(formerCalcs, coverCalculations, false);
+  const changed = CoverDialog._coverCalculationsEqual(formerCalcs, coverCalculations, false);
 
   // Update targets' cover and effects
   if ( changed ) {
