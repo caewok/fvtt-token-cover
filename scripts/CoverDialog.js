@@ -27,7 +27,7 @@ export class CoverDialog {
   /** @type {Set<Token>} */
   targets = new Set();
 
-  /** @type {Map<Token, COVER_TYPE>} */
+  /** @type {Map<Token, Set<CoverType>>} */
   #coverCalculations = new Map();
 
   /** @type {object} */
@@ -48,18 +48,46 @@ export class CoverDialog {
     if ( this.targets.size < 1 ) console.warn("CoverDialog|no targets provided.");
   }
 
-  /** @type {Map<Token, COVER_TYPE} */
+  /** @type {Set<Token>} */
+  get targetsWithCover() { return this.targets.filter(t => this.coverCalculations.get(t).size); }
+
+  /** @type {Map<Token, Set<CoverType>>} */
   get coverCalculations() {
-    if ( this.#coverCalculations.size === this.targets.length ) return this.#coverCalculations;
+    if ( this.#coverCalculations.size === this.targets.size ) return this.#coverCalculations;
     CoverCalculator.coverCalculations(this.token, this.targets, this.#coverCalculations, this.config);
     return this.#coverCalculations;
   }
-
-  duplicateCoverCalculations() {
-    return new Map(this.coverCalculations);
+  /**
+   * Update the cover calculations given different data set.
+   * Targets not in the underlying cover calculations will be ignored.
+   * @param {Map<Token, Set<CoverType>>} newCalcs
+   */
+  updateCoverCalculations(newCalcs) {
+    newCalcs.forEach((coverTypes, token) => {
+      const existingTypes = this.coverCalculations.get(token);
+      if ( !existingTypes ) return;
+      if ( existingTypes.equals(coverTypes) ) return;
+      existingTypes.clear();
+      coverTypes.forEach(ct => existingTypes.add(ct)); // Copy so the newCalcs set is not tied to this one.
+    })
   }
 
+  /**
+   * Create an independent copy of the cover calcs map.
+   * @returns {Map<Token, Set<CoverType>>}
+   */
+  duplicateCoverCalculations() {
+    const copy = new Map(this.coverCalculations);
+    copy.forEach((coverTypes, token) => copy.set(token, new Set(coverTypes)));
+    return copy;
+  }
+
+  /**
+   * Clear the cover calculations
+   */
   resetCoverCalculations() { this.#coverCalculations.clear(); }
+
+
 
   /**
    * If the targets(s) are not present in the set, add them and refresh cover calculation.
@@ -143,7 +171,7 @@ export class CoverDialog {
    * 1. GM confirms / cancels
    * 2. User confirms / cancels
    * 3. User accepts / cancels
-   * @returns {Map<Token, COVER_TYPE>|false|undefined}
+   * @returns {Map<Token, Set<CoverType>>|false|undefined}
    *   Undefined if setting is to not calculate cover.
    *   False if the user/gm canceled by closing the dialog.
    */
@@ -151,14 +179,15 @@ export class CoverDialog {
     const coverCheckOption = Settings.get(Settings.KEYS.COVER_WORKFLOW.CONFIRM);
     const choices = Settings.KEYS.COVER_WORKFLOW.CONFIRM_CHOICES;
     let askGM = true;
+    let coverCalculations;
     switch ( coverCheckOption ) {
       case choices.AUTO: return this.coverCalculations;
       case choices.USER:
         askGM = false;
       case choices.GM: { // eslint-disable-line no-fallthrough
-        const coverCalculations = await this.confirmCover({ askGM });
+        coverCalculations = await this.confirmCover({ askGM });
         if ( coverCalculations === false ) return false; // User canceled.
-        return coverCalculations;
+        break;
       }
       case choices.USER_CANCEL: {
         const dialogRes = await this.showCoverResults();
@@ -166,6 +195,10 @@ export class CoverDialog {
         return this.coverCalculations;
       }
     }
+
+    // Update the dialog calculations with user-provided calcs.
+    this.updateCoverCalculations(coverCalculations);
+    return coverCalculations;
   }
 
   /**
@@ -182,6 +215,8 @@ export class CoverDialog {
     opts.displayIgnored ??= false; // Don't describe what cover is ignored by token.
     opts.include3dDistance ??= false; // Save space by not including distance.
 
+    if ( !opts.includeZeroCover && !this.targetsWithCover.size ) return;
+
     // Construct the chat message.
     const html = this._htmlShowCover(opts);
     return ChatMessage.create({ content: html });
@@ -196,10 +231,12 @@ export class CoverDialog {
   updateTargetsCoverType(coverCalculations) {
     if ( coverCalculations === false ) return; // User canceled.
     coverCalculations ??= this.coverCalculations;
-    const CoverType = CONFIG[MODULE_ID].CoverType;
     coverCalculations.forEach((coverTypes, target) => {
-      const changed = CoverType.replaceCoverTypes(target, coverTypes);
-      if ( changed ) target.refreshCoverTypes(true);
+      const existing = target.coverTypes;
+      if ( existing.equals(coverTypes) ) return;
+      existing.clear();
+      coverTypes.forEach(ct => existing.add(ct));
+      target.refreshCoverTypes(true); // Force regardless of settings.
     });
   }
 
@@ -213,7 +250,9 @@ export class CoverDialog {
   updateTargetsCoverEffects(coverCalculations) {
     if ( coverCalculations === false ) return; // User canceled.
     coverCalculations ??= this.coverCalculations;
-    coverCalculations.keys().forEach(target => target.refreshCoverEffects(true));
+    coverCalculations.keys().forEach(target => {
+      if ( target.updateCoverEffects() ) target.refreshCoverEffects(true); // Force regardless of settings.
+    });
   }
 
   /**
@@ -620,12 +659,12 @@ export async function coverAttackWorkflow(token, targets, actionType) {
   coverDialog.resetCoverCalculations();
   const currCalcs = coverDialog.duplicateCoverCalculations();
 
-  if ( Settings.get(Settings.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY)
+  if ( Settings.get(KEYS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY)
     && CoverDialog._coverCalculationsEqual(formerCalcs, currCalcs, true) ) return currCalcs;
 
   const coverCalculations = await coverDialog.workflow(actionType);
   if ( coverCalculations === false ) return false;  // User canceled
-  const changed = CoverDialog._coverCalculationsEqual(formerCalcs, coverCalculations, false);
+  const changed = !CoverDialog._coverCalculationsEqual(formerCalcs, coverCalculations, false);
 
   // Update targets' cover and effects
   if ( changed ) {
