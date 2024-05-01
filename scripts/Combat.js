@@ -5,7 +5,7 @@ canvas
 "use strict";
 
 import { CoverCalculator } from "./CoverCalculator.js";
-import { Settings, SETTINGS } from "./settings.js";
+import { Settings } from "./settings.js";
 
 // Patches for the Combat class
 export const PATCHES = {};
@@ -35,7 +35,7 @@ function combatRound(combat, updateData, updateOptions) {
  * @param {object} updateOptions
  */
 function updateCombatCoverStatus(combat, _updateData, _updateOptions) {
-  if ( !Settings.get(SETTINGS.COVER.COMBAT_AUTO) ) return;
+  if ( !Settings.get(Settings.KEYS.COVER.COMBAT_AUTO) ) return;
   const c = combat.combatant;
   const playerOwners = c.players;
 

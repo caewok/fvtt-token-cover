@@ -14,7 +14,7 @@ import { MODULE_ID, COVER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { SOCKETS } from "./cover_application.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
-import { SETTINGS, Settings } from "./settings.js";
+import { Settings } from "./settings.js";
 
 // Helper class to construct dialogs related to cover between attacker token and target(s).
 const NULL_SET = new Set();
@@ -148,8 +148,8 @@ export class CoverDialog {
    *   False if the user/gm canceled by closing the dialog.
    */
   async workflow() {
-    const coverCheckOption = Settings.get(SETTINGS.COVER_WORKFLOW.CONFIRM);
-    const choices = SETTINGS.COVER_WORKFLOW.CONFIRM_CHOICES;
+    const coverCheckOption = Settings.get(Settings.KEYS.COVER_WORKFLOW.CONFIRM);
+    const choices = Settings.KEYS.COVER_WORKFLOW.CONFIRM_CHOICES;
     let askGM = true;
     switch ( coverCheckOption ) {
       case choices.AUTO: return this.coverCalculations;
@@ -221,7 +221,7 @@ export class CoverDialog {
    * @param {object} opts     Options passed to htmlCoverTable.
    */
   async showCoverResults(opts) {
-    const coverAlgorithm = Settings.get(SETTINGS.LOS.TARGET.ALGORITHM);
+    const coverAlgorithm = Settings.get(Settings.KEYS.LOS.TARGET.ALGORITHM);
     const algorithmDescription = game.i18n.localize(`${MODULE_ID}.settings.${coverAlgorithm}`);
     const html = this._htmlShowCover(opts);
     const content =
@@ -607,7 +607,7 @@ export async function coverAttackWorkflow(token, targets, actionType) {
   // - false if user canceled
   // - undefined if covercheck is set to NONE. NONE may still require chat display.
   // - Map otherwise
-  const KEYS = SETTINGS.KEYS;
+  const KEYS = Settings.KEYS;
   const coverDialog = new CoverDialog(token, targets);
 
   // Determine if change has occurred.
@@ -620,7 +620,7 @@ export async function coverAttackWorkflow(token, targets, actionType) {
   coverDialog.resetCoverCalculations();
   const currCalcs = coverDialog.duplicateCoverCalculations();
 
-  if ( Settings.get(SETTINGS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY)
+  if ( Settings.get(Settings.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY)
     && CoverDialog._coverCalculationsEqual(formerCalcs, currCalcs, true) ) return currCalcs;
 
   const coverCalculations = await coverDialog.workflow(actionType);

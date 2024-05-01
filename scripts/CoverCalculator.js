@@ -7,7 +7,7 @@ Token
 "use strict";
 
 import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID } from "./const.js";
-import { SETTINGS, Settings } from "./settings.js";
+import { Settings } from "./settings.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 import { CoverDialog } from "./CoverDialog.js";
 import { AbstractCalculator } from "./LOS/AbstractCalculator.js";
@@ -47,7 +47,7 @@ export class CoverCalculator extends AbstractCalculator {
   };
 
   get liveForceHalfCover() {
-    return this.calc.getConfiguration("liveTokensAlgorithm") === SETTINGS.LIVE_TOKENS.TYPES.HALF;
+    return this.calc.getConfiguration("liveTokensAlgorithm") === Settings.KEYS.LIVE_TOKENS.TYPES.HALF;
   }
 
   static initialConfiguration(cfg = {}) {
@@ -56,7 +56,7 @@ export class CoverCalculator extends AbstractCalculator {
 
     // Set liveTokensBlock based on underlying algorithm.
     super.initialConfiguration(cfg);
-    cfg.liveTokensBlock = cfg.liveTokensAlgorithm !== SETTINGS.LIVE_TOKENS.TYPES.NONE;
+    cfg.liveTokensBlock = cfg.liveTokensAlgorithm !== Settings.KEYS.LIVE_TOKENS.TYPES.NONE;
     return cfg;
   }
 
@@ -104,7 +104,7 @@ export class CoverCalculator extends AbstractCalculator {
    *   String of html content that can be used in a Dialog or ChatMessage.
    */
   static htmlCoverTable(token, targets, opts) {
-    if ( Settings.get(SETTINGS.DEBUG.LOS) ) Draw.clearDrawings();
+    if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) Draw.clearDrawings();
     const coverDialog = new CoverDialog(token, targets);
     return coverDialog._htmlShowCover(opts);
   }
