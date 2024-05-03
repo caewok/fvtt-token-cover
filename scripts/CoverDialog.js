@@ -4,21 +4,37 @@ ChatMessage,
 CONFIG,
 Dialog,
 foundry,
+fromUuidSync,
 game,
+Hooks,
+socketlib,
 Token
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, COVER } from "./const.js";
+import { MODULE_ID, COVER, SOCKETS } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
-import { SOCKETS } from "./cover_application.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Settings } from "./settings.js";
 
-// Helper class to construct dialogs related to cover between attacker token and target(s).
+
 const NULL_SET = new Set();
 
+// ----- NOTE: Set up sockets so GM can create or modify items ----- //
+Hooks.once("socketlib.ready", () => {
+  SOCKETS.socket ??= socketlib.registerModule(MODULE_ID);
+  SOCKETS.socket.register("confirmCoverDialog", confirmCoverDialog);
+});
+
+async function confirmCoverDialog(data) {
+  const dialog = CoverDialog.fromJSON(data);
+  const confirmedCalcs = await dialog.confirmCover({ askGM: true });
+  if ( !confirmedCalcs ) return false;
+  return dialog._coverCalculationsToJSON(confirmedCalcs);
+}
+
+// Helper class to construct dialogs related to cover between attacker token and target(s).
 export class CoverDialog {
 
   /** @type {Token} */
@@ -48,6 +64,23 @@ export class CoverDialog {
     if ( this.targets.size < 1 ) console.warn("CoverDialog|no targets provided.");
   }
 
+  toJSON() {
+    return {
+      token: this.token.uuid,
+      targets: [...this.targets.map(t => t.uuid)],
+      coverCalculations: this._coverCalculationsToJSON(),
+      config: this.config
+    };
+  }
+
+  static fromJSON(data) {
+    const token = fromUuidSync(data.token);
+    const targets = new Set(data.targets.map(t => fromUuidSync(t)));
+    const dialog = new this(token, targets, data.config);
+    dialog._coverCalculationsFromJSON(data.coverCalculations);
+    return dialog;
+  }
+
   /** @type {Set<Token>} */
   get targetsWithCover() { return this.targets.filter(t => this.coverCalculations.get(t).size); }
 
@@ -57,6 +90,7 @@ export class CoverDialog {
     CoverCalculator.coverCalculations(this.token, this.targets, this.#coverCalculations, this.config);
     return this.#coverCalculations;
   }
+
   /**
    * Update the cover calculations given different data set.
    * Targets not in the underlying cover calculations will be ignored.
@@ -70,6 +104,26 @@ export class CoverDialog {
       existingTypes.clear();
       coverTypes.forEach(ct => existingTypes.add(ct)); // Copy so the newCalcs set is not tied to this one.
     })
+  }
+
+  /**
+   * Get JSON for the cover calculations.
+   */
+  _coverCalculationsFromJSON(coverCalculations) {
+    const ctMap = CONFIG[MODULE_ID].CoverType.coverObjectsMap;
+    const m = new Map(coverCalculations.map(([tokenId, coverTypeId]) =>
+      [fromUuidSync(tokenId), ctMap.get(coverTypeId)]));
+    this.updateCoverCalculations(m);
+  }
+
+  /**
+   * Replace the cover calculations with JSON data
+   */
+  _coverCalculationsToJSON(coverCalculations) {
+    coverCalculations ??= this.coverCalculations;
+    const json = [];
+    coverCalculations.forEach((coverTypes, token) => coverCalculations.push([token.uuid, coverTypes.id]));
+    return json;
   }
 
   /**
@@ -110,7 +164,7 @@ export class CoverDialog {
    * @param {object} [opts]   Optional parameters used to construct the dialog
    * @param {boolean} [opts.askGM]      Should the GM get the cover confirmation dialog?
    * @param {string} [opts.actionType]  "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
-   * @returns {Map<Token, Set<CoverType>>}
+   * @returns {Map<Token, Set<CoverType>>|false}
    */
   async confirmCover({ askGM } = {}) {
     askGM ||= false;
@@ -178,23 +232,27 @@ export class CoverDialog {
   async workflow() {
     const coverCheckOption = Settings.get(Settings.KEYS.COVER_WORKFLOW.CONFIRM);
     const choices = Settings.KEYS.COVER_WORKFLOW.CONFIRM_CHOICES;
-    let askGM = true;
     let coverCalculations;
     switch ( coverCheckOption ) {
       case choices.AUTO: return this.coverCalculations;
-      case choices.USER:
-        askGM = false;
-      case choices.GM: { // eslint-disable-line no-fallthrough
-        coverCalculations = await this.confirmCover({ askGM });
-        if ( coverCalculations === false ) return false; // User canceled.
-        break;
-      }
       case choices.USER_CANCEL: {
         const dialogRes = await this.showCoverResults();
         if ( "Close" === dialogRes ) return false;
         return this.coverCalculations;
       }
+      case choices.USER: {
+        coverCalculations = await this.confirmCover({ askGM: false });
+        break;
+      }
+      case choices.GM: {
+        if ( !game.user.isGM ) {
+          coverCalculations = await SOCKETS.socket.confirmCoverDialog(this.toJSON());
+          if ( coverCalculations ) coverCalculations = this._coverCalculationsFromJSON(coverCalculations);
+        } else coverCalculations = await this.confirmCover({ askGM: true });
+        break;
+      }
     }
+    if ( !coverCalculations ) return false; // User canceled.
 
     // Update the dialog calculations with user-provided calcs.
     this.updateCoverCalculations(coverCalculations);

@@ -47,7 +47,6 @@ import {
 
 // Other self-executing hooks
 import "./changelog.js";
-import "./cover_application.js";
 
 Hooks.once("init", function() {
   registerGeometry();
@@ -162,20 +161,25 @@ Hooks.once("init", function() {
 
 Hooks.once("setup", function() {
   initializePatching();
-  registerElevationConfig("TileConfig", "Alt. Token Cover");
-});
-
-Hooks.once("ready", function() {
   Settings.registerAll();
+  registerElevationConfig("TileConfig", "Alt. Token Cover");
 
-  // Transitions to newer data.
-  transitionTokenMaximumCoverFlags();
 
   // Construct default types after init, so that world scripts have a chance to modify.
   // Must also be done after settings.
   CoverType.initialize();
   CONFIG[MODULE_ID].CoverEffect.initialize(); // Async
 });
+
+Hooks.once("ready", function() {
+
+
+});
+
+Hooks.once("canvasReady", function() {
+  // Transitions to newer data. Requires canvas.scene to be loaded.
+  transitionTokenMaximumCoverFlags();
+})
 
 // Add pathfinding button to token controls.
 const COVER_EFFECTS_CONTROL = {

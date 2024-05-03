@@ -1,16 +1,50 @@
 /* globals
 CONFIG,
-game
+fromUuid,
+game,
+Hooks,
+socketlib
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS } from "./const.js";
+import { MODULE_ID, FLAGS, SOCKETS } from "./const.js";
 import { CoverEffect } from "./CoverEffect.js";
 import { log } from "./util.js";
 
 export const PATCHES = {};
 PATCHES.DFREDS = {};
+
+// ----- NOTE: Set up sockets so GM can create or modify items ----- //
+Hooks.once("socketlib.ready", () => {
+  SOCKETS.socket ??= socketlib.registerModule(MODULE_ID);
+  SOCKETS.socket.register("createActiveCoverEffect", createActiveCoverEffect);
+  SOCKETS.socket.register("deleteActiveCoverEffects", deleteActiveCoverEffects);
+});
+
+/**
+ * Socket function: createActiveCoverEffect
+ * GM creates the active effect on the cover effect item that stores/represents the effect.
+ * @param {object} data   Data used to create the effect
+ * @returns {string} UUID of the effect
+ */
+async function createActiveCoverEffect(data) {
+  await CONFIG[MODULE_ID].CoverEffect._initializeCoverEffectsItem();
+  const item = CONFIG[MODULE_ID].CoverEffect.coverEffectItem;
+  const effect = (await item.createEmbeddedDocuments("ActiveEffect", [data]))[0];
+  return effect.uuid;
+}
+
+/**
+ * Socket function: deleteActiveCoverEffects
+ * GM deletes the active effect on the cover effect item that stores/represents the effect.
+ * @param {string[]} ids   IDs of the effects to delete
+ */
+async function deleteActiveCoverEffects(ids) {
+  const item = CONFIG[MODULE_ID].CoverEffect.coverEffectItem;
+  if ( !item ) return;
+  await item.deleteEmbeddedDocuments("ActiveEffect", ids, { render: false });
+}
 
 /**
  * Cover Effect for systems like dnd5e that use Active Effect to signify effects.
@@ -83,10 +117,12 @@ export class CoverActiveEffect extends CoverEffect {
    * @returns {Promise<Document>|undefined} Undefined if no document found.
    */
   async _loadStorageDocument() {
-    if ( !this.constructor.coverEffectItem ) await this.constructor._initializeCoverEffectsItem();
-
-    // It is possible that _findStorageDocument failed b/c of not initializing the cover item. Retry.
-    return this._findStorageDocument();
+    if ( !this.constructor.coverEffectItem ) {
+      await this.constructor._initializeCoverEffectsItem();
+      // It is possible that _findStorageDocument failed b/c of not initializing the cover item. Retry.
+      return this._findStorageDocument();
+    }
+    return undefined;
   }
 
   /**
@@ -96,19 +132,53 @@ export class CoverActiveEffect extends CoverEffect {
    */
   async _createStorageDocument() {
     if ( !this.constructor.coverEffectItem ) await this.constructor._initializeCoverEffectsItem();
+    if ( !this.constructor.coverEffectItem ) return;
 
     // Create default effects on-the-fly if not present.
     // Otherwise, create a new cover effect.
     const data = this.defaultCoverObjectData ?? this.newCoverObjectData;
-    return (await this.constructor.coverEffectItem.createEmbeddedDocuments("ActiveEffect", [data]))[0];
+    let doc;
+    if ( !game.user.isGM ) {
+      try {
+        const uuid = await SOCKETS.socket.executeAsGM("createActiveCoverEffect", data);
+        doc = await fromUuid(uuid);
+      } catch(e) {
+        console.error(`${MODULE_ID}|CoverActiveEffect#_createStorageDocument GM socket failure.`, e);
+      }
+    } else doc = (await this.constructor.coverEffectItem.createEmbeddedDocuments("ActiveEffect", [data]))[0];
+    return doc;
   }
 
   /**
    * Delete the stored document associated with this active effect from the effect item.
-   * @return {boolean} Must return true if document is deleted.
    */
   async _deleteStorageDocument() {
-    return await this.constructor.coverEffectItem.deleteEmbeddedDocuments("ActiveEffect", [this.document.id]);
+    const id = this.document?.id;
+    if ( !id ) return;
+    if ( !game.user.isGM ) {
+      try {
+        await SOCKETS.socket.executeAsGM("deleteActiveCoverEffects", [id]);
+      } catch(e) {
+        console.error(`${MODULE_ID}|CoverActiveEffect#_deleteStorageDocument GM socket failure.`, e);
+      }
+    } else await this.constructor.coverEffectItem.deleteEmbeddedDocuments("ActiveEffect", [id], { render: false });
+  }
+
+  /**
+   * Delete all documents associated with this cover object.
+   */
+  static async _deleteAllDocuments() {
+    const effectItem = this.coverEffectItem;
+    if ( !effectItem ) return;
+    const ids = [...effectItem.effects.keys()];
+    if ( !ids.length ) return;
+    if ( !game.user.isGM ) {
+      try {
+        await SOCKETS.socket.executeAsGM("deleteActiveCoverEffects", ids);
+      } catch(e) {
+        console.error(`${MODULE_ID}|CoverActiveEffect#_deleteStorageDocument GM socket failure.`, e);
+      }
+    } else await this.coverEffectItem.deleteEmbeddedDocuments("ActiveEffect", ids, { render: false });
   }
 
   /**
@@ -185,15 +255,25 @@ export class CoverActiveEffect extends CoverEffect {
    */
   static async _initializeCoverEffectsItem() {
     this.coverEffectItem = game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECTS_ITEM));
-    if ( !this.coverEffectItem  ) {
-      this.coverEffectItem = await CONFIG.Item.documentClass.create({
-        name: "Cover Effects",
-        img: "icons/svg/ruins.svg",
-        type: "base",
-        flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECTS_ITEM]: true} }
-      });
-    }
+    if ( this.coverEffectItem ) return;
+    const data = {
+      name: "Cover Effects",
+      img: "icons/svg/ruins.svg",
+      type: "base",
+      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECTS_ITEM]: true} }
+    };
+    let doc;
+    if ( !game.user.isGM ) {
+      try {
+        const uuid = await SOCKETS.socket.executeAsGM("createCoverEffectItem", data);
+        doc = await fromUuid(uuid);
+      } catch(e) {
+        console.error(`${MODULE_ID}|CoverActiveEffect#_initializeCoverEffectsItem GM socket failure.`, e);
+      }
+    } else doc = await CONFIG.Item.documentClass.create(data);
+    this.coverEffectItem = doc;
   }
+
 }
 
 /**

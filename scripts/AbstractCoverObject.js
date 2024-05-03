@@ -112,6 +112,11 @@ export class AbstractCoverObject {
   async _createStorageDocument() { return { id: this.id }; }
 
   /**
+   * Delete the underlying stored document.
+   */
+  async _deleteStorageDocument() {  }
+
+  /**
    * Update this object with the given data.
    * @param {object} [config={}]
    */
@@ -152,11 +157,6 @@ export class AbstractCoverObject {
     this.#document = undefined;
     return this.constructor.removeStoredCoverObjectId(this.id); // Async
   }
-
-  /**
-   * Delete the underlying stored document.
-   */
-  async _deleteStorageDocument() {  }
 
   /**
    * Save a json file for this cover type.
@@ -231,11 +231,12 @@ export class AbstractCoverObject {
   /** @type {string} */
   static get settingsKey() { console.error("Must be set by child class"); return undefined; }
 
-  /** @type {string[]} */
+  /** @type {Set<string>} */
   static get storedCoverObjectIds() {
     const out = Settings.get(this.settingsKey);
-    if ( out instanceof Array ) return out;
-    return Object.keys(out);
+    if ( !out ) return new Set();
+    if ( out instanceof Array ) return new Set(out);
+    return new Set(Object.keys(out));
   }
 
   /** @type {string} */
@@ -254,7 +255,7 @@ export class AbstractCoverObject {
    * @param {string} id
    */
   static async addStoredCoverObjectId(id) {
-    const storedIds = new Set(this.storedCoverObjectIds);
+    const storedIds = this.storedCoverObjectIds;
     if ( storedIds.has(id) ) return;
     storedIds.add(id);
     return Settings.set(this.settingsKey, [...storedIds.values()]);
@@ -265,29 +266,43 @@ export class AbstractCoverObject {
    * @param {string} id
    */
   static async removeStoredCoverObjectId(id) {
-    const storedIds = new Set(this.storedCoverObjectIds);
+    const storedIds = this.storedCoverObjectIds;
     if ( !storedIds.has(id) ) return;
     storedIds.delete(id);
     return Settings.set(this.settingsKey, [...storedIds.values()]);
   }
 
   /**
+   * Remove all stored cover object ids.
+   * Used when resetting.
+   */
+  static async removeAllStoredCoverObjectIds() { return Settings.set(this.settingsKey, undefined); }
+
+  /**
    * Create an object for each stored id. If no ids in settings, create from default ids.
    */
   static async initialize() {
     let storedIds = this.storedCoverObjectIds;
-    if ( !storedIds.length ) storedIds = this.defaultCoverObjectData.keys();
+    if ( !storedIds.size ) storedIds = this.defaultCoverObjectData.keys();
     for ( const id of storedIds ) await this.create(id);
+  }
+
+  /**
+   * Delete all documents associated with this cover object.
+   */
+  static async _deleteAllDocuments() {
+    const promises = [];
+    this.coverObjectsMap.forEach(c => promises.push(c.delete()));
+    await Promise.allSettled(promises);
   }
 
   /**
    * Reset to the defaults for this cover object type.
    */
   static async resetToDefaults() {
-    // Delete all existing.
-    const promises = [];
-    this.coverObjectsMap.forEach(c => promises.push(c.delete()));
-    await Promise.allSettled(promises);
+    await this._deleteAllDocuments();
+    await this.removeAllStoredCoverObjectIds();
+    this.coverObjectsMap.clear();
     return this.initialize();
   }
 

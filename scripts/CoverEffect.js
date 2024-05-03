@@ -2,14 +2,17 @@
 Application,
 CONFIG,
 foundry,
+fromUuid,
 game,
+Hooks,
 ItemDirectory,
+socketlib,
 Token
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS } from "./const.js";
+import { MODULE_ID, FLAGS, SOCKETS } from "./const.js";
 import { Settings } from "./settings.js";
 import { AbstractCoverObject } from "./AbstractCoverObject.js";
 import { AsyncQueue } from "./AsyncQueue.js";
@@ -24,6 +27,34 @@ export const PATCHES_SidebarTab = {};
 export const PATCHES_ItemDirectory = {};
 PATCHES_SidebarTab.COVER_EFFECT = {};
 PATCHES_ItemDirectory.COVER_EFFECT = {};
+
+// ----- NOTE: Set up sockets so GM can create or modify items ----- //
+Hooks.once("socketlib.ready", () => {
+  SOCKETS.socket ??= socketlib.registerModule(MODULE_ID);
+  SOCKETS.socket.register("createCoverEffectItem", createCoverEffectItem);
+  SOCKETS.socket.register("deleteDocument", deleteDocument);
+});
+
+/**
+ * Socket function: createCoverEffectItem
+ * GM creates the item that stores/represents the effect.
+ * @param {object} data   Data used to create the item
+ * @returns {string} UUID of the item
+ */
+async function createCoverEffectItem(data) {
+  const item = await CONFIG.Item.documentClass.create(data);
+  return item.uuid;
+}
+
+/**
+ * Socket function: deleteDocument
+ * GM deletes the item that stores/represents the effect.
+ * @param {string} uuid   UUID of the item to delete
+ */
+async function deleteDocument(uuid) {
+  const doc = await fromUuid(uuid);
+  doc.delete();
+}
 
 /**
  * Remove the cover effects item from sidebar so it does not display.
@@ -86,7 +117,7 @@ export class CoverEffect extends AbstractCoverObject {
 
   /** @type {object|undefined} */
   get defaultCoverObjectData() {
-    const data = super.defaultCoverObjectData?.data;
+    const data = super.defaultCoverObjectData?.documentData;
     if ( !data ) return undefined;
 
     // Confirm that necessary flags are present.

@@ -79,9 +79,8 @@ export class CoverType extends AbstractCoverObject {
    * @returns {Document|object|undefined}
    */
   _findStorageDocument() {
-    const doc = this.constructor.storedCoverTypes[this.id]
-        ?? this.constructor.defaultCoverObjectData.get(this.id)
-        ?? this.constructor.newCoverTypeData;
+    const doc = this.constructor.storedCoverTypes[this.id];
+    if ( !doc ) return undefined;
 
     // Fix tint to always be a Color class.
     if ( !(doc.tint instanceof Color) ) doc.tint = typeof tint === "string"
@@ -98,10 +97,26 @@ export class CoverType extends AbstractCoverObject {
 
   /**
    * Create a storage document from scratch.
-   * For cover type, this does nothing, as the setting can be accessed synchronously.
+   * For cover type, this adds all the data to settings.
+   * Will overwrite any existing data for this id.
    * @returns {Document|object}
    */
-  async _createStorageDocument() { return this._findStorageDocument(); }
+  async _createStorageDocument() {
+    const stored = this.constructor.storedCoverTypes;
+    stored[this.id] = this.constructor.defaultCoverObjectData.get(this.id)
+        ?? this.constructor.newCoverTypeData;
+    return Settings.set(this.constructor.settingsKey, stored);
+  }
+
+  /**
+   * Delete the underlying stored document.
+   * For cover type, removes this type's config data from stored settings.
+   */
+  async _deleteStorageDocument() {
+    const stored = this.constructor.storedCoverTypes;
+    delete stored[this.id];
+    return Settings.set(this.constructor.settingsKey, stored);
+  }
 
   /**
    * Update this object with the given data.
@@ -110,11 +125,10 @@ export class CoverType extends AbstractCoverObject {
    */
   async update(config) {
     config ??= this.document;
-    const allCoverObjects = this.constructor.storedCoverTypes;
-    allCoverObjects[this.id] ??= {};
-    foundry.utils.mergeObject(allCoverObjects[this.id], config);
-    const settingsKey = this.constructor.settingsKey;
-    Settings.set(settingsKey, allCoverObjects);
+    const stored = this.constructor.storedCoverTypes;
+    stored[this.id] ??= {};
+    foundry.utils.mergeObject(stored[this.id], config);
+    Settings.set(this.constructor.settingsKey, stored);
   }
 
   // ----- NOTE: Cover type specific methods ----- //
@@ -278,7 +292,7 @@ export class CoverType extends AbstractCoverObject {
    */
   static async addStoredCoverObjectId(id) {
     // Because the entire Cover Type is stored, set the entire value.
-    const storedIds = new Set(this.storedCoverObjectIds);
+    const storedIds = this.storedCoverObjectIds;
     if ( storedIds.has(id) ) return;
 
     const coverType = this.coverObjectsMap.get(id);
@@ -294,7 +308,7 @@ export class CoverType extends AbstractCoverObject {
    */
   static async removeStoredCoverObjectId(id) {
     // Because the entire Cover Type is stored, remove the entire value.
-    const storedIds = new Set(this.storedCoverObjectIds);
+    const storedIds = this.storedCoverObjectIds;
     if ( !storedIds.has(id) ) return;
 
     const storedObj = this.storedCoverTypes;

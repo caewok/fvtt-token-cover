@@ -82,7 +82,7 @@ export class CoverTypesListConfig extends FormApplication  {
     for ( const [idx, coverTypeData] of Object.entries(expandedFormData.allCoverTypes) ) {
       const storedCoverType = this.allCoverTypes[idx];
       if ( !storedCoverType ) continue;
-      promises.add(storedCoverType.update(coverTypeData));
+      promises.push(storedCoverType.update(coverTypeData));
     }
     return Promise.allSettled(promises);
   }
