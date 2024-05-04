@@ -203,15 +203,11 @@ function updateToken(tokenD, change, _options, _userId) {
   // Token moved
   // Clear this token's cover calculations.
   const token = tokenD.object;
-  log(`updateToken hook|${token.name} moved.`);
+  log(`updateToken hook|${token.name} moved from ${token.position.x},${token.position.y} -> ${token.document.x},${token.document.y} Center: ${token.center.x},${token.center.y}.`);
   token.coverFromMap.clear();
 
-  // Clear all other token's cover calculations for this token.
-  const id = token.id;
-  canvas.tokens.placeables.forEach(t => {
-    if ( t === token ) return;
-    t.coverFromMap.delete(id);
-  });
+  // Clear the cover calculations for this token and update cover.
+  resetTokenCoverFromAttacker(token);
   updateAllTokenCover();
 }
 
@@ -224,7 +220,7 @@ function updateToken(tokenD, change, _options, _userId) {
  */
 function controlToken(controlledToken, controlled) {
   log(`controlToken hook|${controlledToken.name} ${controlled ? "selected" : "unselected"}`);
-  updateAllUserTokenCover();
+  updateAllTokenCover();
 }
 
 /**
@@ -298,8 +294,8 @@ PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 function _applyRenderFlags(wrapped, flags) {
   wrapped(flags);
   log(`Token#_applyRenderFlags|${this.name} > ${Object.keys(flags).join(", ")}`);
-  if ( flags.refreshCoverTypes && this.updateCoverTypes() ) this.refreshCoverTypes();
-  if ( flags.refreshCoverEffects && this.updateCoverEffects() ) this.refreshCoverEffects();
+  if ( flags.refreshCoverTypes ) this.refreshCoverTypes();
+  if ( flags.refreshCoverEffects ) this.refreshCoverEffects();
 }
 
 PATCHES.BASIC.WRAPS = { _applyRenderFlags };
@@ -511,25 +507,35 @@ function useCoverObject(objectType, token) {
 function updateCoverFromToken(tokenToUpdate, attackingToken) {
   const percentCover = attackingToken.coverCalculator.percentCover(tokenToUpdate);
   const coverTypes = attackingToken.coverCalculator.coverTypes(tokenToUpdate);
+  log(`updateCoverFromToken|${attackingToken.name} ⚔️ ${tokenToUpdate.name}: ${percentCover}
+  \t${attackingToken.name} ${attackingToken.document.x},${attackingToken.document.y} Center ${attackingToken.center.x},${attackingToken.center.y}
+  \t${tokenToUpdate.name} ${tokenToUpdate.document.x},${tokenToUpdate.document.y} Center ${tokenToUpdate.center.x},${tokenToUpdate.center.y}`);
   tokenToUpdate.coverFromMap.set(attackingToken.id, { coverTypes, percentCover});
-}
-
-/**
- * Helper to update cover types and effects for all tokens on the canvas.
- */
-function updateAllTokenCover() {
-  canvas.tokens.placeables.forEach(t => {
-    t.renderFlags.set({ refreshCoverTypes: true });
-    t.renderFlags.set({ refreshCoverEffects: true });
-  });
 }
 
 /**
  * Helper to update cover types and effects for all tokens for the current user on the canvas.
  */
-function updateAllUserTokenCover() {
+function updateAllTokenCover() {
   canvas.tokens.placeables.forEach(t => {
+    log(`updateAllTokenCover|updating cover for ${t.name}.`);
     if ( t.updateCoverTypes() ) t.refreshCoverTypes();
     if ( t.updateCoverEffects() ) t.refreshCoverEffects();
   });
 }
+
+/**
+ * Helper to remove cover calculations for a given attacker.
+ * The presumption here is that the attacker changed position or some other property meaning
+ * that the previous cover calculation is no longer valid.
+ * @param {Token} attacker
+ */
+function resetTokenCoverFromAttacker(attacker) {
+  // Clear all other token's cover calculations for this token.
+  const id = attacker.id;
+  canvas.tokens.placeables.forEach(t => {
+    if ( t === attacker ) return;
+    t.coverFromMap.delete(id);
+  });
+}
+
