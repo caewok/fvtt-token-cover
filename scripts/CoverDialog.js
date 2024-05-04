@@ -4,11 +4,11 @@ ChatMessage,
 CONFIG,
 Dialog,
 foundry,
-fromUuidSync,
 game,
 Hooks,
 socketlib,
-Token
+Token,
+ui
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -29,16 +29,15 @@ Hooks.once("socketlib.ready", () => {
 
 async function confirmCoverDialog(data) {
   const dialog = CoverDialog.fromJSON(data);
-  const confirmedCalcs = await dialog.confirmCover({ askGM: true });
-  if ( !confirmedCalcs ) return false;
-  return dialog._coverCalculationsToJSON(confirmedCalcs);
+  if ( !dialog ) return false;
+  return await dialog.confirmCover({ askGM: true });
 }
 
-// Helper class to construct dialogs related to cover between attacker token and target(s).
+// Helper class to construct dialogs related to cover between attacker and target(s).
 export class CoverDialog {
 
   /** @type {Token} */
-  token;
+  attacker;
 
   /** @type {Set<Token>} */
   targets = new Set();
@@ -49,35 +48,46 @@ export class CoverDialog {
   /** @type {object} */
   config = {};
 
-  constructor(token, targets, config = {}) {
-    token ??= game.user._lastSelected || canvas.tokens.controlled[0];
+  constructor(attacker, targets, config = {}) {
+    attacker ??= game.user._lastSelected || canvas.tokens.controlled[0];
     targets ??= game.user.targets;
     if ( targets instanceof Token ) targets = [targets];
 
-    // Store the provided token, targets, options used for the cover calculation.
-    this.token = token;
+    // Store the provided attacker, targets, options used for the cover calculation.
+    this.attacker = attacker;
     targets.forEach(t => this.targets.add(t));
     this.config = config;
 
     // Mostly for debugging
-    if ( !token || !(token instanceof Token) ) console.error("CoverDialog|no token provided.");
+    if ( !attacker || !(attacker instanceof Token) ) console.error("CoverDialog|no attacker provided.");
     if ( this.targets.size < 1 ) console.warn("CoverDialog|no targets provided.");
   }
 
   toJSON() {
     return {
-      token: this.token.uuid,
-      targets: [...this.targets.map(t => t.uuid)],
-      coverCalculations: this._coverCalculationsToJSON(),
+      attacker: this.attacker.id,
+      coverCalculations: this.constructor._coverCalculationsToJSON(this.coverCalculations), // Targets are the cover calc keys
       config: this.config
     };
   }
 
   static fromJSON(data) {
-    const token = fromUuidSync(data.token);
-    const targets = new Set(data.targets.map(t => fromUuidSync(t)));
-    const dialog = new this(token, targets, data.config);
-    dialog._coverCalculationsFromJSON(data.coverCalculations);
+    const canvasTokens = new Map(canvas.tokens.placeables.map(t => [t.id, t]));
+    const attacker = canvasTokens.get(data.attacker);
+    if ( !attacker ) {
+      ui.notifications.error(`${game.i18n.localize("tokencover.name")}|Attacker for the GM dialog were not found.`);
+      console.error(`${MODULE_ID}|CoverDialog#fromJSON|Attacker not found. ${data.attacker}`);
+      return false;
+    }
+    const targets = new Set(Object.keys(data.coverCalculations).map(id => canvasTokens.get(id)));
+    if ( targets.has(undefined) || targets.has(null) ) {
+      ui.notifications.error(`${game.i18n.localize("tokencover.name")}|One or more targets for the GM dialog were not found.`);
+      console.error(`${MODULE_ID}|CoverDialog#fromJSON|Targets not found. ${data.targets.join(", ")}`);
+      return false;
+    }
+
+    const dialog = new this(attacker, targets, data.config);
+    if ( !dialog.constructor._coverCalculationsFromJSON(data.coverCalculations) ) return false;
     return dialog;
   }
 
@@ -87,7 +97,7 @@ export class CoverDialog {
   /** @type {Map<Token, Set<CoverType>>} */
   get coverCalculations() {
     if ( this.#coverCalculations.size === this.targets.size ) return this.#coverCalculations;
-    CoverCalculator.coverCalculations(this.token, this.targets, this.#coverCalculations, this.config);
+    CoverCalculator.coverCalculations(this.attacker, this.targets, this.#coverCalculations, this.config);
     return this.#coverCalculations;
   }
 
@@ -109,20 +119,25 @@ export class CoverDialog {
   /**
    * Get JSON for the cover calculations.
    */
-  _coverCalculationsFromJSON(coverCalculations) {
+  static _coverCalculationsFromJSON(coverCalculations) {
     const ctMap = CONFIG[MODULE_ID].CoverType.coverObjectsMap;
-    const m = new Map(coverCalculations.map(([tokenId, coverTypeId]) =>
-      [fromUuidSync(tokenId), ctMap.get(coverTypeId)]));
-    this.updateCoverCalculations(m);
+    const canvasTokens = new Map(canvas.tokens.placeables.map(t => [t.id, t]));
+    const m = new Map(Object.entries(coverCalculations).map(([tokenId, coverTypeIds]) =>
+      [canvasTokens.get(tokenId), new Set([...coverTypeIds.map(coverTypeId => ctMap.get(coverTypeId))])]));
+    if ( m.has(undefined) || m.has(null) ) {
+      ui.notifications.error(`${game.i18n.localize("tokencover.name")}|One or more tokens for the GM dialog were not found.`);
+      console.error(`${MODULE_ID}|CoverDialog#_coverCalculationsFromJSON|Tokens not found.`, coverCalculations``);
+      return false;
+    }
+    return m;
   }
 
   /**
    * Replace the cover calculations with JSON data
    */
-  _coverCalculationsToJSON(coverCalculations) {
-    coverCalculations ??= this.coverCalculations;
-    const json = [];
-    coverCalculations.forEach((coverTypes, token) => coverCalculations.push([token.uuid, coverTypes.id]));
+  static _coverCalculationsToJSON(coverCalculations) {
+    const json = {};
+    coverCalculations.forEach((coverTypes, token) => json[token.id] = [...coverTypes.map(ct => ct.id)]);
     return json;
   }
 
@@ -160,11 +175,11 @@ export class CoverDialog {
   }
 
   /**
-   * Request that the user or GM confirm cover for a given token and targets
+   * Request that the user or GM confirm cover for a given attacker and targets
    * @param {object} [opts]   Optional parameters used to construct the dialog
    * @param {boolean} [opts.askGM]      Should the GM get the cover confirmation dialog?
-   * @param {string} [opts.actionType]  "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
-   * @returns {Map<Token, Set<CoverType>>|false}
+   * @param {string} [opts.actionType]  "msak"|"mwak"|"rsak"|"rwak". Used to check if attacker ignores cover
+   * @returns {object|false} JSON of coverCalculations that can be converted to a Map using _coverCalcluationsFromJSON
    */
   async confirmCover({ askGM } = {}) {
     askGM ||= false;
@@ -172,25 +187,14 @@ export class CoverDialog {
     const dialogData = { title: game.i18n.localize(`${MODULE_ID}.phrases.ConfirmCover`), content: html };
 
     let coverSelections;
-    if ( askGM ) {
-      coverSelections = await SOCKETS.socket.executeAsGM("coverDialog", dialogData);
+    if ( askGM && !game.user.isGM ) {
+      coverSelections = await SOCKETS.socket.executeAsGM("confirmCoverDialog", this.toJSON());
     } else {
       const res = await this.constructor.dialogPromise(dialogData);
       coverSelections = this.constructor._getDialogCoverSelections(res);
     }
     if ( "Close" === coverSelections ) return false;
-
-    // Update the cover calculations with User or GM selections
-    const confirmedCalcs = this.duplicateCoverCalculations();
-    const coverTypes = CONFIG[MODULE_ID].CoverType.coverObjectsMap;
-    Object.entries(coverSelections).forEach(([id, selectedIndices]) => {
-      const target = canvas.tokens.get(id);
-      const s = new Set(selectedIndices
-        .filter(coverTypeId => coverTypes.has(coverTypeId)) // Filter out NONE from the selected.
-        .map(coverTypeId => coverTypes.get(coverTypeId)));
-      confirmedCalcs.set(target, s);
-    });
-    return confirmedCalcs;
+    return coverSelections;
   }
 
   /**
@@ -232,7 +236,7 @@ export class CoverDialog {
   async workflow() {
     const coverCheckOption = Settings.get(Settings.KEYS.COVER_WORKFLOW.CONFIRM);
     const choices = Settings.KEYS.COVER_WORKFLOW.CONFIRM_CHOICES;
-    let coverCalculations;
+    let coverCalculationsJSON;
     switch ( coverCheckOption ) {
       case choices.AUTO: return this.coverCalculations;
       case choices.USER_CANCEL: {
@@ -241,20 +245,20 @@ export class CoverDialog {
         return this.coverCalculations;
       }
       case choices.USER: {
-        coverCalculations = await this.confirmCover({ askGM: false });
+        coverCalculationsJSON = await this.confirmCover({ askGM: false });
         break;
       }
       case choices.GM: {
         if ( !game.user.isGM ) {
-          coverCalculations = await SOCKETS.socket.confirmCoverDialog(this.toJSON());
-          if ( coverCalculations ) coverCalculations = this._coverCalculationsFromJSON(coverCalculations);
-        } else coverCalculations = await this.confirmCover({ askGM: true });
+          coverCalculationsJSON = await SOCKETS.socket.executeAsGM("confirmCoverDialog", this.toJSON());
+        } else coverCalculationsJSON = await this.confirmCover({ askGM: true });
         break;
       }
     }
-    if ( !coverCalculations ) return false; // User canceled.
+    if ( !coverCalculationsJSON ) return false; // User canceled.
 
     // Update the dialog calculations with user-provided calcs.
+    const coverCalculations = this.constructor._coverCalculationsFromJSON(coverCalculationsJSON);
     this.updateCoverCalculations(coverCalculations);
     return coverCalculations;
   }
@@ -270,7 +274,7 @@ export class CoverDialog {
     opts.includeZeroCover ??= false; // Only display targets that have cover.
     opts.imageWidth ??= 30; // Smaller image for the chat.
     opts.applied ??= true; // Treat as applied instead of "may have".
-    opts.displayIgnored ??= false; // Don't describe what cover is ignored by token.
+    opts.displayIgnored ??= false; // Don't describe what cover is ignored by attacker.
     opts.include3dDistance ??= false; // Save space by not including distance.
 
     if ( !opts.includeZeroCover && !this.targetsWithCover.size ) return;
@@ -281,8 +285,8 @@ export class CoverDialog {
   }
 
   /**
-   * Update targets' cover types based on token --> target cover calculations.
-   * Temporarily overrides the cover types, but only until the next update (e.g., token move)
+   * Update targets' cover types based on attacker --> target cover calculations.
+   * Temporarily overrides the cover types, but only until the next update (e.g., attacker move)
    * Only local.
    * @param {Map<Token, Set<CoverType>>} [coverCalculations]
    */
@@ -299,8 +303,8 @@ export class CoverDialog {
   }
 
   /**
-   * Update targets' cover effects based on token --> target cover calculations.
-   * Relies on existing cover types for the token, which may have been modified by
+   * Update targets' cover effects based on attacker --> target cover calculations.
+   * Relies on existing cover types for the attacker, which may have been modified by
    * `updateTargetsCoverType`.
    * Only local changes.
    * @param {Map<Token, Set<CoverType>>} [coverCalculations]
@@ -349,7 +353,7 @@ ${html}
    */
   _htmlConfirmCover() {
     const htmlTable = this._htmlCoverTable({
-      tableId: this.token.id,
+      tableId: this.attacker.id,
       allowSelection: true
     });
     const htmlAttacker = this._htmlAttacker({ confirm: true });
@@ -368,9 +372,9 @@ ${html}
    * @param {boolean} [opts.include3dDistance]    Include 3d distance calculation
    * @param {boolean} [opts.includeZeroCover]     Include targets that have no cover in the resulting html
    * @param {number} [opts.imageWidth]            How wide to make the target images
-   * @param {string} [opts.actionType]            "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
+   * @param {string} [opts.actionType]            "msak"|"mwak"|"rsak"|"rwak". Used to check if attacker ignores cover
    * @param {boolean} [opts.applied]              The cover is as-applied by user/GM versus calculated
-   * @param {boolean} [opts.displayIgnored]       Display cover results for cover ignored by token
+   * @param {boolean} [opts.displayIgnored]       Display cover results for cover ignored by attacker
    * @returns {string}    HTML string
    */
   _htmlShowCover({
@@ -382,7 +386,7 @@ ${html}
     const excludedColumns = include3dDistance ? NULL_SET : new Set("distance");
     const targetData = this._targetData();
     const htmlTable = this._htmlCoverTable({
-      tableId: this.token.id,
+      tableId: this.attacker.id,
       imageWidth,
       includeZeroCover,
       excludedColumns,
@@ -403,15 +407,15 @@ ${html}
   }
 
   /**
-   * Construct html to describe the token attacker.
-   * Describe the type of action the token is taking and whether the token ignores certain cover.
+   * Construct html to describe the attacker.
+   * Describe the type of action the attacker is taking and whether the attacker ignores certain cover.
    * @param {boolean} confirm
    * @param {number} nCover
    * @param {boolean} applied
    * @returns {string} html
    */
   _htmlAttacker({ imageWidth = 50, confirm = false, nCover = 0, applied = false } = {}) {
-     // Describe the type of action the token is taking and whether the token ignores certain cover.
+     // Describe the type of action the attacker is taking and whether the attacker ignores certain cover.
     const ignoresCoverLabel = this._htmlIgnoresCover(this.config.actionType);
     const actionDescription = this.config.actionType ? `${CoverCalculator.attackNameForType(this.config.actionType)}.` : "";
 
@@ -429,11 +433,11 @@ ${html}
     `
     <div class="flexrow">
       <div class="flexcol" style="flex-grow: 8">
-        ${targetLabel}${numCoverLabel}<b>${this.token.name}</b>
+        ${targetLabel}${numCoverLabel}<b>${this.attacker.name}</b>
         ${actionDescription} ${ignoresCoverLabel}
       </div
       <div class="flexcol" style="flex-grow: 1">
-        <img src="${this.token.document.texture.src}" alt="${this.token.name} image" width="${imageWidth}" style="border:0px">
+        <img src="${this.attacker.document.texture.src}" alt="${this.attacker.name} image" width="${imageWidth}" style="border:0px">
       </div
     </div>
     `;
@@ -441,11 +445,11 @@ ${html}
   }
 
   /**
-   * Create html that describes how the token ignores cover.
-   * @param {string|undefined} actionType   "msak"|"mwak"|"rsak"|"rwak". Used to check if token ignores cover
+   * Create html that describes how the attacker ignores cover.
+   * @param {string|undefined} actionType   "msak"|"mwak"|"rsak"|"rwak". Used to check if attacker ignores cover
    */
   _htmlIgnoresCover(actionType) {
-    const ic = this.token.ignoresCover;
+    const ic = this.attacker.ignoresCover;
     const allCoverIgnored = ic.all;
     const typeCoverIgnored = ic[actionType] || COVER.NONE;
 
@@ -487,12 +491,12 @@ ${html}
    *   - @prop {number} percentCover
    */
   _targetData() {
-    const tokenCenter = Point3d.fromToken(this.token).top; // Measure from token vision point.
+    const attackerCenter = Point3d.fromToken(this.attacker).top; // Measure from attacker vision point.
     return this.targets.map(target => {
       const data = {
         name: target.name,
         id: target.id,
-        image: target.document.texture.src, // Token canvas image
+        image: target.document.texture.src, // Attacker canvas image
       };
 
       // Cover types.
@@ -501,10 +505,10 @@ ${html}
       data.overlappingTypes = coverTypes.filter(ct => ct.canOverlap);
 
       // Cover percentage
-      data.percentCover = target.coverPercentFromAttacker(this.token);
+      data.percentCover = target.coverPercentFromAttacker(this.attacker);
 
       // Distance between attacker and target
-      data.distance = Point3d.distanceBetween(tokenCenter, Point3d.fromTokenCenter(target));
+      data.distance = Point3d.distanceBetween(attackerCenter, Point3d.fromTokenCenter(target));
 
       return data;
     });
@@ -693,19 +697,19 @@ function coverTypeNames(coverTypes) {
 /**
  * Workflow to process cover for given token and targets during attack.
  * Used by midi-qol and dnd5e functions.
- * @param {Token} token
+ * @param {Token} attacker
  * @param {Set<Token>} targets    Targeted token set. May be modified by user choices.
  * @param {string} actionType
  * @returns {boolean} True if attack should continue; false otherwise.
  */
-export async function coverAttackWorkflow(token, targets, actionType) {
+export async function coverAttackWorkflow(attacker, targets, actionType) {
   // Construct dialogs, if applicable
   // tokenCoverCalculations will be:
   // - false if user canceled
   // - undefined if covercheck is set to NONE. NONE may still require chat display.
   // - Map otherwise
   const KEYS = Settings.KEYS;
-  const coverDialog = new CoverDialog(token, targets);
+  const coverDialog = new CoverDialog(attacker, targets);
 
   // Determine if change has occurred.
   // Need to duplicate because this may change.
