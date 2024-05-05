@@ -322,23 +322,6 @@ function applyTokenStatusEffect(token, statusId, active) {
 
 PATCHES.BASIC.HOOKS = { destroyToken, updateToken, controlToken, targetToken, refreshToken };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
-// PATCHES.NO_PF2E.HOOKS = { targetToken };
-
-// ----- NOTE: Wraps ----- //
-/**
- * Wrap method: Token.prototype._applyRenderFlags
- * Handle cover and effect refresh.
- * Updates and refreshes.
- */
-function _applyRenderFlags(wrapped, flags) {
-  wrapped(flags);
-  log(`Token#_applyRenderFlags|${this.name} > ${Object.keys(flags).join(", ")}`);
-  if ( flags.refreshCoverTypes ) this.refreshCoverTypes();
-  if ( flags.refreshCoverEffects ) this.refreshCoverEffects();
-}
-
-PATCHES.BASIC.WRAPS = { _applyRenderFlags };
-
 
 // ----- NOTE: Methods ----- //
 
@@ -365,8 +348,6 @@ function coverTypesFromAttacker(attackingToken) {
   if ( !coverFromMap.has(attackingToken.id) ) updateCoverFromToken(this, attackingToken);
   return coverFromMap.get(attackingToken.id).coverTypes;
 }
-
-
 
 /**
  * New method: Token.prototype.updateCoverTypes

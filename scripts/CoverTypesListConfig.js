@@ -47,7 +47,6 @@ export class CoverTypesListConfig extends FormApplication  {
     });
   }
 
-
   /**
    * Sort the cover types by priority.
    */
