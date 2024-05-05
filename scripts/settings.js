@@ -13,7 +13,7 @@ import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
 import { STATUS_EFFECTS } from "./status_effects.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
-
+import { TokenCover } from "./TokenCover.js";
 
 const USE_CHOICES = {
   NEVER: "never",
@@ -131,94 +131,9 @@ export class Settings extends ModuleSettingsAbstract {
     else {
       if ( canvas.tokens?.placeables ) canvas.tokens.placeables
         .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
-        .forEach(t => t.coverCalculator.clearDebug());
+        .forEach(t => t.tokencover.coverCalculator.clearDebug());
       deregisterDebug();
     }
-  }
-
-  // ----- NOTE: Cover helper static methods ---- //
-
-  /* Status effects
-  Stored in two places:
-  - SETTINGS.COVER.EFFECTS[][LOW, MEDIUM, HIGH]
-  --> by game system
-
-  - CONFIG.statusEffects
-  --> only current game system
-
-  When first loading the scene:
-  - Retrieve current status effect for the game system. Update CONFIG.statusEffects.
-
-  When user updates an effect:
-  - Store the updated effect to SETTINGS.COVER.EFFECTS for the type and game system
-  - Update CONFIG.statusEffects
-
-  */
-
-  /** @type {object} */
-  static get coverNames() {
-    const statusEffects = STATUS_EFFECTS[game.system.id] || STATUS_EFFECTS.generic;
-    return {
-      LOW: statusEffects.LOW.id,
-      MEDIUM: statusEffects.MEDIUM.id,
-      HIGH: statusEffects.HIGH.id
-    };
-  }
-
-  /**
-   * Retrieve from GM settings the cover effect for the provided type for this game system.
-   * @param {string} type   LOW, MEDIUM, or HIGH
-   * @returns {object} Status effect
-   */
-  static getCoverEffect(type = "LOW") {
-    const allStatusEffects = this.get(SETTINGS.COVER.EFFECTS);
-    const statusEffects = allStatusEffects[game.system.id] || allStatusEffects.generic;
-    const coverEffect = statusEffects[type];
-    coverEffect.id = `${MODULE_ID}.cover.${type}`;
-    coverEffect.name ??= coverEffect.label ?? coverEffect.id; // Ensure name is always present.
-    return coverEffect;
-  }
-
-  /**
-   * Helper function to get the cover effect name from settings.
-   * @param {string} type   LOW, MEDIUM, HIGH
-   * @returns {string} Label for the cover effect
-   */
-  static getCoverName(type = "LOW") {
-    if ( type === "NONE" ) return game.i18n.localize("None");
-    if ( type === "TOTAL" ) return game.i18n.localize(`${MODULE_ID}.phrases.Total`);
-
-    const effect = this.getCoverEffect(type);
-    return game.i18n.localize(effect.name ?? effect.label);
-  }
-
-  /**
-   * Store to GM settings the cover effect value provided for the provided type for this game system.
-   * Also updates CONFIG.statusEffects array.
-   * @param {string} type   LOW, MEDIUM, or HIGH
-   * @param {object} value  Status effect
-   */
-  static async setCoverEffect(type, value) {
-    const allStatusEffects = this.get(SETTINGS.COVER.EFFECTS);
-    let systemId = game.system.id;
-    if ( (systemId === "dnd5e" || systemId === "sw5e")
-      && game.modules.get("midi-qol")?.active ) systemId = `${systemId}_midiqol`;
-
-    if ( !Object.hasOwn(allStatusEffects, systemId) ) allStatusEffects[systemId] = duplicate(allStatusEffects.generic);
-
-    allStatusEffects[systemId][type] = value;
-    await this.set(SETTINGS.COVER.EFFECTS, allStatusEffects);
-    this.updateConfigStatusEffects(type);
-  }
-
-  /**
-   * Confirm if DFred's has the given cover type.
-   * @param {"LOW"|"MEDIUM"|"HIGH"} key
-   * @returns {boolean}
-   */
-  static dFredsHasCover(key) {
-    if ( !MODULES_ACTIVE.DFREDS_CE ) return false;
-    return Boolean(game.dfreds.effectInterface.findEffectByName(COVER.DFRED_NAMES[key]));
   }
 
   /**
@@ -260,7 +175,7 @@ export class Settings extends ModuleSettingsAbstract {
       type: String,
       choices: coverTypeUseChoices,
       default: KEYS.COVER_TYPES.CHOICES.ALWAYS,
-      requiresReload: true // Otherwise, would need to clear all icons from all users.
+      onChange: _value => TokenCover.updateAllTokenCover()
     });
 
     register(KEYS.COVER_TYPES.TARGETING, {
@@ -269,7 +184,8 @@ export class Settings extends ModuleSettingsAbstract {
       scope: "world",
       config: true,
       type: Boolean,
-      default: false
+      default: false,
+      onChange: _value => TokenCover.updateAllTokenCover()
     });
 
     // ----- Main Settings Menu ----- //
@@ -606,7 +522,7 @@ export class Settings extends ModuleSettingsAbstract {
     if ( this.typesWebGL2.has(value) ) registerArea3d();
     canvas.tokens.placeables
       .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
-      .forEach(token => token.coverCalculator._updateAlgorithm());
+      .forEach(token => token.tokencover.coverCalculator._updateAlgorithm());
   }
 
   static losSettingChange(key, value) {
@@ -614,13 +530,14 @@ export class Settings extends ModuleSettingsAbstract {
     const cfg = { [key]: value };
     canvas.tokens.placeables
       .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
-      .forEach(token => token.coverCalculator._updateConfiguration(cfg));
+      .forEach(token => token.tokencover.coverCalculator._updateConfiguration(cfg));
   }
 
   static setProneStatusId(value) {
     CONFIG.GeometryLib.proneStatusId = value;
     if ( MODULES_ACTIVE.TOKEN_VISIBILITY) game.settings.set("tokenvisibility", SETTINGS.PRONE_STATUS_ID, value);
   }
+
 }
 
 
