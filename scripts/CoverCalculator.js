@@ -6,7 +6,7 @@ Token
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID } from "./const.js";
+import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID, COVER } from "./const.js";
 import { Settings } from "./settings.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 import { CoverDialog } from "./CoverDialog.js";
@@ -119,6 +119,26 @@ export class CoverCalculator extends AbstractCalculator {
    */
   coverTypes(opts) {
     return CONFIG[MODULE_ID].CoverType.coverTypesForToken(this.viewer, this.target, opts);
+  }
+
+  /**
+   * Calculate the target's cover.
+   * Deprecated; used only for midiqol.
+   * @returns {COVER.TYPES} Integer between 0 and 4
+   */
+  targetCover(target) {
+    // Use the possibly cached cover types.
+    const coverTypes = target.coverTypesFromAttacker(this.viewer);
+
+    // Transform cover types into the deprecated COVER.TYPES values by comparing the min percent cover.
+    let coverValue = COVER.TYPES.NONE;
+    for ( const coverType of coverTypes ) {
+      const threshold = coverType.document?.percentThreshold ?? 0;
+      if ( threshold >= 1 ) return COVER.TYPES.HIGH; // Cannot do better than this.
+      if ( threshold >= 0.75 ) coverValue = Math.max(COVER.TYPES.MEDIUM, coverValue);
+      else if ( threshold >= 0.50 ) coverValue = Math.max(COVER.TYPES.LOW, coverValue);
+    }
+    return coverValue;
   }
 
   // ----- NOTE: Percent Cover ----- //

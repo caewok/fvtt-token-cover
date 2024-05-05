@@ -90,6 +90,15 @@ export const COVER = {};
 COVER.NONE = 0;
 COVER.EXCLUDE = -1;
 
+// Deprecated but kept for midiqol and possibly other modules.
+COVER.TYPES = {
+  NONE: 0,
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3,
+  TOTAL: 4
+};
+
 export let IGNORES_COVER_HANDLER = IgnoresCover;
 
 export const WEAPON_ATTACK_TYPES = {
