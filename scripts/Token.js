@@ -187,6 +187,45 @@ PATCHES.DEBUG.HOOKS = {
 // ----- NOTE: Hooks ----- //
 
 /**
+ * Hook Token refresh
+ * Adjust elevation as the token moves.
+ */
+function refreshToken(token, flags) {
+  if ( !flags.refreshPosition ) return;
+
+  log(`refreshToken hook|${token.name} at ${token.position.x},${token.position.y}. Token is ${token._original ? "Clone" : "Original"}`);
+
+  // Clear this token's cover calculations because it moved.
+  token.coverFromMap.clear();
+
+  // Clear the cover calculations relative to this token.
+  resetTokenCoverFromAttacker(token);
+
+  // TODO: Do we need to do anything different during token animation?
+  if ( token._original ) {
+    // This token is a clone in a drag operation.
+    log(`refreshToken hook|Token ${token.name} is being dragged.`);
+
+    // Update cover of other tokens relative to the dragged token.
+    // Only need to update tokens if this one is an "attacker"
+    // Otherwise, can just reset.
+    const coverAttackers = CONFIG.Token.objectClass._coverAttackers;
+    if ( coverAttackers("COVER_TYPES").some(t => t.id === token.id)
+      || coverAttackers("COVER_EFFECTS").some(t => t.id === token.id) ) {
+      canvas.tokens.placeables.forEach(t => {
+        if ( t.id === token.id ) return; // Use id so clones are ignored
+        updateCoverFromToken(t, token);
+      });
+    }
+  } else if ( token._animation ) {
+    log(`refreshToken hook|Token ${token.name} is animating`);
+  }
+
+  // Refresh token icons and effects for those that have changed.
+  updateAllTokenCover();
+}
+
+/**
  * Hook: updateToken
  * If the token moves, clear cover calculations
  * @param {Document} tokenD                         The existing Document which was updated
@@ -281,7 +320,7 @@ function applyTokenStatusEffect(token, statusId, active) {
     : CoverCalculator.disableAllCover(token);
 }
 
-PATCHES.BASIC.HOOKS = { destroyToken, updateToken, controlToken, targetToken };
+PATCHES.BASIC.HOOKS = { destroyToken, updateToken, controlToken, targetToken, refreshToken };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 // PATCHES.NO_PF2E.HOOKS = { targetToken };
 
@@ -336,7 +375,8 @@ function coverTypesFromAttacker(attackingToken) {
  */
 function updateCoverTypes() {
   const existingCoverTypes = this.coverTypes; // Calling the getter ensures the property is there.
-  const attackers = this.constructor._coverAttackers("COVER_TYPES").findSplice(t => t === this);
+  const attackers = this.constructor._coverAttackers("COVER_TYPES");
+  attackers.findSplice(t => t === this);
   const newCoverTypes = this[MODULE_ID]._coverTypes = CONFIG[MODULE_ID].CoverType
     .minimumCoverFromAttackers(this, attackers);
   return !existingCoverTypes.equals(newCoverTypes);
