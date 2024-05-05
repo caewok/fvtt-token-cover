@@ -203,7 +203,7 @@ export class IgnoresCoverSimbuls extends IgnoresCoverDND5e {
   }
 
   get all() {
-    const score = this.token.ignoresCover();
+    const score = this.token.tokencover.ignoresCover();
     switch ( score ) {
       case 0: return 0;
       case 1: return 0.5;

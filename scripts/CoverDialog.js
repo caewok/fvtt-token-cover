@@ -295,7 +295,7 @@ export class CoverDialog {
       if ( existing.equals(coverTypes) ) return;
       existing.clear();
       coverTypes.forEach(ct => existing.add(ct));
-      target.refreshCoverTypes(true); // Force regardless of settings.
+      target.tokencover.refreshCoverTypes(true); // Force regardless of settings.
     });
   }
 
@@ -310,7 +310,7 @@ export class CoverDialog {
     if ( coverCalculations === false ) return; // User canceled.
     coverCalculations ??= this.coverCalculations;
     coverCalculations.keys().forEach(target => {
-      if ( target.updateCoverEffects() ) target.refreshCoverEffects(true); // Force regardless of settings.
+      if ( target.tokencover.updateCoverEffects() ) target.tokencover.refreshCoverEffects(true); // Force regardless of settings.
     });
   }
 
@@ -446,7 +446,7 @@ ${html}
    * @param {string|undefined} actionType   "msak"|"mwak"|"rsak"|"rwak". Used to check if attacker ignores cover
    */
   _htmlIgnoresCover(actionType) {
-    const ic = this.attacker.ignoresCover;
+    const ic = this.attacker.tokencover.ignoresCover;
     const allCoverIgnored = ic.all;
     const typeCoverIgnored = ic[actionType] || COVER.NONE;
 
@@ -502,7 +502,7 @@ ${html}
       data.overlappingTypes = coverTypes.filter(ct => ct.canOverlap);
 
       // Cover percentage
-      data.percentCover = target.coverPercentFromAttacker(this.attacker);
+      data.percentCover = target.tokencover.coverPercentFromAttacker(this.attacker);
 
       // Distance between attacker and target
       data.distance = Point3d.distanceBetween(attackerCenter, Point3d.fromTokenCenter(target));

@@ -84,7 +84,7 @@ export class CoverCalculator extends AbstractCalculator {
     }
     if ( targets instanceof Token ) targets = [targets];
 
-    const coverCalc = viewer.coverCalculator;
+    const coverCalc = viewer.tokencover.coverCalculator;
     calcs ??= new Map();
     for ( const target of targets ) {
       coverCalc.target = target;
@@ -128,7 +128,7 @@ export class CoverCalculator extends AbstractCalculator {
    */
   targetCover(target) {
     // Use the possibly cached cover types.
-    const coverTypes = target.coverTypesFromAttacker(this.viewer);
+    const coverTypes = target.tokencover.coverTypesFromAttacker(this.viewer);
 
     // Transform cover types into the deprecated COVER.TYPES values by comparing the min percent cover.
     let coverValue = COVER_TYPES.NONE;

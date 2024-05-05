@@ -141,5 +141,5 @@ export function setCoverIgnoreHandler(handler) {
 
   // Simplest just to revert any existing.
   if ( !canvas.tokens?.placeables ) return;
-  canvas.tokens.placeables.forEach(t => t._ignoresCover = undefined);
+  canvas.tokens.placeables.forEach(t => t.tokencover.ignoresCover = undefined);
 }

@@ -149,7 +149,7 @@ export class CoverType extends AbstractCoverObject {
    */
   percentCover(attackingToken, targetToken) {
     const { includeWalls, includeTokens } = this.document;
-    return attackingToken.coverCalculator.percentCover(targetToken, { includeWalls, includeTokens });
+    return attackingToken.tokencover.coverCalculator.percentCover(targetToken, { includeWalls, includeTokens });
   }
   /**
    * Add this cover type to the token.
@@ -362,7 +362,7 @@ export class CoverType extends AbstractCoverObject {
     let minCoverType;
     let otherCoverTypes;
     for ( const attackingToken of attackingTokens ) {
-      const coverTypes = targetToken.coverTypesFromAttacker(attackingToken);
+      const coverTypes = targetToken.tokencover.coverTypesFromAttacker(attackingToken);
       const otherTypes = new Set();
       coverTypes.forEach(ct => {
         if ( !ct.priority ) otherTypes.add(ct);
@@ -443,7 +443,7 @@ export class CoverTypeDND5E extends CoverType {
     if ( !coverTypes.size ) return coverTypes;
 
     // Check if the cover type(s) should be ignored.
-    const ignoresCover = attackingToken.ignoresCover?.[opts.actionType ?? "all"];
+    const ignoresCover = attackingToken.tokencover.ignoresCover?.[opts.actionType ?? "all"];
     if ( !ignoresCover ) return coverTypes;
     for ( const coverType of coverTypes ) {
       if ( coverType.document.percentThreshold <= ignoresCover ) coverTypes.delete(coverType);
@@ -457,7 +457,7 @@ export class CoverTypeDND5E extends CoverType {
    */
   coverTypeApplies(attackingToken, targetToken, opts = {}) {
     // Check if this cover type should be ignored.
-    const ignoresCover = attackingToken.ignoresCover?.[opts.actionType ?? "all"];
+    const ignoresCover = attackingToken.tokencover.ignoresCover?.[opts.actionType ?? "all"];
     if ( ignoresCover && ignoresCover >= this.document.percentThreshold ) return false;
     return super.coverTypeApplies(attackingToken, targetToken, opts);
   }
@@ -490,7 +490,7 @@ export class CoverTypePF2E extends CoverType {
     const targetSize = ACTOR_SIZES[targetToken.system.traits.size.value] ?? ACTOR_SIZES.med;
     const attackerSize = ACTOR_SIZES[attackingToken.system.traits.size.value] ?? ACTOR_SIZES.med;
     const upgradeSize = Math.max(targetSize, attackerSize) + 1;
-    for ( const token of attackingToken.coverCalculator.calc.blockingObjects.tokens ) {
+    for ( const token of attackingToken.tokencover.coverCalculator.calc.blockingObjects.tokens ) {
       const blockingTokenSize = ACTOR_SIZES[token.system.traits.size.value] ?? ACTOR_SIZES.med;
       if ( blockingTokenSize > upgradeSize ) {
         types.delete(lesserCover);

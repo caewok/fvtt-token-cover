@@ -131,7 +131,7 @@ export class Settings extends ModuleSettingsAbstract {
     else {
       if ( canvas.tokens?.placeables ) canvas.tokens.placeables
         .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
-        .forEach(t => t.coverCalculator.clearDebug());
+        .forEach(t => t.tokencover.coverCalculator.clearDebug());
       deregisterDebug();
     }
   }
@@ -606,7 +606,7 @@ export class Settings extends ModuleSettingsAbstract {
     if ( this.typesWebGL2.has(value) ) registerArea3d();
     canvas.tokens.placeables
       .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
-      .forEach(token => token.coverCalculator._updateAlgorithm());
+      .forEach(token => token.tokencover.coverCalculator._updateAlgorithm());
   }
 
   static losSettingChange(key, value) {
@@ -614,7 +614,7 @@ export class Settings extends ModuleSettingsAbstract {
     const cfg = { [key]: value };
     canvas.tokens.placeables
       .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
-      .forEach(token => token.coverCalculator._updateConfiguration(cfg));
+      .forEach(token => token.tokencover.coverCalculator._updateConfiguration(cfg));
   }
 
   static setProneStatusId(value) {
