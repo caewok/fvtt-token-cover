@@ -327,22 +327,7 @@ function coverTypesFromAttacker(attackingToken) {
   return coverFromMap.get(attackingToken.id).coverTypes;
 }
 
-/**
- * New method: Token.prototype._coverAttackers
- * Tokens considered to be currently attacking this token for purposes of assigning
- * cover types and effects.
- * @param {Token} [target]
- * @param {"COVER_TYPES"|"COVER_EFFECTS"} [objectType]
- * @returns {Token[]}
- */
-function _coverAttackers(objectType = "COVER_TYPES") {
-  if ( game.combat?.started && game.combat.combatant !== this && game.combat.combatant?.isOwner ) {
-    const choice = Settings.get(Settings.KEYS[objectType].USE);
-    const choices = Settings.KEYS[objectType].CHOICES;
-    if ( choice === choices.COMBATANT ) return [game.combat.combatant];
-  }
-  return canvas.tokens.controlled.filter(t => t !== this)
-}
+
 
 /**
  * New method: Token.prototype.updateCoverTypes
@@ -351,19 +336,27 @@ function _coverAttackers(objectType = "COVER_TYPES") {
  */
 function updateCoverTypes() {
   const existingCoverTypes = this.coverTypes; // Calling the getter ensures the property is there.
+  const attackers = this.constructor._coverAttackers("COVER_TYPES").findSplice(t => t === this);
   const newCoverTypes = this[MODULE_ID]._coverTypes = CONFIG[MODULE_ID].CoverType
-    .minimumCoverFromAttackers(this, this._coverAttackers("COVER_TYPES"));
+    .minimumCoverFromAttackers(this, attackers);
   return !existingCoverTypes.equals(newCoverTypes);
 }
 
 /**
  * New method: Token.prototype.updateCoverEffects
  * Determine what type of effects could be applied to the token, if any.
- * Call `updateCoverTypes` first otherwise existing types will be used.
  * @returns {boolean} True if the update resulted in a change to the existing set.
  */
 function updateCoverEffects() {
-  const coverTypes = this.coverTypes;
+  // Attackers may be different than cover types, depending on settings. (E.g., only targeting)
+  const ctAttackers = new Set(this.constructor._coverAttackers("COVER_TYPES"));
+  const ceAttackers = new Set(this.constructor._coverAttackers("COVER_EFFECTS"));
+  ctAttackers.delete(this);
+  ceAttackers.delete(this);
+  const coverTypes = ctAttackers.equals(ceAttackers) ? this.coverTypes
+    : CONFIG[MODULE_ID].CoverType.minimumCoverFromAttackers(this, [...ceAttackers]);
+
+  // Determine if the cover effects have changed given the current cover types.
   const existingCoverEffects = this.coverEffects; // Calling the getter ensures the property is there.
   const newCoverEffects = this[MODULE_ID]._coverEffects = new Set(CONFIG[MODULE_ID].CoverEffect
     .coverObjectsMap.values().filter(ce => coverTypes.intersects(ce.coverTypes)));
@@ -405,7 +398,6 @@ function refreshCoverEffects(force=false) {
 PATCHES.BASIC.METHODS = {
   coverPercentFromAttacker,
   coverTypesFromAttacker,
-  _coverAttackers,
   coverTypes,
   coverEffects,
   updateCoverTypes,
@@ -413,6 +405,26 @@ PATCHES.BASIC.METHODS = {
   refreshCoverTypes,
   refreshCoverEffects
 };
+
+// ----- NOTE: Static methods ----- //
+
+/**
+ * New method: Token._coverAttackers
+ * Tokens considered to be currently attacking for purposes of assigning
+ * cover types and effects.
+ * @param {"COVER_TYPES"|"COVER_EFFECTS"} [objectType]
+ * @returns {Token[]}
+ */
+function _coverAttackers(objectType = "COVER_TYPES") {
+  if ( game.combat?.started && game.combat.combatant?.isOwner ) {
+    const choice = Settings.get(Settings.KEYS[objectType].USE);
+    const choices = Settings.KEYS[objectType].CHOICES;
+    if ( choice === choices.COMBATANT ) return [game.combat.combatant];
+  }
+  return canvas.tokens.controlled.filter(t => t !== this)
+}
+
+PATCHES.BASIC.STATIC_METHODS = { _coverAttackers };
 
 // ----- NOTE: Getters ----- //
 
