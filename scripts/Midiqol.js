@@ -15,7 +15,7 @@ PATCHES.DND5E_MIDI = {}; // Only if midiqol is active.
  * Hook event that fires after targeting (AoE) is complete.
  * Note: hook will be run by the user that executed the attack triggering this.
  */
-async function midiqolPreambleComplete(workflow) {
+async function midiqolPrePreambleComplete(workflow) {
   const { token, targets, item } = workflow;
   if ( !targets?.size || !token ) return true;
 
@@ -24,4 +24,4 @@ async function midiqolPreambleComplete(workflow) {
   return coverAttackWorkflow(token, targets, actionType);
 }
 
-PATCHES.DND5E_MIDI.HOOKS = { "midi-qol.preambleComplete": midiqolPreambleComplete };
+PATCHES.DND5E_MIDI.HOOKS = { "midi-qol.prePreambleComplete": midiqolPrePreambleComplete };
