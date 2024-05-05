@@ -13,7 +13,7 @@ import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
 import { STATUS_EFFECTS } from "./status_effects.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
-
+import { TokenCover } from "./TokenCover.js";
 
 const USE_CHOICES = {
   NEVER: "never",
@@ -260,7 +260,7 @@ export class Settings extends ModuleSettingsAbstract {
       type: String,
       choices: coverTypeUseChoices,
       default: KEYS.COVER_TYPES.CHOICES.ALWAYS,
-      requiresReload: true // Otherwise, would need to clear all icons from all users.
+      onChange: _value => TokenCover.updateAllTokenCover()
     });
 
     register(KEYS.COVER_TYPES.TARGETING, {
@@ -269,7 +269,8 @@ export class Settings extends ModuleSettingsAbstract {
       scope: "world",
       config: true,
       type: Boolean,
-      default: false
+      default: false,
+      onChange: _value => TokenCover.updateAllTokenCover()
     });
 
     // ----- Main Settings Menu ----- //
@@ -621,6 +622,7 @@ export class Settings extends ModuleSettingsAbstract {
     CONFIG.GeometryLib.proneStatusId = value;
     if ( MODULES_ACTIVE.TOKEN_VISIBILITY) game.settings.set("tokenvisibility", SETTINGS.PRONE_STATUS_ID, value);
   }
+
 }
 
 
