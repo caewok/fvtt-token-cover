@@ -13,14 +13,14 @@
     "tokencover.settings.cover-workflow-confirm-gm": "Ask GM",
     "tokencover.settings.cover-workflow-confirm-automatic": "Automatically apply",
 
-    "tokencover.settings.use-cover-types.Name": "Display Cover Types",
+    "tokencover.settings.use-cover-types.Name": "Display Cover Icons",
     "tokencover.settings.use-cover-types.Hint": "When enabled, icons representing cover types will be displayed locally (per user) on tokens to indicate if they have cover from controlled tokens. If multiple tokens selected, cover will be the minimum from the group. This cover display does not account for some system-specific features that might ignore cover (such as ignoring cover for only certain attack types).",
 
-    "tokencover.settings.cover-types-targeting.Name": "Apply Cover Types Only When Targeting",
-    "tokencover.settings.cover-types-targeting.Hint": "If enabled, cover types will be applied only to targeted tokens. Otherwise, cover types will be applied to all non-controlled tokens. Only applicable when 'Display Cover Types' is enabled.",
+    "tokencover.settings.cover-types-targeting.Name": "Apply Cover Icons Only When Targeting",
+    "tokencover.settings.cover-types-targeting.Hint": "If enabled, cover icons will be displayed only for targeted tokens. Otherwise, cover icons will be displayed for all non-controlled tokens. Only applicable when 'Display Cover Types' is enabled.",
 
     "tokencover.settings.use-cover-effects.Name": "Apply Cover Effects",
-    "tokencover.settings.use-cover-effects.Hint": "Apply cover effects (active effects) to tokens during combat. 'When Targeting' will apply effects when the user is the current combatant and the user targets one or more tokens, based on cover from the current combatant. For dnd5e, effects applied during targeting may be updated if an attack is made. See the cover workflow settings in Cover Settings.",
+    "tokencover.settings.use-cover-effects.Hint": "Apply cover effects (active effects or system equivalent) to tokens locally. For dnd5e, the confirm cover settings below may later modify the effects actually applied during an attack.",
 
     "tokencover.settings.cover-effects-targeting.Name": "Cover Effects Only When Targeting",
     "tokencover.settings.cover-effects-targeting.Hint": "If enabled, cover effects will be applied only to targeted tokens. Otherwise, cover types will be applied to all non-controlled tokens. Only applicable when 'Apply Cover Effects' is enabled.",

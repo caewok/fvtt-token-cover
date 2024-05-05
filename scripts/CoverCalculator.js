@@ -1,16 +1,14 @@
 /* globals
-canvas,
+CONFIG,
 game,
 Token
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { COVER, WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID } from "./const.js";
-import { SETTINGS, Settings } from "./settings.js";
+import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID, COVER } from "./const.js";
+import { Settings } from "./settings.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
-import { SOCKETS } from "./cover_application.js";
-import { keyForValue } from "./util.js";
 import { CoverDialog } from "./CoverDialog.js";
 import { AbstractCalculator } from "./LOS/AbstractCalculator.js";
 
@@ -48,11 +46,8 @@ export class CoverCalculator extends AbstractCalculator {
     [Settings.KEYS.PRONE_TOKENS_BLOCK]: "proneTokensBlock"
   };
 
-  /** @type {object} */
-  static COVER_TYPES = COVER.TYPES;
-
   get liveForceHalfCover() {
-    return this.calc.getConfiguration("liveTokensAlgorithm") === SETTINGS.LIVE_TOKENS.TYPES.HALF;
+    return this.calc.getConfiguration("liveTokensAlgorithm") === Settings.KEYS.LIVE_TOKENS.TYPES.HALF;
   }
 
   static initialConfiguration(cfg = {}) {
@@ -61,7 +56,7 @@ export class CoverCalculator extends AbstractCalculator {
 
     // Set liveTokensBlock based on underlying algorithm.
     super.initialConfiguration(cfg);
-    cfg.liveTokensBlock = cfg.liveTokensAlgorithm !== SETTINGS.LIVE_TOKENS.TYPES.NONE;
+    cfg.liveTokensBlock = cfg.liveTokensAlgorithm !== Settings.KEYS.LIVE_TOKENS.TYPES.NONE;
     return cfg;
   }
 
@@ -73,7 +68,6 @@ export class CoverCalculator extends AbstractCalculator {
     this.calc._clearCache();
   }
 
-
   // ----- NOTE: Static methods ----- //
 
   /**
@@ -81,9 +75,9 @@ export class CoverCalculator extends AbstractCalculator {
    * Ignore when token equals target.
    * @param {Token} token
    * @param {Token[]} targets
-   * @returns {Map<Token, COVER_TYPE>}
+   * @returns {Map<Token, Set<CoverType>>}
    */
-  static coverCalculations(viewer, targets, calcs) {
+  static coverCalculations(viewer, targets, calcs, opts) {
     if ( viewer instanceof Array ) {
       if ( viewer.length > 1 ) console.warn("You should pass a single token or vision source to CoverCalculator, not an array. Using the first object in the array.");
       viewer = viewer[0];
@@ -94,7 +88,7 @@ export class CoverCalculator extends AbstractCalculator {
     calcs ??= new Map();
     for ( const target of targets ) {
       coverCalc.target = target;
-      calcs.set(target, coverCalc.targetCover());
+      calcs.set(target, coverCalc.coverTypes(opts));
     }
     return calcs;
   }
@@ -106,34 +100,48 @@ export class CoverCalculator extends AbstractCalculator {
    * @param {object} [options]  Options that affect the html creation
    * @param {boolean} [options.include3dDistance]   Include 3d distance calculation.
    * @param {boolean} [options.includeZeroCover]  Include targets that have no cover in the resulting html.
-   * @returns {object {html: {string}, nCover: {number}, coverResults: {COVER_TYPES[][]}}}
+   * @returns {object {html: {string}, nCover: {number}, coverResults: {CoverType[][]}}}
    *   String of html content that can be used in a Dialog or ChatMessage.
    */
   static htmlCoverTable(token, targets, opts) {
-    if ( Settings.get(SETTINGS.DEBUG.LOS) ) Draw.clearDrawings();
+    if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) Draw.clearDrawings();
     const coverDialog = new CoverDialog(token, targets);
     return coverDialog._htmlShowCover(opts);
   }
 
   // ----- NOTE: Cover Types ----- //
 
-  coverTypes(target, opts) {
-    if ( target ) this.target = target;
+  /**
+   * Determine cover types.
+   * Target must be set in advance.
+   * @param [object] opts     Options passed to coverTypesForToken, such as actionType (dnd5e)
+   * @returns {Set<CoverType>}
+   */
+  coverTypes(opts) {
     return CONFIG[MODULE_ID].CoverType.coverTypesForToken(this.viewer, this.target, opts);
   }
 
-  coverTypesFromViewerAtLocation(location, target, opts) {
-    this.calc.viewerPoint = location;
-    return this.coverTypes(target, opts);
+  /**
+   * Calculate the target's cover.
+   * Deprecated; used only for midiqol.
+   * @returns {COVER.TYPES} Integer between 0 and 4
+   */
+  targetCover(target) {
+    // Use the possibly cached cover types.
+    const coverTypes = target.coverTypesFromAttacker(this.viewer);
+
+    // Transform cover types into the deprecated COVER.TYPES values by comparing the min percent cover.
+    let coverValue = COVER.TYPES.NONE;
+    for ( const coverType of coverTypes ) {
+      const threshold = coverType.document?.percentThreshold ?? 0;
+      if ( threshold >= 1 ) return COVER.TYPES.HIGH; // Cannot do better than this.
+      if ( threshold >= 0.75 ) coverValue = Math.max(COVER.TYPES.MEDIUM, coverValue);
+      else if ( threshold >= 0.50 ) coverValue = Math.max(COVER.TYPES.LOW, coverValue);
+    }
+    return coverValue;
   }
 
-
-  // ----- NOTE: Calculation methods ----- //
-
-  percentCoverFromViewerAtLocation(location, target) {
-    this.calc.viewerPoint = location;
-    return this._percentCover();
-  }
+  // ----- NOTE: Percent Cover ----- //
 
   /**
    * Calculate the percentage cover over all viewer points if more than one in settings.
@@ -189,7 +197,7 @@ export class CoverCalculator extends AbstractCalculator {
       const res = this._partiallyBlockingTokens();
       partialBlockingTokens = res.partialBlockingTokens;
       if ( res.nonBlockingTokens.length ) {
-        nonBlockingTokens.forEach(t => calc.blockingObjects.tokens.delete(t));
+        res.nonBlockingTokens.forEach(t => calc.blockingObjects.tokens.delete(t));
         blockingObjectsChanged ||= true;
       }
 
@@ -336,14 +344,6 @@ export class CoverCalculator extends AbstractCalculator {
     New formula: .40 + .10 * (1 * .5 + 0 * .75) = .45
     */
 
-
-
-  /**
-   * Calculate the target's cover.
-   * @returns {COVER_TYPES}
-   */
-  targetCover(target) { return this.constructor.typeForPercentage(this.percentCover(target)); }
-
   // ----- NOTE: Token cover application ----- //
   /**
    * Get a description for an attack type
@@ -351,29 +351,6 @@ export class CoverCalculator extends AbstractCalculator {
    * @returns {string}
    */
   static attackNameForType(type) { return game.i18n.localize(WEAPON_ATTACK_TYPES[type]); }
-
-  /**
-   * Set the target cover effect.
-   * If cover is none, disables any cover effects.
-   * @param {COVER.TYPE} type   Cover type. Default to calculating.
-   */
-  setTargetCoverEffect(type = this.targetCover()) {
-    const COVER_TYPES = this.constructor.COVER_TYPES;
-    if ( !keyForValue(COVER_TYPES, type) ) {
-      console.warn("Token.coverType|cover value not recognized.");
-      return;
-    }
-
-    switch ( type ) {
-      case COVER_TYPES.NONE:
-        this.constructor.disableAllCover(this.target.id);
-        break;
-      case COVER_TYPES.LOW:
-      case COVER_TYPES.MEDIUM:
-      case COVER_TYPES.HIGH:
-        this.constructor.enableCover(this.target.id, type);
-    }
-  }
 
   /**
    * Update one or more specific settings in the calculator.

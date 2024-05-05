@@ -1,11 +1,12 @@
 /* globals
 CONFIG,
+fromUuid,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS } from "./const.js";
+import { MODULE_ID, FLAGS, SOCKETS } from "./const.js";
 import { CoverEffect } from "./CoverEffect.js";
 import { log } from "./util.js";
 
@@ -45,7 +46,7 @@ export class CoverItem extends CoverEffect {
 
   /** @type {object|undefined} */
   get defaultCoverObjectData() {
-    const data = super.defaultCoverObjectData;
+    const data = super.defaultCoverObjectData?.documentData;
     if ( !data ) return undefined;
     data.flags ??= {};
     data.flags[MODULE_ID] ??= {};
@@ -85,12 +86,20 @@ export class CoverItem extends CoverEffect {
 
     const compendiumId = this.constructor.defaultCoverObjectData.get(this.id)?.compendiumId;
     if ( !compendiumId ) return;
-    const doc = await pack.getDocument(compendiumId); // Async
-    doc.flags ??= {};
-    doc.flags[MODULE_ID] ??= {};
-    doc.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= this.id;
-
-    return CONFIG.Item.documentClass.create(doc);
+    const data = await pack.getDocument(compendiumId); // Async
+    data.flags ??= {};
+    data.flags[MODULE_ID] ??= {};
+    data.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= this.id;
+    let doc;
+    if ( !game.user.isGM ) {
+      try {
+        const uuid = await SOCKETS.socket.executeAsGM("createCoverEffectItem", data);
+        doc = await fromUuid(uuid);
+      } catch(e) {
+        console.error(`${MODULE_ID}|CoverItem#_loadStorageDocument GM socket failure.`, e);
+      }
+    } else doc = await CONFIG.Item.documentClass.create(data);
+    return doc;
   }
 
   /**
@@ -100,7 +109,17 @@ export class CoverItem extends CoverEffect {
   async _createStorageDocument() {
     // Add necessary settings for the active effect.
     const data = this.defaultCoverObjectData ?? this.newCoverObjectData;
-    return CONFIG.Item.documentClass.create(data); // Async
+    let doc;
+    if ( !game.user.isGM ) {
+      try {
+        const uuid = await SOCKETS.socket.executeAsGM("createCoverEffectItem", data);
+        doc = await fromUuid(uuid);
+      } catch(e) {
+        console.error(`${MODULE_ID}|CoverItem#_createStorageDocument GM socket failure.`, e);
+      }
+    } else doc = await CONFIG.Item.documentClass.create(data);
+    return doc;
+
   }
 
   /**
@@ -113,10 +132,16 @@ export class CoverItem extends CoverEffect {
 
   /**
    * Delete the stored item associated with this cover effect.
-   * @return {boolean} Must return true if document is deleted.
    */
   async _deleteStorageDocument() {
-    return await this.document.delete();
+    if ( !this.document ) return;
+    if ( !game.user.isGM ) {
+      try {
+        await SOCKETS.socket.executeAsGM("deleteDocument", this.document.id);
+      } catch(e) {
+        console.error(`${MODULE_ID}|CoverItem#_deleteStorageDocument GM socket failure.`, e);
+      }
+    } else await this.document.delete();
   }
 
   // ----- NOTE: Methods specific to cover effects ----- //

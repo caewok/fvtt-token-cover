@@ -13,24 +13,6 @@ const coverEffects = {};
 export const defaultCoverTypes = new Map();
 export const defaultCoverEffects = new Map();
 
-/**
- * Determine what cover types apply to a target token given an attacking token.
- * @param {Token} attackingToken
- * @param {Token} targetToken
- * @returns {coverType[]}
- */
-// export function coverTypesForToken(attackingToken, targetToken) {
-//   const types = genericCoverTypesForToken(percentCover);
-//
-//   // If interveningToken is 2+ sizes larger than coverToken, keep standard cover.
-//   const lesserIdx = types.indexOf(coverTypes.lesser);
-//   if ( ~lesserIdx ) {
-//     const tokens = calc.blockingTokens; // TODO: method to return all blocking tokens for calc.
-//     // if ( tokens.some(t => t.size > targetToken.size + 1)) types[lesserIdx] = coverTypes.standard;
-//   }
-//
-//   return types;
-// }
 
 // Cover is typically measured as center --> center.
 // Which means only standard cover would apply.

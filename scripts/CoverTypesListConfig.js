@@ -1,11 +1,10 @@
 /* globals
-ActiveEffect,
+CONFIG,
 Dialog
 expandObject,
 FormApplication,
 foundry,
-game,
-ui
+game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -52,7 +51,7 @@ export class CoverTypesListConfig extends FormApplication  {
   /**
    * Sort the cover types by priority.
    */
-  #sortCoverTypes(coverTypes) {
+  #sortCoverTypes() {
     this.allCoverTypes.sort((a, b) => {
       switch ( ( (!a.document.priority) * 2) + (!b.document.priority) ) {
         case 0: return a.priority - b.priority;
@@ -83,7 +82,7 @@ export class CoverTypesListConfig extends FormApplication  {
     for ( const [idx, coverTypeData] of Object.entries(expandedFormData.allCoverTypes) ) {
       const storedCoverType = this.allCoverTypes[idx];
       if ( !storedCoverType ) continue;
-      promises.add(storedCoverType.update(coverTypeData));
+      promises.push(storedCoverType.update(coverTypeData));
     }
     return Promise.allSettled(promises);
   }

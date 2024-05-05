@@ -2,18 +2,20 @@
 Application,
 CONFIG,
 foundry,
+fromUuid,
 game,
+Hooks,
 ItemDirectory,
+socketlib,
 Token
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS } from "./const.js";
+import { MODULE_ID, FLAGS, SOCKETS } from "./const.js";
 import { Settings } from "./settings.js";
 import { AbstractCoverObject } from "./AbstractCoverObject.js";
 import { AsyncQueue } from "./AsyncQueue.js";
-import { CoverType } from "./CoverType.js";
 import { log } from "./util.js";
 import { defaultCoverEffects as dnd5eCoverEffects } from "./coverDefaults/dnd5e.js";
 import { defaultCoverEffects as pf2eCoverEffects } from "./coverDefaults/pf2e.js";
@@ -25,6 +27,34 @@ export const PATCHES_SidebarTab = {};
 export const PATCHES_ItemDirectory = {};
 PATCHES_SidebarTab.COVER_EFFECT = {};
 PATCHES_ItemDirectory.COVER_EFFECT = {};
+
+// ----- NOTE: Set up sockets so GM can create or modify items ----- //
+Hooks.once("socketlib.ready", () => {
+  SOCKETS.socket ??= socketlib.registerModule(MODULE_ID);
+  SOCKETS.socket.register("createCoverEffectItem", createCoverEffectItem);
+  SOCKETS.socket.register("deleteDocument", deleteDocument);
+});
+
+/**
+ * Socket function: createCoverEffectItem
+ * GM creates the item that stores/represents the effect.
+ * @param {object} data   Data used to create the item
+ * @returns {string} UUID of the item
+ */
+async function createCoverEffectItem(data) {
+  const item = await CONFIG.Item.documentClass.create(data);
+  return item.uuid;
+}
+
+/**
+ * Socket function: deleteDocument
+ * GM deletes the item that stores/represents the effect.
+ * @param {string} uuid   UUID of the item to delete
+ */
+async function deleteDocument(uuid) {
+  const doc = await fromUuid(uuid);
+  doc.delete();
+}
 
 /**
  * Remove the cover effects item from sidebar so it does not display.
@@ -52,23 +82,16 @@ PATCHES_ItemDirectory.COVER_EFFECT.HOOKS = { renderItemDirectory: removeCoverEff
  */
 export class CoverEffect extends AbstractCoverObject {
 
+
   // ----- NOTE: Getters, setters, and related properties ----- //
 
-  /** @type {string[]} */
-  get #coverTypesArray() { return this.document.flags[MODULE_ID][FLAGS.COVER_TYPES] ?? []; }
-
-  /** @type {CoverType[]} */
+  /** @type {Set<CoverType>} */
   get coverTypes() {
-    return this.#coverTypesArray.map(typeId => CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(typeId));
-  }
-
-  set coverType(value) {
-    if ( typeof value === "string" ) value = CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(value);
-    if ( !(value instanceof CoverType) ) {
-      console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
-      return;
-    }
-    this.document.flags[MODULE_ID][FLAGS.COVER_TYPE] = value.document.id;
+    const ids = this.document.flags[MODULE_ID][FLAGS.COVER_TYPES] ?? [];
+    const cts = ids
+      .map(id => CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(id))
+      .filter(ct => Boolean(ct));
+    return new Set(cts);
   }
 
   /**
@@ -94,7 +117,7 @@ export class CoverEffect extends AbstractCoverObject {
 
   /** @type {object|undefined} */
   get defaultCoverObjectData() {
-    const data = super.defaultCoverObjectData?.data;
+    const data = super.defaultCoverObjectData?.documentData;
     if ( !data ) return undefined;
 
     // Confirm that necessary flags are present.
@@ -134,37 +157,6 @@ export class CoverEffect extends AbstractCoverObject {
   async renderConfig() { return this.document.sheet.render(true); }
 
   // ----- NOTE: Methods specific to cover effects ----- //
-
-  /**
-   * Add a single cover type to this effect.
-   * @param {CoverType|string} coverType      CoverType object or its id.
-   */
-  _addCoverType(coverType) {
-    if ( typeof coverType === "string" ) coverType = CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(coverType);
-    if ( !(coverType instanceof CoverType) ) {
-      console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
-      return;
-    }
-    this.#coverTypesArray.push(coverType.id);
-  }
-
-  /**
-   * Remove a single cover type.
-   * @param {CoverType|string} coverType      CoverType object or its id.
-   */
-  _removeCoverType(coverType) {
-    if ( typeof coverType === "string" ) coverType = CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(coverType);
-    if ( !(coverType instanceof CoverType) ) {
-      console.error("CoverEffect#coverType must be a CoverType or CoverType id.");
-      return;
-    }
-    this.#coverTypesArray.findSplice(ct => ct.id === coverType.id);
-  }
-
-  /**
-   * Clear all cover types
-   */
-  _removeAllCoverTypes() { this.#coverTypesArray.length = 0; }
 
   /**
    * Test if the local effect is already on the actor.
@@ -215,7 +207,7 @@ export class CoverEffect extends AbstractCoverObject {
     // Remove documents associated with this cover effect from the actor.
     const removedIds = this._removeFromActorLocally(actor);
     if ( !removedIds.length ) return false;
-    removedIds.forEach(id => this.constructor.documentIds.delete(id));
+    removedIds.forEach(id => this.constructor._documentIds.delete(id));
     if ( update ) refreshActorCoverEffect(actor);
     return true;
   }
@@ -294,6 +286,7 @@ export class CoverEffect extends AbstractCoverObject {
    * Replace local cover effects on token with these.
    * @param {Token|Actor} actor
    * @param {CoverEffect[]|Set<CoverEffect>} coverEffects
+   * @param {boolean} True if a change was made
    */
   static replaceLocalEffectsOnActor(actor, coverEffects = new Set()) {
     log(`CoverEffect#replaceLocalEffectsOnActor|${actor.name}`);
@@ -301,19 +294,20 @@ export class CoverEffect extends AbstractCoverObject {
     if ( actor instanceof Token ) actor = actor.actor;
     if ( !(coverEffects instanceof Set) ) coverEffects = new Set(coverEffects);
     const previousEffects = new Set(this.allLocalEffectsOnActor(actor));
-    if ( coverEffects.equals(previousEffects) ) return;
+    if ( coverEffects.equals(previousEffects) ) return false;
 
     // Filter to only effects that must change.
     const toRemove = previousEffects.difference(coverEffects);
     const toAdd = coverEffects.difference(previousEffects);
-    if ( !(toRemove.size || toAdd.size) ) return;
+    if ( !(toRemove.size || toAdd.size) ) return false;
 
     // Remove unwanted effects then add new effects.
     previousEffects.forEach(ce => ce.removeFromActorLocally(actor, false))
     coverEffects.forEach(ce => ce.addToActorLocally(actor, false));
 
-    // At least on effect should have been changed, so refresh actor.
+    // At least one effect should have been changed, so refresh actor.
     refreshActorCoverEffect(actor);
+    return true;
   }
 }
 

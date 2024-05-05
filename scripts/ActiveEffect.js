@@ -3,8 +3,7 @@
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { COVER, FLAGS, MODULE_ID } from "./const.js";
-import { CoverCalculator } from "./CoverCalculator.js";
+import { FLAGS, MODULE_ID } from "./const.js";
 
 // Patches for the ActiveEffect class
 export const PATCHES = {};
@@ -20,7 +19,7 @@ PATCHES.BASIC = {};
  * @param {string} userId                         The ID of the requesting user, always game.user.id
  * @returns {boolean|void}                        Explicitly return false to prevent creation of this Document
  */
-function preCreateActiveEffect(activeEffect, data, options, userId) {
+function preCreateActiveEffect(activeEffect, _data, _options, _userId) {
   // Is the activeEffect a cover status?
   const coverEffectId = activeEffect.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID);
   if ( !coverEffectId ) return true;

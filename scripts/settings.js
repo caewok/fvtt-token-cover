@@ -13,10 +13,7 @@ import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
 import { STATUS_EFFECTS } from "./status_effects.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
-import {
-  LowCoverEffectConfig,
-  MediumCoverEffectConfig,
-  HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
+
 
 const USE_CHOICES = {
   NEVER: "never",
@@ -222,28 +219,6 @@ export class Settings extends ModuleSettingsAbstract {
   static dFredsHasCover(key) {
     if ( !MODULES_ACTIVE.DFREDS_CE ) return false;
     return Boolean(game.dfreds.effectInterface.findEffectByName(COVER.DFRED_NAMES[key]));
-  }
-
-  /**
-   * Update the CONFIG.statusEffects array with the provided type, taken from GM settings.
-   * @type {string} type    LOW, MEDIUM, or HIGH. If not defined, will update all three.
-   */
-  static updateConfigStatusEffects(type) {
-//     // Skip if using DFred's CE
-//     if ( this.dFredsHasCover(type) ) return;
-//
-//     if ( !type ) {
-//       // Update all types
-//       this.updateConfigStatusEffects("LOW");
-//       this.updateConfigStatusEffects("MEDIUM");
-//       this.updateConfigStatusEffects("HIGH");
-//       return;
-//     }
-//
-//     const coverEffect = this.getCoverEffect(type);
-//     const currIdx = CONFIG.statusEffects.findIndex(effect => effect.id === coverEffect.id);
-//     if ( !~currIdx ) CONFIG.statusEffects.push(coverEffect);
-//     else CONFIG.statusEffects[currIdx] = coverEffect;
   }
 
   /**

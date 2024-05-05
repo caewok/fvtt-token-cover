@@ -12,6 +12,7 @@ export const MODULE_ID = "tokencover";
 export const EPSILON = 1e-08;
 export const DOCUMENTATION_URL = "https://github.com/caewok/fvtt-token-cover/blob/master/README.md";
 export const ISSUE_URL = "https://github.com/caewok/fvtt-token-cover/issues";
+export const SOCKETS = { socket: null };
 
 export const FLAGS = {
   DRAWING: { IS_HOLE: "isHole" },
@@ -89,88 +90,14 @@ export const COVER = {};
 COVER.NONE = 0;
 COVER.EXCLUDE = -1;
 
-// export const COVER = {};
-//
-// COVER.TYPES = {
-//   NONE: 0,
-//   LOW: 1,
-//   MEDIUM: 2,
-//   HIGH: 3,
-//   TOTAL: 4
-// };
-//
-//
-// // Names of the SFRPG Cover items
-// COVER.SFRPG = {
-//   1: "Partial Cover",
-//   2: "Cover",
-//   3: "Improved Cover",
-//   4: "Total Cover"
-// };
-//
-// COVER.IDS = {};
-//
-// COVER.IDS[MODULE_ID] = new Set([
-//   `${MODULE_ID}.cover.LOW`,
-//   `${MODULE_ID}.cover.MEDIUM`,
-//   `${MODULE_ID}.cover.HIGH`
-// ]);
-//
-// COVER.IDS["dfreds-convenient-effects"] = new Set([
-//   "Convenient Effect: Cover (Half)",
-//   "Convenient Effect: Cover (Three-Quarters)",
-//   "Convenient Effect: Cover (Total)"
-// ]);
-//
-// COVER.IDS.ALL = COVER.IDS[MODULE_ID].union(COVER.IDS["dfreds-convenient-effects"]);
-//
-// COVER.DFRED_NAMES = {
-//   LOW: "Cover (Half)",
-//   MEDIUM: "Cover (Three-Quarters)",
-//   HIGH: "Cover (Total)"
-// };
-//
-//
-// COVER.CATEGORIES = {
-//   LOW: {
-//     "dfreds-convenient-effects": "Convenient Effect: Cover (Half)",
-//     [MODULE_ID]: `${MODULE_ID}.cover.LOW`
-//   },
-//
-//   MEDIUM: {
-//     "dfreds-convenient-effects": "Convenient Effect: Cover (Three-Quarters)",
-//     [MODULE_ID]: `${MODULE_ID}.cover.MEDIUM`
-//   },
-//
-//   HIGH: {
-//     "dfreds-convenient-effects": "Convenient Effect: Cover (Total)",
-//     [MODULE_ID]: `${MODULE_ID}.cover.HIGH`
-//   }
-// };
-//
-// COVER.TYPES_FOR_ID = {
-//   [MODULE_ID]: {
-//     [`${MODULE_ID}.cover.LOW`]: COVER.TYPES.LOW,
-//     [`${MODULE_ID}.cover.MEDIUM`]: COVER.TYPES.MEDIUM,
-//     [`${MODULE_ID}.cover.HIGH`]: COVER.TYPES.HIGH,
-//
-//     // Sometimes the id is all lowercase.
-//     [`${MODULE_ID}.cover.low`]: COVER.TYPES.LOW,
-//     [`${MODULE_ID}.cover.medium`]: COVER.TYPES.MEDIUM,
-//     [`${MODULE_ID}.cover.high`]: COVER.TYPES.HIGH
-//   },
-//
-//   "dfreds-convenient-effects": {
-//     "Convenient Effect: Cover (Half)": COVER.TYPES.LOW,
-//     "Convenient Effect: Cover (Three-Quarters)": COVER.TYPES.MEDIUM,
-//     "Convenient Effect: Cover (Total)": COVER.TYPES.HIGH
-//   }
-// };
-//
-// COVER.MIN = Math.min(...Object.values(COVER.TYPES));
-// COVER.MAX = Math.max(...Object.values(COVER.TYPES));
-//
-
+// Deprecated but kept for midiqol and possibly other modules.
+COVER.TYPES = {
+  NONE: 0,
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3,
+  TOTAL: 4
+};
 
 export let IGNORES_COVER_HANDLER = IgnoresCover;
 
@@ -214,5 +141,5 @@ export function setCoverIgnoreHandler(handler) {
 
   // Simplest just to revert any existing.
   if ( !canvas.tokens?.placeables ) return;
-  canvas.tokens.placeables.forEach(t => t._ignoresCoverType = undefined);
+  canvas.tokens.placeables.forEach(t => t._ignoresCover = undefined);
 }
