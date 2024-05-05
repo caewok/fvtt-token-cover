@@ -1,16 +1,11 @@
 /* globals
 CONFIG,
-foundry,
-fromUuidSync,
-game,
-PIXI,
 renderTemplate
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { EPSILON, MODULE_ID } from "./const.js";
-import { Point3d } from "./geometry/3d/Point3d.js";
+import { MODULE_ID } from "./const.js";
 
 /**
  * Remove in place multiple elements of an array that would meet a find test.
@@ -34,7 +29,7 @@ export function findSpliceAll(arr, find) {
 export function log(...args) {
   try {
     if ( CONFIG[MODULE_ID].debug ) console.debug(MODULE_ID, "|", ...args);
-  } catch(_e) {
+  } catch(_e) {  // eslint-disable-line no-unused-vars
     // Empty
   }
 }
