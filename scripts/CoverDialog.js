@@ -188,6 +188,7 @@ export class CoverDialog {
 
     let coverSelections;
     if ( askGM && !game.user.isGM ) {
+      ui.notifications.info("Checking cover with GM...");
       coverSelections = await SOCKETS.socket.executeAsGM("confirmCoverDialog", this.toJSON());
     } else {
       const res = await this.constructor.dialogPromise(dialogData);
@@ -237,6 +238,7 @@ export class CoverDialog {
     const coverCheckOption = Settings.get(Settings.KEYS.COVER_WORKFLOW.CONFIRM);
     const choices = Settings.KEYS.COVER_WORKFLOW.CONFIRM_CHOICES;
     let coverCalculationsJSON;
+    let askGM = false;
     switch ( coverCheckOption ) {
       case choices.AUTO: return this.coverCalculations;
       case choices.USER_CANCEL: {
@@ -244,14 +246,9 @@ export class CoverDialog {
         if ( "Close" === dialogRes ) return false;
         return this.coverCalculations;
       }
-      case choices.USER: {
-        coverCalculationsJSON = await this.confirmCover({ askGM: false });
-        break;
-      }
-      case choices.GM: {
-        if ( !game.user.isGM ) {
-          coverCalculationsJSON = await SOCKETS.socket.executeAsGM("confirmCoverDialog", this.toJSON());
-        } else coverCalculationsJSON = await this.confirmCover({ askGM: true });
+      case choices.GM: askGM = true;
+      case choices.USER: { // eslint-disable-line no-fallthrough
+        coverCalculationsJSON = await this.confirmCover({ askGM });
         break;
       }
     }
