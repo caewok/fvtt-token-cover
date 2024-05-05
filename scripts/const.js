@@ -91,7 +91,7 @@ COVER.NONE = 0;
 COVER.EXCLUDE = -1;
 
 // Deprecated but kept for midiqol and possibly other modules.
-COVER.TYPES = {
+export const COVER_TYPES = {
   NONE: 0,
   LOW: 1,
   MEDIUM: 2,

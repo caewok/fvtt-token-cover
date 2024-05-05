@@ -6,7 +6,7 @@ Token
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID, COVER } from "./const.js";
+import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID, COVER_TYPES } from "./const.js";
 import { Settings } from "./settings.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 import { CoverDialog } from "./CoverDialog.js";
@@ -131,12 +131,12 @@ export class CoverCalculator extends AbstractCalculator {
     const coverTypes = target.coverTypesFromAttacker(this.viewer);
 
     // Transform cover types into the deprecated COVER.TYPES values by comparing the min percent cover.
-    let coverValue = COVER.TYPES.NONE;
+    let coverValue = COVER_TYPES.NONE;
     for ( const coverType of coverTypes ) {
       const threshold = coverType.document?.percentThreshold ?? 0;
-      if ( threshold >= 1 ) return COVER.TYPES.HIGH; // Cannot do better than this.
-      if ( threshold >= 0.75 ) coverValue = Math.max(COVER.TYPES.MEDIUM, coverValue);
-      else if ( threshold >= 0.50 ) coverValue = Math.max(COVER.TYPES.LOW, coverValue);
+      if ( threshold >= 1 ) return COVER_TYPES.HIGH; // Cannot do better than this.
+      if ( threshold >= 0.75 ) coverValue = Math.max(COVER_TYPES.MEDIUM, coverValue);
+      else if ( threshold >= 0.50 ) coverValue = Math.max(COVER_TYPES.LOW, coverValue);
     }
     return coverValue;
   }

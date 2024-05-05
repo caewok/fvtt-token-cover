@@ -21,7 +21,8 @@ async function midiqolPrePreambleComplete(workflow) {
 
   // Construct dialogs, if applicable
   const actionType = item?.system?.actionType;
-  return coverAttackWorkflow(token, targets, actionType);
+  const out = await coverAttackWorkflow(token, targets, actionType);
+  return Boolean(out);
 }
 
 PATCHES.DND5E_MIDI.HOOKS = { "midi-qol.prePreambleComplete": midiqolPrePreambleComplete };
