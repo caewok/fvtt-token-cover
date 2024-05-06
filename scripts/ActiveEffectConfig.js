@@ -19,7 +19,7 @@ PATCHES.BASIC = {};
  * Rerender the terrain control app if it is open when the active effect configuration is closed.
  */
 function closeActiveEffectConfig(app, _html) {
-  if ( !app.object.getFlag(MODULE_ID, FLAGS.COVER_TYPE) ) return;
+  if ( !app.object.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) ) return;
   CoverEffectsApp.rerender();
 }
 
