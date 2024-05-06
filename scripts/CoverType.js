@@ -97,15 +97,11 @@ export class CoverType extends AbstractCoverObject {
 
   /**
    * Create a storage document from scratch.
-   * For cover type, this adds all the data to settings.
-   * Will overwrite any existing data for this id.
+   * For cover type, this creates the document but does not store it. (Saved to settings later.)
    * @returns {Document|object}
    */
   async _createStorageDocument() {
-    const stored = this.constructor.storedCoverTypes;
-    stored[this.id] = this.constructor.defaultCoverObjectData.get(this.id)
-        ?? this.constructor.newCoverTypeData;
-    return Settings.set(this.constructor.settingsKey, stored);
+    return this.constructor.defaultCoverObjectData.get(this.id) ?? this.constructor.newCoverTypeData;
   }
 
   /**
@@ -113,9 +109,7 @@ export class CoverType extends AbstractCoverObject {
    * For cover type, removes this type's config data from stored settings.
    */
   async _deleteStorageDocument() {
-    const stored = this.constructor.storedCoverTypes;
-    delete stored[this.id];
-    return Settings.set(this.constructor.settingsKey, stored);
+    return this.constructor.removeStoredCoverObjectId(this.id);
   }
 
   /**
@@ -128,7 +122,7 @@ export class CoverType extends AbstractCoverObject {
     const stored = this.constructor.storedCoverTypes;
     stored[this.id] ??= {};
     foundry.utils.mergeObject(stored[this.id], config);
-    Settings.set(this.constructor.settingsKey, stored);
+    return this.constructor.addStoredCoverObjectId(this.id, true);
   }
 
   // ----- NOTE: Cover type specific methods ----- //
@@ -264,7 +258,7 @@ export class CoverType extends AbstractCoverObject {
       name: `${MODULE_ID}.cover.tokensBlock`,
       percentThreshold: 1,
       icon: "modules/tokencover/assets/shield_virus_gray.svg",
-      tint: null,
+      tint: new Color(0),
       canOverlap: true,
       includeWalls: false,
       includeTokens: true,
@@ -289,17 +283,22 @@ export class CoverType extends AbstractCoverObject {
   /**
    * Set the cover object id from settings object.
    * @param {string} id
+   * @param {boolean} [update=false]    If true, update the stored cover object data for this id.
    */
-  static async addStoredCoverObjectId(id) {
+  static async addStoredCoverObjectId(id, update = false) {
     // Because the entire Cover Type is stored, set the entire value.
-    const storedIds = this.storedCoverObjectIds;
-    if ( storedIds.has(id) ) return;
+    if ( !update ) {
+      const storedIds = this.storedCoverObjectIds;
+      if ( storedIds.has(id) ) return;
+    }
 
     const coverType = this.coverObjectsMap.get(id);
     if ( !coverType ) return;
 
-    // Force the cover type to update, which should add its id and data to the settings object.
-    return coverType.update();
+    const storedObj = this.storedCoverTypes;
+    storedObj[id] = coverType.document;
+
+    return Settings.set(this.settingsKey, storedObj);
   }
 
   /**
@@ -315,6 +314,8 @@ export class CoverType extends AbstractCoverObject {
     delete storedObj[id];
     return Settings.set(this.settingsKey, storedObj);
   }
+
+
 
   // ----- NOTE: Static cover type specific methods ----- //
 
