@@ -154,10 +154,10 @@ Hooks.once("setup", function() {
   initializePatching();
   Settings.registerAll();
   registerElevationConfig("TileConfig", "Alt. Token Cover");
+});
 
-
-  // Construct default types after init, so that world scripts have a chance to modify.
-  // Must also be done after settings.
+Hooks.once("ready", function() {
+  // Initialize must happen after game is ready, so that settings can be saved if necessary.
   CoverType.initialize();
   CONFIG[MODULE_ID].CoverEffect.initialize(); // Async
 });

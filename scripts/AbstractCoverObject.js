@@ -46,7 +46,7 @@ export class AbstractCoverObject {
    */
   static async create(id) {
     const obj = new this(id);
-    await this.addStoredCoverObjectId(id); // Must happen after creation so coverObjectsMap is updated.
+    await this.addStoredCoverObjectId(obj.id); // Must happen after creation so coverObjectsMap is updated.
     await obj.initializeStorageDocument();
     return obj;
   }
@@ -258,6 +258,10 @@ export class AbstractCoverObject {
     const storedIds = this.storedCoverObjectIds;
     if ( storedIds.has(id) ) return;
     storedIds.add(id);
+
+    // Clean up null or undefined values. Shouldn't happen, but...
+    storedIds.delete(undefined);
+    storedIds.delete(null);
     return Settings.set(this.settingsKey, [...storedIds.values()]);
   }
 
@@ -269,6 +273,10 @@ export class AbstractCoverObject {
     const storedIds = this.storedCoverObjectIds;
     if ( !storedIds.has(id) ) return;
     storedIds.delete(id);
+
+    // Clean up null or undefined values. Shouldn't happen, but...
+    storedIds.delete(undefined);
+    storedIds.delete(null);
     return Settings.set(this.settingsKey, [...storedIds.values()]);
   }
 
