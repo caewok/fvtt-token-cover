@@ -56,7 +56,7 @@ export class CoverTypesListConfig extends FormApplication  {
         case 0: return a.priority - b.priority;
         case 1: return 1; // b.priority is null
         case 2: return -1; // a.priority is null
-        case 3: return a.name.toLowerCase() < b.name.toLowerCase ? -1 : 1;
+        case 3: return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1;
       }
     });
   }

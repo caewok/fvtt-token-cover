@@ -46,8 +46,8 @@ export class AbstractCoverObject {
    */
   static async create(id) {
     const obj = new this(id);
-    await this.addStoredCoverObjectId(obj.id); // Must happen after creation so coverObjectsMap is updated.
     await obj.initializeStorageDocument();
+    await this.addStoredCoverObjectId(obj.id); // Must be after creation and initialization.
     return obj;
   }
 

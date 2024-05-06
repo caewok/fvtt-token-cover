@@ -80,7 +80,7 @@ export class CoverType extends AbstractCoverObject {
    */
   _findStorageDocument() {
     const doc = this.constructor.storedCoverTypes[this.id];
-    if ( !doc ) return undefined;
+    if ( !doc || foundry.utils.isEmpty(doc) ) return undefined;
 
     // Fix tint to always be a Color class.
     if ( !(doc.tint instanceof Color) ) doc.tint = typeof tint === "string"
