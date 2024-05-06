@@ -83,7 +83,7 @@ export class CoverType extends AbstractCoverObject {
     if ( !doc || foundry.utils.isEmpty(doc) ) return undefined;
 
     // Fix tint to always be a Color class.
-    if ( !(doc.tint instanceof Color) ) doc.tint = typeof tint === "string"
+    if ( !(doc.tint instanceof Color) ) doc.tint = typeof doc.tint === "string"
       ? Color.fromString(doc.tint) : new Color(doc.tint);
     return doc;
   }
