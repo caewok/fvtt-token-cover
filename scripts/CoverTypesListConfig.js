@@ -191,11 +191,11 @@ export class CoverTypesListConfig extends FormApplication  {
       default: "import"
     };
     const dialogOpts = { width: 400 };
-    const res = await dialogPromise(dialogData, dialogOpts);
-    if ( res === "Close" || res.buttonKey === "no" ) return;
+    const { html, buttonKey } = await dialogPromise(dialogData, dialogOpts);
+    if ( buttonKey === "Close" || buttonKey === "no" ) return;
 
     // Upload and retrieve the data for the effect.
-    const form = res.html.find("form")[0];
+    const form = html.find("form")[0];
     if ( !form.data.files.length ) return ui.notifications.error("You did not upload a data file!");
     const json = await readTextFromFile(form.data.files[0]);
     if ( !json ) return;

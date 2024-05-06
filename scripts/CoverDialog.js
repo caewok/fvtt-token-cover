@@ -189,9 +189,9 @@ export class CoverDialog {
       ui.notifications.info("Checking cover with GM...");
       return await SOCKETS.socket.executeAsGM("confirmCoverDialog", this.toJSON());
     } else {
-      const res = await dialogPromise(dialogData);
-      if ( "Close" === res ) return res;
-      return this.constructor._getDialogCoverSelections(res.html);
+      const { html, buttonKey } = await dialogPromise(dialogData);
+      if ( "Close" === buttonKey ) return false;
+      return this.constructor._getDialogCoverSelections(html);
     }
   }
 

@@ -102,7 +102,7 @@ function dialogCallback(data, callbackFn, options = {}) {
     };
     data.default = "one";
   }
-  data.close = () => callbackFn("Close");
+  data.close = () => callbackFn({ html: null, buttonKey: "Close" });
   Object.entries(data.buttons).forEach(([buttonKey, buttonData]) => {
     buttonData.callback = html => callbackFn({ html, buttonKey });
   });
