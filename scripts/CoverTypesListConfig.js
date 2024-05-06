@@ -4,13 +4,16 @@ Dialog
 expandObject,
 FormApplication,
 foundry,
-game
+game,
+readTextFromFile,
+renderTemplate,
+ui
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { MODULE_ID, COVER } from "./const.js";
-import { log } from "./util.js";
+import { log, dialogPromise } from "./util.js";
 
 /**
  * Submenu for viewing and editing cover types defined for the system.
@@ -145,14 +148,59 @@ export class CoverTypesListConfig extends FormApplication  {
    */
   async _onResetToDefaults(_event) {
     log("ResetToDefaults clicked!");
-    await CONFIG[MODULE_ID].CoverType.resetToDefaultsDialog();
-    this.render();
+
+    return Dialog.confirm({
+      title: "Remove Cover Type",
+      content:
+        `<h4>Are You Sure?</h4><p>Reset cover objects to defaults? This cannot be undone.`,
+      yes: async () => {
+        log("CoverTypesListConfig|_onRemoveCoverType yes");
+        await CONFIG[MODULE_ID].CoverType.resetToDefaults();
+        this.render();
+      }
+    });
   }
 
   async _onImportCoverType(event) {
     event.stopPropagation();
     log("ImportCoverType clicked!");
     await this._onSubmit(event, { preventClose: true });
+
+    // Construct dialog so user can select import file and warn about this being a permanent change.
+    const dialogData = {
+      title: "Import Cover Objects",
+      content: await renderTemplate("templates/apps/import-data.html", {
+        hint1: "You may import cover objects from an exported JSON file.",
+        hint2: "This operation will update all the cover objects and cannot be undone."
+      }),
+      buttons: {
+        import: {
+          icon: '<i class="fas fa-file-import"></i>',
+          label: "Import",
+          callback: html => {
+            const form = html.find("form")[0];
+            if ( !form.data.files.length ) return ui.notifications.error("You did not upload a data file!");
+            readTextFromFile(form.data.files[0]).then(json => this.importAllFromJSON(json));
+          }
+        },
+        no: {
+          icon: '<i class="fas fa-times"></i>',
+          label: "Cancel"
+        }
+      },
+      default: "import"
+    };
+    const dialogOpts = { width: 400 };
+    const res = await dialogPromise(dialogData, dialogOpts);
+    if ( res === "Close" || res.buttonKey === "no" ) return;
+
+    // Upload and retrieve the data for the effect.
+    const form = res.html.find("form")[0];
+    if ( !form.data.files.length ) return ui.notifications.error("You did not upload a data file!");
+    const json = await readTextFromFile(form.data.files[0]);
+    if ( !json ) return;
+
+    // Update the effect and then rerender.
     await CONFIG[MODULE_ID].CoverType.importAllFromJSONDialog();
     this.render();
   }

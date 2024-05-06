@@ -1,12 +1,8 @@
 /* globals
 foundry,
-Dialog,
 duplicate,
 game,
-readTextFromFile,
-renderTemplate,
-saveDataToFile,
-ui
+saveDataToFile
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -143,7 +139,7 @@ export class AbstractCoverObject {
   async duplicate() {
     const newObj = await this.constructor.create();
     await this.constructor.addStoredCoverObjectId(newObj.id);
-    newObj.update(this.toJSON())
+    await newObj.fromJSON(this.toJSON())
     return newObj;
   }
 
@@ -178,7 +174,7 @@ export class AbstractCoverObject {
    * Export this cover type data to JSON.
    * @returns {object}
    */
-  toJSON() { return this.document; }
+  toJSON() { return JSON.stringify(this.document); }
 
   /**
    * Import data from JSON and overwrite.
@@ -191,34 +187,6 @@ export class AbstractCoverObject {
       return;
     }
     return this.update(json);
-  }
-
-  async importFromJSONDialog() {
-    new Dialog({
-      title: "Import Cover Objects",
-      content: await renderTemplate("templates/apps/import-data.html", {
-        hint1: "You may import a cover object from an exported JSON file.",
-        hint2: `This operation will update the cover object ${this.name} and cannot be undone.`
-      }),
-      buttons: {
-        import: {
-          icon: '<i class="fas fa-file-import"></i>',
-          label: "Import",
-          callback: html => {
-            const form = html.find("form")[0];
-            if ( !form.data.files.length ) return ui.notifications.error("You did not upload a data file!");
-            readTextFromFile(form.data.files[0]).then(json => this.importFromJSON(json));
-          }
-        },
-        no: {
-          icon: '<i class="fas fa-times"></i>',
-          label: "Cancel"
-        }
-      },
-      default: "import"
-    }, {
-      width: 400
-    }).render(true);
   }
 
   /**
@@ -355,56 +323,5 @@ export class AbstractCoverObject {
       promises.push(coverObj.fromJSON(JSON.stringify(data)));
     }
     return Promise.allSettled(promises);
-  }
-
-  static async importAllFromJSONDialog() {
-    new Dialog({
-      title: "Import Cover Objects",
-      content: await renderTemplate("templates/apps/import-data.html", {
-        hint1: "You may import cover objects from an exported JSON file.",
-        hint2: "This operation will update all the cover objects and cannot be undone."
-      }),
-      buttons: {
-        import: {
-          icon: '<i class="fas fa-file-import"></i>',
-          label: "Import",
-          callback: html => {
-            const form = html.find("form")[0];
-            if ( !form.data.files.length ) return ui.notifications.error("You did not upload a data file!");
-            readTextFromFile(form.data.files[0]).then(json => this.importAllFromJSON(json));
-          }
-        },
-        no: {
-          icon: '<i class="fas fa-times"></i>',
-          label: "Cancel"
-        }
-      },
-      default: "import"
-    }, {
-      width: 400
-    }).render(true);
-  }
-
-  static async resetToDefaultsDialog() {
-    new Dialog({
-      title: "Reset Cover Objects",
-      content: "Reset cover objects to defaults? This cannot be undone.",
-      buttons: {
-        reset: {
-          icon: '<i class="fas fa-rotate-left"></i>',
-          label: "Reset",
-          callback: _html => {
-            return this.resetToDefaults();
-          }
-        },
-        no: {
-          icon: '<i class="fas fa-times"></i>',
-          label: "Cancel"
-        }
-      },
-      default: "reset"
-    }, {
-      width: 400
-    }).render(true);
   }
 }

@@ -1,5 +1,6 @@
 /* globals
 CONFIG,
+Dialog,
 renderTemplate
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -67,4 +68,44 @@ export async function injectConfiguration(app, html, data, template, findString)
   const form = html.find(findString);
   form.append(myHTML);
   app.setPosition(app.position);
+}
+
+/**
+ * Convert any dialog to a promise to allow use with await/async.
+ * @content HTML content for the dialog.
+ * @return Promise for the html content of the dialog
+ * Will return "Cancel" or "Close" if those are selected.
+ * See Dialog class in Foundry.
+ * @param {DialogData} data          An object of dialog data which configures how the modal window is rendered
+ * @param {DialogOptions} [options]  Dialog rendering options, see {@link Application}.
+ * @returns {Promise<>|"Close"} The callback data or "Close" if user closed the window
+ */
+export async function dialogPromise(data, options = {}) {
+  return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
+    dialogCallback(data, html => resolve(html), options);
+  });
+}
+
+/**
+ * Create new dialog with a callback function that can be used for dialogPromise.
+ * @content HTML content for the dialog.
+ * @callbackFn Allows conversion of the callback to a promise using dialogPromise.
+ * @return rendered dialog.
+ */
+function dialogCallback(data, callbackFn, options = {}) {
+  if ( !data.buttons ) {
+    data.buttons = {
+      one: {
+        icon: '<i class="fas fa-check"></i>',
+        label: "Confirm"
+      }
+    };
+    data.default = "one";
+  }
+  data.close = () => callbackFn("Close");
+  Object.entries(data.buttons).forEach(([buttonKey, buttonData]) => {
+    buttonData.callback = html => callbackFn({ html, buttonKey });
+  });
+  const d = new Dialog(data, options);
+  return d.render(true, { height: "100%" });
 }

@@ -8,7 +8,7 @@ game
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { log } from "./util.js";
+import { log, dialogPromise } from "./util.js";
 import { CoverTypesListConfig } from "./CoverTypesListConfig.js";
 
 
@@ -50,8 +50,17 @@ export class CoverEffectsController {
    */
   async onResetToDefaults(_event) {
     log("CoverEffectsController|onResetToDefaults");
-    await CONFIG[MODULE_ID].CoverEffect.resetToDefaults();
-    this._viewMvc.render();
+    const view = this._viewMvc;
+    return Dialog.confirm({
+      title: "Reset Cover Effects",
+      content:
+        "<h4>Are You Sure?</h4><p>This will reset all cover effects to system defaults. This cannot be undone.",
+      yes: async () => {
+        log("CoverEffectsController|onResetToDefaults yes");
+        await CONFIG[MODULE_ID].CoverEffect.resetToDefaults();
+        view.render();
+      }
+    });
   }
 
   /**
@@ -116,7 +125,38 @@ export class CoverEffectsController {
     log("CoverEffectsController|onImportCoverEffect");
     const ce = coverEffectForListItem(effectItem);
     if ( !ce ) return;
-    await ce.importFromJSONDialog();
+
+    // Construct a dialog to enable data import for the item.
+    const dialogData = {
+      title: "Import Cover Objects",
+      content: await renderTemplate("templates/apps/import-data.html", {
+        hint1: "You may import a cover object from an exported JSON file.",
+        hint2: `This operation will update the cover object ${this.name} and cannot be undone.`
+      }),
+      buttons: {
+        import: {
+          icon: '<i class="fas fa-file-import"></i>',
+          label: "Import"
+        },
+        no: {
+          icon: '<i class="fas fa-times"></i>',
+          label: "Cancel"
+        }
+      },
+      default: "import"
+    };
+    const dialogOpts = { width: 400 };
+    const res = await dialogPromise(dialogData, dialogOpts);
+    if ( res === "Close" || res.buttonKey === "no" ) return;
+
+    // Upload and retrieve the data for the effect.
+    const form = res.html.find("form")[0];
+    if ( !form.data.files.length ) return ui.notifications.error("You did not upload a data file!");
+    const json = await readTextFromFile(form.data.files[0]);
+    if ( !json ) return;
+
+    // Update the effect and then rerender.
+    await ce.fromJSON(json);
     this._viewMvc.render();
   }
 

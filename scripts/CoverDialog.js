@@ -2,7 +2,6 @@
 canvas,
 ChatMessage,
 CONFIG,
-Dialog,
 foundry,
 game,
 Hooks,
@@ -17,6 +16,7 @@ import { MODULE_ID, COVER, SOCKETS } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Settings } from "./settings.js";
+import { dialogPromise } from "./util.js";
 
 
 const NULL_SET = new Set();
@@ -185,35 +185,31 @@ export class CoverDialog {
     askGM ||= false;
     const html = this._htmlConfirmCover();
     const dialogData = { title: game.i18n.localize(`${MODULE_ID}.phrases.ConfirmCover`), content: html };
-
-    let coverSelections;
     if ( askGM && !game.user.isGM ) {
       ui.notifications.info("Checking cover with GM...");
-      coverSelections = await SOCKETS.socket.executeAsGM("confirmCoverDialog", this.toJSON());
+      return await SOCKETS.socket.executeAsGM("confirmCoverDialog", this.toJSON());
     } else {
-      const res = await this.constructor.dialogPromise(dialogData);
-      coverSelections = this.constructor._getDialogCoverSelections(res);
+      const res = await dialogPromise(dialogData);
+      if ( "Close" === res ) return res;
+      return this.constructor._getDialogCoverSelections(res.html);
     }
-    if ( "Close" === coverSelections ) return false;
-    return coverSelections;
   }
 
   /**
    * Pull the cover selections from the dialog results.
-   * @param {object} res    JQuery object returned from Dialog.
+   * @param {object} html    JQuery object returned from Dialog.
    * @returns {object}  id: coverSelection[]. Returned as object so it works with sockets.
    */
-  static _getDialogCoverSelections(res) {
-    if ( "Close" === res ) return res;
+  static _getDialogCoverSelections(html) {
     const out = {};
-    const coverPrioritySelections = res.find("[class=CoverPrioritySelect]");
+    const coverPrioritySelections = html.find("[class=CoverPrioritySelect]");
     for ( const selection of coverPrioritySelections ) {
       const id = selection.id.replace("CoverPrioritySelect.", "");
       out[id] = [selection.value];
     }
 
     // Overlapping may have multiple
-    const coverOverlappingSelections = res.find("[class=CoverOverlappingSelect]");
+    const coverOverlappingSelections = html.find("[class=CoverOverlappingSelect]");
     for ( const selection of coverOverlappingSelections ) {
       const id = selection.id.replace("CoverOverlappingSelect.", "");
       const nSelections = selection.length;
@@ -341,7 +337,7 @@ ${html}
       default: game.i18n.localize(`${MODULE_ID}.phrases.Done`),
       height: "100%"
     };
-    return this.constructor.dialogPromise(dialogData);
+    return dialogPromise(dialogData);
   }
 
   /**
@@ -456,22 +452,6 @@ ${html}
     if ( typeCoverIgnored > 0 && actionType !== "all" ) ignoresCoverLabel += `<br> &le; ≤ ${typeCoverIgnored} (${CoverCalculator.attackNameForType(actionType)}s)`;
     if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = ` <br><em>Ignores:${ignoresCoverLabel}</em>`;
     return ignoresCoverLabel;
-  }
-
-  /**
-   * Convert any dialog to a promise to allow use with await/async.
-   * @content HTML content for the dialog.
-   * @return Promise for the html content of the dialog
-   * Will return "Cancel" or "Close" if those are selected.
-   * See Dialog class in Foundry.
-   * @param {DialogData} data          An object of dialog data which configures how the modal window is rendered
-   * @param {DialogOptions} [options]  Dialog rendering options, see {@link Application}.
-   * @returns {Promise<>|"Close"} The callback data or "Close" if user closed the window
-   */
-  static async dialogPromise(data, options = {}) {
-    return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
-      dialogCallback(data, html => resolve(html), options);
-    });
   }
 
   // ----- NOTE: Calculate cover data for html tables ----- //
@@ -741,26 +721,4 @@ export async function coverAttackWorkflow(attacker, targets, actionType) {
     await coverDialog.sendCoverCalculationsToChat(opts);
   }
   return true;
-}
-
-/**
- * Create new dialog with a callback function that can be used for dialogPromise.
- * @content HTML content for the dialog.
- * @callbackFn Allows conversion of the callback to a promise using dialogPromise.
- * @return rendered dialog.
- */
-function dialogCallback(data, callbackFn, options = {}) {
-  data.buttons = {
-    one: {
-      icon: '<i class="fas fa-check"></i>',
-      label: "Confirm",
-      callback: html => callbackFn(html)
-    }
-  };
-
-  data.default = "one";
-  data.close = () => callbackFn("Close");
-
-  let d = new Dialog(data, options);
-  d.render(true, { height: "100%" });
 }
