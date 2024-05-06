@@ -158,7 +158,7 @@
     "tokencover.active-effect-config.coverType.name": "Cover Types",
     "tokencover.active-effect-config.coverType.hint": "Associate this active effect with one or more specific cover types. Depending on module settings, this may cause the active effect to be automatically assigned to a token locally for a given user.",
 
-    "tokencover.controls.cover-effects-control.name": "Cover Effects",
+    "tokencover.controls.cover-effects-control.name": "Alt. Token Cover",
 
     "tokencover.cover-types-list-config.title": "Cover Types",
     "tokencover.cover-types-list-config.description": "A cover type defines specific properties used to control when cover applies.",
