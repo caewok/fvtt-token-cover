@@ -159,7 +159,7 @@ export class AbstractCoverObject {
   }
 
   /**
-   * Save a json file for this cover type.
+   * Save a json file for this cover object.
    */
   exportToJSON() {
     const filename = `${MODULE_ID}_CoverObject_${this.id}`;
@@ -197,7 +197,7 @@ export class AbstractCoverObject {
     new Dialog({
       title: "Import Cover Objects",
       content: await renderTemplate("templates/apps/import-data.html", {
-        hint1: "You may import a cover objects from an exported JSON file.",
+        hint1: "You may import a cover object from an exported JSON file.",
         hint2: `This operation will update the cover object ${this.name} and cannot be undone.`
       }),
       buttons: {
@@ -341,10 +341,18 @@ export class AbstractCoverObject {
       console.error("JSON file not recognized.");
       return;
     }
+
+    // Remove all existing.
+    await this._deleteAllDocuments();
+    await this.removeAllStoredCoverObjectIds();
     this.coverObjectsMap.clear();
+
+    // Cycle through each json object in turn.
+    // Create a blank object using the id from the json and then update it with the json data.
     const promises = [];
-    for ( const ct of json.coverObjects ) {
-      promises.push(this.constructor.create(ct));
+    for ( const data of json.coverObjects ) {
+      const coverObj = await this.create(data.id);
+      promises.push(coverObj.fromJSON(JSON.stringify(data)));
     }
     return Promise.allSettled(promises);
   }
@@ -354,7 +362,7 @@ export class AbstractCoverObject {
       title: "Import Cover Objects",
       content: await renderTemplate("templates/apps/import-data.html", {
         hint1: "You may import cover objects from an exported JSON file.",
-        hint2: "This operation will update the cover objects and cannot be undone."
+        hint2: "This operation will update all the cover objects and cannot be undone."
       }),
       buttons: {
         import: {
