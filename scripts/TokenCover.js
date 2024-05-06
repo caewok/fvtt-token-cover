@@ -208,7 +208,8 @@ export class TokenCover {
     if ( game.combat?.started && game.combat.combatant?.isOwner ) {
       const choice = Settings.get(Settings.KEYS[objectType].USE);
       const choices = Settings.KEYS[objectType].CHOICES;
-      if ( choice === choices.COMBATANT ) return [game.combat.combatant];
+      if ( choice === choices.COMBATANT
+        && game.combat.combatant.token?.object) return [game.combat.combatant.token.object];
     }
     return canvas.tokens.controlled;
   }
@@ -256,6 +257,20 @@ export class TokenCover {
       log(`updateAllTokenCover|updating cover for ${t.name}.`);
       if ( t.tokencover.updateCoverTypes() ) t.tokencover.refreshCoverTypes();
       if ( t.tokencover.updateCoverEffects() ) t.tokencover.refreshCoverEffects();
+    });
+  }
+
+  /**
+   * Helper to force update cover types and effects for all tokens for the current user on the canvas.
+   * Used when changing settings related to cover types or effects.
+   */
+  static _forceUpdateAllTokenCover() {
+    canvas.tokens.placeables.forEach(t => {
+      log(`updateAllTokenCover|updating cover for ${t.name}.`);
+      t.tokencover.updateCoverTypes()
+      t.tokencover.updateCoverEffects()
+      t.tokencover.refreshCoverTypes();
+      t.tokencover.refreshCoverEffects();
     });
   }
 

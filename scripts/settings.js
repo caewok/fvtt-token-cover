@@ -1,7 +1,6 @@
 /* globals
 canvas,
 CONFIG,
-duplicate,
 foundry,
 game
 */
@@ -9,8 +8,7 @@ game
 "use strict";
 
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
-import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
-import { STATUS_EFFECTS } from "./status_effects.js";
+import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
@@ -175,7 +173,7 @@ export class Settings extends ModuleSettingsAbstract {
       type: String,
       choices: coverTypeUseChoices,
       default: KEYS.COVER_TYPES.CHOICES.ALWAYS,
-      onChange: _value => TokenCover.updateAllTokenCover()
+      onChange: _value => TokenCover._forceUpdateAllTokenCover()
     });
 
     register(KEYS.COVER_TYPES.TARGETING, {
@@ -185,7 +183,7 @@ export class Settings extends ModuleSettingsAbstract {
       config: true,
       type: Boolean,
       default: false,
-      onChange: _value => TokenCover.updateAllTokenCover()
+      onChange: _value => TokenCover._forceUpdateAllTokenCover()
     });
 
     // ----- Main Settings Menu ----- //
@@ -311,7 +309,8 @@ export class Settings extends ModuleSettingsAbstract {
       type: String,
       choices: coverEffectUseChoices,
       default: KEYS.COVER_EFFECTS.CHOICES.NEVER,
-      tab: "workflow"
+      tab: "workflow",
+      onChange: _value => TokenCover._forceUpdateAllTokenCover()
     });
 
     register(KEYS.COVER_EFFECTS.TARGETING, {
@@ -321,7 +320,8 @@ export class Settings extends ModuleSettingsAbstract {
       config: false,
       type: Boolean,
       default: false,
-      tab: "workflow"
+      tab: "workflow",
+      onChange: _value => TokenCover._forceUpdateAllTokenCover()
     });
 
     if ( game.system.id === "dnd5e" ) {
