@@ -98,6 +98,27 @@ Hooks.once("ready", () => {
       `
     })
 
+     .addEntry({
+      version: "0.7.0",
+      title: "Per-User Cover",
+      body: `\
+        Big interface changes! Cover is now applied locally, per-user. Select one or more
+        tokens to be "attackers" and the other tokens will have cover displayed, depending on your settings.
+        Each user can decide if they want cover icons to display on tokens all the time or during combat only.
+        Optionally display cover only when targeting. Cover icons will display for that user only.
+
+        Cover effects are also applied only locally, resulting in big performance boost and hopefully less confusion.
+        Magically, this still lets the cover effects
+
+        There is a new Alt. Token Cover book in the GM token controls that allows the GM to define or edit cover
+        effects and, optionally, the underlying rules ("cover types") that determine what effects should apply.
+
+        Displaying cover now works in pf2e. Applying the actual cover effects still needs a bit of work, unfortunately.
+
+        Check out the Git documentation for more details. Report any bugs (and there will be bugs) by opening a Git issue.
+      `
+    })
+
     .build()
     ?.render(true);
 });
