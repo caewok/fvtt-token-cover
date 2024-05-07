@@ -488,8 +488,8 @@ export class CoverTypePF2E extends CoverType {
 
     // If we don't have a lesser or standard cover defined, return.
     // If types does not have lesser cover, nothing to upgrade; return.
-    const standardCover = this.coverObjectsMap.get(pf2eCoverTypes.standard.id);
-    const lesserCover = this.coverObjectsMap.get(pf2eCoverTypes.lesser.id);
+    const standardCover = this.coverObjectsMap.get(`[MODULE_ID].pf2e.standard`);
+    const lesserCover = this.coverObjectsMap.get(`[MODULE_ID].pf2e.lesser`);
     if ( !standardCover || !lesserCover || !types.has(lesserCover) ) return types;
 
     // Convert lesser cover to standard cover if the blocking creature is 2+ larger.
