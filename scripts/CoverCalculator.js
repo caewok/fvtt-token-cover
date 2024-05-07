@@ -86,10 +86,7 @@ export class CoverCalculator extends AbstractCalculator {
 
     const coverCalc = viewer.tokencover.coverCalculator;
     calcs ??= new Map();
-    for ( const target of targets ) {
-      coverCalc.target = target;
-      calcs.set(target, coverCalc.coverTypes(opts));
-    }
+    for ( const target of targets ) calcs.set(target, coverCalc.coverTypes(target, opts));
     return calcs;
   }
 
@@ -113,11 +110,12 @@ export class CoverCalculator extends AbstractCalculator {
 
   /**
    * Determine cover types.
-   * Target must be set in advance.
-   * @param [object] opts     Options passed to coverTypesForToken, such as actionType (dnd5e)
+   * @param {Token} [target]    Optional target if not already set
+   * @param [object] opts       Options passed to coverTypesForToken, such as actionType (dnd5e)
    * @returns {Set<CoverType>}
    */
-  coverTypes(opts) {
+  coverTypes(target, opts) {
+    if ( target ) this.target = target;
     return CONFIG[MODULE_ID].CoverType.coverTypesForToken(this.viewer, this.target, opts);
   }
 
