@@ -33,8 +33,7 @@ import { PATCHES as PATCHES_ClientSettings } from "./ModuleSettingsAbstract.js";
 import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 
 // Cover Effect Item
-import { PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./CoverEffect.js";
-import { PATCHES as PATCHES_CoverActiveEffect } from "./CoverActiveEffect.js";
+import { PATCHES as PATCHES_CoverActiveEffect, PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./CoverActiveEffect.js";
 
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,

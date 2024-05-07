@@ -22,12 +22,6 @@ import { defaultCoverEffects as pf2eCoverEffects } from "./coverDefaults/pf2e.js
 import { defaultCoverEffects as sfrpgCoverEffects } from "./coverDefaults/sfrpg.js";
 import { defaultCoverEffects as genericCoverEffects } from "./coverDefaults/generic.js";
 
-// Patches to remove the cover effect item from the sidebar tab.
-export const PATCHES_SidebarTab = {};
-export const PATCHES_ItemDirectory = {};
-PATCHES_SidebarTab.COVER_EFFECT = {};
-PATCHES_ItemDirectory.COVER_EFFECT = {};
-
 // ----- NOTE: Set up sockets so GM can create or modify items ----- //
 Hooks.once("socketlib.ready", () => {
   SOCKETS.socket ??= socketlib.registerModule(MODULE_ID);
@@ -56,21 +50,6 @@ async function deleteDocument(uuid) {
   doc.delete();
 }
 
-/**
- * Remove the cover effects item from sidebar so it does not display.
- * From https://github.com/DFreds/dfreds-convenient-effects/blob/main/scripts/ui/remove-custom-item-from-sidebar.js#L3
- * @param {ItemDirectory} dir
- */
-function removeCoverEffectsItemFromSidebar(dir) {
-  if ( !(dir instanceof ItemDirectory) ) return;
-  const id = CoverEffect.COVER_EFFECTS_ITEM;
-  if ( !id ) return;
-  const li = dir.element.find(`li[data-document-id="${id}"]`);
-  li.remove();
-}
-
-PATCHES_SidebarTab.COVER_EFFECT.HOOKS = { changeSidebarTab: removeCoverEffectsItemFromSidebar };
-PATCHES_ItemDirectory.COVER_EFFECT.HOOKS = { renderItemDirectory: removeCoverEffectsItemFromSidebar };
 
 /**
  * Handles applying effects to tokens that should be treated as cover.

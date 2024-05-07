@@ -15,6 +15,28 @@ import { log } from "./util.js";
 export const PATCHES = {};
 PATCHES.DFREDS = {};
 
+// Patches to remove the cover effect item from the sidebar tab.
+export const PATCHES_SidebarTab = {};
+export const PATCHES_ItemDirectory = {};
+PATCHES_SidebarTab.COVER_EFFECT = {};
+PATCHES_ItemDirectory.COVER_EFFECT = {};
+
+/**
+ * Remove the cover effects item from sidebar so it does not display.
+ * From https://github.com/DFreds/dfreds-convenient-effects/blob/main/scripts/ui/remove-custom-item-from-sidebar.js#L3
+ * @param {ItemDirectory} dir
+ */
+function removeCoverEffectsItemFromSidebar(dir) {
+  if ( !(dir instanceof ItemDirectory) ) return;
+  const id = CONFIG[MODULE_ID].CoverEffect.coverEffectItem?.id;
+  if ( !id ) return;
+  const li = dir.element.find(`li[data-document-id="${id}"]`);
+  li.remove();
+}
+
+PATCHES_SidebarTab.COVER_EFFECT.HOOKS = { changeSidebarTab: removeCoverEffectsItemFromSidebar };
+PATCHES_ItemDirectory.COVER_EFFECT.HOOKS = { renderItemDirectory: removeCoverEffectsItemFromSidebar };
+
 // ----- NOTE: Set up sockets so GM can create or modify items ----- //
 Hooks.once("socketlib.ready", () => {
   SOCKETS.socket ??= socketlib.registerModule(MODULE_ID);
