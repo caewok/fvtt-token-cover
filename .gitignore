@@ -21,3 +21,5 @@ Cargo.lock
 v10_sync_to_module.sh
 
 rclone_los_folder.sh
+
+Using Foundry CLI to save compendiums.txt

@@ -1,22 +1,23 @@
 /* globals
 canvas,
+CONFIG,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
 // Patches for the Token class
 
-import { MODULE_ID, MODULES_ACTIVE, COVER, IGNORES_COVER_HANDLER } from "./const.js";
+import { MODULE_ID, COVER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
-import { SETTINGS, Settings } from "./settings.js";
-import { isFirstGM } from "./util.js";
+import { Settings } from "./settings.js";
+import { log } from "./util.js";
+import { TokenCover } from "./TokenCover.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
 PATCHES.DEBUG = {};
 PATCHES.sfrpg = {};
 PATCHES.NO_PF2E = {};
-
 
 // ----- NOTE: Debug Hooks ----- //
 
@@ -30,7 +31,7 @@ PATCHES.NO_PF2E = {};
  */
 async function controlTokenDebugHook(token, controlled) {
   if ( !token[MODULE_ID].coverCalc ) return;
-  const coverCalc = token.coverCalculator;
+  const coverCalc = token.tokencover.coverCalculator;
   coverCalc.clearDebug();
   if ( controlled ) {
     if ( coverCalc.calc.openDebugPopout ) await coverCalc.calc.openDebugPopout();
@@ -48,9 +49,9 @@ async function controlTokenDebugHook(token, controlled) {
 function targetTokenDebugHook(user, target, targeted) {
   if ( !targeted || game.user !== user ) return;
   canvas.tokens.placeables
-    .filter(t => t !== target && t.controlled && t[MODULE_ID]?.coverCalc)
+    .filter(t => t !== target && t.controlled && t._tokencover)
     .forEach(t => {
-      const coverCalc = t.coverCalculator;
+      const coverCalc = t.tokencover.coverCalculator;
       if ( !coverCalc._draw3dDebug ) return;
       coverCalc.calc._clearCache();
       coverCalc.target = target;
@@ -92,7 +93,8 @@ function refreshTokenDebugHook(token, flags) {
 
 function updateDebugForControlledToken(changedToken) {
   // If this token is controlled, update its LOS canvas display to every other token.
-  const changedCalc = changedToken[MODULE_ID]?.coverCalc.calc;
+  if ( !changedToken._tokencover ) return;
+  const changedCalc = changedToken[MODULE_ID].coverCalculator.calc;
   if ( !changedCalc ) return;
   changedCalc.clearDebug();
   canvas.tokens.placeables.forEach(token => {
@@ -111,9 +113,9 @@ function updateDebugForControlledToken(changedToken) {
 function updateDebugForRelatedTokens(changedToken) {
   // For any other controlled token, update its LOS canvas display for this one.
   canvas.tokens.placeables
-    .filter(t => t !== changedToken && t.controlled && t[MODULE_ID]?.coverCalc)
+    .filter(t => t !== changedToken && t.controlled && t._tokencover)
     .forEach(token => {
-      const coverCalc = token.coverCalculator;
+      const coverCalc = token.tokencover.coverCalculator;
       if ( coverCalc.target === changedToken ) coverCalc.clearDebug();
       coverCalc.calc._clearCache();
       coverCalc.target = changedToken;
@@ -128,34 +130,104 @@ PATCHES.DEBUG.HOOKS = {
   targetToken: targetTokenDebugHook
 };
 
+
 // ----- NOTE: Hooks ----- //
 
 /**
- * Hook: targetToken
- * If the debug popout is active, redraw the 3d debug if the target changes.
- * @param {User} user        The User doing the targeting
- * @param {Token} token      The targeted Token
- * @param {boolean} targeted Whether the Token has been targeted or untargeted
+ * Hook Token refresh
+ * Adjust elevation as the token moves.
  */
-function targetTokenDebug(user, target, targeted) {
-  if ( !targeted || game.user !== user ) return;
-  for ( const token of canvas.tokens.controlled ) {
-    if ( !token[MODULE_ID]?.coverCalc ) continue;
-    const coverCalc = token.coverCalculator;
-    if ( !coverCalc.calc.popoutIsRendered ) continue;
-    coverCalc.target = target;
-    coverCalc.percentCover();
-    coverCalc.calc._draw3dDebug();
+function refreshToken(token, flags) {
+  if ( !flags.refreshPosition ) return;
+
+  log(`refreshToken hook|${token.name} at ${token.position.x},${token.position.y}. Token is ${token._original ? "Clone" : "Original"}`);
+
+  // Clear this token's cover calculations because it moved.
+  token.tokencover.coverFromMap.clear();
+
+  // Clear the cover calculations relative to this token.
+  TokenCover.resetTokenCoverFromAttacker(token);
+
+  // TODO: Do we need to do anything different during token animation?
+  if ( token._original ) {
+    // This token is a clone in a drag operation.
+    log(`refreshToken hook|Token ${token.name} is being dragged.`);
+
+    // Update cover of other tokens relative to the dragged token.
+    // Only need to update tokens if this one is an "attacker"
+    // Otherwise, can just reset.
+    const coverAttackers = TokenCover.coverAttackers;
+    if ( coverAttackers("COVER_TYPES").some(t => t.id === token.id)
+      || coverAttackers("COVER_EFFECTS").some(t => t.id === token.id) ) {
+      canvas.tokens.placeables.forEach(t => {
+        if ( t.id === token.id ) return; // Use id so clones are ignored
+        TokenCover.updateCoverFromToken(t, token);
+      });
+    }
+  } else if ( token._animation ) {
+    log(`refreshToken hook|Token ${token.name} is animating`);
   }
+
+  // Refresh token icons and effects for those that have changed.
+  TokenCover.updateAllTokenCover();
+}
+
+/**
+ * Hook: updateToken
+ * If the token moves, clear cover calculations
+ * @param {Document} tokenD                         The existing Document which was updated
+ * @param {object} change                           Differential data that was used to update the document
+ * @param {DocumentModificationContext} options     Additional options which modified the update request
+ * @param {string} userId                           The ID of the User who triggered the update workflow
+ */
+function updateToken(tokenD, change, _options, _userId) {
+  if ( !(Object.hasOwn(change, "x")
+      || Object.hasOwn(change, "y")
+      || Object.hasOwn(change, "elevation")
+      || Object.hasOwn(change, "rotation")) ) return;
+
+  // Token moved
+  // Clear this token's cover calculations.
+  const token = tokenD.object;
+  log(`updateToken hook|${token.name} moved from ${token.position.x},${token.position.y} -> ${token.document.x},${token.document.y} Center: ${token.center.x},${token.center.y}.`);
+  token.tokencover.coverFromMap.clear();
+
+  // Clear the cover calculations for this token and update cover.
+  TokenCover.resetTokenCoverFromAttacker(token);
+  TokenCover.updateAllTokenCover();
+}
+
+/**
+ * Hook: controlToken
+ * When the user selects the token, add cover type icons and effects for all tokens relative to that one.
+ * When the user deselects the token, remove all cover type icons and effects.
+ * @param {PlaceableObject} object The object instance which is selected/deselected.
+ * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
+ */
+function controlToken(controlledToken, controlled) {
+  log(`controlToken hook|${controlledToken.name} ${controlled ? "selected" : "unselected"}`);
+  TokenCover.updateAllTokenCover();
 }
 
 /**
  * Hook: destroyToken
  * @param {PlaceableObject} object    The object instance being destroyed
  */
-function destroyToken(token) { if ( token[MODULE_ID]?.coverCalc ) token.coverCalculator.destroy(); }
+function destroyToken(token) {
+  log(`destroyToken hook|destroying ${token.name}`);
+  if ( token._tokencover ) token.tokencover.destroy();
+
+  // Clear all other token's cover calculations for this token.
+  const id = token.id;
+  canvas.tokens.placeables.forEach(t => {
+    if ( t === token ) return;
+    t.tokencover.coverFromMap.delete(id);
+  });
+  TokenCover.updateAllTokenCover();
+}
 
 /**
+ * Hook: targetToken
  * If a token is targeted, determine its cover status.
  *
  * A hook event that fires when a token is targeted or un-targeted.
@@ -165,22 +237,17 @@ function destroyToken(token) { if ( token[MODULE_ID]?.coverCalc ) token.coverCal
  * @param {Token} token      The targeted Token
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
-async function targetToken(user, target, targeted) {
-  if ( !isFirstGM()
-    || !Settings.get(SETTINGS.COVER.COMBAT_AUTO)
-    || !game.combat?.started // If not in combat, do nothing because it is unclear who is targeting what...
-    || !isUserCombatTurn(user)  // Ignore targeting by other users
-  ) return;
-
-  if ( !targeted ) return await CoverCalculator.disableAllCover(target.id);
-
-  // Target from the current combatant to the target token
-  const c = game.combats.active?.combatant;
-  if ( !c ) return; // Apparently combatant is not always defined.
-  const combatToken = c.token.object;
-  const coverCalc = combatToken.coverCalculator;
-  coverCalc.target = target;
-  return await coverCalc.setTargetCoverEffect();
+function targetToken(user, target, _targeted) {
+  const coverTypeTargetsOnly = Settings.get(Settings.KEYS.COVER_TYPES.TARGETING);
+  const coverEffectTargetsOnly = Settings.get(Settings.KEYS.COVER_EFFECTS.TARGETING);
+  if ( coverTypeTargetsOnly ) {
+    log(`targetToken hook|updating cover icons for ${target.name}.`);
+    target.tokencover.refreshCoverTypes();
+  }
+  if ( coverEffectTargetsOnly ) {
+    log(`targetToken hook|updating cover effects for ${target.name}.`);
+    target.tokencover.refreshCoverEffects();
+  }
 }
 
 /**
@@ -200,75 +267,25 @@ function applyTokenStatusEffect(token, statusId, active) {
     : CoverCalculator.disableAllCover(token);
 }
 
-PATCHES.BASIC.HOOKS = { destroyToken, targetToken: targetTokenDebug };
+PATCHES.BASIC.HOOKS = { destroyToken, updateToken, controlToken, targetToken, refreshToken };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
-PATCHES.NO_PF2E.HOOKS = { targetToken };
 
-
-// ----- NOTE: Methods ----- //
-/**
- * Token.prototype.setCoverType
- * Set cover type for this token.
- * @param {COVER.TYPES} value
- */
-async function setCoverType(value) { return this.coverCalculator.setTargetCoverEffect(value); }
-
-PATCHES.BASIC.METHODS = { setCoverType };
 
 // ----- NOTE: Getters ----- //
 
 /**
- * New getter: Token.prototype.coverType
- * Determine what type of cover the token has, if any.
- * @type {COVER_TYPES}
+ * New method: Token.tokencover
+ * Class that handles various token cover functions and getters.
  */
-function coverType() {
-  const statuses = this.actor?.statuses;
-  if ( !statuses ) return COVER.TYPES.NONE;
-  const coverModule = MODULES_ACTIVE.DFREDS_CE ? "dfreds-convenient-effects" : MODULE_ID;
-  return statuses.has(COVER.CATEGORIES.HIGH[coverModule]) ? COVER.TYPES.HIGH
-    : statuses.has(COVER.CATEGORIES.MEDIUM[coverModule]) ? COVER.TYPES.MEDIUM
-      : statuses.has(COVER.CATEGORIES.LOW[coverModule]) ? COVER.TYPES.LOW
-        : COVER.TYPES.NONE;
-}
-
-/**
- * New getter: Token.prototype.ignoresCoverType
- * Instantiate a IgnoresCover class to determine if cover can be ignored for different attack types.
- * @type {boolean}
- */
-function ignoresCoverType() {
-  return this._ignoresCoverType || (this._ignoresCoverType = new IGNORES_COVER_HANDLER(this));
-}
+function tokencover() { return (this._tokencover ??= new TokenCover(this)); }
 
 /**
  * New getter: Token.prototype.coverCalculator
  * Retrieve a valid cover calculator or construct a new one.
  */
-function coverCalculator() {
-  this[MODULE_ID] ??= {};
-  return (this[MODULE_ID].coverCalc ??= new CoverCalculator(this));
-}
+function coverCalculator() { return this.tokencover.coverCalculator; }
 
 PATCHES.BASIC.GETTERS = {
-  coverCalculator,
-  coverType,
-  ignoresCoverType
+  tokencover,
+  coverCalculator
 };
-
-
-// ----- NOTE: Helper functions ----- //
-
-/**
- * Determine if the user's token is the current combatant in the active tracker.
- * @param {User} user
- * @returns {boolean}
- */
-function isUserCombatTurn(user) {
-  if ( !game.combat?.started ) return false;
-
-  // If no players, than it must be a GM token
-  const players = game.combats.active?.combatant?.players;
-  if ( !players?.length ) return user.isGM;
-  return players.some(player => user.name === player.name);
-}

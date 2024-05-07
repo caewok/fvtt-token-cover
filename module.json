@@ -49,20 +49,27 @@
   "packs": [
     {
       "name": "tokencover_macros",
-      "label": "ATV Macros",
+      "label": "ATC Macros",
       "path": "packs/macros",
       "type": "Macro",
       "private": false
     },
     {
       "name": "tokencover_items_sfrpg",
-      "label": "ATV Items",
+      "label": "ATC Items",
       "path": "packs/items/sfrpg",
       "type": "Item",
       "private": false,
       "system": "sfrpg"
+    },
+    {
+      "name": "tokencover_items_pf2e",
+      "label": "ATC Items",
+      "path": "packs/items/pf2e",
+      "type": "Item",
+      "private": false,
+      "system": "pf2e"
     }
-
   ],
   "languages": [
     {

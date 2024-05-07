@@ -1,7 +1,6 @@
 /* globals
 canvas,
 CONFIG,
-duplicate,
 foundry,
 game
 */
@@ -9,26 +8,58 @@ game
 "use strict";
 
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
-import { MODULE_ID, MODULES_ACTIVE, COVER } from "./const.js";
-import { STATUS_EFFECTS } from "./status_effects.js";
+import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
-import {
-  LowCoverEffectConfig,
-  MediumCoverEffectConfig,
-  HighCoverEffectConfig } from "./EnhancedEffectConfig.js";
+import { TokenCover } from "./TokenCover.js";
+import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
+
+const USE_CHOICES = {
+  NEVER: "never",
+  COMBAT: "combat",
+  COMBATANT: "combatant",
+  ATTACK: "attack",
+  ALWAYS: "always"
+};
+
+const CONFIRM_CHOICES = {
+  USER: "cover-workflow-confirm-user",
+  USER_CANCEL: "cover-workflow-confirm-user-cancel",
+  GM: "cover-workflow-confirm-gm",
+  AUTO: "cover-workflow-confirm-automatic"
+}
 
 export const SETTINGS = {
+  CONTROLS: {
+    COVER_EFFECTS: "cover-effects-control"
+  },
+
   SUBMENU: "submenu",
 
-  // Taken from Alt. Token Visibility
-  POINT_TYPES: {
-    CENTER: "points-center",
-    FOUR: "points-four", // Five without center
-    FIVE: "points-five", // Corners + center
-    EIGHT: "points-eight", // Nine without center
-    NINE: "points-nine" // Corners, midpoints, center
+  COVER_TYPES: {
+    USE: "use-cover-types",
+    CHOICES: USE_CHOICES,
+    DATA: "cover-types-data",
+    TARGETING: "cover-types-targeting"
   },
+
+  COVER_EFFECTS: {
+    USE: "use-cover-effects",
+    CHOICES: USE_CHOICES,
+    DATA: "cover-effects-data",
+    TARGETING: "cover-effects-targeting"
+  },
+
+  COVER_WORKFLOW: {
+    CHAT: "cover-chat-message",
+    CONFIRM: "cover-workflow-confirm",
+    CONFIRM_CHANGE_ONLY: "cover-workflow-confirm-change-only",
+    CONFIRM_NO_COVER: "cover-workflow-confirm-no-cover",
+    CONFIRM_CHOICES,
+  },
+
+  // Taken from Alt. Token Visibility
+  POINT_TYPES: AlternativeLOS.POINT_TYPES,
 
   LOS: {
     VIEWER: {
@@ -76,40 +107,6 @@ export const SETTINGS = {
     }
   },
 
-  // Other cover settings
-  COVER: {
-    EFFECTS: "cover-effects",
-
-    MENU: {
-      LOW: "menu-cover-effects-low",
-      MEDIUM: "menu-cover-effects-medium",
-      HIGH: "menu-cover-effects-high"
-    },
-
-    TRIGGER_CENTER: "cover-trigger-center",
-
-    TRIGGER_PERCENT: {
-      LOW: "cover-trigger-percent-low",
-      MEDIUM: "cover-trigger-percent-medium",
-      HIGH: "cover-trigger-percent-high"
-    },
-
-    COMBAT_AUTO: "cover-combat-auto",
-    CHAT: "cover-chat-message"
-  },
-
-  MIDIQOL: {
-    COVERCHECK: "midiqol-covercheck",
-    COVERCHECK_CHOICES: {
-      NONE: "midiqol-covercheck-none",
-      USER: "midiqol-covercheck-user",
-      USER_CANCEL: "midiqol-covercheck-user-cancel",
-      GM: "midiqol-covercheck-gm",
-      AUTO: "midiqol-covercheck-auto"
-    },
-    COVERCHECK_IF_CHANGED: "midiqol-covercheck-if-changed"
-  },
-
   // Hidden settings
   AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
   CHANGELOG: "changelog",
@@ -126,117 +123,10 @@ export class Settings extends ModuleSettingsAbstract {
     if ( enabled ) registerDebug();
     else {
       if ( canvas.tokens?.placeables ) canvas.tokens.placeables
-        .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
-        .forEach(t => t.coverCalculator.clearDebug());
+        .filter(t => t._tokencover) // Don't create a new coverCalc here.
+        .forEach(t => t[MODULE_ID].coverCalculator.clearDebug());
       deregisterDebug();
     }
-  }
-
-  // ----- NOTE: Cover helper static methods ---- //
-
-  /* Status effects
-  Stored in two places:
-  - SETTINGS.COVER.EFFECTS[][LOW, MEDIUM, HIGH]
-  --> by game system
-
-  - CONFIG.statusEffects
-  --> only current game system
-
-  When first loading the scene:
-  - Retrieve current status effect for the game system. Update CONFIG.statusEffects.
-
-  When user updates an effect:
-  - Store the updated effect to SETTINGS.COVER.EFFECTS for the type and game system
-  - Update CONFIG.statusEffects
-
-  */
-
-  /** @type {object} */
-  static get coverNames() {
-    const statusEffects = STATUS_EFFECTS[game.system.id] || STATUS_EFFECTS.generic;
-    return {
-      LOW: statusEffects.LOW.id,
-      MEDIUM: statusEffects.MEDIUM.id,
-      HIGH: statusEffects.HIGH.id
-    };
-  }
-
-  /**
-   * Retrieve from GM settings the cover effect for the provided type for this game system.
-   * @param {string} type   LOW, MEDIUM, or HIGH
-   * @returns {object} Status effect
-   */
-  static getCoverEffect(type = "LOW") {
-    const allStatusEffects = this.get(SETTINGS.COVER.EFFECTS);
-    const statusEffects = allStatusEffects[game.system.id] || allStatusEffects.generic;
-    const coverEffect = statusEffects[type];
-    coverEffect.id = `${MODULE_ID}.cover.${type}`;
-    coverEffect.name ??= coverEffect.label ?? coverEffect.id; // Ensure name is always present.
-    return coverEffect;
-  }
-
-  /**
-   * Helper function to get the cover effect name from settings.
-   * @param {string} type   LOW, MEDIUM, HIGH
-   * @returns {string} Label for the cover effect
-   */
-  static getCoverName(type = "LOW") {
-    if ( type === "NONE" ) return game.i18n.localize("None");
-    if ( type === "TOTAL" ) return game.i18n.localize(`${MODULE_ID}.phrases.Total`);
-
-    const effect = this.getCoverEffect(type);
-    return game.i18n.localize(effect.name ?? effect.label);
-  }
-
-  /**
-   * Store to GM settings the cover effect value provided for the provided type for this game system.
-   * Also updates CONFIG.statusEffects array.
-   * @param {string} type   LOW, MEDIUM, or HIGH
-   * @param {object} value  Status effect
-   */
-  static async setCoverEffect(type, value) {
-    const allStatusEffects = this.get(SETTINGS.COVER.EFFECTS);
-    let systemId = game.system.id;
-    if ( (systemId === "dnd5e" || systemId === "sw5e")
-      && game.modules.get("midi-qol")?.active ) systemId = `${systemId}_midiqol`;
-
-    if ( !Object.hasOwn(allStatusEffects, systemId) ) allStatusEffects[systemId] = duplicate(allStatusEffects.generic);
-
-    allStatusEffects[systemId][type] = value;
-    await this.set(SETTINGS.COVER.EFFECTS, allStatusEffects);
-    this.updateConfigStatusEffects(type);
-  }
-
-  /**
-   * Confirm if DFred's has the given cover type.
-   * @param {"LOW"|"MEDIUM"|"HIGH"} key
-   * @returns {boolean}
-   */
-  static dFredsHasCover(key) {
-    if ( !MODULES_ACTIVE.DFREDS_CE ) return false;
-    return Boolean(game.dfreds.effectInterface.findEffectByName(COVER.DFRED_NAMES[key]));
-  }
-
-  /**
-   * Update the CONFIG.statusEffects array with the provided type, taken from GM settings.
-   * @type {string} type    LOW, MEDIUM, or HIGH. If not defined, will update all three.
-   */
-  static updateConfigStatusEffects(type) {
-    // Skip if using DFred's CE
-    if ( this.dFredsHasCover(type) ) return;
-
-    if ( !type ) {
-      // Update all types
-      this.updateConfigStatusEffects("LOW");
-      this.updateConfigStatusEffects("MEDIUM");
-      this.updateConfigStatusEffects("HIGH");
-      return;
-    }
-
-    const coverEffect = this.getCoverEffect(type);
-    const currIdx = CONFIG.statusEffects.findIndex(effect => effect.id === coverEffect.id);
-    if ( !~currIdx ) CONFIG.statusEffects.push(coverEffect);
-    else CONFIG.statusEffects[currIdx] = coverEffect;
   }
 
   /**
@@ -251,9 +141,45 @@ export class Settings extends ModuleSettingsAbstract {
     const losChoices = {};
     const ptChoices = {};
     const rangeChoices = {};
+
+    const coverTypeUseChoices = {};
+    const coverEffectUseChoices = {};
+    const coverConfirmChoices = {};
+
     Object.values(RTYPES).forEach(type => rangeChoices[type] = localize(type));
     Object.values(LTYPES).forEach(type => losChoices[type] = localize(type));
     Object.values(PT_TYPES).forEach(type => ptChoices[type] = localize(type));
+
+    Object.values(USE_CHOICES).forEach(type => coverTypeUseChoices[type] = localize(type));
+    Object.values(USE_CHOICES).forEach(type => coverEffectUseChoices[type] = localize(type));
+    Object.values(CONFIRM_CHOICES).forEach(type => coverConfirmChoices[type] = localize(type));
+
+    // For most systems, no hooks set up into their attack sequence, so applying effects on attack is out.
+    if ( game.system.id !== "dnd5e" ) {
+      delete coverTypeUseChoices[USE_CHOICES.ATTACK];
+      delete coverEffectUseChoices[USE_CHOICES.ATTACK];
+    }
+
+    register(KEYS.COVER_TYPES.USE, {
+      name: localize(`${KEYS.COVER_TYPES.USE}.Name`),
+      hint: localize(`${KEYS.COVER_TYPES.USE}.Hint`),
+      scope: "user",
+      config: true,
+      type: String,
+      choices: coverTypeUseChoices,
+      default: KEYS.COVER_TYPES.CHOICES.ALWAYS,
+      onChange: _value => TokenCover._forceUpdateAllTokenCover()
+    });
+
+    register(KEYS.COVER_TYPES.TARGETING, {
+      name: localize(`${KEYS.COVER_TYPES.TARGETING}.Name`),
+      hint: localize(`${KEYS.COVER_TYPES.TARGETING}.Hint`),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: false,
+      onChange: _value => TokenCover._forceUpdateAllTokenCover()
+    });
 
     // ----- Main Settings Menu ----- //
     registerMenu(KEYS.SUBMENU, {
@@ -262,96 +188,6 @@ export class Settings extends ModuleSettingsAbstract {
       icon: "fas fa-user-gear",
       type: SettingsSubmenu,
       restricted: true
-    });
-
-    // ----- NOTE: Menus (Cover effects) ----- //
-    const skipCoverMenus = game.system.id === "sfrpg";
-    const skipLowMenu = skipCoverMenus || this.dFredsHasCover("LOW");
-    const skipMediumMenu = skipCoverMenus || this.dFredsHasCover("MEDIUM");
-    const skipHighMenu = skipCoverMenus || this.dFredsHasCover("HIGH");
-
-    if ( !skipLowMenu ) registerMenu(KEYS.COVER.MENU.LOW, {
-      name: localize(`${KEYS.COVER.MENU.LOW}.Name`),
-      label: localize(`${KEYS.COVER.MENU.LOW}.Label`),
-      icon: "fas fa-shield-halved",
-      type: LowCoverEffectConfig,
-      restricted: true
-    });
-
-    if ( !skipMediumMenu ) registerMenu(KEYS.COVER.MENU.MEDIUM, {
-      name: localize(`${KEYS.COVER.MENU.MEDIUM}.Name`),
-      label: localize(`${KEYS.COVER.MENU.MEDIUM}.Label`),
-      icon: "fas fa-shield-heart",
-      type: MediumCoverEffectConfig,
-      restricted: true
-    });
-
-
-    if ( !skipHighMenu ) game.settings.registerMenu(MODULE_ID, KEYS.COVER.MENU.HIGH, {
-      name: localize(`${KEYS.COVER.MENU.HIGH}.Name`),
-      hint: localize(`${KEYS.COVER.MENU.HIGH}.Hint`),
-      label: localize(`${KEYS.COVER.MENU.HIGH}.Label`),
-      icon: "fas fa-shield",
-      type: HighCoverEffectConfig,
-      restricted: true
-    });
-
-    // ---- NOTE: Trigger percentages ---- //
-    const coverNames = this.coverNames;
-    register(KEYS.COVER.TRIGGER_CENTER, {
-      name: localize(`${KEYS.COVER.TRIGGER_CENTER}.Name`),
-      hint: localize(`${KEYS.COVER.TRIGGER_CENTER}.Hint`),
-      scope: "world",
-      config: true,
-      default: coverNames.MEDIUM,
-      type: String,
-      choices: {
-        LOW: coverNames.LOW,
-        MEDIUM: coverNames.MEDIUM,
-        HIGH: coverNames.HIGH
-      }
-    });
-
-    register(KEYS.COVER.TRIGGER_PERCENT.LOW, {
-      name: localize(`${KEYS.COVER.TRIGGER_PERCENT.LOW}.Name`),
-      hint: localize(`${KEYS.COVER.TRIGGER_PERCENT.LOW}.Hint`),
-      range: {
-        max: 1,
-        min: 0.1,
-        step: 0.05
-      },
-      scope: "world",
-      config: true,
-      default: .5,
-      type: Number
-    });
-
-    game.settings.register(MODULE_ID, KEYS.COVER.TRIGGER_PERCENT.MEDIUM, {
-      name: localize(`${KEYS.COVER.TRIGGER_PERCENT.MEDIUM}.Name`),
-      hint: localize(`${KEYS.COVER.TRIGGER_PERCENT.MEDIUM}.Hint`),
-      range: {
-        max: 1,
-        min: 0.1,
-        step: 0.05
-      },
-      scope: "world",
-      config: true,
-      default: .75,
-      type: Number
-    });
-
-    game.settings.register(MODULE_ID, KEYS.COVER.TRIGGER_PERCENT.HIGH, {
-      name: localize(`${KEYS.COVER.TRIGGER_PERCENT.HIGH}.Name`),
-      hint: localize(`${KEYS.COVER.TRIGGER_PERCENT.HIGH}.Hint`),
-      range: {
-        max: 1,
-        min: 0.1,
-        step: 0.05
-      },
-      scope: "world",
-      config: true,
-      default: 1,
-      type: Number
     });
 
     register(KEYS.DEBUG, {
@@ -459,49 +295,65 @@ export class Settings extends ModuleSettingsAbstract {
     });
 
     // ----- NOTE: Workflow tab ----- //
-    register(KEYS.COVER.COMBAT_AUTO, {
-      name: localize(`${KEYS.COVER.COMBAT_AUTO}.Name`),
-      hint: localize(`${KEYS.COVER.COMBAT_AUTO}.Hint`),
+
+    register(KEYS.COVER_EFFECTS.USE, {
+      name: localize(`${KEYS.COVER_EFFECTS.USE}.Name`),
+      hint: localize(`${KEYS.COVER_EFFECTS.USE}.Hint`),
+      scope: "world",
+      config: false,
+      type: String,
+      choices: coverEffectUseChoices,
+      default: KEYS.COVER_EFFECTS.CHOICES.NEVER,
+      tab: "workflow",
+      onChange: _value => TokenCover._forceUpdateAllTokenCover()
+    });
+
+    register(KEYS.COVER_EFFECTS.TARGETING, {
+      name: localize(`${KEYS.COVER_EFFECTS.TARGETING}.Name`),
+      hint: localize(`${KEYS.COVER_EFFECTS.TARGETING}.Hint`),
       scope: "world",
       config: false,
       type: Boolean,
-      default: true,
-      tab: "workflow"
+      default: false,
+      tab: "workflow",
+      onChange: _value => TokenCover._forceUpdateAllTokenCover()
     });
 
-    register(KEYS.COVER.CHAT, {
-      name: localize(`${KEYS.COVER.CHAT}.Name`),
-      hint: localize(`${KEYS.COVER.CHAT}.Hint`),
-      scope: "world",
-      config: false,
-      type: Boolean,
-      default: true,
-      tab: "workflow"
-    });
-
-    const MIDICHOICES = KEYS.MIDIQOL.COVERCHECK_CHOICES;
-    const useCoverCheck = game.system.id === "dnd5e" || MODULES_ACTIVE.MIDI_QOL;
-    if ( useCoverCheck ) {
-      register(KEYS.MIDIQOL.COVERCHECK, {
-        name: localize(`${KEYS.MIDIQOL.COVERCHECK}.Name`),
-        hint: localize(`${KEYS.MIDIQOL.COVERCHECK}.Hint`),
+    if ( game.system.id === "dnd5e" ) {
+      register(KEYS.COVER_WORKFLOW.CHAT, {
+        name: localize(`${KEYS.COVER_WORKFLOW.CHAT}.Name`),
+        hint: localize(`${KEYS.COVER_WORKFLOW.CHAT}.Hint`),
         scope: "world",
         config: false,
-        type: String,
-        choices: {
-          [MIDICHOICES.NONE]: localize(MIDICHOICES.NONE),
-          [MIDICHOICES.USER]: localize(MIDICHOICES.USER),
-          [MIDICHOICES.USER_CANCEL]: localize(MIDICHOICES.USER_CANCEL),
-          [MIDICHOICES.GM]: localize(MIDICHOICES.GM),
-          [MIDICHOICES.AUTO]: localize(MIDICHOICES.AUTO)
-        },
-        default: MIDICHOICES.NONE,
+        type: Boolean,
+        default: false,
         tab: "workflow"
       });
 
-      register(KEYS.MIDIQOL.COVERCHECK_IF_CHANGED, {
-        name: localize(`${KEYS.MIDIQOL.COVERCHECK_IF_CHANGED}.Name`),
-        hint: localize(`${KEYS.MIDIQOL.COVERCHECK_IF_CHANGED}.Hint`),
+      register(KEYS.COVER_WORKFLOW.CONFIRM, {
+        name: localize(`${KEYS.COVER_WORKFLOW.CONFIRM}.Name`),
+        hint: localize(`${KEYS.COVER_WORKFLOW.CONFIRM}.Hint`),
+        scope: "world",
+        config: false,
+        type: String,
+        choices: coverConfirmChoices,
+        default: KEYS.COVER_WORKFLOW.CONFIRM_CHOICES.AUTO,
+        tab: "workflow"
+      });
+
+      register(KEYS.COVER_WORKFLOW.CONFIRM_NO_COVER, {
+        name: localize(`${KEYS.COVER_WORKFLOW.CONFIRM_NO_COVER}.Name`),
+        hint: localize(`${KEYS.COVER_WORKFLOW.CONFIRM_NO_COVER}.Hint`),
+        scope: "world",
+        config: false,
+        type: Boolean,
+        default: false,
+        tab: "workflow"
+      });
+
+      register(KEYS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY, {
+        name: localize(`${KEYS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY}.Name`),
+        hint: localize(`${KEYS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY}.Hint`),
         scope: "world",
         config: false,
         type: Boolean,
@@ -634,10 +486,16 @@ export class Settings extends ModuleSettingsAbstract {
       default: false
     });
 
-    register(KEYS.COVER.EFFECTS, {
+    register(KEYS.COVER_EFFECTS.DATA, {
       scope: "world",
       config: false,
-      default: STATUS_EFFECTS
+      default: {}
+    });
+
+    register(KEYS.COVER_TYPES.DATA, {
+      scope: "world",
+      config: false,
+      default: {}
     });
 
     // ----- NOTE: Triggers based on starting settings ---- //
@@ -658,20 +516,23 @@ export class Settings extends ModuleSettingsAbstract {
     this.cache.delete(key);
     if ( this.typesWebGL2.has(value) ) registerArea3d();
     canvas.tokens.placeables
-      .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
-      .forEach(token => token.coverCalculator._updateAlgorithm());
+      .filter(t => t._tokencover) // Don't create a new coverCalc here.
+      .forEach(token => token[MODULE_ID].coverCalculator._updateAlgorithm());
   }
 
   static losSettingChange(key, value) {
     this.cache.delete(key);
     const cfg = { [key]: value };
     canvas.tokens.placeables
-      .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
-      .forEach(token => token.coverCalculator._updateConfiguration(cfg));
+      .filter(t => t._tokencover) // Don't create a new coverCalc here.
+      .forEach(token => token[MODULE_ID].coverCalculator._updateConfiguration(cfg));
   }
 
   static setProneStatusId(value) {
     CONFIG.GeometryLib.proneStatusId = value;
     if ( MODULES_ACTIVE.TOKEN_VISIBILITY) game.settings.set("tokenvisibility", SETTINGS.PRONE_STATUS_ID, value);
   }
+
 }
+
+

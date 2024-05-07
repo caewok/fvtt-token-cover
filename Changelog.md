@@ -1,3 +1,19 @@
+## 0.7.0
+
+Big refactor of how token cover is defined and applied.
+
+CoverType and CoverEffect. CoverTypes are rules for applying cover, and control the icon that displays cover for a given token. CoverEffects are system-dependent active effects or items that are added to the token when the token has cover.
+
+Local Application. Each user will see cover icons on tokens specific to the user, and cover effects are applied locally. This is dramatically faster, because there is no storage/retrieval from the document database. This also allows different users to see different things. For example, each user that selects a token might see the cover icons applied to all other enemy tokens within view—these icons are specific to each respective user's current token selection.
+
+System compatibility. Items and Active Effects are both supported as cover effects. Thus, pf2e is now supported, and other systems should be easier to support.
+
+DFred's Convenient Effects. If DFred's is active, the DFred's cover effects will be used.
+
+Configurability. Cover types and cover effects can be added/deleted/modified by the GM. There is now a "Token Cover Book" in the token controls that can be used to change cover types and effects.
+
+WARNING: While the underlying cover algorithms have not changed, this still represents a big update in terms of changes in settings and user-facing workflow. There will be bugs!
+
 ## 0.6.5
 
 ### New Feature

@@ -1,4 +1,5 @@
 /* globals
+foundry,
 game,
 */
 "use strict";
@@ -9,10 +10,11 @@ import { MODULES_ACTIVE } from "./const.js";
 import { WallGeometryHandler, TileGeometryHandler, TokenGeometryHandler } from "./LOS/Placeable3dGeometry.js";
 
 import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
+import { PATCHES as PATCHES_ActiveEffectConfig } from "./ActiveEffectConfig.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
 import { PATCHES as PATCHES_Item } from "./Item.js";
-import { PATCHES as PATCHES_SettingsConfig } from "./SettingsConfig.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
+import { PATCHES as PATCHES_TokenDocument } from "./TokenDocument.js";
 
 // LOS
 import { PATCHES as PATCHES_PointSourcePolygon } from "./LOS/PointSourcePolygon.js";
@@ -30,28 +32,38 @@ import { PATCHES as PATCHES_ClientSettings } from "./ModuleSettingsAbstract.js";
 // Token configuration
 import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 
+// Cover Effect Item
+import { PATCHES as PATCHES_CoverActiveEffect, PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./CoverActiveEffect.js";
+
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
+  ActiveEffectConfig: PATCHES_ActiveEffectConfig,
   ClientSettings: PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
   Item: PATCHES_Item,
+  ItemDirectory: PATCHES_ItemDirectory,
+  SidebarTab: PATCHES_SidebarTab,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
-  SettingsConfig: PATCHES_SettingsConfig,
   Tile: PATCHES_Tile,
   Token: foundry.utils.mergeObject(PATCHES_Token, PATCHES_TokenLOS),
   TokenConfig: PATCHES_TokenConfig,
+  TokenDocument: PATCHES_TokenDocument,
   VisionSource: PATCHES_VisionSource,
   Wall: PATCHES_Wall,
 
-  Midiqol: PATCHES_Midiqol
+  Midiqol: PATCHES_Midiqol,
+
+  CoverActiveEffect: PATCHES_CoverActiveEffect
 };
 
 export const PATCHER = new Patcher();
-PATCHER.addPatchesFromRegistrationObject(PATCHES);
+
 
 export function initializePatching() {
+  PATCHER.addPatchesFromRegistrationObject(PATCHES); // So lookupByClassName works
   PATCHER.registerGroup("BASIC");
   PATCHER.registerGroup("TILE");
+  PATCHER.registerGroup("COVER_EFFECT");
 
   // If ATV is not active, handle the LOS patches needed to run the calculator.
   if ( !MODULES_ACTIVE.TOKEN_VISIBILITY ) PATCHER.registerGroup("LOS");
@@ -67,6 +79,8 @@ export function initializePatching() {
   if ( game.system.id === "sfrpg" ) PATCHER.registerGroup("sfrpg");
 
   if ( game.system.id !== "pf2e" ) PATCHER.registerGroup("NO_PF2E");
+
+  if ( game.modules.get("dfreds-convenient-effects")?.active ) PATCHER.registerGroup("DFREDS");
 }
 
 export function registerArea3d() {

@@ -1,63 +1,36 @@
 /* globals
-canvas
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { CoverCalculator } from "./CoverCalculator.js";
-import { Settings, SETTINGS } from "./settings.js";
+import { CoverCalculator } from "./CoverCalculator.js"; // Required to avoid error that Settings cannot be accessed prior to initialization.
+import { Settings } from "./settings.js";
+import { TokenCover } from "./TokenCover.js";
 
 // Patches for the Combat class
 export const PATCHES = {};
-PATCHES.NO_PF2E = {};
+PATCHES.BASIC = {};
 
 // ----- NOTE: Hooks ----- //
 
 /**
- * Hook the combat turn, to clear cover from other combatants.
+ * Hook after combat document is updated. Update the token cover for the new combatant.
+ * Cannot use combatTurn hook b/c it fires before the turn changes.
+ * @param {Document} document                       The existing Document which was updated
+ * @param {object} change                           Differential data that was used to update the document
+ * @param {DocumentModificationContext} options     Additional options which modified the update request
+ * @param {string} userId                           The ID of the User who triggered the update workflow
  */
-function combatTurn(combat, updateData, updateOptions) { // eslint-disable-line no-unused-vars
-   updateCombatCoverStatus(combat, updateData, updateOptions)
-}
-
-/**
- * Hook the combat round, to clear cover from other combatants.
- */
-function combatRound(combat, updateData, updateOptions) {
-  updateCombatCoverStatus(combat, updateData, updateOptions)
-}
-
-/**
- * @param {Combat} combat
- * @param {object} updateData
- *   - @property {number} updateData.round
- *   - @property {number} updateData.turn
- * @param {object} updateOptions
- */
-function updateCombatCoverStatus(combat, updateData, updateOptions) {
-  if ( !Settings.get(SETTINGS.COVER.COMBAT_AUTO) ) return;
-  const c = combat.combatant;
-  const playerOwners = c.players;
-
-  // Clear cover status of all tokens in the scene
-  // Unless the token is targeted by the current user
-  const tokens = canvas.tokens.placeables;
-
-  const userTargetedTokens = [];
-  for ( const token of tokens ) {
-    if ( playerOwners.some(owner => token.targeted.has(owner)) ) {
-      userTargetedTokens.push(token);
-    }
-    CoverCalculator.disableAllCover(token.id); // Async
-  }
-
-  // Calculate cover from combatant to any currently targeted tokens
-  const combatToken = c.token.object;
-  for ( const target of userTargetedTokens ) {
-    const coverCalc = new CoverCalculator(combatToken, target);
-    coverCalc.setTargetCoverEffect(); // Async
+function updateCombat(document, change, options, userId) {
+  if ( !(Object.hasOwn(change, "turn")) ) return;
+  const { COVER_TYPES, COVER_EFFECTS } = Settings.KEYS;
+  const COMBATANT = COVER_TYPES.CHOICES.COMBATANT;
+  if ( Settings.get(COVER_TYPES.USE) === COMBATANT
+    || Settings.get(COVER_EFFECTS.USE) === COMBATANT ) {
+    TokenCover._resetAllCover();
+    TokenCover._forceUpdateAllTokenCover();
   }
 }
 
 
-PATCHES.NO_PF2E.HOOKS = { combatTurn };
+PATCHES.BASIC.HOOKS = { updateCombat };

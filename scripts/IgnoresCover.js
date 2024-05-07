@@ -4,7 +4,7 @@ game
 */
 "use strict";
 
-import { MODULE_ID, FLAGS, COVER, MODULES_ACTIVE } from "./const.js";
+import { MODULE_ID, FLAGS, MODULES_ACTIVE } from "./const.js";
 
 /**
  * For DND5e, add the cover to the Token Config
@@ -28,6 +28,10 @@ export function addDND5eCoverFeatFlags() {
 }
 
 /* Getters/Setters for ignoring cover
+If the cover is less than or equal to the ignore value, cover can be ignored.
+So if a token ignores mwak cover at 0.5, then cover less than or equal to 50% is ignored for this type.
+Value of 0 means no cover is ignored. Value of 1 ignores all cover.
+
 Break into five parts:
 - mwak.
 - msak
@@ -49,12 +53,12 @@ export class IgnoresCover {
 
   /**
    * Confirm the cover value is valid.
-   * @param {COVER_TYPE} cover
+   * @param {number} cover
    * @returns {boolean}
    */
   static verifyCoverValue(cover) {
-    if ( !cover.between(COVER.MIN, COVER.MAX) ) {
-      console.warn(`IgnoresCover requires value between ${COVER.MIN} and ${MAX_COVER}`);
+    if ( !cover.between(0, 1) ) {
+      console.warn(`IgnoresCover requires value between 0 and 1.`);
       return false;
     }
 
@@ -62,19 +66,20 @@ export class IgnoresCover {
   }
 
   /**
-   * Helper to get a flag from the actor that returns a COVER_TYPE.
+   * Helper to get a flag from the actor.
    * @param {string} flag
-   * @returns {COVER_TYPE}
+   * @returns {number}
    */
   _getCoverFlag(flag) {
-    let flagValue = this.actor?.getFlag(MODULE_ID, flag);
-    flagValue ??= COVER.TYPES.NONE;
-    return flagValue;
+    return this.actor?.getFlag(MODULE_ID, flag) ?? 0;
   }
 
   /**
+   * Helper to set a flag from the actor
+
+  /**
    * Does the token ignore cover at all times?
-   * @type {COVER.TYPES}
+   * @type {number}
    */
   get all() { return this._getCoverFlag(FLAGS.COVER.IGNORE.ALL); }
 
@@ -85,7 +90,7 @@ export class IgnoresCover {
 
   /**
    * Does the token ignore cover for melee weapon attacks?
-   * @type {COVER.TYPES}
+   * @type {number}
    */
   get mwak() { return this._getCoverFlag(FLAGS.COVER.IGNORE.MWAK); }
 
@@ -96,7 +101,7 @@ export class IgnoresCover {
 
   /**
    * Does the token ignore cover for melee spell/magic attacks?
-   * @type {COVER.TYPES}
+   * @type {number}
    */
   get msak() { return this._getCoverFlag(FLAGS.COVER.IGNORE.MSAK); }
 
@@ -107,7 +112,7 @@ export class IgnoresCover {
 
   /**
    * Does the token ignore cover for ranged weapon attacks?
-   * @type {COVER.TYPES}
+   * @type {number}
    */
   get rwak() { return this._getCoverFlag(FLAGS.COVER.IGNORE.RWAK); }
 
@@ -118,7 +123,7 @@ export class IgnoresCover {
 
   /**
    * Does the token ignore cover for ranged spell/magic attacks?
-   * @type {COVER.TYPES}
+   * @type {number}
    */
   get rsak() { return this._getCoverFlag(FLAGS.COVER.IGNORE.RSAK); }
 
@@ -136,21 +141,21 @@ export class IgnoresCoverDND5e extends IgnoresCover {
 
   /**
    * Return the maximum of this module's flag or the dnd5e flag.
-   * @type {COVER_TYPE}
+   * @type {number}
    */
   get all() {
     let dndFlag = this.actor?.getFlag("dnd5e", FLAGS.COVER.IGNORE_DND5E);
 
     // For backwards-compatibility, set to three quarters.
     // Aligned with how Simbul's handles it.
-    if ( dndFlag === true || dndFlag === "true" ) dndFlag = COVER.TYPES.MEDIUM;
+    if ( dndFlag === true || dndFlag === "true" ) dndFlag = 0.75;
 
     return Math.max(super.all, dndFlag);
   }
 
   /**
    * Update both the dnd5e flag and this module's flag.
-   * @type {COVER_TYPE}
+   * @type {number}
    */
   set all(value) {
     if ( !this.constructor.verifyCoverValue(value) ) return;
@@ -167,19 +172,19 @@ export class IgnoresCoverDND5e extends IgnoresCover {
 
   /**
    * Check midi flag; return maximum.
-   * @type {COVER_TYPE}
+   * @type {number}
    */
   get rwak() {
-    const sharpShooter = this.actor?.flags["midi-qol"]?.sharpShooter ? COVER.TYPES.MEDIUM : COVER.TYPES.NONE;
+    const sharpShooter = this.actor?.flags["midi-qol"]?.sharpShooter ? 0.75 : 0;
     return Math.max(super.rwak, sharpShooter);
   }
 
   /**
    * Check dae flag; return maximum.
-   * @type {COVER_TYPE}
+   * @type {number}
    */
   get rsak() {
-    const spellSniper = this.actor?.flags?.dnd5e?.spellSniper ? COVER.TYPES.MEDIUM : COVER.TYPES.NONE;
+    const spellSniper = this.actor?.flags?.dnd5e?.spellSniper ? 0.75 : 0;
     return Math.max(super.rsak, spellSniper);
   }
 }
@@ -198,6 +203,13 @@ export class IgnoresCoverSimbuls extends IgnoresCoverDND5e {
   }
 
   get all() {
-    return this.token.ignoresCover();
+    const score = this.token.ignoresCover();
+    switch ( score ) {
+      case 0: return 0;
+      case 1: return 0.5;
+      case 2: return 0.75;
+      case 3: return 1;
+      default: return 0;
+    }
   }
 }

@@ -12,6 +12,7 @@ export const MODULE_ID = "tokencover";
 export const EPSILON = 1e-08;
 export const DOCUMENTATION_URL = "https://github.com/caewok/fvtt-token-cover/blob/master/README.md";
 export const ISSUE_URL = "https://github.com/caewok/fvtt-token-cover/issues";
+export const SOCKETS = { socket: null };
 
 export const FLAGS = {
   DRAWING: { IS_HOLE: "isHole" },
@@ -28,7 +29,31 @@ export const FLAGS = {
     SPELLSNIPER: "spellSniper",
     SHARPSHOOTER: "sharpShooter",
     MAX_GRANT: "maximumCoverGrant"
-  }
+  },
+
+
+  /**
+   * Identify what cover type should be associated with this active effect.
+   * @type {string[]} Array of cover type ids
+   */
+  COVER_TYPES: "coverTypes",
+
+  /**
+   * Store an identifier that links an active effect to its stored data.
+   * @type {string}
+   */
+  COVER_EFFECT_ID: "coverEffectId",
+
+  /**
+   * Identify a specific item as one that holds cover effects.
+   */
+  COVER_EFFECTS_ITEM: "coverEffectItem",
+
+  /**
+   * For updating flag data to new versions of the module.
+   * @type {string} Version of the module that saved this data.
+   */
+  VERSION: "version"
 };
 
 export const TEMPLATES = {
@@ -38,87 +63,41 @@ export const TEMPLATES = {
   SETTINGS_MENU: `modules/${MODULE_ID}/templates/settings-menu.html`
 }
 
-export const COVER = {};
+export const ICONS = {
+  SHIELD_THIN_GRAY: {
+    ONE_QUARTER: `modules/${MODULE_ID}/assets/shield_low_gray.svg`,
+    HALF: `modules/${MODULE_ID}/assets/shield_half_gray.svg`,
+    THREE_QUARTERS: `modules/${MODULE_ID}/assets/shield_medium_gray.svg`,
+    FULL: `modules/${MODULE_ID}/assets/shield_high_gray.svg`
+  },
 
-COVER.TYPES = {
+  SHIELD_THICK_GRAY: {
+    HEART: `modules/${MODULE_ID}/assets/shield_heart_gray.svg`,
+    SPLAT: `modules/${MODULE_ID}/assets/shield_virus_gray.svg`,
+    HALF: `modules/${MODULE_ID}/assets/shield_halved_gray.svg`,
+    FULL: `modules/${MODULE_ID}/assets/shield_gray.svg`
+  },
+
+  SHIELD_THICK_BLACK: {
+    HEART: `modules/${MODULE_ID}/assets/shield_heart.svg`,
+    SPLAT: `modules/${MODULE_ID}/assets/shield_virus.svg`,
+    HALF: `modules/${MODULE_ID}/assets/shield_halved.svg`,
+    FULL: `modules/${MODULE_ID}/assets/shield.svg`
+  }
+};
+
+export const COVER = {};
+COVER.NONE = 0;
+COVER.EXCLUDE = -1;
+
+// Deprecated but kept for midiqol and possibly other modules.
+export const COVER_TYPES = {
   NONE: 0,
   LOW: 1,
   MEDIUM: 2,
   HIGH: 3,
   TOTAL: 4
 };
-
-// Names of the SFRPG Cover items
-COVER.SFRPG = {
-  1: "Partial Cover",
-  2: "Cover",
-  3: "Improved Cover",
-  4: "Total Cover"
-};
-
-COVER.IDS = {};
-
-COVER.IDS[MODULE_ID] = new Set([
-  `${MODULE_ID}.cover.LOW`,
-  `${MODULE_ID}.cover.MEDIUM`,
-  `${MODULE_ID}.cover.HIGH`
-]);
-
-COVER.IDS["dfreds-convenient-effects"] = new Set([
-  "Convenient Effect: Cover (Half)",
-  "Convenient Effect: Cover (Three-Quarters)",
-  "Convenient Effect: Cover (Total)"
-]);
-
-COVER.IDS.ALL = COVER.IDS[MODULE_ID].union(COVER.IDS["dfreds-convenient-effects"]);
-
-COVER.DFRED_NAMES = {
-  LOW: "Cover (Half)",
-  MEDIUM: "Cover (Three-Quarters)",
-  HIGH: "Cover (Total)"
-};
-
-
-COVER.CATEGORIES = {
-  LOW: {
-    "dfreds-convenient-effects": "Convenient Effect: Cover (Half)",
-    [MODULE_ID]: `${MODULE_ID}.cover.LOW`
-  },
-
-  MEDIUM: {
-    "dfreds-convenient-effects": "Convenient Effect: Cover (Three-Quarters)",
-    [MODULE_ID]: `${MODULE_ID}.cover.MEDIUM`
-  },
-
-  HIGH: {
-    "dfreds-convenient-effects": "Convenient Effect: Cover (Total)",
-    [MODULE_ID]: `${MODULE_ID}.cover.HIGH`
-  }
-};
-
-COVER.TYPES_FOR_ID = {
-  [MODULE_ID]: {
-    [`${MODULE_ID}.cover.LOW`]: COVER.TYPES.LOW,
-    [`${MODULE_ID}.cover.MEDIUM`]: COVER.TYPES.MEDIUM,
-    [`${MODULE_ID}.cover.HIGH`]: COVER.TYPES.HIGH,
-
-    // Sometimes the id is all lowercase.
-    [`${MODULE_ID}.cover.low`]: COVER.TYPES.LOW,
-    [`${MODULE_ID}.cover.medium`]: COVER.TYPES.MEDIUM,
-    [`${MODULE_ID}.cover.high`]: COVER.TYPES.HIGH
-  },
-
-  "dfreds-convenient-effects": {
-    "Convenient Effect: Cover (Half)": COVER.TYPES.LOW,
-    "Convenient Effect: Cover (Three-Quarters)": COVER.TYPES.MEDIUM,
-    "Convenient Effect: Cover (Total)": COVER.TYPES.HIGH
-  }
-};
-
-COVER.MIN = Math.min(...Object.values(COVER.TYPES));
-COVER.MAX = Math.max(...Object.values(COVER.TYPES));
-
-
 
 export let IGNORES_COVER_HANDLER = IgnoresCover;
 
@@ -162,5 +141,5 @@ export function setCoverIgnoreHandler(handler) {
 
   // Simplest just to revert any existing.
   if ( !canvas.tokens?.placeables ) return;
-  canvas.tokens.placeables.forEach(t => t._ignoresCoverType = undefined);
+  canvas.tokens.placeables.forEach(t => t.tokencover.ignoresCover = undefined);
 }

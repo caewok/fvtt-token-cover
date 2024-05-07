@@ -2,6 +2,7 @@
 FormApplication
 foundry,
 game,
+getTemplate,
 SettingsConfig,
 ui
 */
@@ -9,12 +10,11 @@ ui
 "use strict";
 
 import { MODULE_ID, TEMPLATES } from "./const.js";
-import { Settings, SETTINGS } from "./settings.js";
+import { Settings } from "./settings.js";
 
 export class DefaultSettings {
   static get changeableSettings() {
-    const COVER = SETTINGS.COVER;
-    const { VIEWER, TARGET } = SETTINGS.LOS;
+    const { VIEWER, TARGET } = Settings.KEYS.LOS;
     return [
       VIEWER.NUM_POINTS,
       VIEWER.INSET,
@@ -26,40 +26,40 @@ export class DefaultSettings {
       TARGET.POINT_OPTIONS.INSET,
       TARGET.POINT_OPTIONS.POINTS3D,
 
-      SETTINGS.DEAD_TOKENS_BLOCK,
-      SETTINGS.LIVE_TOKENS.ALGORITHM
+      Settings.KEYS.DEAD_TOKENS_BLOCK,
+      Settings.KEYS.LIVE_TOKENS.ALGORITHM
     ];
   }
 
   static get pf2e() {
-    const COVER = SETTINGS.COVER;
-    const { VIEWER, TARGET } = SETTINGS.LOS;
+    const COVER = Settings.KEYS.COVER;
+    const { VIEWER, TARGET } = Settings.KEYS.LOS;
     return {
       // LOS Viewer
-      [VIEWER.NUM_POINTS]: SETTINGS.POINT_TYPES.CENTER,
-      // Unused: [SETTINGS.LOS.VIEWER.INSET]: 0
+      [VIEWER.NUM_POINTS]: Settings.KEYS.POINT_TYPES.CENTER,
+      // Unused: [Settings.KEYS.LOS.VIEWER.INSET]: 0
 
       // LOS Target
       [TARGET.ALGORITHM]: TARGET.TYPES.POINTS,
       [TARGET.LARGE]: false,
 
       // LOS Point options
-      [TARGET.POINT_OPTIONS.NUM_POINTS]: SETTINGS.POINT_TYPES.NINE,
+      [TARGET.POINT_OPTIONS.NUM_POINTS]: Settings.KEYS.POINT_TYPES.NINE,
       [TARGET.POINT_OPTIONS.INSET]: 0.75,
       [TARGET.POINT_OPTIONS.POINTS3D]: false,
 
       // Cover options
-      [SETTINGS.DEAD_TOKENS_BLOCK]: false,
-      [SETTINGS.LIVE_TOKENS.ALGORITHM]: SETTINGS.LIVE_TOKENS.TYPES.FULL
+      [Settings.KEYS.DEAD_TOKENS_BLOCK]: false,
+      [Settings.KEYS.LIVE_TOKENS.ALGORITHM]: Settings.KEYS.LIVE_TOKENS.TYPES.FULL
     };
   }
 
   static get dnd5e() {
-    const COVER = SETTINGS.COVER;
-    const { VIEWER, TARGET } = SETTINGS.LOS;
+    const COVER = Settings.KEYS.COVER;
+    const { VIEWER, TARGET } = Settings.KEYS.LOS;
     return {
       // LOS Viewer
-      [VIEWER.NUM_POINTS]: SETTINGS.POINT_TYPES.FOUR,
+      [VIEWER.NUM_POINTS]: Settings.KEYS.POINT_TYPES.FOUR,
       [VIEWER.INSET]: 0,
 
       // LOS Target
@@ -67,21 +67,21 @@ export class DefaultSettings {
       [TARGET.LARGE]: true,
 
       // LOS Point options
-      [TARGET.POINT_OPTIONS.NUM_POINTS]: SETTINGS.POINT_TYPES.FOUR,
+      [TARGET.POINT_OPTIONS.NUM_POINTS]: Settings.KEYS.POINT_TYPES.FOUR,
       [TARGET.POINT_OPTIONS.INSET]: 0,
       [TARGET.POINT_OPTIONS.POINTS3D]: false,
 
       // Cover options
-      [SETTINGS.DEAD_TOKENS_BLOCK]: false,
-      [SETTINGS.LIVE_TOKENS.ALGORITHM]: SETTINGS.LIVE_TOKENS.TYPES.HALF
+      [Settings.KEYS.DEAD_TOKENS_BLOCK]: false,
+      [Settings.KEYS.LIVE_TOKENS.ALGORITHM]: Settings.KEYS.LIVE_TOKENS.TYPES.HALF
     };
   }
 
   static get threeD() {
-    const { VIEWER, TARGET } = SETTINGS.LOS;
+    const { VIEWER, TARGET } = Settings.KEYS.LOS;
     return {
       // LOS Viewer
-      [VIEWER.NUM_POINTS]: SETTINGS.POINT_TYPES.CENTER,
+      [VIEWER.NUM_POINTS]: Settings.KEYS.POINT_TYPES.CENTER,
 
       // LOS Target
       [TARGET.ALGORITHM]: TARGET.TYPES.AREA3D,
@@ -124,28 +124,14 @@ export class SettingsSubmenu extends FormApplication {
     super.activateListeners(html);
 
     // Hide certain settings depending on options selected.
-    html.find(`[name="${MODULE_ID}.${SETTINGS.LOS.TARGET.ALGORITHM}"]`).change(this.losAlgorithmChanged.bind(this));
-    html.find(`[name="${MODULE_ID}.${SETTINGS.LOS.VIEWER.NUM_POINTS}"]`).change(this.losViewerPointsChanged.bind(this));
-    html.find(`[name="${MODULE_ID}.${SETTINGS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS}"]`).change(this.losTargetPointsChanged.bind(this));
+    html.find(`[name="${MODULE_ID}.${Settings.KEYS.LOS.TARGET.ALGORITHM}"]`).change(this.losAlgorithmChanged.bind(this));
+    html.find(`[name="${MODULE_ID}.${Settings.KEYS.LOS.VIEWER.NUM_POINTS}"]`).change(this.losViewerPointsChanged.bind(this));
+    html.find(`[name="${MODULE_ID}.${Settings.KEYS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS}"]`).change(this.losTargetPointsChanged.bind(this));
 
     // Buttons to reset settings to defaults.
     html.find(`[name="${MODULE_ID}-button-foundry"]`).click(this.submitSettingUpdates.bind(this, "foundry"));
     html.find(`[name="${MODULE_ID}-button-dnd5e"]`).click(this.submitSettingUpdates.bind(this, "dnd5e"));
     html.find(`[name="${MODULE_ID}-button-threeD"]`).click(this.submitSettingUpdates.bind(this, "threeD"));
-  }
-
-//   async _onSubmit(event, opts) {
-//     await super._onSubmit(event, opts);
-//   }
-
-  async close(opts) {
-    await super.close(opts);
-
-    // Update the underlying setting sheet view.
-    const TARGET = SETTINGS.LOS.TARGET;
-    const centerOnly = Settings.get(TARGET.POINT_OPTIONS.NUM_POINTS) === SETTINGS.POINT_TYPES.CENTER
-      && Settings.get(TARGET.ALGORITHM) === TARGET.TYPES.POINTS;
-    game.settings._sheet._coverAlgorithmChanged(centerOnly);
   }
 
   /**
@@ -200,7 +186,7 @@ export class SettingsSubmenu extends FormApplication {
   }
 
   _initializeDisplayOptions() {
-    const LOS = SETTINGS.LOS;
+    const LOS = Settings.KEYS.LOS;
     const algorithm = Settings.get(LOS.TARGET.ALGORITHM);
     const viewerPoints = Settings.get(LOS.VIEWER.NUM_POINTS);
     const targetPoints = Settings.get(LOS.TARGET.POINT_OPTIONS.NUM_POINTS);
@@ -211,9 +197,9 @@ export class SettingsSubmenu extends FormApplication {
   }
 
   _updateDisplayOptions() {
-    const algorithm = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.TARGET.ALGORITHM}`).value;
-    const viewerPoints = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.VIEWER.NUM_POINTS}`).value;
-    const targetPoints = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS}`).value;
+    const algorithm = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.TARGET.ALGORITHM}`).value;
+    const viewerPoints = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.VIEWER.NUM_POINTS}`).value;
+    const targetPoints = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS}`).value;
     this.#updatePointOptionDisplay(algorithm);
     this.#updateViewerInsetDisplay(viewerPoints);
     this.#updateTargetInsetDisplay(targetPoints, algorithm);
@@ -227,8 +213,8 @@ export class SettingsSubmenu extends FormApplication {
   }
 
   #updateViewerInsetDisplay(numPoints) {
-    const displayInsetOpts = numPoints !== SETTINGS.POINT_TYPES.CENTER ? "block" : "none";
-    const elem = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.VIEWER.INSET}`);
+    const displayInsetOpts = numPoints !== Settings.KEYS.POINT_TYPES.CENTER ? "block" : "none";
+    const elem = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.VIEWER.INSET}`);
     const div = elem[0].parentElement.parentElement;
     div.style.display = displayInsetOpts;
   }
@@ -239,45 +225,45 @@ export class SettingsSubmenu extends FormApplication {
     this.setPosition(this.position);
 
     // Update the underlying setting sheet view.
-    const TARGET = SETTINGS.LOS.TARGET;
-    const targetPoints = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS}`).value;
-    const centerOnly = targetPoints === SETTINGS.POINT_TYPES.CENTER
+    const TARGET = Settings.KEYS.LOS.TARGET;
+    const targetPoints = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS}`).value;
+    const centerOnly = targetPoints === Settings.KEYS.POINT_TYPES.CENTER
       && losAlgorithm === TARGET.TYPES.POINTS;
     game.settings._sheet._coverAlgorithmChanged(centerOnly);
   }
 
   #updatePointOptionDisplay(losAlgorithm) {
-    const displayPointOpts = losAlgorithm === SETTINGS.LOS.TARGET.TYPES.POINTS ? "block" : "none";
-    const PT_OPTS = SETTINGS.LOS.TARGET.POINT_OPTIONS;
+    const displayPointOpts = losAlgorithm === Settings.KEYS.LOS.TARGET.TYPES.POINTS ? "block" : "none";
+    const PT_OPTS = Settings.KEYS.LOS.TARGET.POINT_OPTIONS;
     for ( const opt of Object.values(PT_OPTS) ) {
       const elem = document.getElementsByName(`${MODULE_ID}.${opt}`);
       const div = elem[0].parentElement.parentElement;
       div.style.display = displayPointOpts;
     }
 
-    const numPointsTarget = Settings.get(SETTINGS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS);
+    const numPointsTarget = Settings.get(Settings.KEYS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS);
     this.#updateTargetInsetDisplay(numPointsTarget, losAlgorithm);
   }
 
   losTargetPointsChanged(event) {
     const targetPoints = event.target.value;
 
-    const elem = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.TARGET.ALGORITHM}`);
+    const elem = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.TARGET.ALGORITHM}`);
     const losAlgorithm = elem[0].value;
     this.#updateTargetInsetDisplay(targetPoints, losAlgorithm);
     this.setPosition(this.position);
 
     // Update the underlying setting sheet view.
-    const TARGET = SETTINGS.LOS.TARGET;
-    const centerOnly = targetPoints === SETTINGS.POINT_TYPES.CENTER && losAlgorithm === TARGET.TYPES.POINTS;
+    const TARGET = Settings.KEYS.LOS.TARGET;
+    const centerOnly = targetPoints === Settings.KEYS.POINT_TYPES.CENTER && losAlgorithm === TARGET.TYPES.POINTS;
     game.settings._sheet._coverAlgorithmChanged(centerOnly);
   }
 
   #updateTargetInsetDisplay(numPoints, losAlgorithm) {
-    const hasMultiplePoints = losAlgorithm === SETTINGS.LOS.TARGET.TYPES.POINTS
-      && numPoints !== SETTINGS.POINT_TYPES.CENTER;
+    const hasMultiplePoints = losAlgorithm === Settings.KEYS.LOS.TARGET.TYPES.POINTS
+      && numPoints !== Settings.KEYS.POINT_TYPES.CENTER;
     const displayInsetOpts = hasMultiplePoints ? "block" : "none";
-    const elem = document.getElementsByName(`${MODULE_ID}.${SETTINGS.LOS.TARGET.POINT_OPTIONS.INSET}`);
+    const elem = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.TARGET.POINT_OPTIONS.INSET}`);
     const div = elem[0].parentElement.parentElement;
     div.style.display = displayInsetOpts;
   }

@@ -3,7 +3,7 @@
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { coverWorkflow } from "./cover.js";
+import { coverAttackWorkflow } from "./CoverDialog.js";
 
 // Patches for midiqol
 export const PATCHES = {};
@@ -15,13 +15,14 @@ PATCHES.DND5E_MIDI = {}; // Only if midiqol is active.
  * Hook event that fires after targeting (AoE) is complete.
  * Note: hook will be run by the user that executed the attack triggering this.
  */
-async function midiqolPreambleComplete(workflow) {
+async function midiqolPrePreambleComplete(workflow) {
   const { token, targets, item } = workflow;
   if ( !targets?.size || !token ) return true;
 
   // Construct dialogs, if applicable
   const actionType = item?.system?.actionType;
-  return coverWorkflow(token, targets, actionType);
+  const out = await coverAttackWorkflow(token, targets, actionType);
+  return Boolean(out);
 }
 
-PATCHES.DND5E_MIDI.HOOKS = { "midi-qol.preambleComplete": midiqolPreambleComplete };
+PATCHES.DND5E_MIDI.HOOKS = { "midi-qol.prePreambleComplete": midiqolPrePreambleComplete };

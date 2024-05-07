@@ -1,13 +1,13 @@
 {
   "name": "Total Cover",
   "type": "effect",
-  "img": "modules/tokenvisibility/assets/shield_high_gray.svg",
+  "img": "modules/tokencover/assets/shield_high_gray.svg",
   "system": {
     "description": {
       "chat": "",
       "gmnotes": "",
       "short": "",
-      "value": "<p>&gt;@UUID[Compendium.sfrpg.rules.0yJjfyvWg5pDLcVR]{Conditions}</p><hr><p>You have total cover versus a specific token.</p><p>If an enemy doesn’t have line of effect to you (see page 271), you have total cover from the enemy. A creature can’t make an attack against a target that has total cover.</p><p>Cover does not necessarily block precise senses, but it does make it more difficult to hit a target. To determine whether your target has cover from your attack, choose a corner of your square. If any line from this corner to any corner of the target’s square passes through a square or border that blocks line of effect or provides cover, or through a square occupied by a creature, the target has cover. Cover grants you a +4 bonus to AC and a +2 bonus to Reflex saves against attacks that originate from a point on the other side of the cover from you. Note that spread effects can extend around corners and negate these bonuses.</p>",
+      "value": "<p>&gt;@UUID[Compendium.sfrpg.rules.0yJjfyvWg5pDLcVR]{Conditions}</p><hr /><p>You have total cover versus a specific token.</p><p>If an enemy doesn’t have line of effect to you (see page 271), you have total cover from the enemy. A creature can’t make an attack against a target that has total cover.</p><p>Cover does not necessarily block precise senses, but it does make it more difficult to hit a target. To determine whether your target has cover from your attack, choose a corner of your square. If any line from this corner to any corner of the target’s square passes through a square or border that blocks line of effect or provides cover, or through a square occupied by a creature, the target has cover. Cover grants you a +4 bonus to AC and a +2 bonus to Reflex saves against attacks that originate from a point on the other side of the cover from you. Note that spread effects can extend around corners and negate these bonuses.</p>",
       "unidentified": ""
     },
     "source": "CRB.276",
@@ -80,16 +80,19 @@
   "folder": null,
   "flags": {
     "core": {},
-    "tokenvisibility": {
-      "cover": 4
+    "tokencover": {
+      "coverTypes": [
+        "tokencover.sfrpg.total"
+      ],
+      "coverEffectId": "tokencover.sfrpg.total"
     }
   },
   "_stats": {
     "systemId": "sfrpg",
     "systemVersion": "0.25.2",
-    "coreVersion": "11.308",
+    "coreVersion": "11.315",
     "createdTime": 1693930613750,
-    "modifiedTime": 1693931937891,
+    "modifiedTime": 1713588789675,
     "lastModifiedBy": "JEcpXSsAPXNXDYnc"
   },
   "_id": "o0CFBHsprfadKuyd",

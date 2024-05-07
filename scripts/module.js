@@ -1,17 +1,27 @@
 /* globals
+canvas,
 CONFIG,
 game,
+isNewerVersion,
 Hooks
 */
 "use strict";
 
-import { MODULE_ID, COVER, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, FLAGS, COVER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 import { registerElevationConfig } from "./geometry/elevation_configs.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
+import { AsyncQueue } from "./AsyncQueue.js";
+
+// Cover objects
+import { CoverEffectsApp } from "./CoverEffectsApp.js";
+import { CoverEffect } from "./CoverEffect.js";
+import { CoverType, CoverTypePF2E } from "./CoverType.js";
+import { CoverActiveEffect, CoverActiveEffectDFreds } from "./CoverActiveEffect.js";
+import { CoverItem, CoverItemPF2E, CoverItemSFRPG} from "./CoverItem.js";
 
 // For API
 import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
@@ -37,7 +47,6 @@ import {
 
 // Other self-executing hooks
 import "./changelog.js";
-import "./cover_application.js";
 
 Hooks.once("init", function() {
   registerGeometry();
@@ -68,7 +77,17 @@ Hooks.once("init", function() {
      * Should be between (0, 1).
      * @type {number}
      */
-    renderTextureResolution: 1
+    renderTextureResolution: 1,
+
+    /**
+     * What cover type class to use for this system.
+     */
+    CoverType,
+
+    /**
+     * What cover effect class to use for this system.
+     */
+    CoverEffect
   };
 
   game.modules.get(MODULE_ID).api = {
@@ -81,6 +100,7 @@ Hooks.once("init", function() {
       Area3dLOSWebGL2,
       Area3dLOSHybrid
     },
+    AsyncQueue,
 
     OPEN_POPOUTS,
 
@@ -93,6 +113,11 @@ Hooks.once("init", function() {
     CoverCalculator,
     CoverDialog,
     COVER,
+    CoverType,
+    CoverEffect,
+    CoverItem,
+    CoverItemSFRPG,
+    CoverItemPF2E,
     setCoverIgnoreHandler,
     Settings,
 
@@ -105,14 +130,81 @@ Hooks.once("init", function() {
     PATCHER
   };
 
+  switch ( game.system.id ) {
+    case "sfrpg":
+      CONFIG[MODULE_ID].CoverEffect = CoverItemSFRPG;
+      break;
+
+    case "pf2e":
+      CONFIG[MODULE_ID].CoverType = CoverTypePF2E;
+      CONFIG[MODULE_ID].CoverEffect = CoverItemPF2E;
+      break;
+
+    default:
+      CONFIG[MODULE_ID].CoverEffect = CoverActiveEffect;
+  }
+
   if ( game.system.id === "dnd5e" ) {
     setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
   }
+  if ( game.modules.get("dfreds-convenient-effects")?.active ) CONFIG[MODULE_ID].CoverEffect = CoverActiveEffectDFreds;
 });
 
 Hooks.once("setup", function() {
-  Settings.registerAll();
   initializePatching();
+  Settings.registerAll();
   registerElevationConfig("TileConfig", "Alt. Token Cover");
-  Settings.updateConfigStatusEffects();
 });
+
+Hooks.once("ready", function() {
+  // Initialize must happen after game is ready, so that settings can be saved if necessary.
+  CoverType.initialize();
+  CONFIG[MODULE_ID].CoverEffect.initialize(); // Async
+});
+
+Hooks.once("canvasReady", function() {
+  // Transitions to newer data. Requires canvas.scene to be loaded.
+  transitionTokenMaximumCoverFlags();
+})
+
+// Add pathfinding button to token controls.
+const COVER_EFFECTS_CONTROL = {
+  name: Settings.KEYS.CONTROLS.COVER_EFFECTS,
+  title: `${MODULE_ID}.controls.${Settings.KEYS.CONTROLS.COVER_EFFECTS}.name`,
+  icon: "fas fa-book",
+  button: true,
+  onClick: () => { new CoverEffectsApp().render(true); },
+  visible: () => game.user.isGM
+};
+
+// Render the cover effects book control if setting enabled.
+Hooks.on("getSceneControlButtons", controls => {
+  if ( !canvas.scene ) return;
+  const tokenTools = controls.find(c => c.name === "token");
+  if ( game.user.isGM ) tokenTools.tools.push(COVER_EFFECTS_CONTROL);
+});
+
+/**
+ * Transition token maximum cover flags.
+ * Previously was stored by cover type (0 – 4).
+ * Now will be a percentage blocked.
+ */
+function transitionTokenMaximumCoverFlags() {
+  const sceneVersion = canvas.scene.getFlag(MODULE_ID, FLAGS.VERSION);
+  if ( sceneVersion && !isNewerVersion("0.6.6", sceneVersion) ) return;
+  const v = game.modules.get("tokencover").version;
+  canvas.tokens.placeables.forEach(t => {
+    const currCoverMax = t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT);
+    if ( !currCoverMax ) return; // Either 0 or undefined; either is fine.
+    let newMax = 1;
+    switch ( currCoverMax ) {
+      case 1: newMax = 0.5; break;
+      case 2: newMax = 0.75; break;
+      case 3: newMax = 0.90; break;
+      case 4: newMax = 1; break;
+    }
+    t.document.setFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT, newMax);
+    t.document.setFlag(MODULE_ID, FLAGS.VERSION, v)
+  });
+  canvas.scene.setFlag(MODULE_ID, FLAGS.VERSION, v);
+}
