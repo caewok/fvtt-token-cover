@@ -81,6 +81,7 @@ export class CoverType extends AbstractCoverObject {
   _findStorageDocument() {
     const doc = this.constructor.storedCoverTypes[this.id];
     if ( !doc || foundry.utils.isEmpty(doc) ) return undefined;
+    this.constructor.coverTypesUpdated();
 
     // Fix tint to always be a Color class.
     if ( !(doc.tint instanceof Color) ) doc.tint = typeof doc.tint === "string"
@@ -101,6 +102,7 @@ export class CoverType extends AbstractCoverObject {
    * @returns {Document|object}
    */
   async _createStorageDocument() {
+    this.constructor.coverTypesUpdated();
     return this.constructor.defaultCoverObjectData.get(this.id) ?? this.constructor.newCoverTypeData;
   }
 
@@ -109,6 +111,7 @@ export class CoverType extends AbstractCoverObject {
    * For cover type, removes this type's config data from stored settings.
    */
   async _deleteStorageDocument() {
+    this.constructor.coverTypesUpdated();
     return this.constructor.removeStoredCoverObjectId(this.id);
   }
 
@@ -118,6 +121,7 @@ export class CoverType extends AbstractCoverObject {
    * @param {object} [config={}]    If config is not provided, update setting with current config.
    */
   async update(config) {
+    this.constructor.coverTypesUpdated();
     config ??= this.document;
     const stored = this.constructor.storedCoverTypes;
     stored[this.id] ??= {};

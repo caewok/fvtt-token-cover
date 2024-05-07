@@ -229,7 +229,9 @@ export class TokenCover {
       case CHOICES.ATTACK: return false; // Handled by forcing application in the workflow.
       case CHOICES.ALWAYS: return true;
       case CHOICES.COMBAT: return Boolean(game.combat?.started);
-      case CHOICES.COMBATANT: return Boolean(game.combat?.started) && game.combat.combatants.has(token.id);
+      case CHOICES.COMBATANT: return game.combat?.started
+        && token.combatant
+        && game.combat.combatants.has(token.combatant.id);
       default: return false;
     }
   }
@@ -272,6 +274,13 @@ export class TokenCover {
       t.tokencover.refreshCoverTypes();
       t.tokencover.refreshCoverEffects();
     });
+  }
+
+  /**
+   * Reset all cover maps.
+   */
+  static _resetAllCover() {
+    canvas.tokens.placeables.forEach(t =>  t.tokencover.coverFromMap.clear());
   }
 
   /**
