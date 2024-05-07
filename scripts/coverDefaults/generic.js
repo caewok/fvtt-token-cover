@@ -3,7 +3,7 @@
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, ICONS } from "../const.js";
+import { MODULE_ID, ICONS, FLAGS } from "../const.js";
 
 const SYSTEM_ID = "generic";
 
@@ -67,19 +67,40 @@ coverTypes.tokensBlock = {
 coverEffects.low = {
   name: `${MODULE_ID}.cover.low`,
   id: `${MODULE_ID}.${SYSTEM_ID}.low`,
-  coverTypes: [ coverTypes.low.id, coverTypes.tokensBlock.id ]
+  documentData: {
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.low`,
+        [FLAGS.COVER_TYPES]: [coverTypes.low.id, coverTypes.tokensBlock.id ]
+      }
+    }
+  }
 };
 
 coverEffects.medium = {
   name:  `${MODULE_ID}.cover.medium`,
   id: `${MODULE_ID}.${SYSTEM_ID}.medium`,
-  coverTypes: [ coverTypes.medium.id ]
+  documentData: {
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.medium`,
+        [FLAGS.COVER_TYPES]: [coverTypes.medium.id]
+      }
+    }
+  }
 };
 
 coverEffects.high = {
   name: `${MODULE_ID}.cover.high`,
   id: `${MODULE_ID}.${SYSTEM_ID}.high`,
-  coverTypes: [ coverTypes.high.id ]
+  documentData: {
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.high`,
+        [FLAGS.COVER_TYPES]: [coverTypes.high.id]
+      }
+    }
+  }
 };
 
 Object.values(coverTypes).forEach(obj => defaultCoverTypes.set(obj.id, obj));

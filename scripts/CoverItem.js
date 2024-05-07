@@ -225,6 +225,31 @@ export class CoverItemPF2E extends CoverItem {
   static _localizeDocumentData(coverEffectData) {
     return coverEffectData;
   }
+
+  /**
+   * Add the effect locally to an actor.
+   * For PF2e, to make the effect work, the effect rules must be activated.
+   * @param {Actor} actor
+   * @returns {string} Returns the id of the document added
+   */
+  _addToActorLocally(actor) {
+    const id = super._addToActorLocally(actor);
+//     actor.initialized = false;
+//     actor.prepareData();
+    return id;
+  }
+
+  /**
+   * Remove the item locally from an actor.
+   * Presumes the item is on the actor.
+   * @param {Actor} actor
+   * @returns {string[]} Returns array of document ids removed from the actor.
+   */
+  _removeFromActorLocally(actor) {
+    const removedIds = super._removeFromActorLocally(actor);
+//     actor.prepareData();
+    return removedIds;
+  }
 }
 
 /**

@@ -3,7 +3,7 @@
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, ICONS } from "../const.js";
+import { MODULE_ID, ICONS, FLAGS } from "../const.js";
 
 
 const SYSTEM_ID = "pf2e";
@@ -70,16 +70,40 @@ Now you can use it like a regular item and store it in a compendium.
 coverEffects.lesser = {
   id: `${MODULE_ID}.${SYSTEM_ID}.lesser`,
   compendiumId: "3wuJNcYqrY1IEYm8",
+  documentData: {
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.lesser`,
+        [FLAGS.COVER_TYPES]: [coverTypes.lesser.id]
+      }
+    }
+  }
 };
 
 coverEffects.standard = {
   id: `${MODULE_ID}.${SYSTEM_ID}.standard`,
   compendiumId: "AhFNqnvBZ9K46LUK",
+  documentData: {
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.standard`,
+        [FLAGS.COVER_TYPES]: [coverTypes.standard.id]
+      }
+    }
+  }
 };
 
 coverEffects.greater = {
   id: `${MODULE_ID}.${SYSTEM_ID}.greater`,
   compendiumId: "hPLXDSGyHzlupBS2",
+  documentData: {
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.greater`,
+        [FLAGS.COVER_TYPES]: [coverTypes.greater.id]
+      }
+    }
+  }
 };
 
 Object.values(coverTypes).forEach(obj => defaultCoverTypes.set(obj.id, obj));
