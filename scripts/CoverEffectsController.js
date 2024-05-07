@@ -28,7 +28,7 @@ export class CoverEffectsController {
    */
   get data() {
     const effects = [];
-    CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.forEach(ce => effects.push({ name: ce.name, id: ce.id, icon: ce.icon }));
+    CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.forEach(ce => effects.push({ name: game.i18n.localize(ce.name), id: ce.id, icon: ce.icon }));
     return {
       isGM: game.user.isGM,
       effects
