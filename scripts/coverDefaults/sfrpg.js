@@ -3,7 +3,7 @@
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, ICONS } from "../const.js";
+import { MODULE_ID, ICONS, FLAGS } from "../const.js";
 
 const SYSTEM_ID = "sfrpg";
 const coverTypes = {};
@@ -87,41 +87,66 @@ coverTypes.total = {
 coverEffects.soft = {
   id: `${MODULE_ID}.${SYSTEM_ID}.soft`,
   compendiumId: "aolmL82yGMgAlEcf",
-  coverTypes: [
-    coverTypes.soft.id
-  ]
+  documentData: {
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.soft`,
+        [FLAGS.COVER_TYPES]: [coverTypes.soft.id]
+      }
+    }
+  }
 };
 
 coverEffects.partial = {
   id: `${MODULE_ID}.${SYSTEM_ID}.partial`,
   compendiumId: "WhC815WlllSW8tT0",
-  coverTypes: [
-    coverTypes.partial.id
-  ]
+  documentData: {
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.partial`,
+        [FLAGS.COVER_TYPES]: [coverTypes.partial.id]
+      }
+    }
+  }
 };
 
 coverEffects.cover = {
   id: `${MODULE_ID}.${SYSTEM_ID}.half`,
   compendiumId: "bjq4ho7JXhgUDvG6",
-  coverTypes: [
-    coverTypes.cover.id
-  ]
+  documentData: {
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.cover`,
+        [FLAGS.COVER_TYPES]: [coverTypes.cover.id]
+      }
+    }
+  }
 };
 
 coverEffects.improved = {
   id: `${MODULE_ID}.${SYSTEM_ID}.improved`,
   compendiumId: "kaIYAWHJ7up8rwOy",
-  coverTypes: [
-    coverTypes.improved.id
-  ]
+  documentData: {
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.improved`,
+        [FLAGS.COVER_TYPES]: [coverTypes.improved.id]
+      }
+    }
+  }
 };
 
 coverEffects.total = {
   id: `${MODULE_ID}.${SYSTEM_ID}.total`,
   compendiumId: "o0CFBHsprfadKuyd",
-  coverTypes: [
-    coverTypes.total.id
-  ]
+  documentData: {
+    flags: {
+      [MODULE_ID]: {
+        [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.total`,
+        [FLAGS.COVER_TYPES]: [coverTypes.total.id]
+      }
+    }
+  }
 };
 
 Object.values(coverTypes).forEach(obj => defaultCoverTypes.set(obj.id, obj));
