@@ -49,7 +49,7 @@ async function controlTokenDebugHook(token, controlled) {
 function targetTokenDebugHook(user, target, targeted) {
   if ( !targeted || game.user !== user ) return;
   canvas.tokens.placeables
-    .filter(t => t !== target && t.controlled && t[MODULE_ID]?.coverCalc)
+    .filter(t => t !== target && t.controlled && t._tokencover)
     .forEach(t => {
       const coverCalc = t.tokencover.coverCalculator;
       if ( !coverCalc._draw3dDebug ) return;
@@ -93,7 +93,8 @@ function refreshTokenDebugHook(token, flags) {
 
 function updateDebugForControlledToken(changedToken) {
   // If this token is controlled, update its LOS canvas display to every other token.
-  const changedCalc = changedToken[MODULE_ID]?.coverCalc.calc;
+  if ( !changedToken._tokencover ) return;
+  const changedCalc = changedToken[MODULE_ID].coverCalculator.calc;
   if ( !changedCalc ) return;
   changedCalc.clearDebug();
   canvas.tokens.placeables.forEach(token => {
@@ -112,7 +113,7 @@ function updateDebugForControlledToken(changedToken) {
 function updateDebugForRelatedTokens(changedToken) {
   // For any other controlled token, update its LOS canvas display for this one.
   canvas.tokens.placeables
-    .filter(t => t !== changedToken && t.controlled && t[MODULE_ID]?.coverCalc)
+    .filter(t => t !== changedToken && t.controlled && t._tokencover)
     .forEach(token => {
       const coverCalc = token.tokencover.coverCalculator;
       if ( coverCalc.target === changedToken ) coverCalc.clearDebug();
@@ -214,7 +215,7 @@ function controlToken(controlledToken, controlled) {
  */
 function destroyToken(token) {
   log(`destroyToken hook|destroying ${token.name}`);
-  if ( token[MODULE_ID]?.coverCalc ) token.tokencover.coverCalculator.destroy();
+  if ( token._tokencover ) token.tokencover.destroy();
 
   // Clear all other token's cover calculations for this token.
   const id = token.id;

@@ -105,6 +105,11 @@ export class TokenCover {
   // ----- NOTE: Methods ----- //
 
   /**
+   * Destroy this object, clearing its subobjects from memory.
+   */
+  destroy() { this.coverCalculator.destroy(); }
+
+  /**
    * Returns the stored cover percent or calculates it, as necessary.
    * @param {Token} attackingToken   Other token from which this token may have cover
    * @returns {number}

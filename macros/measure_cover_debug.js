@@ -24,7 +24,7 @@ const coverDialog = new api.CoverDialog(token, targets);
 coverDialog.showCoverResults();
 
 // Display debug from token to each target
-const coverCalc = token.tokencover.coverCalc;
+const coverCalc = token.tokencover.coverCalculator;
 for ( const target of targets ) {
   coverCalc.target = target;
   await coverCalc.openDebugPopout(); // If using Area3d, popout the debug viewer.

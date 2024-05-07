@@ -128,8 +128,8 @@ export class Settings extends ModuleSettingsAbstract {
     if ( enabled ) registerDebug();
     else {
       if ( canvas.tokens?.placeables ) canvas.tokens.placeables
-        .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
-        .forEach(t => t.tokencover.coverCalculator.clearDebug());
+        .filter(t => t._tokencover) // Don't create a new coverCalc here.
+        .forEach(t => t[MODULE_ID].coverCalculator.clearDebug());
       deregisterDebug();
     }
   }
@@ -521,16 +521,16 @@ export class Settings extends ModuleSettingsAbstract {
     this.cache.delete(key);
     if ( this.typesWebGL2.has(value) ) registerArea3d();
     canvas.tokens.placeables
-      .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
-      .forEach(token => token.tokencover.coverCalculator._updateAlgorithm());
+      .filter(t => t._tokencover) // Don't create a new coverCalc here.
+      .forEach(token => token[MODULE_ID].coverCalculator._updateAlgorithm());
   }
 
   static losSettingChange(key, value) {
     this.cache.delete(key);
     const cfg = { [key]: value };
     canvas.tokens.placeables
-      .filter(t => t[MODULE_ID]?.coverCalc) // Don't create a new coverCalc here.
-      .forEach(token => token.tokencover.coverCalculator._updateConfiguration(cfg));
+      .filter(t => t._tokencover) // Don't create a new coverCalc here.
+      .forEach(token => token[MODULE_ID].coverCalculator._updateConfiguration(cfg));
   }
 
   static setProneStatusId(value) {
