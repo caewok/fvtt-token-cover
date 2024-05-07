@@ -214,17 +214,18 @@ export class CoverType extends AbstractCoverObject {
   /** @type {CoverType[]} */
   static #coverTypesOrdered = [];
 
+  // See https://stackoverflow.com/questions/75962400/why-is-access-to-private-static-members-through-a-subclass-forbidden
   static get coverTypesOrdered() {
-    if ( this.#coverTypesModified ) this.#updateCoverTypesOrder();
-    return this.#coverTypesOrdered;
+    if ( CoverType.#coverTypesModified ) CoverType.#updateCoverTypesOrder();
+    return CoverType.#coverTypesOrdered;
   }
 
   /** @type {CoverType[]} */
   static #coverTypesUnordered = [];
 
   static get coverTypesUnordered() {
-    if ( this.#coverTypesModified ) this.#updateCoverTypesOrder();
-    return this.#coverTypesUnordered;
+    if ( CoverType.#coverTypesModified ) CoverType.#updateCoverTypesOrder();
+    return CoverType.#coverTypesUnordered;
   }
 
   /**
@@ -233,17 +234,17 @@ export class CoverType extends AbstractCoverObject {
    */
   static #coverTypesModified = true;
 
-  static coverTypesUpdated() { this.#coverTypesModified ||= true;  }
+  static coverTypesUpdated() { CoverType.#coverTypesModified ||= true;  }
 
   static #updateCoverTypesOrder() {
-    this.#coverTypesOrdered.length = 0;
-    this.#coverTypesUnordered.length = 0;
+    CoverType.#coverTypesOrdered.length = 0;
+    CoverType.#coverTypesUnordered.length = 0;
     for ( const coverType of this.coverObjectsMap.values() ) {
-      if ( !coverType.document.priority ) this.#coverTypesUnordered.push(coverType);
-      else this.#coverTypesOrdered.push(coverType);
+      if ( !coverType.document.priority ) CoverType.#coverTypesUnordered.push(coverType);
+      else CoverType.#coverTypesOrdered.push(coverType);
     }
-    this.#coverTypesOrdered.sort((a, b) => b.document.priority - a.document.priority);
-    this.#coverTypesModified = false;
+    CoverType.#coverTypesOrdered.sort((a, b) => b.document.priority - a.document.priority);
+    CoverType.#coverTypesModified = false;
   }
 
   // ----- NOTE: Static getter, setters, related properties ----- //
@@ -487,8 +488,8 @@ export class CoverTypePF2E extends CoverType {
 
     // If we don't have a lesser or standard cover defined, return.
     // If types does not have lesser cover, nothing to upgrade; return.
-    const standardCover = this.coverTypesObject.get(pf2eCoverTypes.standard.id);
-    const lesserCover = this.coverTypesObject.get(pf2eCoverTypes.lesser.id);
+    const standardCover = this.coverObjectsMap.get(pf2eCoverTypes.standard.id);
+    const lesserCover = this.coverObjectsMap.get(pf2eCoverTypes.lesser.id);
     if ( !standardCover || !lesserCover || !types.has(lesserCover) ) return types;
 
     // Convert lesser cover to standard cover if the blocking creature is 2+ larger.
