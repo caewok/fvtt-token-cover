@@ -38,6 +38,8 @@
     "tokencover.settings.cover-workflow-confirm-no-cover.Hint": "When enabled, the confirmation will be presented when the cover calculation estimates the token has no cover.",
 
     "tokencover.settings.points-center": "Token center only (1 point)",
+    "tokencover.settings.points-two": "Token front-facing corners (2 points)",
+    "tokencover.settings.points-three": "Token front-facing and center (3 points)",
     "tokencover.settings.points-four": "Token corners (4 points)",
     "tokencover.settings.points-five": "Token corners and center (5 points)",
     "tokencover.settings.points-eight": "Token midpoints and corners (8 points)",
