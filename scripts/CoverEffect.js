@@ -257,8 +257,8 @@ export class CoverEffect extends AbstractCoverObject {
    * @returns {CoverEffect[]} Array of cover effects on the actor.
    */
   static _allLocalEffectsOnActor(actor) {
-    return this.coverObjectsMap.values()
-      .filter(ce => ce._localEffectOnActor(actor))
+    return [...this.coverObjectsMap.values()
+      .filter(ce => ce._localEffectOnActor(actor))];
   }
 
   /**

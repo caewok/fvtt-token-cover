@@ -16,7 +16,10 @@ PATCHES.BASIC = {};
  * Put back any tokencover icons after the reset.
  */
 function _initialize(wrapped) {
-  const coverTypeIcons = new Set(CONFIG[MODULE_ID].CoverType.coverObjectsMap.values().map(ct => ct.icon));
+  // Avoid potential error if the objects map has not been created.
+  const coMap = CONFIG[MODULE_ID]?.CoverType?.coverObjectsMap;
+  if ( !coMap ) return wrapped();
+  const coverTypeIcons = new Set(coMap.values().map(ct => ct.icon));
   const iconsToAdd = this.effects ? this.effects.filter(e => coverTypeIcons.has(e)) : [];
   wrapped();
   if ( iconsToAdd.length ) this.effects.push(...iconsToAdd);
