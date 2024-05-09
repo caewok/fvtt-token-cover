@@ -1,3 +1,6 @@
+## 0.7.1
+Bug fixes. Catch if module has not yet been initialized when the `TokenDocument.prototype._initialize` method is called. Ensure the desired CoverType class is initialized. Avoid error when map inadvertently modifies a Set.
+
 ## 0.7.0
 
 Big refactor of how token cover is defined and applied.
