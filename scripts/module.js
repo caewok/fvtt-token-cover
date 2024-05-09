@@ -158,7 +158,7 @@ Hooks.once("setup", function() {
 
 Hooks.once("ready", function() {
   // Initialize must happen after game is ready, so that settings can be saved if necessary.
-  CoverType.initialize();
+  CONFIG[MODULE_ID].CoverType.initialize();
   CONFIG[MODULE_ID].CoverEffect.initialize(); // Async
 });
 
