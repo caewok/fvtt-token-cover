@@ -514,7 +514,7 @@ ${html}
   } = {}) {
 
     targetData ??= this._targetData();
-    const allCoverTypes = new Set([...CONFIG[MODULE_ID].CoverType.coverObjectsMap.values()]);
+    const allCoverTypes = new Set(CONFIG[MODULE_ID].CoverType.coverObjectsMap.values());
     const overlappingCoverTypes = allCoverTypes.filter(ct => ct.canOverlap);
     if ( !overlappingCoverTypes.size ) excludedColumns.add("overlappingCover");
 
@@ -608,7 +608,7 @@ ${html}
     chosen ??= new Set();
     id ??= foundry.utils.randomID();
     id = overlapping ? `CoverOverlappingSelect.${id}` : `CoverPrioritySelect.${id}`;
-    const allCoverTypes = new Set([...CONFIG[MODULE_ID].CoverType.coverObjectsMap.values()]);
+    const allCoverTypes = new Set(CONFIG[MODULE_ID].CoverType.coverObjectsMap.values());
     const coverTypes = overlapping
       ? allCoverTypes.filter(ct => ct.canOverlap) : allCoverTypes.filter(ct => !ct.canOverlap);
 
