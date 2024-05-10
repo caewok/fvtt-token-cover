@@ -305,7 +305,7 @@ export class CoverDialog {
   updateTargetsCoverEffects(coverCalculations) {
     if ( coverCalculations === false ) return; // User canceled.
     coverCalculations ??= this.coverCalculations;
-    coverCalculations.keys().forEach(target => {
+    [...coverCalculations.keys()].forEach(target => {
       if ( target.tokencover.updateCoverEffects() ) target.tokencover.refreshCoverEffects(true); // Force regardless of settings.
     });
   }

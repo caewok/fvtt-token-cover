@@ -172,7 +172,10 @@ export class CoverType extends AbstractCoverObject {
 
     // If this type cannot overlap, then any non-overlapping icons must be removed first.
     const tokenEffectIcons = new Set(token.document.effects);
-    const otherCoverTypes = CoverType.coverObjectsMap.values().filter(ct => ct.icon !== icon && !ct.document.canOverlap);
+
+    // Don't call `filter` on iterator as unsupported in some browsers.
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator/filter
+    const otherCoverTypes = [...CoverType.coverObjectsMap.values()].filter(ct => ct.icon !== icon && !ct.document.canOverlap);
     for ( const otherCoverType of otherCoverTypes ) {
       if ( tokenEffectIcons.has(otherCoverType.icon) ) otherCoverType.removeFromToken(token);
     }
@@ -347,7 +350,7 @@ export class CoverType extends AbstractCoverObject {
     if ( changed ) findSpliceAll(token.document.effects, e => toRemove.has(e));
 
     // Add each of the cover types.
-    const res = coverTypes.values().reduce((acc, ct) => {
+    const res = [...coverTypes.values()].reduce((acc, ct) => {
       const out = ct.addToToken(token);
       return acc || out;
     }, false);
