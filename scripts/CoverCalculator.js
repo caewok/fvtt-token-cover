@@ -106,6 +106,25 @@ export class CoverCalculator extends AbstractCalculator {
     return coverDialog._htmlShowCover(opts);
   }
 
+  /**
+   * Build a cover calculator for an attacking token at a defined location (not the token's current location).
+   * Creates a clone of the token and changes its location.
+   * @param {Token} token             Token to use for the cover calculator.
+   * @param {Point} [position]        Optional {x, y} location if different from token
+   * @param {number} [elevation]      Optional elevation if different from token
+   * @returns {CoverCalculator}
+   */
+  static createCoverCalculatorForTokenLocation(token, position, elevation) {
+    const { x, y } = position ?? token.center;
+    elevation ??= token.elevationE;
+    const cloneDoc = token.document.clone({}, { keepId: false });
+    const clone = new CONFIG.Token.objectClass(cloneDoc);
+    clone.eventMode = "none";
+    cloneDoc._object = clone;
+    cloneDoc.updateSource({ x, y , elevation });
+    return clone.coverCalculator;
+  }
+
   // ----- NOTE: Cover Types ----- //
 
   /**
@@ -359,4 +378,5 @@ export class CoverCalculator extends AbstractCalculator {
     if ( liveTokensAlg ) config.liveTokensBlock = liveTokensAlg !== Settings.KEYS.LIVE_TOKENS.TYPES.NONE;
     super._updateConfiguration(config);
   }
+
 }
