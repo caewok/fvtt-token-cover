@@ -1,3 +1,6 @@
+## 0.7.2
+Bug fixes. Don't use map/filter/reduce with iterators b/c that is only supported with some browsers.
+
 ## 0.7.1
 Bug fixes. Catch if module has not yet been initialized when the `TokenDocument.prototype._initialize` method is called. Ensure the desired CoverType class is initialized. Avoid error when map inadvertently modifies a Set.
 
