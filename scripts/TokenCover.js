@@ -161,8 +161,8 @@ export class TokenCover {
       : CONFIG[MODULE_ID].CoverType.minimumCoverFromAttackers(token, [...ceAttackers]);
 
     // Determine if the cover effects have changed given the current cover types.
-    const newCoverEffects = new Set(CONFIG[MODULE_ID].CoverEffect
-      .coverObjectsMap.values().filter(ce => coverTypes.intersects(ce.coverTypes)));
+    const allCoverEffects = [...CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values()];
+    const newCoverEffects = new Set(allCoverEffects.filter(ce => coverTypes.intersects(ce.coverTypes)));
     const changed = !this.coverEffects.equals(newCoverEffects);
     this.coverEffects = newCoverEffects;
     return changed;
