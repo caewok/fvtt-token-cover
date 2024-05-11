@@ -264,10 +264,11 @@ export class CoverActiveEffect extends CoverEffect {
    */
   static _allLocalEffectsOnActor(actor) {
     // Faster than calling _localEffectOnActor repeatedly.
-    return actor.effects
-      .filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))
+    // Don't map from a Map or a Set to avoid throwing errors if the Set size is modified.
+    const effects = [...actor.effects.filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))];
+    return effects
       .map(e => this._documentIds.get(e.id))
-      .filter(e => Boolean(e))
+      .filter(e => Boolean(e));
   }
 
   /**

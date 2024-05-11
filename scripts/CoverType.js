@@ -344,7 +344,7 @@ export class CoverType extends AbstractCoverObject {
 
     // Remove all cover types in the array that are not the wanted cover types.
     const tokenEffectIcons = new Set(token.document.effects);
-    const toKeep = coverTypes.filter(ct => Boolean(ct.icon)).map(ct => ct.icon);
+    const toKeep = new Set([...coverTypes.filter(ct => Boolean(ct.icon))].map(ct => ct.icon));
     const toRemove = tokenEffectIcons.difference(toKeep);
     const changed = toRemove.size
     if ( changed ) findSpliceAll(token.document.effects, e => toRemove.has(e));

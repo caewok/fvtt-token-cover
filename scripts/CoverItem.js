@@ -204,10 +204,10 @@ export class CoverItem extends CoverEffect {
    */
   static _allLocalEffectsOnActor(actor) {
     // Faster than calling _localEffectOnActor repeatedly.
-    return actor.items
-      .filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))
+    const times = [... actor.items.filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))];
+    return times
       .map(e => this._documentIds.get(e.id))
-      .filter(e => Boolean(e))
+      .filter(e => Boolean(e));
   }
 }
 

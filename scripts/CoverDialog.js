@@ -123,7 +123,7 @@ export class CoverDialog {
     const ctMap = CONFIG[MODULE_ID].CoverType.coverObjectsMap;
     const canvasTokens = new Map(canvas.tokens.placeables.map(t => [t.id, t]));
     const m = new Map(Object.entries(coverCalculations).map(([tokenId, coverTypeIds]) =>
-      [canvasTokens.get(tokenId), new Set([...coverTypeIds.map(coverTypeId => ctMap.get(coverTypeId))])]));
+      [canvasTokens.get(tokenId), new Set([...coverTypeIds].map(coverTypeId => ctMap.get(coverTypeId)))]));
     if ( m.has(undefined) || m.has(null) ) {
       ui.notifications.error(`${game.i18n.localize("tokencover.name")}|One or more tokens for the GM dialog were not found.`);
       console.error(`${MODULE_ID}|CoverDialog#_coverCalculationsFromJSON|Tokens not found.`, coverCalculations``);
@@ -137,7 +137,7 @@ export class CoverDialog {
    */
   static _coverCalculationsToJSON(coverCalculations) {
     const json = {};
-    coverCalculations.forEach((coverTypes, token) => json[token.id] = [...coverTypes.map(ct => ct.id)]);
+    coverCalculations.forEach((coverTypes, token) => json[token.id] = [...coverTypes].map(ct => ct.id));
     return json;
   }
 
@@ -469,7 +469,7 @@ ${html}
    */
   _targetData() {
     const attackerCenter = Point3d.fromToken(this.attacker).top; // Measure from attacker vision point.
-    return this.targets.map(target => {
+    return [...this.targets].map(target => {
       const data = {
         name: target.name,
         id: target.id,
@@ -667,7 +667,7 @@ ${html}
  */
 function coverTypeNames(coverTypes) {
   return coverTypes.size
-    ? [...coverTypes.map(ct => game.i18n.localize(ct.name))].join(", ")
+    ? [...coverTypes].map(ct => game.i18n.localize(ct.name)).join(", ")
     : game.i18n.localize("tokencover.cover.None");
 }
 
