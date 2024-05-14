@@ -257,6 +257,7 @@ export class CoverEffect extends AbstractCoverObject {
    * @returns {CoverEffect[]} Array of cover effects on the actor.
    */
   static _allLocalEffectsOnActor(actor) {
+    if ( !actor ) return;
     return [...this.coverObjectsMap.values()
       .filter(ce => ce._localEffectOnActor(actor))];
   }
@@ -268,6 +269,7 @@ export class CoverEffect extends AbstractCoverObject {
    * @param {boolean} True if a change was made
    */
   static replaceLocalEffectsOnActor(actor, coverEffects = new Set()) {
+    if ( !actor ) return false;
     log(`CoverEffect#replaceLocalEffectsOnActor|${actor.name}`);
 
     if ( actor instanceof Token ) actor = actor.actor;

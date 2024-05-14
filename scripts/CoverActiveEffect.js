@@ -263,6 +263,7 @@ export class CoverActiveEffect extends CoverEffect {
    * @returns {CoverEffect[]} Array of cover effects on the actor.
    */
   static _allLocalEffectsOnActor(actor) {
+    if ( !actor ) return;
     // Faster than calling _localEffectOnActor repeatedly.
     // Don't map from a Map or a Set to avoid throwing errors if the Set size is modified.
     const effects = [...actor.effects.filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))];
