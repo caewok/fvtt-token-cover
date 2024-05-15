@@ -157,7 +157,6 @@ export class CoverType extends AbstractCoverObject {
    * @returns {boolean} True if change was made.
    */
   addToToken(token) {
-    log(`CoverType#addToToken|${token.name}`);
     const icon = this.document.icon;
 
     // If already present, we are done.
@@ -165,7 +164,7 @@ export class CoverType extends AbstractCoverObject {
 
     // If this type can overlap, it can be added b/c it is not already present.
     if ( this.document.canOverlap ) {
-      log(`CoverType#addToToken|${token.name} adding ${this.name}`);
+      log(`CoverType#addToToken|${this.name}|${token.name}`);
       token.document.effects.push(icon);
       return true;
     }
@@ -181,7 +180,7 @@ export class CoverType extends AbstractCoverObject {
     }
 
     // Add the new cover type icon to the token.
-    log(`CoverType#addToToken|${token.name} adding ${this.name}`);
+    log(`CoverType#addToToken|${this.name}|${token.name}`);
     token.document.effects.push(icon);
     return true;
   }
@@ -194,7 +193,7 @@ export class CoverType extends AbstractCoverObject {
   removeFromToken(token) {
     const change = token.document.effects.some(e => e === this.icon);
     if ( change ) {
-      log(`CoverType#addToToken|${token.name} removing ${this.name}`);
+      log(`CoverType#removeFromToken|${this.name}|${token.name}`);
       findSpliceAll(token.document.effects, e => e === this.icon);
     }
     return change;
@@ -330,41 +329,48 @@ export class CoverType extends AbstractCoverObject {
   /**
    * Replace cover types on token with these.
    * @param {Token} token
-   * @param {CoverType[]|Set<CoverType>} coverTypes
+   * @param {Set<CoverType>} coverTypes
    * @returns {boolean} True if a change was made.
    */
-  static replaceCoverTypes(token, coverTypes = []) {
-    if ( !(coverTypes instanceof Set) ) coverTypes = new Set(coverTypes);
-
+  static replaceCoverTypes(token, coverTypes = NULL_SET) {
     if ( !coverTypes.size ) {
       if ( !token.document.effects.length ) return false;
       token.document.effects.length = 0;
       return true;
     }
 
-    // Remove all cover types in the array that are not the wanted cover types.
-    const tokenEffectIcons = new Set(token.document.effects);
-    const toKeep = new Set([...coverTypes.filter(ct => Boolean(ct.icon))].map(ct => ct.icon));
-    const toRemove = tokenEffectIcons.difference(toKeep);
-    const changed = toRemove.size
-    if ( changed ) findSpliceAll(token.document.effects, e => toRemove.has(e));
+    // TODO: Store a map of cover type icons to cover types. PITA b/c icons can change.
+    // Ideally would update tokens when this happens.
 
-    // Add each of the cover types.
-    const res = [...coverTypes.values()].reduce((acc, ct) => {
-      const out = ct.addToToken(token);
-      return acc || out;
-    }, false);
-    return res || changed;
+    // At least one cover type to potentially add to the token.
+    // Determine current cover type set on the token.
+    // token.document.effects are strings pointing to icon file locations.
+    const tokenEffectIcons = new Set(token.document.effects);
+    const tokenCoverTypes = new Set();
+    for ( const ct of this.coverObjectsMap.values() ) {
+      if ( tokenEffectIcons.has(ct.icon) ) tokenCoverTypes.add(ct);
+    }
+
+    // Determine which cover types to remove from the token.
+    const toRemove = tokenCoverTypes.difference(coverTypes);
+    toRemove.forEach(ct => ct.removeFromToken(token));
+
+    // Determine which cover types to add to the token.
+    const toAdd = coverTypes.difference(tokenCoverTypes);
+    toAdd.forEach(ct => ct.addToToken(token));
+
+    // Determine if a change was made.
+    return toRemove.size || toAdd.size;
   }
 
   /**
    * Determine minimum cover types for a token from a group of attacking tokens.
    * @param {Token} targetToken
-   * @param {Token[]} attackingTokens
+   * @param {Token[]|Set<Token>} attackingTokens
    * @returns {Set<CoverType>}
    */
   static minimumCoverFromAttackers(targetToken, attackingTokens = []) {
-    if ( !attackingTokens.length ) return NULL_SET;
+    if ( !attackingTokens.length && !attackingTokens.size ) return NULL_SET;
 
     // For priority cover, smallest priority wins.
     // For other cover, only if this token has that cover from all attackers.

@@ -136,40 +136,68 @@ PATCHES.DEBUG.HOOKS = {
 /**
  * Hook Token refresh
  * Adjust elevation as the token moves.
+ * Adjust cover calculations as the token moves.
  */
 function refreshToken(token, flags) {
   if ( !flags.refreshPosition ) return;
 
-  log(`refreshToken hook|${token.name} at ${token.position.x},${token.position.y}. Token is ${token._original ? "Clone" : "Original"}`);
+  log(`refreshToken hook|${token.name} at ${token.position.x},${token.position.y}. Token is ${token._original ? "Clone" : "Original"}
+  \tdocument: ${token.document.x},${token.document.y}
+  \tcenter: ${token.center.x},${token.center.y}`);
 
   // Clear this token's cover calculations because it moved.
-  token.tokencover.coverFromMap.clear();
+ // token.tokencover.coverFromMap.clear();
 
   // Clear the cover calculations relative to this token.
-  TokenCover.resetTokenCoverFromAttacker(token);
+  //const id = token.id;
+  //canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(id));
+
 
   // TODO: Do we need to do anything different during token animation?
   if ( token._original ) {
     // This token is a clone in a drag operation.
     log(`refreshToken hook|Token ${token.name} is being dragged.`);
+    const snap = !(canvas.grid.type === CONST.GRID_TYPES.GRIDLESS
+      || game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT));
+    let clone = token;
+//     if ( snap ) {
+//       clone = token._snapClone ?? (token._snapClone = CoverCalculator.cloneForTokenLocation(token));
+//       const snappedPosition = getSnappedTokenPosition(token);
+//       clone.updateSource(snappedPosition);
+//       log(`refreshToken hook|Snap position `)
+//
+//     }
 
-    // Update cover of other tokens relative to the dragged token.
-    // Only need to update tokens if this one is an "attacker"
-    // Otherwise, can just reset.
-    const coverAttackers = TokenCover.coverAttackers;
-    if ( coverAttackers("COVER_TYPES").some(t => t.id === token.id)
-      || coverAttackers("COVER_EFFECTS").some(t => t.id === token.id) ) {
-      canvas.tokens.placeables.forEach(t => {
-        if ( t.id === token.id ) return; // Use id so clones are ignored
-        TokenCover.updateCoverFromToken(t, token);
-      });
+    // Replace attacker with this clone.
+    if ( !TokenCover.attackers.COVER_TYPES.has(clone)
+      && TokenCover.attackers.COVER_TYPES.has(token._original) ) {
+      // Don't update other tokens b/c will be done with token move below.
+      TokenCover.removeAttacker(token._original, "COVER_TYPES", false);
+      TokenCover.addAttacker(clone, "COVER_TYPES", false, false);
+    }
+
+    if ( !TokenCover.attackers.COVER_EFFECTS.has(clone)
+      && TokenCover.attackers.COVER_EFFECTS.has(token._original) ) {
+      // Don't update other tokens b/c will be done with token move below.
+      TokenCover.removeAttacker(token._original, "COVER_EFFECTS", false);
+      TokenCover.addAttacker(clone, "COVER_EFFECTS", false, false);
     }
   } else if ( token._animation ) {
     log(`refreshToken hook|Token ${token.name} is animating`);
   }
 
-  // Refresh token icons and effects for those that have changed.
-  TokenCover.updateAllTokenCover();
+  TokenCover.tokenMoved(token);
+}
+
+/**
+ * Get the snapped position of a token.
+ * @param {Token} token
+ */
+function getSnappedTokenPosition(token) {
+  // See Token.prototype._onDragLeftDrop
+  const isTiny = (token.document.width < 1) && (token.document.height < 1);
+  const interval = canvas.grid.isHex ? 1 : isTiny ? 2 : 1;
+  return canvas.grid.getSnappedPosition(token.x, token.y, interval, { token });
 }
 
 /**
@@ -186,27 +214,31 @@ function updateToken(tokenD, change, _options, _userId) {
       || Object.hasOwn(change, "elevation")
       || Object.hasOwn(change, "rotation")) ) return;
 
-  // Token moved
-  // Clear this token's cover calculations.
-  const token = tokenD.object;
-  log(`updateToken hook|${token.name} moved from ${token.position.x},${token.position.y} -> ${token.document.x},${token.document.y} Center: ${token.center.x},${token.center.y}.`);
-  token.tokencover.coverFromMap.clear();
+  if ( CanvasAnimation.getAnimation(_token.animationName) ) return;
 
-  // Clear the cover calculations for this token and update cover.
-  TokenCover.resetTokenCoverFromAttacker(token);
-  TokenCover.updateAllTokenCover();
+  // Token moved
+  const token = tokenD.object;
+  if ( !token ) return;
+  log(`updateToken hook|${token.name} moved from ${token.position.x},${token.position.y} -> ${token.document.x},${token.document.y} Center: ${token.center.x},${token.center.y}.`);
+  TokenCover.tokenMoved(token);
+
 }
 
 /**
  * Hook: controlToken
- * When the user selects the token, add cover type icons and effects for all tokens relative to that one.
- * When the user deselects the token, remove all cover type icons and effects.
+ * Control of tokens may modify the attacker set for this user.
  * @param {PlaceableObject} object The object instance which is selected/deselected.
  * @param {boolean} controlled     Whether the PlaceableObject is selected or not.
  */
 function controlToken(controlledToken, controlled) {
   log(`controlToken hook|${controlledToken.name} ${controlled ? "selected" : "unselected"}`);
-  TokenCover.updateAllTokenCover();
+  if ( controlled ) {
+    TokenCover.addAttacker(controlledToken, "COVER_TYPES");
+    TokenCover.addAttacker(controlledToken, "COVER_EFFECTS");
+  } else {
+    TokenCover.removeAttacker(controlledToken, "COVER_TYPES");
+    TokenCover.removeAttacker(controlledToken, "COVER_EFFECTS");
+  }
 }
 
 /**
@@ -215,15 +247,30 @@ function controlToken(controlledToken, controlled) {
  */
 function destroyToken(token) {
   log(`destroyToken hook|destroying ${token.name}`);
-  if ( token._tokencover ) token.tokencover.destroy();
 
   // Clear all other token's cover calculations for this token.
   const id = token.id;
-  canvas.tokens.placeables.forEach(t => {
-    if ( t === token ) return;
-    t.tokencover.coverFromMap.delete(id);
-  });
-  TokenCover.updateAllTokenCover();
+  canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(id));
+
+  // If clone attacker, add back the original attacker.
+  if ( token._original ) {
+    if ( TokenCover.attackers.COVER_TYPES.has(token) ) TokenCover.addAttacker(token._original, "COVER_TYPES", false, false);
+    if ( TokenCover.attackers.COVER_EFFECTS.has(token) ) TokenCover.addAttacker(token._original, "COVER_EFFECTS", false, false);
+  }
+
+  // Remove as attacker.
+  if ( token._snapClone ) {
+    const snapClone = token._snapClone;
+    if ( TokenCover.attackers.COVER_TYPES.has(snapClone) ) TokenCover.addAttacker(token._original, "COVER_TYPES", false, false);
+    if ( TokenCover.attackers.COVER_EFFECTS.has(snapClone) ) TokenCover.addAttacker(token._original, "COVER_EFFECTS", false, false);
+    TokenCover.removeAttacker(snapClone, "COVER_TYPES");
+    TokenCover.removeAttacker(snapClone, "COVER_EFFECTS");
+    // if ( !token._snapClone.destroyed ) token._snapClone.destroy();
+  }
+
+  TokenCover.removeAttacker(token, "COVER_TYPES");
+  TokenCover.removeAttacker(token, "COVER_EFFECTS");
+  if ( token._tokencover ) token.tokencover.destroy();
 }
 
 /**
@@ -238,16 +285,7 @@ function destroyToken(token) {
  * @param {boolean} targeted Whether the Token has been targeted or untargeted
  */
 function targetToken(user, target, _targeted) {
-  const coverTypeTargetsOnly = Settings.get(Settings.KEYS.COVER_TYPES.TARGETING);
-  const coverEffectTargetsOnly = Settings.get(Settings.KEYS.COVER_EFFECTS.TARGETING);
-  if ( coverTypeTargetsOnly ) {
-    log(`targetToken hook|updating cover icons for ${target.name}.`);
-    target.tokencover.refreshCoverTypes();
-  }
-  if ( coverEffectTargetsOnly ) {
-    log(`targetToken hook|updating cover effects for ${target.name}.`);
-    target.tokencover.refreshCoverEffects();
-  }
+  target.tokencover.targetStatusChanged();
 }
 
 /**
