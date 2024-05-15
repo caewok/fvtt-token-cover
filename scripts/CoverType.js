@@ -199,16 +199,6 @@ export class CoverType extends AbstractCoverObject {
     return change;
   }
 
-  /**
-   * Add cover effects linked to this type to token.
-   * @param {Token} token
-   */
-  addCoverEffectsToToken(token, update = true) {
-    CONFIG[MODULE_ID].CoverEffect.coverObjectsMap
-      .filter(ce => ce.coverTypes.some(ct => ct === this))
-      .forEach(ce => ce.addToActorLocally(token, update));
-  }
-
   // ----- NOTE: Static: Track Cover types ----- //
   /** @type {Map<string,CoverType>} */
   static coverObjectsMap = new Map();
