@@ -68,6 +68,14 @@ export class CoverCalculator extends AbstractCalculator {
     this.calc._clearCache();
   }
 
+  /**
+   * Destroy cover calculator clone, if any.
+   */
+  destroy() {
+    // if ( this.viewer._isCoverCalculatorClone && !this.viewer._destroyed ) this.viewer.destroy();
+    super.destroy();
+  }
+
   // ----- NOTE: Static methods ----- //
 
   /**
@@ -115,14 +123,17 @@ export class CoverCalculator extends AbstractCalculator {
    * @returns {CoverCalculator}
    */
   static createCoverCalculatorForTokenLocation(token, position, elevation) {
+    return this.cloneForTokenLocation(token, position, elevation)?.coverCalculator;
+  }
+
+  static cloneForTokenLocation(token, position, elevation) {
     const { x, y } = position ?? token.center;
     elevation ??= token.elevationE;
-    const cloneDoc = token.document.clone({}, { keepId: false });
-    const clone = new CONFIG.Token.objectClass(cloneDoc);
+    const clone = token.clone();
     clone.eventMode = "none";
-    cloneDoc._object = clone;
-    cloneDoc.updateSource({ x, y , elevation });
-    return clone.coverCalculator;
+    clone.document.updateSource({ x, y , elevation });
+    clone._isCoverCalculatorClone = true;
+    return clone;
   }
 
   // ----- NOTE: Cover Types ----- //

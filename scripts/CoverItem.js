@@ -203,6 +203,7 @@ export class CoverItem extends CoverEffect {
    * @returns {CoverEffect[]} Array of cover effects on the actor.
    */
   static _allLocalEffectsOnActor(actor) {
+    if ( !actor ) return;
     // Faster than calling _localEffectOnActor repeatedly.
     const times = [... actor.items.filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))];
     return times

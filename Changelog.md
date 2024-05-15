@@ -1,3 +1,8 @@
+## 0.7.3
+Improvements to speed by smarter caching to limit how often the cover calculation is updated and token cover icons/effects are applied during token movement. Enable settings cache for retrieving settings values.
+
+When displaying cover during a token drag, use the snapped position of the token unless shift is held (or on gridless map). Thanks @aedif for the suggestion!
+
 ## 0.7.2
 Bug fixes. Don't use map/filter/reduce with iterators b/c that is only supported with some browsers.
 
