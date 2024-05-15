@@ -129,6 +129,7 @@ export class TokenCover {
    */
   destroy() {
     this.coverCalculator.destroy();
+    delete this.token.tokencover;
   }
 
   /**

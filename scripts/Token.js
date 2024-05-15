@@ -156,30 +156,43 @@ function refreshToken(token, flags) {
   // TODO: Do we need to do anything different during token animation?
   if ( token._original ) {
     // This token is a clone in a drag operation.
-    log(`refreshToken hook|Token ${token.name} is being dragged.`);
     const snap = !(canvas.grid.type === CONST.GRID_TYPES.GRIDLESS
       || game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT));
-    let clone = token;
-//     if ( snap ) {
-//       clone = token._snapClone ?? (token._snapClone = CoverCalculator.cloneForTokenLocation(token));
-//       const snappedPosition = getSnappedTokenPosition(token);
-//       clone.updateSource(snappedPosition);
-//       log(`refreshToken hook|Snap position `)
-//
-//     }
+    log(`refreshToken hook|Token ${token.name} is being dragged. ${snap ? "Snap." : "No snapping."}`);
 
-    // Replace attacker with this clone.
-    if ( !TokenCover.hasAttacker(clone) && TokenCover.hasAttacker(token._original) ) {
-      // Don't update other tokens b/c will be done with token move below.
+    if ( snap ) {
+      // Use a different clone for the attacker and move it to a snapped position.
+      const snapClone = token._snapClone ?? (token._snapClone = CoverCalculator.cloneForTokenLocation(token));
+
+      // Determine the snapped position.
+      const snappedPosition = getSnappedTokenPosition(token);
+      snapClone.document.updateSource(snappedPosition);
+
+      // Remove original and animating clone from attackers.
       TokenCover.removeAttacker(token._original, false);
-      TokenCover.addAttacker(clone, false, false);
+      TokenCover.removeAttacker(token, false);
+      TokenCover.addAttacker(snapClone, false, false);
+      TokenCover.tokenMoved(snapClone);
+
+    } else {
+      // Use the provided animating clone
+      // Remove original and snapping clone from attackers.
+      if ( token._snapClone ) TokenCover.removeAttacker(token._snapClone, false);
+      TokenCover.removeAttacker(token._original, false);
+      TokenCover.addAttacker(token, false, false);
+      TokenCover.tokenMoved(token);
     }
 
   } else if ( token._animation ) {
     log(`refreshToken hook|Token ${token.name} is animating`);
-  }
+    // Remove any clones?
+    TokenCover.tokenMoved(token);
 
-  TokenCover.tokenMoved(token);
+  } else {
+    log(`refreshToken hook|Token ${token.name} is original but not animating.`);
+    // Remove any clones?
+    TokenCover.tokenMoved(token);
+  }
 }
 
 /**
@@ -248,7 +261,7 @@ function destroyToken(token) {
     const snapClone = token._snapClone;
     if ( TokenCover.hasAttacker(snapClone) ) TokenCover.addAttacker(token._original, false, false);
     TokenCover.removeAttacker(snapClone);
-    // if ( !token._snapClone.destroyed ) token._snapClone.destroy();
+    if ( !token._snapClone.destroyed ) token._snapClone.destroy();
   }
 
   TokenCover.removeAttacker(token);
