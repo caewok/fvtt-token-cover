@@ -169,19 +169,12 @@ function refreshToken(token, flags) {
 //     }
 
     // Replace attacker with this clone.
-    if ( !TokenCover.attackers.COVER_TYPES.has(clone)
-      && TokenCover.attackers.COVER_TYPES.has(token._original) ) {
+    if ( !TokenCover.hasAttacker(clone) && TokenCover.hasAttacker(token._original) ) {
       // Don't update other tokens b/c will be done with token move below.
-      TokenCover.removeAttacker(token._original, "COVER_TYPES", false);
-      TokenCover.addAttacker(clone, "COVER_TYPES", false, false);
+      TokenCover.removeAttacker(token._original, false);
+      TokenCover.addAttacker(clone, false, false);
     }
 
-    if ( !TokenCover.attackers.COVER_EFFECTS.has(clone)
-      && TokenCover.attackers.COVER_EFFECTS.has(token._original) ) {
-      // Don't update other tokens b/c will be done with token move below.
-      TokenCover.removeAttacker(token._original, "COVER_EFFECTS", false);
-      TokenCover.addAttacker(clone, "COVER_EFFECTS", false, false);
-    }
   } else if ( token._animation ) {
     log(`refreshToken hook|Token ${token.name} is animating`);
   }
@@ -232,13 +225,8 @@ function updateToken(tokenD, change, _options, _userId) {
  */
 function controlToken(controlledToken, controlled) {
   log(`controlToken hook|${controlledToken.name} ${controlled ? "selected" : "unselected"}`);
-  if ( controlled ) {
-    TokenCover.addAttacker(controlledToken, "COVER_TYPES");
-    TokenCover.addAttacker(controlledToken, "COVER_EFFECTS");
-  } else {
-    TokenCover.removeAttacker(controlledToken, "COVER_TYPES");
-    TokenCover.removeAttacker(controlledToken, "COVER_EFFECTS");
-  }
+  if ( controlled ) TokenCover.addAttacker(controlledToken);
+  else TokenCover.removeAttacker(controlledToken);
 }
 
 /**
@@ -253,23 +241,17 @@ function destroyToken(token) {
   canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(id));
 
   // If clone attacker, add back the original attacker.
-  if ( token._original ) {
-    if ( TokenCover.attackers.COVER_TYPES.has(token) ) TokenCover.addAttacker(token._original, "COVER_TYPES", false, false);
-    if ( TokenCover.attackers.COVER_EFFECTS.has(token) ) TokenCover.addAttacker(token._original, "COVER_EFFECTS", false, false);
-  }
+  if ( token._original && TokenCover.hasAttacker(token) ) TokenCover.addAttacker(token._original, false, false);
 
   // Remove as attacker.
   if ( token._snapClone ) {
     const snapClone = token._snapClone;
-    if ( TokenCover.attackers.COVER_TYPES.has(snapClone) ) TokenCover.addAttacker(token._original, "COVER_TYPES", false, false);
-    if ( TokenCover.attackers.COVER_EFFECTS.has(snapClone) ) TokenCover.addAttacker(token._original, "COVER_EFFECTS", false, false);
-    TokenCover.removeAttacker(snapClone, "COVER_TYPES");
-    TokenCover.removeAttacker(snapClone, "COVER_EFFECTS");
+    if ( TokenCover.hasAttacker(snapClone) ) TokenCover.addAttacker(token._original, false, false);
+    TokenCover.removeAttacker(snapClone);
     // if ( !token._snapClone.destroyed ) token._snapClone.destroy();
   }
 
-  TokenCover.removeAttacker(token, "COVER_TYPES");
-  TokenCover.removeAttacker(token, "COVER_EFFECTS");
+  TokenCover.removeAttacker(token);
   if ( token._tokencover ) token.tokencover.destroy();
 }
 

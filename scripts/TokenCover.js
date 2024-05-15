@@ -127,7 +127,9 @@ export class TokenCover {
   /**
    * Destroy this object, clearing its subobjects from memory.
    */
-  destroy() { this.coverCalculator.destroy(); }
+  destroy() {
+    this.coverCalculator.destroy();
+  }
 
   /**
    * Returns the stored cover percent or calculates it, as necessary.
@@ -346,6 +348,12 @@ export class TokenCover {
   // ----- NOTE: Static methods ----- //
 
   /**
+   * Attacker is in either set.
+   * @param {Token} token
+   */
+  static hasAttacker(token) { return this.attackers.COVER_TYPES.has(token) || this.attackers.COVER_EFFECTS.has(Token); }
+
+  /**
    * A token position was updated.
    * @param {Token} token
    */
@@ -362,6 +370,18 @@ export class TokenCover {
     if ( this.attackers.COVER_EFFECTS.has(token) ) canvas.tokens.placeables.forEach(t => t.tokencover.attackerMoved("COVER_EFFECTS"));
   }
 
+  /**
+   * Add an attacker to the user's set.
+   * @param {Token} token
+   * @param {boolean} [force=false]                   Should the attacker be added even if it fails "isAttacker"?
+   * @return {boolean} True if results in addition.
+   */
+  static addAttacker(token, force = false, update = true) {
+    const ctAdded = this._addAttacker(token, "COVER_TYPES", force, update);
+    const ceAdded = this._addAttacker(token, "COVER_EFFECTS", force, update);
+    return ctAdded || ceAdded;
+  }
+
 
   /**
    * Add an attacker to the user's set.
@@ -370,7 +390,7 @@ export class TokenCover {
    * @param {boolean} [force=false]                   Should the attacker be added even if it fails "isAttacker"?
    * @return {boolean} True if results in addition.
    */
-  static addAttacker(token, type = "COVER_TYPES", force = false, update = true) {
+  static _addAttacker(token, type = "COVER_TYPES", force = false, update = true) {
     if ( this.attackers[type].has(token) ) return false;
     if ( !force && !token.tokencover.isAttacker(type) ) return false;
     this.attackers[type].add(token);
@@ -383,11 +403,23 @@ export class TokenCover {
   /**
    * Remove an attacker from the user's set.
    * @param {Token} token
+   * @param {boolean} [force=false]                   Should the attacker be added even if it fails "isAttacker"?
+   * @return {boolean} True if results in addition.
+   */
+  static removeAttacker(token, update = true) {
+    const ctRemoved = this._removeAttacker(token, "COVER_TYPES", update);
+    const ceRemoved = this._removeAttacker(token, "COVER_EFFECTS", update);
+    return ctRemoved || ceRemoved;
+  }
+
+  /**
+   * Remove an attacker from the user's set.
+   * @param {Token} token
    * @param {"COVER_TYPES"|"COVER_EFFECTS"} [type]    What setting type applies?
    * @param {boolean} [force=false]                   Should the attacker be added even if it fails "isAttacker"?
    * @return {boolean} True if results in addition.
    */
-  static removeAttacker(token, type = "COVER_TYPES", update = true) {
+  static _removeAttacker(token, type = "COVER_TYPES", update = true) {
     if ( !this.attackers[type].has(token) ) return false;
     this.attackers[type].delete(token);
     log(`TokenCover#removeAttacker|Removing attacker ${token.name} for ${type}.`)
@@ -398,10 +430,20 @@ export class TokenCover {
 
   /**
    * Determine the current attackers and update the attacker set accordingly.
+   * @return {boolean} True if results in change.
+   */
+  static updateAttackers() {
+    const ctChange = this._updateAttackers("COVER_TYPES");
+    const ceChange = this._updateAttackers("COVER_EFFECTS");
+    return ctChange || ceChange;
+  }
+
+  /**
+   * Determine the current attackers and update the attacker set accordingly.
    * @param {"COVER_TYPES"|"COVER_EFFECTS"} [type]    What setting type applies?
    * @return {boolean} True if results in change.
    */
-  static updateAttackers(type = "COVER_TYPES") {
+  static _updateAttackers(type = "COVER_TYPES") {
     const newAttackers = new Set(canvas.tokens.placeables.filter(t => t.tokencover.isAttacker(type)));
     let change = false;
     for ( const oldAttacker in this.attackers[type] ) {
