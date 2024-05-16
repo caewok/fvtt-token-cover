@@ -5,6 +5,8 @@ When displaying cover during a token drag, use the snapped position of the token
 
 Dragging cover effects to a token will now be considered an override of the calculated cover. Thus, if the GM manually applies a cover effect (or DFred's cover) to a token, that token will continue to have that cover.
 
+New settings: toggle display of cover book (closes issue #21) and toggle display of cover icons on secret tokens.
+
 ## 0.7.2
 Bug fixes. Don't use map/filter/reduce with iterators b/c that is only supported with some browsers.
 
