@@ -174,13 +174,14 @@ const COVER_EFFECTS_CONTROL = {
   icon: "fas fa-book",
   button: true,
   onClick: () => { new CoverEffectsApp().render(true); },
-  visible: () => game.user.isGM
+  visible: false
 };
 
 // Render the cover effects book control if setting enabled.
 Hooks.on("getSceneControlButtons", controls => {
-  if ( !canvas.scene ) return;
+  if ( !canvas.scene || !ui.controls.activeControl === "token" ) return;
   const tokenTools = controls.find(c => c.name === "token");
+  COVER_EFFECTS_CONTROL.visible = game.user.isGM && Settings.get(Settings.KEYS.DISPLAY_COVER_BOOK);
   if ( game.user.isGM ) tokenTools.tools.push(COVER_EFFECTS_CONTROL);
 });
 
