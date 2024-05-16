@@ -217,7 +217,8 @@ export class Settings extends ModuleSettingsAbstract {
       scope: "world",
       config: true,
       type: Boolean,
-      default: true
+      default: true,
+      onChange: _value => canvas.tokens.placeables.forEach(t => t.tokencover.updateCoverTypes())
     });
 
     register(KEYS.DEBUG, {
