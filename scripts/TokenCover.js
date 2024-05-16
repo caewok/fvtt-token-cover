@@ -1,6 +1,7 @@
 /* globals
 canvas,
 CONFIG,
+CONST,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */

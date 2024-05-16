@@ -1,7 +1,8 @@
 /* globals
 CONFIG,
 fromUuid,
-game
+game,
+Token
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";

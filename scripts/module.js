@@ -3,7 +3,8 @@ canvas,
 CONFIG,
 game,
 isNewerVersion,
-Hooks
+Hooks,
+ui
 */
 "use strict";
 

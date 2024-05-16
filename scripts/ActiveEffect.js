@@ -1,4 +1,5 @@
 /* globals
+Actor
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -17,7 +18,7 @@ PATCHES.BASIC = {};
  * @param {DocumentModificationContext} options     Additional options which modified the creation request
  * @param {string} userId                           The ID of the User who triggered the creation workflow
  */
-function createActiveEffect(document, options, userId) {
+function createActiveEffect(document, _options, _userId) {
   const actor = document.parent;
   if ( !actor || !(actor instanceof Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
@@ -35,7 +36,7 @@ function createActiveEffect(document, options, userId) {
  * @param {DocumentModificationContext} options     Additional options which modified the creation request
  * @param {string} userId                           The ID of the User who triggered the creation workflow
  */
-function deleteActiveEffect(document, options, userId) {
+function deleteActiveEffect(document, _options, _userId) {
   const actor = document.parent;
   if ( !actor || !(actor instanceof Actor) ) return;
   const modFlags = document.flags[MODULE_ID];

@@ -2,7 +2,8 @@
 canvas,
 CONFIG,
 foundry,
-game
+game,
+ui
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
