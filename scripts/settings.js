@@ -38,6 +38,8 @@ export const SETTINGS = {
 
   DISPLAY_COVER_BOOK: "display-cover-book",
 
+  DISPLAY_SECRET_COVER: "display-secret-cover",
+
   COVER_TYPES: {
     USE: "use-cover-types",
     CHOICES: USE_CHOICES,
@@ -207,6 +209,15 @@ export class Settings extends ModuleSettingsAbstract {
         coverBook.visible = value;
         ui.controls.render(true);
       }
+    });
+
+    register(KEYS.DISPLAY_SECRET_COVER, {
+      name: localize(`${KEYS.DISPLAY_SECRET_COVER}.Name`),
+      hint: localize(`${KEYS.DISPLAY_SECRET_COVER}.Hint`),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true
     });
 
     register(KEYS.DEBUG, {

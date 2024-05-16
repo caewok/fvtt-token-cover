@@ -592,12 +592,11 @@ export class TokenCover {
    * Used when changing settings related to cover types or effects.
    */
   static _forceUpdateAllTokenCover() {
+    this.updateAttackers();
     canvas.tokens.placeables.forEach(t => {
       log(`updateAllTokenCover|updating cover for ${t.name}.`);
       t.tokencover.updateCoverTypes()
       t.tokencover.updateCoverEffects()
-      t.tokencover.refreshCoverTypes();
-      t.tokencover.refreshCoverEffects();
     });
   }
 

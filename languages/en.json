@@ -28,6 +28,9 @@
     "tokencover.settings.display-cover-book.Name": "Display Cover Book",
     "tokencover.settings.display-cover-book.Hint": "If enabled, adds a book icon to the GM's token controls that allows the GM to customize cover types and cover effects. GM can also drag cover effects to a token to override automatic cover.",
 
+    "tokencover.settings.display-secret-cover.Name": "Display Cover on Secret Tokens",
+    "tokencover.settings.display-secret-cover.Hint": "Toggle whether cover icons should be displayed on tokens with secret disposition.",
+
     "tokencover.settings.cover-chat-message.Name": "Display Cover in Chat",
     "tokencover.settings.cover-chat-message.Hint": "When rolling an attack, display cover types for targets in the chat.",
 
