@@ -10,6 +10,8 @@ import { CoverCalculator } from "./CoverCalculator.js";
 import { Settings } from "./settings.js";
 import { log } from "./util.js";
 
+const NULL_SET = new Set();
+
 
 // Class to use to handle added methods and getters for token
 // Encapsulated inside Token.prototype.tokencover
@@ -115,6 +117,28 @@ export class TokenCover {
    * @type {Map<string|object>}
    */
   coverFromMap = new Map();
+
+  /**
+   * Current cover types (i.e., icons) displayed on the token.
+   * Should always be equal to the icons on display, but may not reflect actual measured
+   * cover if the token is in the process of being updated.
+   * Use coverTypesFromAttacker or coverTypesFromAttackers for this.
+   * @type {Set<CoverType>}
+   */
+  #currentCoverTypes = new Set();
+
+  /**
+   * Current cover effects applied to the token.
+   * Should always be equal to the cover effects on the token.
+   * It is an error to have the same cover effect applied twice on the token.
+   * Not modifiable b/c it reflects actual effects on the actor.
+   * @type {Set<CoverEffect>}
+   */
+  get #currentCoverEffects() {
+    const actor = this.token.actor;
+    if ( !actor ) return NULL_SET;
+    return new Set(CONFIG[MODULE_ID].CoverEffect.allLocalEffectsOnActor(actor));
+  }
 
   constructor(token) {
     this.token = token;
@@ -281,13 +305,8 @@ export class TokenCover {
    * @returns {boolean} True if a change occurred
    */
   clearCoverTypes() {
-    // Trigger token icons update if there was a change.
-    const token = this.token;
-    const changed = CONFIG[MODULE_ID].CoverType.replaceCoverTypes(token); // Null set.
-    if ( changed ) {
-      token.renderFlags.set({ redrawEffects: true });
-      log(`TokenCover#updateCoverTypes|${this.token.name}|clearing cover icons`);
-    }
+    const changed = this.#clearCoverTypes();
+    if ( changed ) log(`TokenCover#updateCoverTypes|${this.token.name}|clearing cover icons`);
     return changed;
   }
 
@@ -297,7 +316,7 @@ export class TokenCover {
    */
   clearCoverEffects() {
     // Trigger local effects update for actor; return changed state.
-    const changed = CONFIG[MODULE_ID].CoverEffect.replaceLocalEffectsOnActor(this.token); // Null set.
+    const changed = this.#clearCoverEffects();
     if ( changed ) log(`TokenCover#clearCoverEffects|${this.token.name}|clearing cover effects`);
     return changed;
   }
@@ -307,14 +326,14 @@ export class TokenCover {
    * @returns {boolean} True if a change occurred
    */
   updateCoverTypes() {
-    if ( !this.useCoverObject("COVER_TYPES") ) return this.clearCoverTypes();
-    log(`TokenCover#updateCoverTypes|${[...this.constructor.attackers.COVER_TYPES.values().map(a => a.name + ": " + a.x + "," + a.y)].join("\t")}`);
-    const coverTypes = this._coverTypesFromCurrentAttackers();
-    const changed = CONFIG[MODULE_ID].CoverType.replaceCoverTypes(this.token, coverTypes);
-    if ( changed ) {
-      log(`TokenCover#updateCoverTypes|${this.token.name}|changing cover icons to: ${[...coverTypes.values().map(ct => ct.name)].join(", ")}`);
-      this.token.renderFlags.set({ redrawEffects: true });
-    }
+    let changed = false;
+    if ( this.useCoverObject("COVER_TYPES") ) {
+      log(`TokenCover#updateCoverTypes|${[...this.constructor.attackers.COVER_TYPES.values().map(a => a.name + ": " + a.x + "," + a.y)].join("\t")}`);
+      const coverTypes = this._coverTypesFromCurrentAttackers();
+      changed = this.#replaceCoverTypes(coverTypes);
+    } else changed = this.#clearCoverTypes();
+
+    if ( changed ) log(`TokenCover#updateCoverTypes|${this.token.name}|changing cover icons to: ${[...this.#currentCoverTypes.values().map(ct => ct.name)].join(", ")}`);
     return changed;
   }
 
@@ -323,13 +342,101 @@ export class TokenCover {
    * @returns {boolean} True if a change occurred
    */
   updateCoverEffects() {
-    if ( !this.useCoverObject("COVER_EFFECTS") ) return this.clearCoverEffects();
-    const coverTypes = this._coverTypesFromCurrentAttackers();
-    const allCoverEffects = [...CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values()];
-    const newCoverEffects = new Set(allCoverEffects.filter(ce => coverTypes.intersects(ce.coverTypes)));
-    const changed = CONFIG[MODULE_ID].CoverEffect.replaceLocalEffectsOnActor(this.token, newCoverEffects);
-    if ( changed ) log(`TokenCover#updateCoverEffects|${this.token.name}|changing cover effects to: ${[...newCoverEffects.values().map(ct => ct.name)].join(", ")}`);
+    let changed = false;
+    if ( this.useCoverObject("COVER_EFFECTS") ) {
+      log(`TokenCover#updateCoverEffects|${[...this.constructor.attackers.COVER_EFFECTS.values().map(a => a.name + ": " + a.x + "," + a.y)].join("\t")}`);
+      const coverTypes = this._coverTypesFromCurrentAttackers();
+      const allCoverEffects = new Set([...CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values()]);
+      const newCoverEffects = allCoverEffects.filter(ce => coverTypes.intersects(ce.coverTypes));
+      changed = this.#replaceCoverEffects(newCoverEffects);
+    } else changed = this.#clearCoverEffects();
+
+    if ( changed ) log(`TokenCover#updateCoverEffects|${this.token.name}|changing cover effects to: ${[...this.#currentCoverEffects.values().map(ct => ct.name)].join(", ")}`);
     return changed;
+  }
+
+  /**
+   * Handle clearing all cover types.
+   * @returns {boolean} True if a change was made.
+   */
+  #clearCoverTypes() {
+    const coverTypes = this.#currentCoverTypes;
+    if ( !coverTypes.size ) return false;
+    let change = false;
+    const token = this.token;
+    coverTypes.forEach(ct => {
+      const res = ct.removeFromToken(token);
+      change ||= res;
+    });
+    coverTypes.clear();
+    return change;
+  }
+
+  /**
+   * Handle adding and removing cover types based on the current set.
+   * Assumes that replacementCoverTypes only includes valid choices. (i.e., follows overlap rules).
+   * @param {Set<CoverType>} replacementCoverTypes
+   * @returns {boolean} True if a change was made.
+   */
+  #replaceCoverTypes(replacementCoverTypes = NULL_SET) {
+    const coverTypes = this.#currentCoverTypes;
+    const toAdd = replacementCoverTypes.difference(coverTypes);
+    const toRemove = coverTypes.difference(replacementCoverTypes);
+    let change = false;
+    const token = this.token;
+    toRemove.forEach(ct => {
+      const res = ct.removeFromToken(token);
+      change ||= res;
+      coverTypes.delete(ct);
+    });
+    toAdd.forEach(ct => {
+      const res = ct.addToToken(token);
+      change ||= res;
+      coverTypes.add(ct);
+    });
+    return change;
+  }
+
+  /**
+   * Handles clearing all cover effects.
+   * @returns {boolean} True if a change was made.
+   */
+  #clearCoverEffects() {
+    const coverEffects = this.#currentCoverEffects;
+    if ( !coverEffects.size ) return false;
+    let change = false;
+    const actor = this.token.actor;
+    if ( !actor ) return false;
+    coverEffects.forEach(ce => {
+      const res = ce.removeFromActorLocally(actor, false);
+      change ||= res;
+    });
+    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshActorCoverEffect(actor);
+    return change;
+  }
+
+  /**
+   * Handle adding and removing cover effects based on the current set.
+   * Assumes that replacementCoverTypes only includes valid choices. (i.e., follows overlap rules).
+   * @param {Set<CoverEffect>} replacementCoverEffects
+   * @returns {boolean} True if a change was made.
+   */
+  #replaceCoverEffects(replacementCoverEffects = NULL_SET) {
+    const coverEffects = this.#currentCoverEffects;
+    const toAdd = replacementCoverEffects.difference(coverEffects);
+    const toRemove = coverEffects.difference(replacementCoverEffects);
+    let change = false;
+    const actor = this.token.actor;
+    toRemove.forEach(ce => {
+      const res = ce.removeFromActorLocally(actor, false);
+      change ||= res;
+    });
+    toAdd.forEach(ce => {
+      const res = ce.addToActorLocally(actor, false);
+      change ||= res;
+    });
+    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshActorCoverEffect(actor);
+    return change;
   }
 
 
@@ -352,7 +459,7 @@ export class TokenCover {
    * Attacker is in either set.
    * @param {Token} token
    */
-  static hasAttacker(token) { return this.attackers.COVER_TYPES.has(token) || this.attackers.COVER_EFFECTS.has(Token); }
+  static hasAttacker(token) { return this.attackers.COVER_TYPES.has(token) || this.attackers.COVER_EFFECTS.has(token); }
 
   /**
    * A token position was updated.

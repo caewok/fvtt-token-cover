@@ -161,7 +161,7 @@ export class CoverEffect extends AbstractCoverObject {
     const newId = this._addToActorLocally(actor);
     if ( !newId ) return false;
     this.constructor._documentIds.set(newId, this);
-    if ( update ) refreshActorCoverEffect(actor);
+    if ( update ) this.constructor.refreshActorCoverEffect(actor);
     return true;
   }
 
@@ -188,7 +188,7 @@ export class CoverEffect extends AbstractCoverObject {
     const removedIds = this._removeFromActorLocally(actor);
     if ( !removedIds.length ) return false;
     removedIds.forEach(id => this.constructor._documentIds.delete(id));
-    if ( update ) refreshActorCoverEffect(actor);
+    if ( update ) this.constructor.refreshActorCoverEffect(actor);
     return true;
   }
 
@@ -287,21 +287,22 @@ export class CoverEffect extends AbstractCoverObject {
     toAdd.forEach(ce => ce.addToActorLocally(actor, false));
 
     // At least one effect should have been changed, so refresh actor.
-    refreshActorCoverEffect(actor);
+    this.refreshActorCoverEffect(actor);
     return true;
+  }
+
+  /**
+   * Refresh the actor so that the local cover effect is used and visible.
+   */
+  static refreshActorCoverEffect(actor) {
+    log(`CoverEffect#refreshActorCoverEffect|${actor.name}`);
+    actor.prepareData(); // Trigger active effect update on the actor data.
+    queueSheetRefresh(actor);
   }
 }
 
 // ----- NOTE: Helper functions ----- //
 
-/**
- * Refresh the actor so that the local cover effect is used and visible.
- */
-function refreshActorCoverEffect(actor) {
-  log(`CoverEffect#refreshActorCoverEffect|${actor.name}`);
-  actor.prepareData(); // Trigger active effect update on the actor data.
-  queueSheetRefresh(actor);
-}
 
 /**
  * Handle multiple sheet refreshes by using an async queue.
