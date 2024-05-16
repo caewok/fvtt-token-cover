@@ -165,6 +165,19 @@ Hooks.once("ready", function() {
 Hooks.once("canvasReady", function() {
   // Transitions to newer data. Requires canvas.scene to be loaded.
   transitionTokenMaximumCoverFlags();
+
+  // If DFred's is active, mark DFred's cover effects with flags.
+//   if ( MODULES_ACTIVE.DFREDS_CE ) {
+//     const CoverEffect = CONFIG[MODULE_ID].CoverEffect
+//     for ( const id of CoverEffect.coverObjectsMap.keys() ) {
+//       const defaultData = CoverEffect.defaultCoverObjectData.get(id);
+//       const dFredsEffect = game.dfreds.effectInterface.findCustomEffectByName(defaultData.dFredsName);
+//       if ( !dFredsEffect ) continue;
+//       dFredsEffect.setFlag(MODULE_ID, coverEffectId, id); // Already present?
+//
+//     }
+//   }
+
 })
 
 // Add pathfinding button to token controls.
@@ -174,13 +187,14 @@ const COVER_EFFECTS_CONTROL = {
   icon: "fas fa-book",
   button: true,
   onClick: () => { new CoverEffectsApp().render(true); },
-  visible: () => game.user.isGM
+  visible: false
 };
 
 // Render the cover effects book control if setting enabled.
 Hooks.on("getSceneControlButtons", controls => {
-  if ( !canvas.scene ) return;
+  if ( !canvas.scene || !ui.controls.activeControl === "token" ) return;
   const tokenTools = controls.find(c => c.name === "token");
+  COVER_EFFECTS_CONTROL.visible = game.user.isGM && Settings.get(Settings.KEYS.DISPLAY_COVER_BOOK);
   if ( game.user.isGM ) tokenTools.tools.push(COVER_EFFECTS_CONTROL);
 });
 
