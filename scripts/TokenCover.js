@@ -212,7 +212,11 @@ export class TokenCover {
    */
   useCoverObject(type = "COVER_TYPES") {
     const token = this.token;
-    if ( type === "COVER_TYPES" && !token.isVisible ) return false;
+    if ( type === "COVER_TYPES" ) {
+      if ( !token.isVisible ) return false;
+      if ( !Settings.get(Settings.KEYS.DISPLAY_SECRET_COVER)
+        && token.document.disposition === CONST.TOKEN_DISPOSITIONS.SECRET ) return false;
+    }
     if ( this.isAttacker(type) ) return false;
     const { TARGETING, USE, CHOICES } = Settings.KEYS[type];
     const targetsOnly = Settings.get(TARGETING);
