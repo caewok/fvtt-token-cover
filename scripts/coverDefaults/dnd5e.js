@@ -36,7 +36,7 @@ coverTypes.half = {
   name: "DND5E.CoverHalf",
   id: `${MODULE_ID}.${SYSTEM_ID}.half`,
   percentThreshold: 0.5,
-  icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
+  icon: ICONS.SHIELD_THIN_GRAY.HALF,
   tint: null,
   canOverlap: false,
   includeWalls: true,
@@ -79,10 +79,10 @@ coverEffects.half = {
   name: "DND5E.CoverHalf",
   id: `${MODULE_ID}.${SYSTEM_ID}.half`,
   dFredsName: "Cover (Half)",
-  icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
+  icon: ICONS.SHIELD_THIN_GRAY.HALF,
   documentData: {
     name: "DND5E.CoverHalf",
-    icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
+    icon: ICONS.SHIELD_THIN_GRAY.HALF,
     flags: {
       [MODULE_ID]: {
         [FLAGS.COVER_EFFECT_ID]: `${MODULE_ID}.${SYSTEM_ID}.half`,

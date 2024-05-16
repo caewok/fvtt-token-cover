@@ -15,7 +15,7 @@ _Cover Algorithms_:
 - Area2d. Test the percentage of the overhead view of a target token that is viewable from the perspective of a point on the viewer token. For overhead tiles, does not consider transparency.
 - Area3d. Test the percentage of the 3d view of a target token that is viewable from the perspective of a point on the viewer token. For overhead tiles, uses webGL to test transparency.
 
-As of version 0.7.0, the module introduces two concepts: _Cover Types_ and _Cover Effects_. A cover type is a set of rules that determine if a specific should apply. For example, low cover might be whenever 25% or more of a token is occluded by either tokens or walls. When a cover type applies, the icon for that type can be optionally displayed on the token that has that cover. A cover effect is an active effect (or for some systems, an item representing an effect) that can be applied when one or more cover types apply. Each cover effect can be associated with one or more cover types. The GM determines when and if cover effects are applied by the system. Cover effects can be used to grant bonuses or modify other attributes of actors when they are attacked. 
+As of version 0.7.0, the module introduces two concepts: _Cover Types_ and _Cover Effects_. A cover type is a set of rules that determine if a specific should apply. For example, low cover might be whenever 25% or more of a token is occluded by either tokens or walls. When a cover type applies, the icon for that type can be optionally displayed on the token that has that cover. A cover effect is an active effect (or for some systems, an item representing an effect) that can be applied when one or more cover types apply. Each cover effect can be associated with one or more cover types. The GM determines when and if cover effects are applied by the system. Cover effects can be used to grant bonuses or modify other attributes of actors when they are attacked.
 
 For dnd5e, additional settings are available to allow the GM or the user to confirm cover during an attack, and apply cover effects accordingly.
 
@@ -39,17 +39,17 @@ In Pathfinder 2e, the items representing cover effects are applied to the token 
 
 ## Levels
 
-Alternative Token Cover is intended to work with the [Levels](https://github.com/theripper93/Levels) module. Both the Points and the Area3d algorithms will ignore transparent portions of tiles as expected in Levels. The Area2d algorithm treats overhead tiles as blocking regardless of transparency and thus may not work in all cases with Levels. 
+Alternative Token Cover is intended to work with the [Levels](https://github.com/theripper93/Levels) module. Both the Points and the Area3d algorithms will ignore transparent portions of tiles as expected in Levels. The Area2d algorithm treats overhead tiles as blocking regardless of transparency and thus may not work in all cases with Levels.
 
 # Measuring cover
 
 "Cover" is measured by testing for obstacles between a viewer (attacking token) and a target (defending token). Different algorithms, set in the GM Cover Settings Menu (discussed below) control exactly how such obstacles are determined. Each algorithm considers points on or shape of the attacking and defending tokens and determines how much of the defender is obscured from the point of view of the attacker. The algorithm considers walls, tokens, or other obstacles and estimates the percent "cover" the defender has from the attacker.
 
-A point or points on the attacker serve as the "eyes" of the attacker. The height of these points, for purposes of measuring vision, can be changed using the [Wall Height](https://github.com/theripper93/wall-height) module. Token height is otherwise set based on scale of the token—namely,the number of grid squares it occupies. 
+A point or points on the attacker serve as the "eyes" of the attacker. The height of these points, for purposes of measuring vision, can be changed using the [Wall Height](https://github.com/theripper93/wall-height) module. Token height is otherwise set based on scale of the token—namely,the number of grid squares it occupies.
 
 Note that very large tokens can be quite tall, and may poke through an overhead tile. Depending on your settings, this may cause large tokens to be visible if a sufficient portion of the token is visible.
 
-By default, cover algorithms uses the "move" wall restriction when considering whether walls block. This is intended to be consistent with how walls that would physically block movement are most likely to provide cover. Using the API, it is possible to change this for a given calculation. 
+By default, cover algorithms uses the "move" wall restriction when considering whether walls block. This is intended to be consistent with how walls that would physically block movement are most likely to provide cover. Using the API, it is possible to change this for a given calculation.
 
 # Cover Type
 
@@ -65,24 +65,41 @@ For example, the Starfinder system defines a "soft" cover, meaning there is a to
 - Partial. Threshold ≥ 0.25. Includes tokens and walls. Priority = 1.
 - Regular. Threshold ≥ 0.50. Includes tokens and walls. Priority = 2.
 
-If a defender has 50% cover, it would be assigned the regular cover type becuase that is the highest priority. Then the overlapping "soft" cover would be tested. If a token occluded the defender, it would also gain the "soft" cover type. A defender with 30% cover, on the other hand, would fail the test for the regular cover type and instead be assigned the partial cover type. Again, the overlapping "soft" cover type would be tested separately. 
+If a defender has 50% cover, it would be assigned the regular cover type becuase that is the highest priority. Then the overlapping "soft" cover would be tested. If a token occluded the defender, it would also gain the "soft" cover type. A defender with 30% cover, on the other hand, would fail the test for the regular cover type and instead be assigned the partial cover type. Again, the overlapping "soft" cover type would be tested separately.
 
 # Cover Effect
 
-A cover effect represents an active effect (or, for some systems, an item representing an effect) that is applied to a defender with cover. Some cover effects are already defined, but the GM can edit those using the "Alt. Token Cover" book icon in the token controls. The GM can associate each cover effect with one or more cover types. If the cover type applies, the cover effect is then added to the defending token.  
+A cover effect represents an active effect (or, for some systems, an item representing an effect) that is applied to a defender with cover. Some cover effects are already defined, but the GM can edit those using the "Alt. Token Cover" book icon in the token controls. The GM can associate each cover effect with one or more cover types. If the cover type applies, the cover effect is then added to the defending token.
 
 # "Alt. Token Cover" token control (book icon)
 
 <img width="479" alt="Screenshot 2024-05-07 at 3 52 26 PM" src="https://github.com/caewok/fvtt-token-cover/assets/1267134/3830e745-78e4-4eb8-82f4-84bc8c3b5507">
 
-The GM can view and edit the Cover Effects and Cover types using the book icon in the token controls. Right-click a cover effect to import/export/duplicate/delete. 
+The GM can view and edit the Cover Effects and Cover types using the book icon in the token controls. Right-click a cover effect to import/export/duplicate/delete.
+
+# Performance
+
+Performance is inevitably a function of the number of tokens present on the scene and, to a lesser extent, the number of walls.
+
+For cover icons and cover effect "use" settings, least to most performant is:
+1. Always
+2. During combat
+3. Combatant only
+4. During attack
+5. Never.
+
+If you are not using the cover effects to apply bonuses or other features to defenders, set cover effects to "Never." Setting cover effect to be combatant or during attack may also help performance
+
+Enabling application of cover icons/effects only while targeting (again, in settings) should also improve performance.
+
+Performance is also a function of the cover calculation algorithm chosen, and its settings. The Points algorithm is generally faster than 2d or 3d, unless you are testing a lot of points on the target. And it will always be faster to test a single viewer point rather than multiple viewer points.
 
 # Main Settings Menu
 <img width="559" alt="ATC Main Settings" src="https://github.com/caewok/fvtt-token-cover/assets/1267134/63bd7a8e-b7d8-446e-985e-a435d5efe459">
 
 ## Display Cover Icons
 
-A cover icon displays on the token if it has cover from a given attacker or attackers. The icon represents a cover type, and can be modified by the GM using the the "Alt. Token Cover" book icon in the token controls. (Note that if a cover type is overlapping, it may result in more than one cover type being applied and thus more than one cover icon.) 
+A cover icon displays on the token if it has cover from a given attacker or attackers. The icon represents a cover type, and can be modified by the GM using the the "Alt. Token Cover" book icon in the token controls. (Note that if a cover type is overlapping, it may result in more than one cover type being applied and thus more than one cover icon.)
 
 Generally, if a user has selected a token, that token will be considered an "attacker" for purposes of cover, _for that user's view only_. Selecting multiple tokens will apply cover only if the defending token has that cover (or better) from every attacker. Generally, defending tokens are all non-selected tokens.
 
@@ -95,7 +112,7 @@ The user can select between different options for displaying cover icons:
 
 ## Apply Cover Icons when targeting
 
-If enabled, the user must target one or more "defender" tokens to view their cover. Remember that, unless "current combatant only" was selected for the cover icon display, attackers are the selected tokens. 
+If enabled, the user must target one or more "defender" tokens to view their cover. Remember that, unless "current combatant only" was selected for the cover icon display, attackers are the selected tokens.
 
 ## Debug Cover
 
@@ -121,35 +138,35 @@ Settings relevant to the target, or defending, token. This is the token that may
 <img width="702" alt="ATC Target Settings" src="https://github.com/caewok/fvtt-token-cover/assets/1267134/2d185540-87a6-4244-82eb-912a0fc346f2">
 
 ### Large Token Subtargeting
-If enabled, tokens larger than a grid square will be considered to have no cover if at least one grid square's worth of the token is unobstructed from the viewer. For the Points algorithm, each grid square that the target occupies is tested separately as if it were a single token. For the Area2d and Area3d algorithms, the percentage area required is based on the size of a single grid square instead of the size of the entire target. The result is that tokens larger than a grid square can have less than 0% cover.  
+If enabled, tokens larger than a grid square will be considered to have no cover if at least one grid square's worth of the token is unobstructed from the viewer. For the Points algorithm, each grid square that the target occupies is tested separately as if it were a single token. For the Area2d and Area3d algorithms, the percentage area required is based on the size of a single grid square instead of the size of the entire target. The result is that tokens larger than a grid square can have less than 0% cover.
 
 This setting is slightly less performant but very useful for larger tokens. For example, without large token subtargeting, 3 out of 4 grid squares of a dragon could be visible and—depending on your cover threshold setting—this may still provide cover to the dragon.
 
 ### Points Algorithm
-The points algorithm tests whether a 3d ray from the viewing point to a point on the target token is blocked by an obstacle. As with the viewer, the offset determines how close each point is to the center of the target token. If 3d points are enabled, additional points at the top and bottom of the target token will be tested. 
+The points algorithm tests whether a 3d ray from the viewing point to a point on the target token is blocked by an obstacle. As with the viewer, the offset determines how close each point is to the center of the target token. If 3d points are enabled, additional points at the top and bottom of the target token will be tested.
 
 ### Area2d Algorithm
 The Area2d algorithm tests how much of the overhead target token shape is obstructed. It usually is very performant, but less intuitive and less accurate than the Area3d algorithm. It treats all overhead tiles as opaque.
 
 ### Area3d Algorithm
-The Area3d algorithm constructs a simplistic 3d model of the scene from the point of view of the viewing token looking toward the target token. It then measures the obstructed area of the 3d target. This can be faster than the Points algorithm in certain scenes. 
+The Area3d algorithm constructs a simplistic 3d model of the scene from the point of view of the viewing token looking toward the target token. It then measures the obstructed area of the 3d target. This can be faster than the Points algorithm in certain scenes.
 
 If overhead tiles are encountered within the viewing triangle, the Area3d algorithm switches to webGL to construct its 3d model. This allows it to take into account transparent portions of the overhead tile. The webGL is much slower, however, so it only uses it when necessary. (The slowdown is primarily because the webGL scene must be converted back into pixels that Javascript can then summarize to determine the obstructed area.)
 
 ## Workflow
-Settings relevant to automated workflow for applying cover effects to targeted tokens. 
+Settings relevant to automated workflow for applying cover effects to targeted tokens.
 
 <img width="700" alt="ATC Workflow Settings" src="https://github.com/caewok/fvtt-token-cover/assets/1267134/f6d44b2c-b8a5-4313-998b-ec4a76bae571">
 
 ### Apply Cover Effects
 
-As with cover icons, cover effects can be applied at different stages of the workflow. 
+As with cover icons, cover effects can be applied at different stages of the workflow.
 
 ### Apply Cover Effects only when targeting
 
 As with cover icons, cover effects can be applied only to targeted defenders.
 
-## Workflow: System-specific attack settings 
+## Workflow: System-specific attack settings
 
 <img width="700" alt="Screenshot 2024-05-07 at 11 48 06 AM" src="https://github.com/caewok/fvtt-token-cover/assets/1267134/dc058e34-a40a-483f-8c23-b57111ee5bfd">
 
@@ -171,14 +188,14 @@ The confirmation dialog pops up a list of targets with calculated covers. Cover 
 If the defender is deemed to have no cover, should the confirmation dialog still be presented?
 
 ## Confirm only on change
-Should the confirmation dialog be skipped if the cover matches what was displayed to the user? Sometimes, the attack workflow can modify cover. For example, the attacker may be able to ignore cover based on the type of attack. As this is only known at the time of attack, it is possible for cover to change. 
+Should the confirmation dialog be skipped if the cover matches what was displayed to the user? Sometimes, the attack workflow can modify cover. For example, the attacker may be able to ignore cover based on the type of attack. As this is only known at the time of attack, it is possible for cover to change.
 
 ## Other
 Other settings that affect the line-of-sight calculation.
 
 <img width="699" alt="ATV Settings - Other" src="https://github.com/caewok/fvtt-token-visibility/assets/1267134/8cbc98d8-9dc7-4e67-b5d1-d23c0e6c2c9f">
 
-Optionally, you can have live or dead tokens be treated as obstacles for the purposes of cover. Prone tokens can also optionally grant cover. For these settings to work, you must tell ATC what the prone status is for your system, and where to find the hit points attribute. (It is assumed that 0 or below means "dead" for purposes of defining dead tokens.) 
+Optionally, you can have live or dead tokens be treated as obstacles for the purposes of cover. Prone tokens can also optionally grant cover. For these settings to work, you must tell ATC what the prone status is for your system, and where to find the hit points attribute. (It is assumed that 0 or below means "dead" for purposes of defining dead tokens.)
 
 The vision height multiplier allows you to change the height at which a viewing token observes the scene. Think of this as the height of the eyes of the token above the ground, as a percentage of the total token height.
 

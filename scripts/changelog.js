@@ -119,6 +119,25 @@ Hooks.once("ready", () => {
       `
     })
 
+     .addEntry({
+      version: "0.7.3",
+      title: "Speed",
+      body: `\
+        This version should increase performance of displaying cover icons and applying cover effects. See discussion of
+        performance in the Github for this module.
+
+        New settings!
+        - Display cover book. Choose whether to display the cover book in the token controls.
+        - Display cover icons on secret tokens.
+
+        Cover is now calculated from the snapped position of the token when dragging, unless shift is held.
+
+        Dragging a cover effect (or a DFred's cover) is now considered an "override" that stops other cover icons or effects
+        from being added to the token.
+      `
+    })
+
+
     .build()
     ?.render(true);
 });

@@ -5,7 +5,6 @@ foundry,
 fromUuid,
 game,
 Hooks,
-ItemDirectory,
 socketlib,
 Token
 */
@@ -21,6 +20,8 @@ import { defaultCoverEffects as dnd5eCoverEffects } from "./coverDefaults/dnd5e.
 import { defaultCoverEffects as pf2eCoverEffects } from "./coverDefaults/pf2e.js";
 import { defaultCoverEffects as sfrpgCoverEffects } from "./coverDefaults/sfrpg.js";
 import { defaultCoverEffects as genericCoverEffects } from "./coverDefaults/generic.js";
+
+const NULL_SET = new Set(); // Set intended to signify no items, as a placeholder.
 
 // ----- NOTE: Set up sockets so GM can create or modify items ----- //
 Hooks.once("socketlib.ready", () => {
@@ -66,7 +67,7 @@ export class CoverEffect extends AbstractCoverObject {
 
   /** @type {Set<CoverType>} */
   get coverTypes() {
-    const ids = this.document.flags[MODULE_ID][FLAGS.COVER_TYPES] ?? [];
+    const ids = this.document?.flags?.[MODULE_ID]?.[FLAGS.COVER_TYPES] ?? [];
     const cts = ids
       .map(id => CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(id))
       .filter(ct => Boolean(ct));
@@ -160,7 +161,7 @@ export class CoverEffect extends AbstractCoverObject {
     const newId = this._addToActorLocally(actor);
     if ( !newId ) return false;
     this.constructor._documentIds.set(newId, this);
-    if ( update ) refreshActorCoverEffect(actor);
+    if ( update ) this.constructor.refreshActorCoverEffect(actor);
     return true;
   }
 
@@ -187,7 +188,7 @@ export class CoverEffect extends AbstractCoverObject {
     const removedIds = this._removeFromActorLocally(actor);
     if ( !removedIds.length ) return false;
     removedIds.forEach(id => this.constructor._documentIds.delete(id));
-    if ( update ) refreshActorCoverEffect(actor);
+    if ( update ) this.constructor.refreshActorCoverEffect(actor);
     return true;
   }
 
@@ -232,6 +233,7 @@ export class CoverEffect extends AbstractCoverObject {
 
   // ----- NOTE: Static methods ----- //
 
+
   // ----- NOTE: Static methods specific to cover effects ----- //
 
   /**
@@ -257,6 +259,7 @@ export class CoverEffect extends AbstractCoverObject {
    * @returns {CoverEffect[]} Array of cover effects on the actor.
    */
   static _allLocalEffectsOnActor(actor) {
+    if ( !actor ) return;
     return [...this.coverObjectsMap.values()
       .filter(ce => ce._localEffectOnActor(actor))];
   }
@@ -264,14 +267,13 @@ export class CoverEffect extends AbstractCoverObject {
   /**
    * Replace local cover effects on token with these.
    * @param {Token|Actor} actor
-   * @param {CoverEffect[]|Set<CoverEffect>} coverEffects
+   * @param {Set<CoverEffect>} coverEffects
    * @param {boolean} True if a change was made
    */
-  static replaceLocalEffectsOnActor(actor, coverEffects = new Set()) {
-    log(`CoverEffect#replaceLocalEffectsOnActor|${actor.name}`);
-
+  static replaceLocalEffectsOnActor(actor, coverEffects = NULL_SET) {
     if ( actor instanceof Token ) actor = actor.actor;
-    if ( !(coverEffects instanceof Set) ) coverEffects = new Set(coverEffects);
+    if ( !actor ) return false;
+
     const previousEffects = new Set(this.allLocalEffectsOnActor(actor));
     if ( coverEffects.equals(previousEffects) ) return false;
 
@@ -281,25 +283,27 @@ export class CoverEffect extends AbstractCoverObject {
     if ( !(toRemove.size || toAdd.size) ) return false;
 
     // Remove unwanted effects then add new effects.
-    previousEffects.forEach(ce => ce.removeFromActorLocally(actor, false))
-    coverEffects.forEach(ce => ce.addToActorLocally(actor, false));
+    log(`CoverEffect#replaceLocalEffectsOnActor|${this.name}|${actor.name}`);
+    toRemove.forEach(ce => ce.removeFromActorLocally(actor, false))
+    toAdd.forEach(ce => ce.addToActorLocally(actor, false));
 
     // At least one effect should have been changed, so refresh actor.
-    refreshActorCoverEffect(actor);
+    this.refreshActorCoverEffect(actor);
     return true;
+  }
+
+  /**
+   * Refresh the actor so that the local cover effect is used and visible.
+   */
+  static refreshActorCoverEffect(actor) {
+    log(`CoverEffect#refreshActorCoverEffect|${actor.name}`);
+    actor.prepareData(); // Trigger active effect update on the actor data.
+    queueSheetRefresh(actor);
   }
 }
 
 // ----- NOTE: Helper functions ----- //
 
-/**
- * Refresh the actor so that the local cover effect is used and visible.
- */
-function refreshActorCoverEffect(actor) {
-  log(`CoverEffect#refreshActorCoverEffect|${actor.name}`);
-  actor.prepareData(); // Trigger active effect update on the actor data.
-  queueSheetRefresh(actor);
-}
 
 /**
  * Handle multiple sheet refreshes by using an async queue.

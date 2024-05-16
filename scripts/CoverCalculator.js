@@ -68,6 +68,14 @@ export class CoverCalculator extends AbstractCalculator {
     this.calc._clearCache();
   }
 
+  /**
+   * Destroy cover calculator clone, if any.
+   */
+  destroy() {
+    // if ( this.viewer._isCoverCalculatorClone && !this.viewer._destroyed ) this.viewer.destroy();
+    super.destroy();
+  }
+
   // ----- NOTE: Static methods ----- //
 
   /**
@@ -104,6 +112,28 @@ export class CoverCalculator extends AbstractCalculator {
     if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) Draw.clearDrawings();
     const coverDialog = new CoverDialog(token, targets);
     return coverDialog._htmlShowCover(opts);
+  }
+
+  /**
+   * Build a cover calculator for an attacking token at a defined location (not the token's current location).
+   * Creates a clone of the token and changes its location.
+   * @param {Token} token             Token to use for the cover calculator.
+   * @param {Point} [position]        Optional {x, y} location if different from token
+   * @param {number} [elevation]      Optional elevation if different from token
+   * @returns {CoverCalculator}
+   */
+  static createCoverCalculatorForTokenLocation(token, position, elevation) {
+    return this.cloneForTokenLocation(token, position, elevation)?.coverCalculator;
+  }
+
+  static cloneForTokenLocation(token, position, elevation) {
+    const { x, y } = position ?? token.center;
+    elevation ??= token.elevationE;
+    const clone = token.clone();
+    clone.eventMode = "none";
+    clone.document.updateSource({ x, y , elevation });
+    clone._isCoverCalculatorClone = true;
+    return clone;
   }
 
   // ----- NOTE: Cover Types ----- //
@@ -359,4 +389,5 @@ export class CoverCalculator extends AbstractCalculator {
     if ( liveTokensAlg ) config.liveTokensBlock = liveTokensAlg !== Settings.KEYS.LIVE_TOKENS.TYPES.NONE;
     super._updateConfiguration(config);
   }
+
 }

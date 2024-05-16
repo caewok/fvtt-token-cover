@@ -44,11 +44,6 @@ async function renderActiveEffectConfig(app, html, data) {
      coverTypes.push(ct);
   });
 
-//   let coverTypes = Object.values(COVER.TYPES).map(ct => {
-//     return { key: ct.id, label: ct.name }
-//   });
-//   coverTypes.unshift({ key: "none", label: "None" });
-
   const renderData = {};
   renderData[MODULE_ID] = { coverTypes, selected };
   foundry.utils.mergeObject(data, renderData, { inplace: true });

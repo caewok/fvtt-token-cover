@@ -1,6 +1,5 @@
 /* globals
 Color,
-CONFIG,
 foundry,
 game
 */
@@ -14,7 +13,7 @@ import { defaultCoverTypes as genericCoverTypes } from "./coverDefaults/generic.
 import { Settings } from "./settings.js";
 import { MODULE_ID, COVER } from "./const.js";
 import { AbstractCoverObject } from "./AbstractCoverObject.js";
-import { findSpliceAll, log } from "./util.js";
+import { log } from "./util.js";
 
 const NULL_SET = new Set(); // Set intended to signify no items, as a placeholder.
 
@@ -151,63 +150,31 @@ export class CoverType extends AbstractCoverObject {
   }
   /**
    * Add this cover type to the token.
-   * Adds unless already present.
-   * Removes others unless canOverlap is true
+   * Does not test for whether it should be added or is already present.
    * @param {Token} token
-   * @returns {boolean} True if change was made.
+   * @returns {boolean} True if change was made (always)
    */
   addToToken(token) {
-    log(`CoverType#addToToken|${token.name}`);
-    const icon = this.document.icon;
-
-    // If already present, we are done.
-    if ( token.document.effects.some(e => e === icon) ) return false;
-
-    // If this type can overlap, it can be added b/c it is not already present.
-    if ( this.document.canOverlap ) {
-      log(`CoverType#addToToken|${token.name} adding ${this.name}`);
-      token.document.effects.push(icon);
-      return true;
-    }
-
-    // If this type cannot overlap, then any non-overlapping icons must be removed first.
-    const tokenEffectIcons = new Set(token.document.effects);
-
-    // Don't call `filter` on iterator as unsupported in some browsers.
-    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator/filter
-    const otherCoverTypes = [...CoverType.coverObjectsMap.values()].filter(ct => ct.icon !== icon && !ct.document.canOverlap);
-    for ( const otherCoverType of otherCoverTypes ) {
-      if ( tokenEffectIcons.has(otherCoverType.icon) ) otherCoverType.removeFromToken(token);
-    }
-
     // Add the new cover type icon to the token.
-    log(`CoverType#addToToken|${token.name} adding ${this.name}`);
-    token.document.effects.push(icon);
+    log(`CoverType#addToToken|${this.name}|${token.name}`);
+    token.document.effects.push(this.icon);
+    token.renderFlags.set({ redrawEffects: true });
     return true;
   }
 
   /**
    * Remove this cover type from the token.
+   * Only removes a single icon; if multiple present it may need to be called again.
    * @param {Token} token
    * @returns {boolean} True if change was made
    */
   removeFromToken(token) {
-    const change = token.document.effects.some(e => e === this.icon);
-    if ( change ) {
-      log(`CoverType#addToToken|${token.name} removing ${this.name}`);
-      findSpliceAll(token.document.effects, e => e === this.icon);
+    const elem = token.document.effects.findSplice(e => e === this.icon);
+    if ( elem !== null ) {
+      log(`CoverType#removeFromToken|${this.name}|${token.name}`);
+      token.renderFlags.set({ redrawEffects: true });
     }
-    return change;
-  }
-
-  /**
-   * Add cover effects linked to this type to token.
-   * @param {Token} token
-   */
-  addCoverEffectsToToken(token, update = true) {
-    CONFIG[MODULE_ID].CoverEffect.coverObjectsMap
-      .filter(ce => ce.coverTypes.some(ct => ct === this))
-      .forEach(ce => ce.addToActorLocally(token, update));
+    return elem !== null;
   }
 
   // ----- NOTE: Static: Track Cover types ----- //
@@ -323,48 +290,16 @@ export class CoverType extends AbstractCoverObject {
     return Settings.set(this.settingsKey, storedObj);
   }
 
-
-
   // ----- NOTE: Static cover type specific methods ----- //
-
-  /**
-   * Replace cover types on token with these.
-   * @param {Token} token
-   * @param {CoverType[]|Set<CoverType>} coverTypes
-   * @returns {boolean} True if a change was made.
-   */
-  static replaceCoverTypes(token, coverTypes = []) {
-    if ( !(coverTypes instanceof Set) ) coverTypes = new Set(coverTypes);
-
-    if ( !coverTypes.size ) {
-      if ( !token.document.effects.length ) return false;
-      token.document.effects.length = 0;
-      return true;
-    }
-
-    // Remove all cover types in the array that are not the wanted cover types.
-    const tokenEffectIcons = new Set(token.document.effects);
-    const toKeep = coverTypes.filter(ct => Boolean(ct.icon)).map(ct => ct.icon);
-    const toRemove = tokenEffectIcons.difference(toKeep);
-    const changed = toRemove.size
-    if ( changed ) findSpliceAll(token.document.effects, e => toRemove.has(e));
-
-    // Add each of the cover types.
-    const res = [...coverTypes.values()].reduce((acc, ct) => {
-      const out = ct.addToToken(token);
-      return acc || out;
-    }, false);
-    return res || changed;
-  }
 
   /**
    * Determine minimum cover types for a token from a group of attacking tokens.
    * @param {Token} targetToken
-   * @param {Token[]} attackingTokens
+   * @param {Token[]|Set<Token>} attackingTokens
    * @returns {Set<CoverType>}
    */
   static minimumCoverFromAttackers(targetToken, attackingTokens = []) {
-    if ( !attackingTokens.length ) return NULL_SET;
+    if ( !attackingTokens.length && !attackingTokens.size ) return NULL_SET;
 
     // For priority cover, smallest priority wins.
     // For other cover, only if this token has that cover from all attackers.

@@ -2,7 +2,8 @@
 canvas,
 CONFIG,
 foundry,
-game
+game,
+ui
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -35,6 +36,10 @@ export const SETTINGS = {
   },
 
   SUBMENU: "submenu",
+
+  DISPLAY_COVER_BOOK: "display-cover-book",
+
+  DISPLAY_SECRET_COVER: "display-secret-cover",
 
   COVER_TYPES: {
     USE: "use-cover-types",
@@ -160,6 +165,15 @@ export class Settings extends ModuleSettingsAbstract {
       delete coverEffectUseChoices[USE_CHOICES.ATTACK];
     }
 
+    // ----- Main Settings Menu ----- //
+    registerMenu(KEYS.SUBMENU, {
+      name: localize(`${KEYS.SUBMENU}.Name`),
+      label: localize(`${KEYS.SUBMENU}.Label`),
+      icon: "fas fa-user-gear",
+      type: SettingsSubmenu,
+      restricted: true
+    });
+
     register(KEYS.COVER_TYPES.USE, {
       name: localize(`${KEYS.COVER_TYPES.USE}.Name`),
       hint: localize(`${KEYS.COVER_TYPES.USE}.Hint`),
@@ -181,13 +195,31 @@ export class Settings extends ModuleSettingsAbstract {
       onChange: _value => TokenCover._forceUpdateAllTokenCover()
     });
 
-    // ----- Main Settings Menu ----- //
-    registerMenu(KEYS.SUBMENU, {
-      name: localize(`${KEYS.SUBMENU}.Name`),
-      label: localize(`${KEYS.SUBMENU}.Label`),
-      icon: "fas fa-user-gear",
-      type: SettingsSubmenu,
-      restricted: true
+    register(KEYS.DISPLAY_COVER_BOOK, {
+      name: localize(`${KEYS.DISPLAY_COVER_BOOK}.Name`),
+      hint: localize(`${KEYS.DISPLAY_COVER_BOOK}.Hint`),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true,
+      onChange: value => {
+        if ( !canvas.scene || !ui.controls.activeControl === "token" ) return;
+        const tokenTools = ui.controls.controls.find(c => c.name === "token");
+        const coverBook = tokenTools.tools.find(c => c.name === SETTINGS.CONTROLS.COVER_EFFECTS);
+        if ( !coverBook ) return;
+        coverBook.visible = value;
+        ui.controls.render(true);
+      }
+    });
+
+    register(KEYS.DISPLAY_SECRET_COVER, {
+      name: localize(`${KEYS.DISPLAY_SECRET_COVER}.Name`),
+      hint: localize(`${KEYS.DISPLAY_SECRET_COVER}.Hint`),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true,
+      onChange: _value => canvas.tokens.placeables.forEach(t => t.tokencover.updateCoverTypes())
     });
 
     register(KEYS.DEBUG, {

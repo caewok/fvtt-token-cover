@@ -1,7 +1,8 @@
 /* globals
 CONFIG,
 fromUuid,
-game
+game,
+Token
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -168,6 +169,7 @@ export class CoverItem extends CoverEffect {
   _addToActorLocally(actor) {
     const item = actor.items.createDocument(this.documentData);
     log(`CoverItem#_addToActorLocally|${actor.name} adding ${item.id} ${this.name}`);
+    item.updateSource({ flags: { [MODULE_ID]: { [FLAGS.LOCAL_COVER_EFFECT]: true }}});
     actor.items.set(item.id, item);
     return item.id;
   }
@@ -198,16 +200,30 @@ export class CoverItem extends CoverEffect {
   // ----- NOTE: Static methods specific to cover effects ----- //
 
   /**
+   * Determine if the GM has added a cover effect override to an actor.
+   * Cover effect overrides have a COVER_EFFECT_ID flag but no local flag.
+   * @param {Actor|Token} actor
+   * @returns {boolean}
+   */
+  static coverOverrideApplied(actor) {
+    if ( actor instanceof Token ) actor = actor?.actor;
+    if ( !actor ) return;
+    return Boolean(actor.items.find(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID)
+      && !e.getFlag(MODULE_ID, FLAGS.LOCAL_COVER_EFFECT)));
+  }
+
+  /**
    * Retrieve all Cover Effects on the actor.
    * @param {Actor} actor
    * @returns {CoverEffect[]} Array of cover effects on the actor.
    */
   static _allLocalEffectsOnActor(actor) {
+    if ( !actor ) return;
     // Faster than calling _localEffectOnActor repeatedly.
-    return actor.items
-      .filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))
+    const times = [... actor.items.filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))];
+    return times
       .map(e => this._documentIds.get(e.id))
-      .filter(e => Boolean(e))
+      .filter(e => Boolean(e));
   }
 }
 
