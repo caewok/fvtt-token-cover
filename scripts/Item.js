@@ -10,6 +10,7 @@ import { coverAttackWorkflow } from "./CoverDialog.js";
 
 // Patches for the dnd5e Item class
 export const PATCHES = {};
+PATCHES.BASIC = {};
 PATCHES.DND5E_NO_MIDI = {}; // Only if midiqol is not active.
 
 // ----- NOTE: MIXES ----- //
@@ -43,3 +44,42 @@ async function rollAttack(wrapper, options = {}) {
 }
 
 PATCHES.DND5E_NO_MIDI.MIXES = { rollAttack };
+
+/**
+ * When adding an active effect, check for overriding effect.
+ * @param {Document} document                       The new Document instance which has been created
+ * @param {DocumentModificationContext} options     Additional options which modified the creation request
+ * @param {string} userId                           The ID of the User who triggered the creation workflow
+ */
+function createItem(document, options, userId) {
+  const actor = document.parent;
+  if ( !actor || !(actor instanceof Actor) ) return;
+  const modFlags = document.flags[MODULE_ID];
+  if ( !modFlags ) return;
+  if ( !(modFlags[FLAGS.COVER_EFFECT_ID] && !modFlags[FLAGS.LOCAL_COVER_EFFECT]) ) return;
+
+  const token = actor.token?.object;
+  if ( !token ) return;
+  token.tokencover.updateCoverTypes();
+  token.tokencover.updateCoverEffects();
+}
+
+/**
+ * When adding an active effect, check for overriding effect.
+ * @param {Document} document                       The new Document instance which has been created
+ * @param {DocumentModificationContext} options     Additional options which modified the creation request
+ * @param {string} userId                           The ID of the User who triggered the creation workflow
+ */
+function deleteItem(document, options, userId) {
+  const actor = document.parent;
+  if ( !actor || !(actor instanceof Actor) ) return;
+  const modFlags = document.flags[MODULE_ID];
+  if ( !modFlags ) return;
+  if ( !(modFlags[FLAGS.COVER_EFFECT_ID] && !modFlags[FLAGS.LOCAL_COVER_EFFECT]) ) return;
+  const token = actor.token?.object;
+  if ( !token ) return;
+  token.tokencover.updateCoverTypes();
+  token.tokencover.updateCoverEffects();
+}
+
+PATCHES.BASIC.HOOKS = { createItem, deleteItem };

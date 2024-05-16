@@ -50,6 +50,11 @@ export const FLAGS = {
   COVER_EFFECTS_ITEM: "coverEffectItem",
 
   /**
+   * Identify that an item or effect represents a locally applied cover effect.
+   */
+  LOCAL_COVER_EFFECT: "coverEffectLocal",
+
+  /**
    * For updating flag data to new versions of the module.
    * @type {string} Version of the module that saved this data.
    */

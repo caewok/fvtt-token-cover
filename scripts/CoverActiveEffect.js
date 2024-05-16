@@ -224,6 +224,7 @@ export class CoverActiveEffect extends CoverEffect {
    */
   _addToActorLocally(actor) {
     const ae = actor.effects.createDocument(this.documentData);
+    ae.updateSource({ flags: { [MODULE_ID]: { [FLAGS.LOCAL_COVER_EFFECT]: true }}});
     log(`CoverActiveEffect#_addToActorLocally|${actor.name} adding ${ae.id} ${this.name}`);
     actor.effects.set(ae.id, ae);
     return ae.id;
@@ -258,6 +259,19 @@ export class CoverActiveEffect extends CoverEffect {
   // ----- NOTE: Static methods ----- //
 
   /**
+   * Determine if the GM has added a cover effect override to an actor.
+   * Cover effect overrides have a COVER_EFFECT_ID flag but no local flag.
+   * @param {Actor|Token} actor
+   * @returns {boolean}
+   */
+  static coverOverrideApplied(actor) {
+    if ( actor instanceof Token ) actor = actor?.actor;
+    if ( !actor ) return;
+    return Boolean(actor.effects.find(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID)
+      && !e.getFlag(MODULE_ID, FLAGS.LOCAL_COVER_EFFECT)));
+  }
+
+  /**
    * Retrieve all Cover Effects on the actor.
    * @param {Actor} actor
    * @returns {CoverEffect[]} Array of cover effects on the actor.
@@ -266,7 +280,7 @@ export class CoverActiveEffect extends CoverEffect {
     if ( !actor ) return;
     // Faster than calling _localEffectOnActor repeatedly.
     // Don't map from a Map or a Set to avoid throwing errors if the Set size is modified.
-    const effects = [...actor.effects.filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))];
+    const effects = [...actor.effects.filter(e => e.getFlag(MODULE_ID, FLAGS.LOCAL_COVER_EFFECT))];
     return effects
       .map(e => this._documentIds.get(e.id))
       .filter(e => Boolean(e));

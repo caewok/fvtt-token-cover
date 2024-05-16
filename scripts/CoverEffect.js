@@ -233,6 +233,7 @@ export class CoverEffect extends AbstractCoverObject {
 
   // ----- NOTE: Static methods ----- //
 
+
   // ----- NOTE: Static methods specific to cover effects ----- //
 
   /**
