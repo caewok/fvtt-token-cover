@@ -3,6 +3,8 @@ Improvements to speed by smarter caching to limit how often the cover calculatio
 
 When displaying cover during a token drag, use the snapped position of the token unless shift is held (or on gridless map). Thanks @aedif for the suggestion!
 
+Dragging cover effects to a token will now be considered an override of the calculated cover. Thus, if the GM manually applies a cover effect (or DFred's cover) to a token, that token will continue to have that cover.
+
 ## 0.7.2
 Bug fixes. Don't use map/filter/reduce with iterators b/c that is only supported with some browsers.
 
