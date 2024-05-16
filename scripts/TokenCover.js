@@ -427,6 +427,7 @@ export class TokenCover {
     const toRemove = coverEffects.difference(replacementCoverEffects);
     let change = false;
     const actor = this.token.actor;
+    if ( !actor ) return false;
     toRemove.forEach(ce => {
       const res = ce.removeFromActorLocally(actor, false);
       change ||= res;

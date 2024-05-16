@@ -67,7 +67,7 @@ export class CoverEffect extends AbstractCoverObject {
 
   /** @type {Set<CoverType>} */
   get coverTypes() {
-    const ids = this.document.flags[MODULE_ID][FLAGS.COVER_TYPES] ?? [];
+    const ids = this.document?.flags?.[MODULE_ID]?.[FLAGS.COVER_TYPES] ?? [];
     const cts = ids
       .map(id => CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(id))
       .filter(ct => Boolean(ct));
