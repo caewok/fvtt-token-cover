@@ -1,3 +1,6 @@
+## 0.7.5
+Bug fixes. Avoid error if destroyed token does not have geometry data to destroy. Remove call to `_coverAlgorithmChanged`, which does not exist anymore. Remove statuses before applying cover effects to avoid duplication with the cover type icons. Fix module settings appearing in multiple tabs for the active effect config.
+
 ## 0.7.4
 Bug fixes to attack workflow to address undefined method and handle updated cover types and effects application. Workflow now considers whether there were changes compared to the current cover types displayed on each target. Workflow now recognizes when GM has applied an override cover effect to a target.
 
