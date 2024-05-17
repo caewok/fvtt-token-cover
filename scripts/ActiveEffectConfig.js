@@ -51,7 +51,7 @@ async function renderActiveEffectConfig(app, html, data) {
   // Insert the new configuration fields into the active effect config.
   const template = `modules/${MODULE_ID}/templates/active-effect-config.html`;
   const myHTML = await renderTemplate(template, data);
-  html.find('.tab[data-tab="details"').last().after(myHTML);
+  html.find('.tab[data-tab="details"').children().last().after(myHTML);
   app.setPosition(app.position);
 }
 
