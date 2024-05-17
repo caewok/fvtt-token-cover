@@ -1,4 +1,5 @@
 /* globals
+Actor,
 canvas,
 ChatMessage,
 game
@@ -7,6 +8,7 @@ game
 "use strict";
 
 import { coverAttackWorkflow } from "./CoverDialog.js";
+import { MODULE_ID, FLAGS } from "./const.js";
 
 // Patches for the dnd5e Item class
 export const PATCHES = {};
@@ -51,7 +53,7 @@ PATCHES.DND5E_NO_MIDI.MIXES = { rollAttack };
  * @param {DocumentModificationContext} options     Additional options which modified the creation request
  * @param {string} userId                           The ID of the User who triggered the creation workflow
  */
-function createItem(document, options, userId) {
+function createItem(document, _options, _userId) {
   const actor = document.parent;
   if ( !actor || !(actor instanceof Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
@@ -70,7 +72,7 @@ function createItem(document, options, userId) {
  * @param {DocumentModificationContext} options     Additional options which modified the creation request
  * @param {string} userId                           The ID of the User who triggered the creation workflow
  */
-function deleteItem(document, options, userId) {
+function deleteItem(document, _options, _userId) {
   const actor = document.parent;
   if ( !actor || !(actor instanceof Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
