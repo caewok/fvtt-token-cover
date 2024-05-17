@@ -229,7 +229,7 @@ export class SettingsSubmenu extends FormApplication {
     const targetPoints = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS}`).value;
     const centerOnly = targetPoints === Settings.KEYS.POINT_TYPES.CENTER
       && losAlgorithm === TARGET.TYPES.POINTS;
-    game.settings._sheet._coverAlgorithmChanged(centerOnly);
+    // game.settings._sheet._coverAlgorithmChanged(centerOnly);
   }
 
   #updatePointOptionDisplay(losAlgorithm) {
@@ -256,7 +256,7 @@ export class SettingsSubmenu extends FormApplication {
     // Update the underlying setting sheet view.
     const TARGET = Settings.KEYS.LOS.TARGET;
     const centerOnly = targetPoints === Settings.KEYS.POINT_TYPES.CENTER && losAlgorithm === TARGET.TYPES.POINTS;
-    game.settings._sheet._coverAlgorithmChanged(centerOnly);
+    // game.settings._sheet._coverAlgorithmChanged(centerOnly);
   }
 
   #updateTargetInsetDisplay(numPoints, losAlgorithm) {
