@@ -224,7 +224,9 @@ export class CoverActiveEffect extends CoverEffect {
    */
   _addToActorLocally(actor) {
     const ae = actor.effects.createDocument(this.documentData);
-    ae.updateSource({ flags: { [MODULE_ID]: { [FLAGS.LOCAL_COVER_EFFECT]: true }}});
+
+    // Remove statuses so the AE does not display along with the cover icon.
+    ae.updateSource({ flags: { [MODULE_ID]: { [FLAGS.LOCAL_COVER_EFFECT]: true }}, statuses: [] });
     log(`CoverActiveEffect#_addToActorLocally|${actor.name} adding ${ae.id} ${this.name}`);
     actor.effects.set(ae.id, ae);
     return ae.id;
