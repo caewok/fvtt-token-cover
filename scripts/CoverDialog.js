@@ -117,6 +117,17 @@ export class CoverDialog {
   }
 
   /**
+   * Check if the cover calculations differ from the target tokens' cover types.
+   * @returns {boolean}
+   */
+  _coverCalculationsDiffer() {
+    for ( const [token, coverTypes] of this.coverCalculations.entries() ) {
+      if ( !token.tokencover._currentCoverTypes.equals(coverTypes) ) return false;
+    }
+    return true;
+  }
+
+  /**
    * Get JSON for the cover calculations.
    */
   static _coverCalculationsFromJSON(coverCalculations) {
@@ -231,8 +242,12 @@ export class CoverDialog {
    *   False if the user/gm canceled by closing the dialog.
    */
   async workflow() {
-    const coverCheckOption = Settings.get(Settings.KEYS.COVER_WORKFLOW.CONFIRM);
-    const choices = Settings.KEYS.COVER_WORKFLOW.CONFIRM_CHOICES;
+    const WF = Settings.KEYS.COVER_WORKFLOW;
+    if ( Settings.get(WF.CONFIRM_CHANGE_ONLY)
+      && !this._coverCalculationsDiffer() ) return this.coverCalculations;
+
+    const coverCheckOption = Settings.get(WF.CONFIRM);
+    const choices = WF.CONFIRM_CHOICES;
     let coverCalculationsJSON;
     let askGM = false;
     switch ( coverCheckOption ) {
@@ -487,6 +502,9 @@ ${html}
       // Distance between attacker and target
       data.distance = Point3d.distanceBetween(attackerCenter, Point3d.fromTokenCenter(target));
 
+      // Target has manual override cover effects
+      data.hasOverrideEffects = CONFIG[MODULE_ID].CoverEffect.coverOverrideApplied(target);
+
       return data;
     });
   }
@@ -524,8 +542,10 @@ ${html}
     <tbody>
     `;
 
+    const tokensWithOverrideEffects = [];
     for ( const td of targetData ) {
       if ( !includeZeroCover && !td.priorityType.size && !td.overlappingTypes.size ) continue;
+      if ( td.hasOverrideEffects ) tokensWithOverrideEffects.push(td.name);
 
       let htmlRow = `<tr>`;
 
@@ -544,7 +564,7 @@ ${html}
       }
 
       if ( !excludedColumns.has("priorityCover") ) {
-        const r = allowSelection
+        const r = (allowSelection && !td.hasOverrideEffects)
           ? this._htmlCoverSelector(td.priorityType, td.id, false)
           : `${coverTypeNames(td.priorityType)}`;
 
@@ -555,7 +575,7 @@ ${html}
       }
 
       if ( !excludedColumns.has("overlappingCover") ) {
-        const r = allowSelection
+        const r = (allowSelection && !td.hasOverrideEffects)
           ? this._htmlCoverSelector(td.overlappingTypes, td.id, true)
           : `${coverTypeNames(td.overlappingTypes)}`;
 
@@ -592,6 +612,15 @@ ${html}
     </tbody>
     </table>
     `;
+
+    if ( tokensWithOverrideEffects.length ) {
+      htmlTable +=
+      `
+      <br>
+      <em>Some tokens have manual active effects applied: ${tokensWithOverrideEffects.join(", ")}
+      <br>
+      `;
+    }
 
     return htmlTable;
   }
@@ -634,28 +663,6 @@ ${html}
 
     return coverSelector;
   }
-
-  /**
-   * Determine if one or more calculated token covers vary from the current token cover.
-   * @param {Map<Token, Set<CoverType>} calcA     Output from `coverCalculations`
-   * @param {Map<Token, Set<CoverType>} calcB     Output from `coverCalculations`
-   * @param {boolean} [requireTargetMatch=true]   If false, targets not in both will be ignored.
-   * @returns {boolean} False if the two calculation maps are not equal.
-   */
-  static _coverCalculationsEqual(calcA, calcB, requireTargetMatch = true) {
-    if ( requireTargetMatch && calcA.size !== calcB.size ) return false;
-
-    // All cover sets must be equal.
-    for ( const [target, cover] of calcA ) {
-      const targetB = calcB.get(target);
-      if ( !targetB ) {
-        if ( requireTargetMatch ) return false;
-        continue;
-      }
-      if ( !targetB.equals(cover) ) return false;
-    }
-    return true;
-  }
 }
 
 // NOTE: Helper functions
@@ -686,39 +693,24 @@ export async function coverAttackWorkflow(attacker, targets, actionType) {
   // - undefined if covercheck is set to NONE. NONE may still require chat display.
   // - Map otherwise
   const KEYS = Settings.KEYS;
-  const coverDialog = new CoverDialog(attacker, targets);
-
-  // Determine if change has occurred.
-  // Need to duplicate because this may change.
-  // Set actionType after; treat as a change.
-  const formerCalcs = coverDialog.duplicateCoverCalculations();
-
-  // Set action type and see if a change occurs.
-  coverDialog.config.actionType = actionType;
-  coverDialog.resetCoverCalculations();
-  const currCalcs = coverDialog.duplicateCoverCalculations();
-
-  if ( Settings.get(KEYS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY)
-    && CoverDialog._coverCalculationsEqual(formerCalcs, currCalcs, true) ) return currCalcs;
-
-  const coverCalculations = await coverDialog.workflow(actionType);
+  const coverDialog = new CoverDialog(attacker, targets, { actionType });
+  const coverCalculations = await coverDialog.workflow();
   if ( coverCalculations === false ) return false;  // User canceled
-  const changed = !CoverDialog._coverCalculationsEqual(formerCalcs, coverCalculations, false);
 
-  // Update targets' cover and effects
-  if ( changed ) {
-    const NEVER = KEYS.COVER_TYPES.CHOICES.NEVER;
-    if ( Settings.get(KEYS.COVER_TYPES.USE) !== NEVER ) coverDialog.updateTargetsCoverType(coverCalculations);
-    if ( Settings.get(KEYS.COVER_EFFECTS.USE) !== NEVER ) coverDialog.updateTargetsCoverEffects(coverCalculations);
+  // Update the targets' cover effects.
+  if ( Settings.get(KEYS.COVER_EFFECTS.USE) !== KEYS.COVER_EFFECTS.CHOICES.NEVER ) {
+    const CoverEffect = CONFIG[MODULE_ID].CoverEffect;
+    const allCoverEffects = new Set([...CoverEffect.coverObjectsMap.values()]);
+    for ( const [defender, coverTypes] of coverCalculations.entries() ) {
+      if ( CoverEffect.coverOverrideApplied(defender) ) continue;
+      const coverEffects = allCoverEffects.filter(ce => coverTypes.intersects(ce.coverTypes));
+      defender.tokencover._replaceCoverEffects(coverEffects);
+    }
   }
 
-  // Send to chat
+  // Send to chat.
   if ( Settings.get(KEYS.COVER_WORKFLOW.CHAT) ) {
-    const opts = {
-      actionType,
-      coverCalculations
-    };
-    await coverDialog.sendCoverCalculationsToChat(opts);
+    await coverDialog.sendCoverCalculationsToChat({ actionType, coverCalculations });
   }
   return true;
 }
