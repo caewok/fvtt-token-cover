@@ -2,6 +2,8 @@
 [![Foundry Version](https://img.shields.io/badge/dynamic/json.svg?url=https://github.com/caewok/fvtt-token-cover/releases/latest/download/module.json&label=Foundry%20Version&query=$.compatibleCoreVersion&colorB=blueviolet)](https://github.com/caewok/fvtt-token-cover/releases/latest)
 [![License](https://img.shields.io/github/license/caewok/fvtt-token-cover)](LICENSE)
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/H2H3Y7IJW)
+
 # Alternative Token Cover
 
 This module provides options to calculate how much cover a targeted token has, with respect to a viewer token. The GM can choose between several algorithms to determine how cover is physically measured. The GM can also define a set of rules for when cover should apply and define a set of active effects or items (depending on the system) that should be applied to tokens that have cover. Users can select between different methods of displaying cover on tokens.
