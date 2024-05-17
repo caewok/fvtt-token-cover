@@ -153,7 +153,7 @@ Hooks.once("init", function() {
 //   if ( game.system.id === "pf2e" ) {
 //     CONFIG.statusEffects.push({
 //       id: "takeCover",
-//       label: `${MODULE_ID}.takeCover`,
+//       label: `${MODULE_ID}.phrases.takeCover`,
 //       icon: `modules/${MODULE_ID}/assets/noun-hide-8013.svg`
 //     });
 //   }
