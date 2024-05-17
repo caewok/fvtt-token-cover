@@ -442,6 +442,10 @@ export class CoverTypePF2E extends CoverType {
         break;
       }
     }
+
+    // If the target has taken cover status, upgrade standard to greater
+//     if ( types.has(standardCover) && targetToken)
+
     return types;
   }
 }

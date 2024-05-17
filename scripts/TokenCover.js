@@ -353,7 +353,7 @@ export class TokenCover {
       const coverTypes = this._coverTypesFromCurrentAttackers();
       const allCoverEffects = new Set([...CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values()]);
       const newCoverEffects = allCoverEffects.filter(ce => coverTypes.intersects(ce.coverTypes));
-      changed = this._replaceCoverEffects(newCoverEffects);
+      changed = this.#replaceCoverEffects(newCoverEffects);
     } else changed = this.#clearCoverEffects();
 
     if ( changed ) log(`TokenCover#updateCoverEffects|${this.token.name}|changing cover effects to: ${[...this._currentCoverEffects.values().map(ct => ct.name)].join(", ")}`);

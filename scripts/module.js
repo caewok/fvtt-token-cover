@@ -149,6 +149,14 @@ Hooks.once("init", function() {
     setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
   }
   if ( game.modules.get("dfreds-convenient-effects")?.active ) CONFIG[MODULE_ID].CoverEffect = CoverActiveEffectDFreds;
+
+  if ( game.system.id === "pf2e" ) {
+    CONFIG.statusEffects.push({
+      id: "takeCover",
+      label: `${MODULE_ID}.takeCover`,
+      icon: `modules/${MODULE_ID}/assets/noun-hide-8013.svg`
+    });
+  }
 });
 
 Hooks.once("setup", function() {
