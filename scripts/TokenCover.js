@@ -350,10 +350,8 @@ export class TokenCover {
     let changed = false;
     if ( this.useCoverObject("COVER_EFFECTS") && !CONFIG[MODULE_ID].CoverEffect.coverOverrideApplied(this.token) ) {
       log(`TokenCover#updateCoverEffects|${[...this.constructor.attackers.COVER_EFFECTS.values().map(a => a.name + ": " + a.x + "," + a.y)].join("\t")}`);
-      const coverTypes = this._coverTypesFromCurrentAttackers();
-      const allCoverEffects = new Set([...CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values()]);
-      const newCoverEffects = allCoverEffects.filter(ce => coverTypes.intersects(ce.coverTypes));
-      changed = this._replaceCoverEffects(newCoverEffects);
+      const coverEffects = this._coverEffectsFromCurrentAttackers();
+      changed = this._replaceCoverEffects(coverEffects);
     } else changed = this.#clearCoverEffects();
 
     if ( changed ) log(`TokenCover#updateCoverEffects|${this.token.name}|changing cover effects to: ${[...this._currentCoverEffects.values().map(ct => ct.name)].join(", ")}`);
