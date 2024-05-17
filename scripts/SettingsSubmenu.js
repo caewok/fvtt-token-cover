@@ -129,7 +129,7 @@ export class SettingsSubmenu extends FormApplication {
     html.find(`[name="${MODULE_ID}.${Settings.KEYS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS}"]`).change(this.losTargetPointsChanged.bind(this));
 
     // Buttons to reset settings to defaults.
-    html.find(`[name="${MODULE_ID}-button-foundry"]`).click(this.submitSettingUpdates.bind(this, "foundry"));
+    html.find(`[name="${MODULE_ID}-button-foundry"]`).click(this.submitSettingUpdates.bind(this, "pf2e"));
     html.find(`[name="${MODULE_ID}-button-dnd5e"]`).click(this.submitSettingUpdates.bind(this, "dnd5e"));
     html.find(`[name="${MODULE_ID}-button-threeD"]`).click(this.submitSettingUpdates.bind(this, "threeD"));
   }

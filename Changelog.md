@@ -1,6 +1,8 @@
 ## 0.7.4
 Bug fixes to attack workflow to address undefined method and handle updated cover types and effects application. Workflow now considers whether there were changes compared to the current cover types displayed on each target. Workflow now recognizes when GM has applied an override cover effect to a target.
 
+Fix resetting to PF2e defaults in settings. Closes issue #19.
+
 ## 0.7.3
 Improvements to speed by smarter caching to limit how often the cover calculation is updated and token cover icons/effects are applied during token movement. Enable settings cache for retrieving settings values.
 
