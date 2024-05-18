@@ -3,7 +3,7 @@
     "tokencover.nameAbbr": "ATC",
 
     "tokencover.cover-effect.percent-threshold.Name": "Percent threshold",
-    "tokencover.cover-effect.overlaps.Name": "Can overlap",
+    "tokencover.cover-effect.can-overlap.Name": "Can overlap",
     "tokencover.cover-effect.include-walls.Name": "Walls block",
     "tokencover.cover-effect.include-tokens.Name": "Tokens block",
     "tokencover.cover-effect.priority.Name": "Priority",
@@ -186,6 +186,8 @@
     "tokencover.phrases.xCoverEffect": "{cover} Cover Effect",
     "tokencover.phrases.xCoverType": "{cover} Cover Type",
     "tokencover.phrases.xCover": "{cover} Cover",
+
+    "tokencover.cover.HalfToken": "Half (Token Only)",
 
     "tokencover.cover.None": "No Cover",
     "tokencover.cover.Low": "Low Cover",
