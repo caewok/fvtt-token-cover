@@ -1,124 +1,317 @@
 /* globals
 Application,
-CONFIG,
 foundry,
-fromUuid,
 game,
-Hooks,
-socketlib,
-Token
+saveDataToFile
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS, SOCKETS } from "./const.js";
 import { Settings } from "./settings.js";
-import { AbstractCoverObject } from "./AbstractCoverObject.js";
-import { AsyncQueue } from "./AsyncQueue.js";
+import { MODULE_ID, ICONS, FLAGS } from "./const.js";
 import { log } from "./util.js";
+import { AsyncQueue } from "./AsyncQueue.js";
+
 import { defaultCoverEffects as dnd5eCoverEffects } from "./coverDefaults/dnd5e.js";
 import { defaultCoverEffects as pf2eCoverEffects } from "./coverDefaults/pf2e.js";
 import { defaultCoverEffects as sfrpgCoverEffects } from "./coverDefaults/sfrpg.js";
 import { defaultCoverEffects as genericCoverEffects } from "./coverDefaults/generic.js";
 
-const NULL_SET = new Set(); // Set intended to signify no items, as a placeholder.
-
-// ----- NOTE: Set up sockets so GM can create or modify items ----- //
-Hooks.once("socketlib.ready", () => {
-  SOCKETS.socket ??= socketlib.registerModule(MODULE_ID);
-  SOCKETS.socket.register("createCoverEffectItem", createCoverEffectItem);
-  SOCKETS.socket.register("deleteDocument", deleteDocument);
-});
-
-/**
- * Socket function: createCoverEffectItem
- * GM creates the item that stores/represents the effect.
- * @param {object} data   Data used to create the item
- * @returns {string} UUID of the item
- */
-async function createCoverEffectItem(data) {
-  const item = await CONFIG.Item.documentClass.create(data);
-  return item.uuid;
-}
-
-/**
- * Socket function: deleteDocument
- * GM deletes the item that stores/represents the effect.
- * @param {string} uuid   UUID of the item to delete
- */
-async function deleteDocument(uuid) {
-  const doc = await fromUuid(uuid);
-  doc.delete();
-}
+const NULL_SET = new Set();
 
 
 /**
- * Handles applying effects to tokens that should be treated as cover.
- * Generic as to how exactly the effect is stored and applied, but presumes it is stored in a document.
- * Applies the cover effect to tokens.
- * Imports/exports effect data.
- * Stores/retrieves effect data.
- * Sets up default effects.
+ * Abstract class to manage cover objects.
+ * Singleton: one instantiation per id.
+ * Child ActiveCoverEffect uses active effects to store / apply the cover effect.
+ * Child CoverItem uses an item to store / apply the cover effect.
+ * All cover object ids are stored in its settings key so they can be located and loaded.
  */
-export class CoverEffect extends AbstractCoverObject {
+export class CoverEffect {
 
+  /** @type {string} */
+  id;
 
-  // ----- NOTE: Getters, setters, and related properties ----- //
-
-  /** @type {Set<CoverType>} */
-  get coverTypes() {
-    const ids = this.document?.flags?.[MODULE_ID]?.[FLAGS.COVER_TYPES] ?? [];
-    const cts = ids
-      .map(id => CONFIG[MODULE_ID].CoverType.coverObjectsMap.get(id))
-      .filter(ct => Boolean(ct));
-    return new Set(cts);
+  /**
+   * @param {object} [coverObjectData={}]
+   */
+  constructor(id) {
+    // Enforce unique cover type per id.
+    this.id = id ?? `${MODULE_ID}.${this.constructor.systemId}.${foundry.utils.randomID()}`;
+    const coverObjectsMap = this.constructor.coverObjectsMap;
+    if ( coverObjectsMap.has(this.id) ) return coverObjectsMap.get(this.id);
+    coverObjectsMap.set(this.id, this);
   }
 
   /**
-   * Get data used to construct a Cover Effect document.
+   * Create a new cover object. To be used instead of the constructor in most situations.
+   * If the storage document is local, constructor can be used instead.
+   * @param {string} [id]                     Optional id to use for this cover object.
+   *                                          Cover objects are singletons, so if this id is recognized,
+   *                                          an existing object will be returned.
+   * @return {AbstractCoverObject}
+   */
+  static async create(id) {
+    const obj = new this(id);
+    await obj.initializeStorageDocument();
+    await this.addStoredCoverObjectId(obj.id); // Must be after creation and initialization.
+    return obj;
+  }
+
+  // ----- NOTE: Getters, setters, related properties ----- //
+
+  /** @type {Document|object} */
+  #document;
+
+  get document() { return this.#document || (this.#document = this._findStorageDocument()); }
+
+  /**
+   * Retrieve the cover effect icon for use in the list of cover effects.
+   * @returns {string}
+   */
+  get icon() { return this.document?.icon; }
+
+  /**
+   * Retrieve the name of the cover effect for use in the list of cover effects.
+   * @returns {string}
+   */
+  get name() { return this.document?.name; }
+
+
+  /**
+   * Data used to construct a new blank cover effect.
+   * @type {object}
+   */
+  get newCoverObjectData() {
+    return {
+      name: game.i18n.format(`${MODULE_ID}.phrases.xCoverEffect`, { cover: game.i18n.localize("New") }),
+      icon: ICONS.SHIELD_THICK_GRAY.FULL,
+      flags: {
+        [MODULE_ID]: {
+          [FLAGS.COVER_EFFECT.ID]: this.id,
+          [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 0,
+          [FLAGS.COVER_EFFECT.PRIORITY]: 0,
+          [FLAGS.COVER_EFFECT.OVERLAPS]: false,
+          [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
+          [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: false
+        }
+      }
+    }
+  }
+
+  /**
+   * Get data used to construct a cover effect document.
+   * @type {object}
    */
   get documentData() {
     const data = this.toJSON();
     data._id = foundry.utils.randomID();
-    data.name ??= game.i18n.format("tokencover.phrases.xCoverEffect", { cover: game.i18n.localize(data.name) });
-    return this.constructor._localizeDocumentData(data);
+    return data;
   }
 
   /**
-   * Data used when dragging a cover effect to an actor sheet.
+   * Get data used to construct a local cover effect document.
+   * Local cover effects have the local flag.
+   * @type {object}
+   */
+  get localDocumentData() {
+    const data = this.documentData;
+    data.flags[MODULE_ID][FLAGS.COVER_EFFECT.LOCAL] = true;
+    return data;
+  }
+
+  /**
+   * Data used when dragging a cover effect to an actor sheet. Non-local.
    */
   get dragData() {
     return {
       name: this.name,
-      type: "Item",
       data: this.documentData
     };
   }
 
-  /** @type {object|undefined} */
-  get defaultCoverObjectData() {
-    const data = super.defaultCoverObjectData?.documentData;
-    if ( !data ) return undefined;
 
-    // Confirm that necessary flags are present.
-    data.flags ??= {};
-    data.flags[MODULE_ID] ??= {};
-    data.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= this.id;
-    data.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [];
+  // NOTE: Getters for cover calculation properties ------ //
 
-    // Confirm there is no id property, which can conflict with active effect id getter.
-    delete data.id;
+  /** @type {number} */
+  get percentThreshold() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.PERCENT_THRESHOLD] || 0; }
 
-    return data;
+  /** @type {number} */
+  get priority() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.PRIORITY] || 0; }
+
+  /** @type {boolean} */
+  get canOverlap() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.CAN_OVERLAP]; }
+
+  /** @type {boolean} */
+  get includeWalls() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.INCLUDE_WALLS]; }
+
+  /** @type {boolean} */
+  get includeTokens() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.INCLUDE_TOKENS]; }
+
+
+  // ----- NOTE: Calculation methods ----- //
+
+  /**
+   * Percent cover given this cover effect's settings for a pair of tokens.
+   * @param {Token} attackingToken
+   * @param {Token} targetToken
+   * @returns {number}
+   */
+  percentCover(attackingToken, targetToken) {
+    const { includeWalls, includeTokens } = this;
+    return attackingToken.tokencover.coverCalculator.percentCover(targetToken, { includeWalls, includeTokens });
   }
 
-  // ----- NOTE: Methods ----- //
+  /**
+   * Test if this cover effect could apply to a target token given an attacking token.
+   * Does not handle priority between cover effects. For that, use CoverEffect.coverEffectsForToken
+   * @param {Token} attackingToken      Token from which cover is sought
+   * @param {Token} targetToken         Token to which cover would apply
+   * @param {object} [_opts]            Options parameter that can be used by child classes.
+   * @returns {boolean}
+   */
+  _couldApply(attackingToken, targetToken, _opts) {
+    return this.percentCover(attackingToken, targetToken) >= this.percentThreshold;
+  }
+
+  // ----- NOTE: Token/Actor methods ----- //
+
+  /**
+   * Determine whether the cover effect is on the token.
+   * @param {Token} token
+   * @returns {boolean}
+   */
+  isOnToken(token) {
+    for ( const effectDoc of this.constructor._effectDocumentsOnToken.values(token) ) {
+      if ( effectDoc.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.ID] === this.id ) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Add this cover effect to the token.
+   * Does not test for whether it should be added or is already present.
+   * @param {Token} token
+   * @param {boolean} [update=true]   Trigger a refresh of the token display
+   * @returns {boolean} True if change was made.
+   */
+  addToToken(token, update = true) {
+    if ( this.isOnToken(token) ) return false;
+    if ( !this._addToToken(token) ) return false;
+    if ( update ) this.constructor.refreshCoverDisplay(token);
+    return true;
+  }
+
+  /**
+   * Internal method to add this cover effect to the token locally.
+   * @param {Token} token
+   * @returns {boolean} True if change was made.
+   */
+  _addToToken(_token) { console.error("CoverEffect#_addToToken|Must be handled by child class."); }
+
+  /**
+   * Remove this (local) cover effect from the token.
+   * @param {Token} token
+   * @returns {boolean} True if change was made
+   */
+  removeFromToken(token, update = true) {
+    // Don't call isOnToken first b/c it might be quicker to just attempt removal.
+    if ( !this._removeFromToken(token) ) return false;
+    if ( update ) this.constructor.refreshCoverDisplay(token);
+    return true;
+  }
+
+  /**
+   * Internal method to remove this cover effect from the token.
+   * @param {Token} token
+   * @returns {boolean} True if change was made.
+   */
+  _removeFromToken(_token) { console.error("CoverEffect#_removeFromToken|Must be handled by child class."); }
+
+
+  // ----- NOTE: Document Methods ----- //
+
+  /**
+   * Initialize the storage document for this id.
+   */
+  async initializeStorageDocument() {
+    if ( this.#document ) return;
+    if ( !this.#document ) this.#document = this._findStorageDocument();
+    if ( !this.#document ) this.#document = await this._loadStorageDocument();
+    if ( !this.#document ) this.#document = await this._createStorageDocument();
+    if ( !this.#document ) console.error("AbstractCoverObject#initializeStorageDocument|Storage document not initialized.");
+  }
+
+  /**
+   * Find an existing local document to use for the storage.
+   * @returns {Document|object|undefined}
+   */
+  _findStorageDocument() { return { id: this.id }; }
+
+  /**
+   * Load an async document to use for storage.
+   * Async allows us to pull from compendiums or otherwise construct a default.
+   * @returns {Document|object|undefined}
+   */
+  async _loadStorageDocument() { return { id: this.id }; }
+
+  /**
+   * Create a storage document from scratch.
+   * @returns {Document|object}
+   */
+  async _createStorageDocument() { return { id: this.id }; }
+
+  /**
+   * Delete the underlying stored document.
+   */
+  async _deleteStorageDocument() {  }
 
   /**
    * Update this object with the given data.
    * @param {object} [config={}]
    */
-  async update(config = {}) { return this.document.update(config); }
+  async update(config = {}) {
+    foundry.utils.mergeObject(this.document, config);
+  }
+
+  /**
+   * Revert this object to default data based on its id.
+   */
+  async revertToDefaultData() {
+    // Delete and recreate the document entirely.
+    // Updating is too unreliable given different system reqs for docs.
+    await this._deleteStorageDocument();
+    await this.loadStorageDocument();
+    if ( !this.document ) await this.createStorageDocument();
+  }
+
+  /**
+   * Duplicate this cover object but place in new object not connected to this one.
+   * The duplicated item will have a new id, connected to a new document.
+   * @return {AbstractCoverObject}
+   */
+  async duplicate() {
+    const newObj = await this.constructor.create();
+    await this.constructor.addStoredCoverObjectId(newObj.id);
+    await newObj.fromJSON(this.toJSON())
+    return newObj;
+  }
+
+  /**
+   * Delete this cover object from the objects map and optionally remove stored data.
+   * @param {boolean} {deleteStorageDocument = false}    If true, save data is deleted. Async if true.
+   */
+  async delete() {
+    this.constructor.coverObjectsMap.delete(this.id);
+    if ( this.#document ) await this._deleteStorageDocument();
+    this.#document = undefined;
+    return this.constructor.removeStoredCoverObjectId(this.id); // Async
+  }
+
+  /**
+   * Save a json file for this cover object.
+   */
+  exportToJSON() { this.document.exportToJSON(); }
 
   /**
    * Export this cover type data to JSON.
@@ -127,96 +320,58 @@ export class CoverEffect extends AbstractCoverObject {
   toJSON() { return this.document.toJSON(); }
 
   /**
-   * Save a json file for this cover type.
+   * Import data from JSON and overwrite.
    */
-  exportToJSON() { this.document.exportToJSON(); }
+  async fromJSON(json) {
+    try {
+      json = JSON.parse(json);
+    } catch ( error ) {
+      console.error(`${MODULE_ID}|AbstractCoverObject#fromJSON`, error);
+      return;
+    }
+    return this.update(json);
+  }
 
   /**
    * Render the cover effect configuration window.
    */
   async renderConfig() { return this.document.sheet.render(true); }
 
-  // ----- NOTE: Methods specific to cover effects ----- //
+  // ----- NOTE: Static getter, setters, related properties ----- //
 
-  /**
-   * Test if the local effect is already on the actor.
-   * Must be handled by child class.
-   * @param {Actor} actor
-   * @returns {boolean} True if local effect is on the actor.
-   */
-  _localEffectOnActor(_actor) {
-    console.error("CoverEffect#_localEffectOnActor must be handled by child class.");
-  }
-
-  /**
-   * Add the effect locally to an actor.
-   * @param {Token|Actor} actor
-   * @param {boolean} Returns true if added.
-   */
-  addToActorLocally(actor, update = true) {
-    if ( actor instanceof Token ) actor = actor.actor;
-    log(`CoverEffect#addToActorLocally|${actor.name} ${this.name}`);
-
-    if ( this._localEffectOnActor(actor) ) return false;
-    const newId = this._addToActorLocally(actor);
-    if ( !newId ) return false;
-    this.constructor._documentIds.set(newId, this);
-    if ( update ) this.constructor.refreshActorCoverEffect(actor);
-    return true;
-  }
-
-  /**
-   * Add the effect locally to an actor.
-   * @param {Token|Actor} actor
-   * @returns {boolean} Returns true if added.
-   */
-  _addToActorLocally(_actor) {
-    console.error("CoverEffect#_addToActorLocally must be handled by child class.");
-  }
-
-  /**
-   * Remove the effect locally from an actor.
-   * @param {Actor} actor
-   * @param {boolean} Returns true if change was required.
-   */
-  removeFromActorLocally(actor, update = true) {
-    log(`CoverEffect#removeFromActorLocally|${actor.name} ${this.name}`);
-    if ( actor instanceof Token ) actor = actor.actor;
-    if ( !this._localEffectOnActor(actor) ) return false;
-
-    // Remove documents associated with this cover effect from the actor.
-    const removedIds = this._removeFromActorLocally(actor);
-    if ( !removedIds.length ) return false;
-    removedIds.forEach(id => this.constructor._documentIds.delete(id));
-    if ( update ) this.constructor.refreshActorCoverEffect(actor);
-    return true;
-  }
-
-  /**
-   * Remove the effect locally from an actor.
-   * Presumes the effect is on the actor.
-   * @param {Actor} actor
-   * @returns {boolean} Returns true if removed.
-   */
-  _removeFromActorLocally(_actor) {
-    console.error("CoverEffect#_addToActorLocally must be handled by child class.");
-  }
-
-  // ----- NOTE: Static: Track Cover effects ----- //
-  /** @type {Map<string,CoverType>} */
+  /** @type {Map<string,CoverEffect>} */
   static coverObjectsMap = new Map();
-
-  // ----- NOTE: Other static getters, setters, related properties ----- //
 
   /** @type {string} */
   static get settingsKey() { return Settings.KEYS.COVER_EFFECTS.DATA; }
 
+  /** @type {Set<string>} */
+  static get storedCoverObjectIds() {
+    const out = Settings.get(this.settingsKey);
+    if ( !out ) return new Set();
+    if ( out instanceof Array ) return new Set(out);
+    return new Set(Object.keys(out));
+  }
+
+  /** @type {string} */
+  static get systemId() { return game.system.id; }
+
   /**
-   * Link document ids (for effects on actors) to this effect.
-   * Makes it easier to determine if this cover effect has been applied to an actor.
-   * @type {Map<string, CoverEffect>}
+   * Get all effects ordered by priority as well as unordered effects.
+   * @type {object}
+   *   - @prop {AbstractCoverObject[]} ordered          From highest to lowest priority
+   *   - @prop {Set<AbstractCoverObject> unordered}     All objects with priority === 0
    */
-  static _documentIds = new Map();
+  static get sortedCoverObjects() {
+    const ordered = [];
+    const unordered = new Set();
+    for ( const coverEffect of this.coverObjectsMap.values() ) {
+      if ( !coverEffect.priority ) unordered.add(coverEffect);
+      else ordered.push(coverEffect);
+    }
+    ordered.sort((a, b) => b.document.priority - a.document.priority);
+    return { ordered, unordered };
+  }
 
   /**
    * Get default cover types for different systems.
@@ -231,50 +386,68 @@ export class CoverEffect extends AbstractCoverObject {
     }
   }
 
-  // ----- NOTE: Static methods ----- //
-
-
-  // ----- NOTE: Static methods specific to cover effects ----- //
+  // ----- NOTE: Static cover calculation methods ----- //
 
   /**
-   * Localize document data. Meant for subclasses that are aware of the document structure.
-   * @param {object} coverEffectData
-   * @returns {object} coverEffectData
+   * Determine what cover effects apply to a target token given an attacking token.
+   * @param {Token} attackingToken
+   * @param {Token} targetToken
+   * @returns {Set<CoverEffect>}
    */
-  static _localizeDocumentData(coverEffectData) { return coverEffectData; }
+  static coverForToken(attackingToken, targetToken, opts = {}) {
+    const effects = new Set();
+    const { ordered, unordered } = this.sortedCoverObjects;
+
+    // Test cover effects in priority order.
+    for ( const coverEffect of ordered ) {
+      if ( coverEffect._couldApply(attackingToken, targetToken, opts) ) {
+        effects.add(coverEffect);
+        break;
+      }
+    }
+
+    // Test cover effects without a set priority.
+    for ( const coverEffect of unordered ) {
+      // If there is already an effect, cannot use a non-overlapping effect.
+      if ( !coverEffect.canOverlap && effects.size ) continue;
+      if ( coverEffect._couldApply(attackingToken, targetToken, opts) ) effects.add(coverEffect);
+    }
+    return effects;
+  }
+
+  // ----- NOTE: Static token methods ----- //
 
   /**
-   * Retrieve all Cover Effects on the actor.
-   * @param {Token|Actor} actor
-   * @returns {CoverEffect[]} Array of cover effects on the actor.
+   * Get all documents for a give token/actor that could contain a cover effect.
+   * Each document should be an object that has a "flags" property.
+   * @param {Token} token
+   * @returns {EmbeddedCollection|DocumentCollection|Map}
    */
-  static allLocalEffectsOnActor(actor) {
-    if ( actor instanceof Token ) actor = actor.actor;
-    return this._allLocalEffectsOnActor(actor);
+  static _effectDocumentsOnToken(_token) { console.error("CoverEffect#_effectDocumentsOnToken must be handled by child class."); }
+
+  /**
+   * Retrieve all cover effects on the token.
+   * @param {Token} token
+   * @returns {Set<CoverEffect>}
+   */
+  static allCoverOnToken(token) {
+    const effects = new Set();
+    const ID  = FLAGS.COVER_EFFECT;
+    const objs = this.coverObjectsMap;
+    for ( const effectDoc of this._effectDocumentsOnToken(token) ) {
+      const id = effectDoc.flags?.[MODULE_ID]?.[ID];
+      if ( id ) effects.add(objs.get(id));
+    }
+    return effects;
   }
 
   /**
-   * Retrieve all Cover Effects on the actor.
-   * @param {Actor} actor
-   * @returns {CoverEffect[]} Array of cover effects on the actor.
-   */
-  static _allLocalEffectsOnActor(actor) {
-    if ( !actor ) return;
-    return [...this.coverObjectsMap.values()
-      .filter(ce => ce._localEffectOnActor(actor))];
-  }
-
-  /**
-   * Replace local cover effects on token with these.
-   * @param {Token|Actor} actor
+   * @param {Token} token
    * @param {Set<CoverEffect>} coverEffects
    * @param {boolean} True if a change was made
    */
-  static replaceLocalEffectsOnActor(actor, coverEffects = NULL_SET) {
-    if ( actor instanceof Token ) actor = actor.actor;
-    if ( !actor ) return false;
-
-    const previousEffects = new Set(this.allLocalEffectsOnActor(actor));
+  static replaceLocalEffectsOnToken(token, coverEffects = NULL_SET) {
+    const previousEffects = new Set(this.allCoverOnToken(token));
     if ( coverEffects.equals(previousEffects) ) return false;
 
     // Filter to only effects that must change.
@@ -283,22 +456,150 @@ export class CoverEffect extends AbstractCoverObject {
     if ( !(toRemove.size || toAdd.size) ) return false;
 
     // Remove unwanted effects then add new effects.
-    log(`CoverEffect#replaceLocalEffectsOnActor|${this.name}|${actor.name}`);
-    toRemove.forEach(ce => ce.removeFromActorLocally(actor, false))
-    toAdd.forEach(ce => ce.addToActorLocally(actor, false));
+    log(`CoverEffect#replaceLocalEffectsOnToken|${this.name}|${token.name}`);
+    toRemove.forEach(ce => ce.addToToken(token, false))
+    toAdd.forEach(ce => ce.removeFromToken(token, false));
 
-    // At least one effect should have been changed, so refresh actor.
-    this.refreshActorCoverEffect(actor);
+    // At least one effect should have been changed, so refresh cover effect display on token.
+    this.refreshCoverDisplay(token);
     return true;
   }
 
   /**
-   * Refresh the actor so that the local cover effect is used and visible.
+   * Refresh the display of the cover effect on the token.
+   * @param {Token} token
    */
-  static refreshActorCoverEffect(actor) {
-    log(`CoverEffect#refreshActorCoverEffect|${actor.name}`);
+  static refreshCoverDisplay(token) {
+    const actor = token.actor;
+    if ( !actor ) return;
+    log(`CoverEffect#refreshCoverDisplay|${actor.name}`);
     actor.prepareData(); // Trigger active effect update on the actor data.
     queueSheetRefresh(actor);
+  }
+
+  /**
+   * Determine if the GM has added a cover effect override to a token.
+   * Cover effect overrides have a COVER_EFFECT.ID flag but no local flag.
+   * @param {Token} actor
+   * @returns {boolean}
+   */
+  static coverOverrideApplied(token) {
+    const { ID, LOCAL } = FLAGS.COVER_EFFECT;
+    for ( const effectDoc of this._effectDocumentsOnToken(token) ) {
+      const modFlags = effectDoc?.flags?.[MODULE_ID];
+      if ( !modFlags ) continue;
+      if ( modFlags[ID] && !modFlags[LOCAL] ) return true;
+    }
+    return false;
+  }
+
+  // ----- NOTE: Static document methods ----- //
+
+  /**
+   * Add an id to the stored cover object ids.
+   * @param {string} id
+   */
+  static async addStoredCoverObjectId(id) {
+    const storedIds = this.storedCoverObjectIds;
+    if ( storedIds.has(id) ) return;
+    storedIds.add(id);
+
+    // Clean up null or undefined values. Shouldn't happen, but...
+    storedIds.delete(undefined);
+    storedIds.delete(null);
+    return Settings.set(this.settingsKey, [...storedIds.values()]);
+  }
+
+  /**
+   * Remove an id from the stored cover object ids.
+   * @param {string} id
+   */
+  static async removeStoredCoverObjectId(id) {
+    const storedIds = this.storedCoverObjectIds;
+    if ( !storedIds.has(id) ) return;
+    storedIds.delete(id);
+
+    // Clean up null or undefined values. Shouldn't happen, but...
+    storedIds.delete(undefined);
+    storedIds.delete(null);
+    return Settings.set(this.settingsKey, [...storedIds.values()]);
+  }
+
+  /**
+   * Remove all stored cover object ids.
+   * Used when resetting.
+   */
+  static async removeAllStoredCoverObjectIds() { return Settings.set(this.settingsKey, undefined); }
+
+  /**
+   * Create an object for each stored id. If no ids in settings, create from default ids.
+   */
+  static async initialize() {
+    let storedIds = this.storedCoverObjectIds;
+    if ( !storedIds.size ) storedIds = this.defaultCoverObjectData.keys();
+    for ( const id of storedIds ) await this.create(id);
+  }
+
+  /**
+   * Delete all documents associated with this cover object.
+   */
+  static async _deleteAllDocuments() {
+    const promises = [];
+    this.coverObjectsMap.forEach(c => promises.push(c.delete()));
+    await Promise.allSettled(promises);
+  }
+
+  /**
+   * Reset to the defaults for this cover object type.
+   */
+  static async resetToDefaults() {
+    await this._deleteAllDocuments();
+    await this.removeAllStoredCoverObjectIds();
+    this.coverObjectsMap.clear();
+    return this.initialize();
+  }
+
+  /**
+   * Save all cover objects to a json file.
+   */
+  static saveAllToJSON() {
+    const filename = `${MODULE_ID}_CoverObjects`;
+    const data = { coverObjects: [], flags: {} };
+    this.coverObjectsMap.forEach(c => data.coverObjects.push(c.toJSON()));
+    data.flags.exportSource = {
+      world: game.world.id,
+      system: game.system.id,
+      coreVersion: game.version,
+      systemVersion: game.system.version,
+      [`${MODULE_ID}Version`]: game.modules.get(MODULE_ID).version
+    };
+    saveDataToFile(JSON.stringify(data, null, 2), "text/json", `${filename}.json`);
+  }
+
+  /**
+   * Import all cover types from a json file.
+   * @param {JSON} json   Data to import
+   */
+  static async importAllFromJSON(json) {
+    json = JSON.parse(json);
+    if ( !json.flags?.exportSource?.[`${MODULE_ID}Version`] ) {
+      console.error("JSON file not recognized.");
+      return;
+    }
+
+    // Remove all existing.
+    await this._deleteAllDocuments();
+    await this.removeAllStoredCoverObjectIds();
+    this.coverObjectsMap.clear();
+
+    // Cycle through each json object in turn.
+    // Create a blank object using the id from the json and then update it with the json data.
+    const promises = [];
+    for ( const data of json.coverObjects ) {
+      const coverObj = await this.create(data.id);
+      promises.push(coverObj.fromJSON(JSON.stringify(data)));
+    }
+    return Promise.allSettled(promises);
   }
 }
 
@@ -315,7 +616,7 @@ const renderQueue = new AsyncQueue();
 
 const queueObjectFn = function(ms, actor) {
   return async function rerenderActorSheet() {
-    log(`CoverEffect#refreshActorCoverEffect|Testing sheet for ${actor.name}`);
+    log(`CoverEffect#rerenderActorSheet|Testing sheet for ${actor.name}`);
 
     // Give up after too many iterations.
     const MAX_ITER = 10;
@@ -325,16 +626,14 @@ const queueObjectFn = function(ms, actor) {
       await sleep(ms);
     }
     if ( actor.sheet?.rendered ) {
-      log(`CoverEffect#refreshActorCoverEffect|Refreshing sheet for ${actor.name}`);
+      log(`CoverEffect#rerenderActorSheet|Refreshing sheet for ${actor.name}`);
       await actor.sheet.render(true);
     }
   }
 }
 
 function queueSheetRefresh(actor) {
-  log(`CoverEffect#refreshActorCoverEffect|Queuing sheet refresh for ${actor.name}`);
+  log(`CoverEffect#rerenderActorSheet|Queuing sheet refresh for ${actor.name}`);
   const queueObject = queueObjectFn(100, actor);
   renderQueue.enqueue(queueObject); // Could break up the queue per actor but probably unnecessary?
 }
-
-

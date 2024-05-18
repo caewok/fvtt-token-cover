@@ -254,12 +254,12 @@ function destroyToken(token) {
   canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(id));
 
   // If clone attacker, add back the original attacker.
-  if ( token._original && TokenCover.hasAttacker(token) ) TokenCover.addAttacker(token._original, false, false);
+  if ( token._original && TokenCover.attackers.has(token) ) TokenCover.addAttacker(token._original, false, false);
 
   // Remove as attacker.
   if ( token._snapClone ) {
     const snapClone = token._snapClone;
-    if ( TokenCover.hasAttacker(snapClone) ) TokenCover.addAttacker(token._original, false, false);
+    if ( TokenCover.attackers.has(snapClone) ) TokenCover.addAttacker(token._original, false, false);
     TokenCover.removeAttacker(snapClone);
     if ( !token._snapClone.destroyed ) token._snapClone.destroy();
   }

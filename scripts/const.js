@@ -79,15 +79,7 @@ export const FLAGS = {
      * @param {boolean}
      */
     LOCAL: "coverEffectLocal"
-  }
-
-
-
-
-  /**
-   * Identify that an item or effect represents a locally applied cover effect.
-   */
-  COVER_EFFECT.LOCAL: "coverEffectLocal",
+  },
 
   /**
    * For updating flag data to new versions of the module.

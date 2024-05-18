@@ -126,23 +126,18 @@ const doc = await game.packs.get("my-pack").getDocument(documentIndex._id);
 
 
 softCover = game.items.get("aolmL82yGMgAlEcf")
-await softCover.setFlag(MODULE_ID, FLAGS.COVER_TYPES, [coverTypes.soft.id])
 await softCover.setFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID, `${MODULE_ID}.${SYSTEM_ID}.soft`)
 
 partialCover = game.items.get("WhC815WlllSW8tT0")
-await partialCover.setFlag(MODULE_ID, FLAGS.COVER_TYPES, [coverTypes.partial.id])
 await partialCover.setFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID, `${MODULE_ID}.${SYSTEM_ID}.partial`)
 
 cover = game.items.get("bjq4ho7JXhgUDvG6")
-await cover.setFlag(MODULE_ID, FLAGS.COVER_TYPES, [coverTypes.cover.id])
 await cover.setFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID, `${MODULE_ID}.${SYSTEM_ID}.half`)
 
 improvedCover = game.items.get("kaIYAWHJ7up8rwOy")
-await improvedCover.setFlag(MODULE_ID, FLAGS.COVER_TYPES, [coverTypes.improved.id])
 await improvedCover.setFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID, `${MODULE_ID}.${SYSTEM_ID}.improved`)
 
 totalCover = game.items.get("o0CFBHsprfadKuyd")
-await totalCover.setFlag(MODULE_ID, FLAGS.COVER_TYPES, [coverTypes.total.id])
 await totalCover.setFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID, `${MODULE_ID}.${SYSTEM_ID}.total`)
 
 To update the compendium, select the folder of cover items, right click, export to compendium.

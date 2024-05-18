@@ -23,10 +23,8 @@ PATCHES.BASIC = {};
  */
 function updateCombat(document, change, options, userId) {
   if ( !(Object.hasOwn(change, "turn")) ) return;
-  const { COVER_TYPES, COVER_EFFECTS } = Settings.KEYS;
-  const COMBATANT = COVER_TYPES.CHOICES.COMBATANT;
-  if ( Settings.get(COVER_TYPES.USE) === COMBATANT ) TokenCover.updateAttackers("COVER_TYPES");
-  if ( Settings.get(COVER_EFFECTS.USE) === COMBATANT ) TokenCover.updateAttackers("COVER_EFFECTS");
+  const COVER_EFFECTS = Settings.KEYS.COVER_EFFECTS;
+  if ( Settings.get(COVER_EFFECTS.USE) === COVER_EFFECTS.CHOICES.COMBATANT ) TokenCover.updateAttackers();
 }
 
 /**
@@ -37,13 +35,7 @@ function updateCombat(document, change, options, userId) {
  * @param {number} updateData.turn       The initial turn
  */
 function combatStart(combat, updateData) {
-  const { COVER_TYPES, COVER_EFFECTS } = Settings.KEYS;
-  const COMBAT = COVER_TYPES.CHOICES.COMBAT;
-  const COMBATANT = COVER_TYPES.CHOICES.COMBATANT;
-  const useCT = Settings.get(COVER_TYPES.USE);
-  const useCE = Settings.get(COVER_EFFECTS.USE);
-  if ( useCT === COMBATANT || useCT === COMBATANT ) TokenCover.updateAttackers("COVER_TYPES");
-  if ( useCE === COMBATANT || useCE === COMBATANT ) TokenCover.updateAttackers("COVER_EFFECTS");
+  combatChange();
 }
 
 /**
@@ -58,13 +50,21 @@ function combatStart(combat, updateData) {
  */
 function deleteCombat(document, options, userId) {
   if ( game.combats ) return; // Other combats present.
-  const { COVER_TYPES, COVER_EFFECTS } = Settings.KEYS;
-  const COMBAT = COVER_TYPES.CHOICES.COMBAT;
-  const COMBATANT = COVER_TYPES.CHOICES.COMBATANT;
-  const useCT = Settings.get(COVER_TYPES.USE);
-  const useCE = Settings.get(COVER_EFFECTS.USE);
-  if ( useCT === COMBATANT || useCT === COMBATANT ) TokenCover.updateAttackers("COVER_TYPES");
-  if ( useCE === COMBATANT || useCE === COMBATANT ) TokenCover.updateAttackers("COVER_EFFECTS");
+  combatChange();
 }
 
 PATCHES.BASIC.HOOKS = { updateCombat, combatStart, deleteCombat};
+
+// ----- NOTE: Helper functions ---- //
+
+/**
+ * If combat starts/stops, update attackers.
+ */
+function combatChange() {
+  const COVER_EFFECTS = Settings.KEYS.COVER_EFFECTS;
+  const COMBAT = COVER_EFFECTS.CHOICES.COMBAT;
+  const COMBATANT = COVER_EFFECTS.CHOICES.COMBATANT;
+  const useCover = Settings.get(COVER_EFFECTS.USE);
+  if ( useCover === COMBAT || useCover === COMBATANT ) return TokenCover.updateAttackers();
+}
+

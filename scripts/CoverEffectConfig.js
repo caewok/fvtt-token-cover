@@ -47,24 +47,4 @@ export class CoverEffectConfig extends ActiveEffectConfig {
       }, {})
     };
   }
-
-  /**
-   * Override default update object behaviour
-   * @param {*} formData
-   * @override
-   */
-  async _updateObject(event, formData) {
-    // Record the checked cover types in the flags.
-    formData.flags ??= {};
-    formData.flags[MODULE_ID] ??= {};
-    const coverTypes = formData.flags[MODULE_ID][FLAGS.COVER_TYPES] = [];
-    for ( const [key, selected] of Object.entries(foundry.utils.flattenObject(formData.coverTypeCheckBoxes)) ) {
-      if ( selected ) coverTypes.push(key);
-    }
-    delete formData.coverTypeCheckBoxes;
-
-    // Update the object.
-    this.object.updateSource(formData);
-    if (this._state === 2) await this.render();
-  }
 }

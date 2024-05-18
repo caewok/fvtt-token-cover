@@ -42,7 +42,7 @@ export class CoverDialog {
   /** @type {Set<Token>} */
   targets = new Set();
 
-  /** @type {Map<Token, Set<CoverType>>} */
+  /** @type {Map<Token, Set<CoverEffect>>} */
   #coverCalculations = new Map();
 
   /** @type {object} */
@@ -94,7 +94,7 @@ export class CoverDialog {
   /** @type {Set<Token>} */
   get targetsWithCover() { return this.targets.filter(t => this.coverCalculations.get(t).size); }
 
-  /** @type {Map<Token, Set<CoverType>>} */
+  /** @type {Map<Token, Set<CoverEffect>>} */
   get coverCalculations() {
     if ( this.#coverCalculations.size === this.targets.size ) return this.#coverCalculations;
     CoverCalculator.coverCalculations(this.attacker, this.targets, this.#coverCalculations, this.config);
@@ -104,15 +104,15 @@ export class CoverDialog {
   /**
    * Update the cover calculations given different data set.
    * Targets not in the underlying cover calculations will be ignored.
-   * @param {Map<Token, Set<CoverType>>} newCalcs
+   * @param {Map<Token, Set<CoverEffect>>} newCalcs
    */
   updateCoverCalculations(newCalcs) {
-    newCalcs.forEach((coverTypes, token) => {
-      const existingTypes = this.coverCalculations.get(token);
-      if ( !existingTypes ) return;
-      if ( existingTypes.equals(coverTypes) ) return;
-      existingTypes.clear();
-      coverTypes.forEach(ct => existingTypes.add(ct)); // Copy so the newCalcs set is not tied to this one.
+    newCalcs.forEach((coverEffects, token) => {
+      const existingEffects = this.coverCalculations.get(token);
+      if ( !existingEffects ) return;
+      if ( existingEffects.equals(coverEffects) ) return;
+      existingEffects.clear();
+      coverEffects.forEach(ct => existingEffects.add(ct)); // Copy so the newCalcs set is not tied to this one.
     })
   }
 
@@ -121,8 +121,8 @@ export class CoverDialog {
    * @returns {boolean}
    */
   _coverCalculationsDiffer() {
-    for ( const [token, coverTypes] of this.coverCalculations.entries() ) {
-      if ( !token.tokencover._currentCoverTypes.equals(coverTypes) ) return false;
+    for ( const [token, coverEffects] of this.coverCalculations.entries() ) {
+      if ( !token.tokencover._currentCoverEffects.equals(coverEffects) ) return false;
     }
     return true;
   }
@@ -131,10 +131,10 @@ export class CoverDialog {
    * Get JSON for the cover calculations.
    */
   static _coverCalculationsFromJSON(coverCalculations) {
-    const ctMap = CONFIG[MODULE_ID].CoverType.coverObjectsMap;
+    const coverMap = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap;
     const canvasTokens = new Map(canvas.tokens.placeables.map(t => [t.id, t]));
-    const m = new Map(Object.entries(coverCalculations).map(([tokenId, coverTypeIds]) =>
-      [canvasTokens.get(tokenId), new Set([...coverTypeIds].map(coverTypeId => ctMap.get(coverTypeId)))]));
+    const m = new Map(Object.entries(coverCalculations).map(([tokenId, coverId]) =>
+      [canvasTokens.get(tokenId), new Set([...coverId].map(coverId => coverMap.get(coverId)))]));
     if ( m.has(undefined) || m.has(null) ) {
       ui.notifications.error(`${game.i18n.localize("tokencover.name")}|One or more tokens for the GM dialog were not found.`);
       console.error(`${MODULE_ID}|CoverDialog#_coverCalculationsFromJSON|Tokens not found.`, coverCalculations``);
@@ -148,17 +148,17 @@ export class CoverDialog {
    */
   static _coverCalculationsToJSON(coverCalculations) {
     const json = {};
-    coverCalculations.forEach((coverTypes, token) => json[token.id] = [...coverTypes].map(ct => ct.id));
+    coverCalculations.forEach((coverEffects, token) => json[token.id] = [...coverEffects].map(c => c.id));
     return json;
   }
 
   /**
    * Create an independent copy of the cover calcs map.
-   * @returns {Map<Token, Set<CoverType>>}
+   * @returns {Map<Token, Set<CoverEffect>>}
    */
   duplicateCoverCalculations() {
     const copy = new Map(this.coverCalculations);
-    copy.forEach((coverTypes, token) => copy.set(token, new Set(coverTypes)));
+    copy.forEach((cover, token) => copy.set(token, new Set(cover)));
     return copy;
   }
 
@@ -166,8 +166,6 @@ export class CoverDialog {
    * Clear the cover calculations
    */
   resetCoverCalculations() { this.#coverCalculations.clear(); }
-
-
 
   /**
    * If the targets(s) are not present in the set, add them and refresh cover calculation.
@@ -237,7 +235,7 @@ export class CoverDialog {
    * 1. GM confirms / cancels
    * 2. User confirms / cancels
    * 3. User accepts / cancels
-   * @returns {Map<Token, Set<CoverType>>|false|undefined}
+   * @returns {Map<Token, Set<CoverEffect>>|false|undefined}
    *   Undefined if setting is to not calculate cover.
    *   False if the user/gm canceled by closing the dialog.
    */
@@ -290,39 +288,6 @@ export class CoverDialog {
     // Construct the chat message.
     const html = this._htmlShowCover(opts);
     return ChatMessage.create({ content: html });
-  }
-
-  /**
-   * Update targets' cover types based on attacker --> target cover calculations.
-   * Temporarily overrides the cover types, but only until the next update (e.g., attacker move)
-   * Only local.
-   * @param {Map<Token, Set<CoverType>>} [coverCalculations]
-   */
-  updateTargetsCoverType(coverCalculations) {
-    if ( coverCalculations === false ) return; // User canceled.
-    coverCalculations ??= this.coverCalculations;
-    coverCalculations.forEach((coverTypes, target) => {
-      const existing = target.coverTypes;
-      if ( existing.equals(coverTypes) ) return;
-      existing.clear();
-      coverTypes.forEach(ct => existing.add(ct));
-      target.tokencover.refreshCoverTypes(true); // Force regardless of settings.
-    });
-  }
-
-  /**
-   * Update targets' cover effects based on attacker --> target cover calculations.
-   * Relies on existing cover types for the attacker, which may have been modified by
-   * `updateTargetsCoverType`.
-   * Only local changes.
-   * @param {Map<Token, Set<CoverType>>} [coverCalculations]
-   */
-  updateTargetsCoverEffects(coverCalculations) {
-    if ( coverCalculations === false ) return; // User canceled.
-    coverCalculations ??= this.coverCalculations;
-    [...coverCalculations.keys()].forEach(target => {
-      if ( target.tokencover.updateCoverEffects() ) target.tokencover.refreshCoverEffects(true); // Force regardless of settings.
-    });
   }
 
   /**
@@ -478,8 +443,8 @@ ${html}
    *   - @prop {string} image
    *   - @prop {number} distance
    *   - @prop {string} coverNames
-   *   - @prop {Set<CoverType>} priorityType
-   *   - @prop {Set<CoverType>} overlappingTypes
+   *   - @prop {Set<CoverEffect>} priorityType
+   *   - @prop {Set<CoverEffect>} overlappingTypes
    *   - @prop {number} percentCover
    */
   _targetData() {
@@ -492,9 +457,9 @@ ${html}
       };
 
       // Cover types.
-      const coverTypes = this.coverCalculations.get(target);
-      data.priorityType = coverTypes.filter(ct => !ct.canOverlap);
-      data.overlappingTypes = coverTypes.filter(ct => ct.canOverlap);
+      const coverEffects = this.coverCalculations.get(target);
+      data.priorityType = coverEffects.filter(c => !c.canOverlap);
+      data.overlappingTypes = coverEffects.filter(c => c.canOverlap);
 
       // Cover percentage
       data.percentCover = target.tokencover.coverPercentFromAttacker(this.attacker);
@@ -532,9 +497,9 @@ ${html}
   } = {}) {
 
     targetData ??= this._targetData();
-    const allCoverTypes = new Set(CONFIG[MODULE_ID].CoverType.coverObjectsMap.values());
-    const overlappingCoverTypes = allCoverTypes.filter(ct => ct.canOverlap);
-    if ( !overlappingCoverTypes.size ) excludedColumns.add("overlappingCover");
+    const allCover = new Set(CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values());
+    const overlappingCover = allCover.filter(ct => ct.canOverlap);
+    if ( !overlappingCover.size ) excludedColumns.add("overlappingCover");
 
     let htmlTable =
     `
@@ -544,7 +509,7 @@ ${html}
 
     const tokensWithOverrideEffects = [];
     for ( const td of targetData ) {
-      if ( !includeZeroCover && !td.priorityType.size && !td.overlappingTypes.size ) continue;
+      if ( !includeZeroCover && !td.priorityType.size && !td.overlappingCover.size ) continue;
       if ( td.hasOverrideEffects ) tokensWithOverrideEffects.push(td.name);
 
       let htmlRow = `<tr>`;
@@ -566,7 +531,7 @@ ${html}
       if ( !excludedColumns.has("priorityCover") ) {
         const r = (allowSelection && !td.hasOverrideEffects)
           ? this._htmlCoverSelector(td.priorityType, td.id, false)
-          : `${coverTypeNames(td.priorityType)}`;
+          : `${coverNames(td.priorityType)}`;
 
         htmlRow +=
         `
@@ -577,7 +542,7 @@ ${html}
       if ( !excludedColumns.has("overlappingCover") ) {
         const r = (allowSelection && !td.hasOverrideEffects)
           ? this._htmlCoverSelector(td.overlappingTypes, td.id, true)
-          : `${coverTypeNames(td.overlappingTypes)}`;
+          : `${coverNames(td.overlappingTypes)}`;
 
         htmlRow +=
         `
@@ -627,7 +592,7 @@ ${html}
 
   /**
    * Construct html selector that lets the user select from a drop-down of cover types.
-   * @param {Set<CoverType>} chosen           Chosen cover type(s)
+   * @param {Set<CoverEffect>} chosen         Chosen cover effect(s)
    * @param {string} id                       Id of the selector; will be prefixed by "CoverSelect"
    * @param {boolean} [overlapping=false]     Are these overlapping or priority cover types?
    *   Overlapping uses a multiple selector
@@ -637,26 +602,26 @@ ${html}
     chosen ??= new Set();
     id ??= foundry.utils.randomID();
     id = overlapping ? `CoverOverlappingSelect.${id}` : `CoverPrioritySelect.${id}`;
-    const allCoverTypes = new Set(CONFIG[MODULE_ID].CoverType.coverObjectsMap.values());
-    const coverTypes = overlapping
-      ? allCoverTypes.filter(ct => ct.canOverlap) : allCoverTypes.filter(ct => !ct.canOverlap);
+    const allCover = new Set(CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values());
+    const cover = overlapping
+      ? allCover.filter(c => c.canOverlap) : allCover.filter(c => !c.canOverlap);
 
     let coverOptions =
     `
     <option value="NONE" ${chosen.size ?  "" : "selected"}>${game.i18n.localize("tokencover.cover.None")}</option>
     `;
 
-    for ( const coverType of coverTypes ) {
+    for ( const c of cover ) {
       coverOptions +=
       `
-      <option value="${coverType.id}"${chosen.has(coverType) ? " selected" : ""}>${game.i18n.localize(coverType.name)}</option>
+      <option value="${c.id}"${chosen.has(c) ? " selected" : ""}>${game.i18n.localize(c.name)}</option>
       `;
     }
 
     const cl = overlapping ? "CoverOverlappingSelect" : "CoverPrioritySelect";
     const coverSelector =
     `
-    <select id="${id}" class="${cl}" ${overlapping && coverTypes.size > 1 ? "multiple" : ""}>
+    <select id="${id}" class="${cl}" ${overlapping && cover.size > 1 ? "multiple" : ""}>
     ${coverOptions}
     </select>
     `;
@@ -668,13 +633,13 @@ ${html}
 // NOTE: Helper functions
 
 /**
- * Return a comma-separated string of cover type names for a set of cover types.
- * @param {Set<CoverType>} coverTypes
+ * Return a comma-separated string of cover names for a set of cover effects.
+ * @param {Set<CoverEffect>} coverEffects
  * @returns {string} String of cover types or None, localized.
  */
-function coverTypeNames(coverTypes) {
-  return coverTypes.size
-    ? [...coverTypes].map(ct => game.i18n.localize(ct.name)).join(", ")
+function coverNames(coverEffects) {
+  return coverEffects.size
+    ? [...coverEffects].map(ct => game.i18n.localize(ct.name)).join(", ")
     : game.i18n.localize("tokencover.cover.None");
 }
 
@@ -700,10 +665,8 @@ export async function coverAttackWorkflow(attacker, targets, actionType) {
   // Update the targets' cover effects.
   if ( Settings.get(KEYS.COVER_EFFECTS.USE) !== KEYS.COVER_EFFECTS.CHOICES.NEVER ) {
     const CoverEffect = CONFIG[MODULE_ID].CoverEffect;
-    const allCoverEffects = new Set([...CoverEffect.coverObjectsMap.values()]);
-    for ( const [defender, coverTypes] of coverCalculations.entries() ) {
+    for ( const [defender, coverEffects] of coverCalculations.entries() ) {
       if ( CoverEffect.coverOverrideApplied(defender) ) continue;
-      const coverEffects = allCoverEffects.filter(ce => coverTypes.intersects(ce.coverTypes));
       defender.tokencover._replaceCoverEffects(coverEffects);
     }
   }
