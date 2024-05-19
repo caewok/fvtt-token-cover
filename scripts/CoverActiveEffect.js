@@ -95,6 +95,19 @@ export class CoverActiveEffect extends CoverEffect {
   }
 
   /**
+   * Get data used to construct a local cover effect document.
+   * Local cover effects have the local flag.
+   * @type {object}
+   */
+  get localDocumentData() {
+    const data = super.localDocumentData;
+
+    // Use the icon as a status effect.
+    data.statuses = [data.icon];
+    return data;
+  }
+
+  /**
    * Data used when dragging a cover effect to an actor sheet.
    */
   get dragData() {
@@ -321,6 +334,16 @@ export class CoverActiveEffect extends CoverEffect {
       coverEffect.documentData,
       { insertKeys: false, insertValues: false, inplace: false });
     promises.push(ae.update(updateData));
+  }
+
+  /**
+   * Refresh the display of the cover effect on the token.
+   * Add refresh of the token icons.
+   * @param {Token} token
+   */
+  static refreshCoverDisplay(token) {
+    CoverEffect.refreshCoverDisplay(token);
+    token.renderFlags.set({ redrawEffects: true });
   }
 }
 
