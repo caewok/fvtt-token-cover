@@ -21,7 +21,7 @@ export const defaultCoverEffects = new Map();
 // Optional rule that tokens provide at most half-cover.
 coverEffects.halfToken = {
   name: `${MODULE_ID}.cover.HalfToken`,
-  id: `${MODULE_ID}.${SYSTEM_ID}.half`,
+  id: `${MODULE_ID}.${SYSTEM_ID}.halfToken`,
   dFredsName: "Cover (Half)",
 
   documentData: {

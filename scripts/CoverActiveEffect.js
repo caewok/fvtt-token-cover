@@ -1,8 +1,11 @@
 /* globals
+canvas,
 CONFIG,
+foundry,
 fromUuid,
 game,
 Hooks,
+isNewerVersion,
 ItemDirectory,
 socketlib
 */
@@ -80,17 +83,6 @@ export class CoverActiveEffect extends CoverEffect {
   // Alias
   /** @type {ActiveEffect} */
   get activeEffect() { return this.document; }
-
-  /**
-   * Data used to construct a new blank cover effect.
-   * @type {object}
-   */
-  get newCoverObjectData() {
-    const data = super.newCoverObjectData;
-    data.origin = this.constructor.coverEffectItem.id;
-    data.transfer = false;
-    return data;
-  }
 
   /**
    * Get data for an active effect.
@@ -186,7 +178,7 @@ export class CoverActiveEffect extends CoverEffect {
 
     // Create default effects on-the-fly if not present.
     // Otherwise, create a new cover effect.
-    const data = this.defaultCoverObjectData ?? this.newCoverObjectData;
+    const data = this.defaultDocumentData ?? this.constructor.newCoverObjectData;
     let doc;
     if ( !game.user.isGM ) {
       try {
@@ -237,6 +229,17 @@ export class CoverActiveEffect extends CoverEffect {
   /** @type {Item} */
   static coverEffectItem; // Added by _initializeCoverEffectsItem.
 
+  /**
+   * Data used to construct a new blank cover effect.
+   * @type {object}
+   */
+  static get newCoverObjectData() {
+    const data = CoverEffect.newCoverObjectData;
+    data.origin = this.coverEffectItem.id;
+    data.transfer = false;
+    return data;
+  }
+
   // ----- NOTE: Static token/actor methods ----- //
 
   /**
@@ -276,8 +279,50 @@ export class CoverActiveEffect extends CoverEffect {
     } else doc = await CONFIG.Item.documentClass.create(data);
     this.coverEffectItem = doc;
   }
-}
 
+  /**
+   * Transition all cover documents in a scene, when updating versions.
+   */
+  static async transitionDocuments() {
+    if ( !this.coverEffectItem ) await this._initializeCoverEffectsItem();
+
+    // Transition each of the cover effects on the item.
+    const promises = [];
+    for ( const ae of this.coverEffectItem.effects.values() ) this._transitionDocument(ae, promises);
+
+    // Same for all tokens with cover effects.
+    for ( const token of canvas.tokens.placeables ) {
+      if ( !token.actor?.effects ) continue;
+      for ( const ae of token.actor.effects.values() ) this._transitionDocument(ae, promises);
+    }
+    return Promise.allSettled(promises);
+
+  }
+
+  /**
+   * Transition a single cover document.
+   * @param {ActiveEffect} ae         The active effect document to update
+   * @param {Promise<>[]} promises    Array to store promises to update the document
+   */
+  static _transitionDocument(ae, promises = []) {
+    const moduleVersion = game.modules.get(MODULE_ID).version;
+    const id = ae.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID);
+    if ( !id ) return;
+    const coverEffect = this.coverObjectsMap.get(id);
+    if ( !coverEffect ) return;
+
+    // Only update if the saved version is older than current module version.
+    const savedVersion = ae.getFlag(MODULE_ID, FLAGS.VERSION);
+    if ( savedVersion && !isNewerVersion(moduleVersion, savedVersion) ) return;
+
+    // Update the default document data fields.
+    const updateData = foundry.utils.mergeObject(
+      coverEffect.defaultDocumentData,
+      coverEffect.documentData,
+      { insertKeys: false, insertValues: false, inplace: false });
+    promises.push(ae.update(updateData));
+  }
+}
 
 /**
  * Specialized handling of cover effect rules in dnd5e.

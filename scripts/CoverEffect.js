@@ -1,5 +1,6 @@
 /* globals
 Application,
+duplicate,
 foundry,
 game,
 saveDataToFile
@@ -77,26 +78,23 @@ export class CoverEffect {
    */
   get name() { return this.document?.name; }
 
+  /**
+   * Get the default data for this effect.
+   * @returns {object}
+   */
+  get defaultCoverObjectData() { return duplicate(this.constructor.defaultCoverObjectData.get(this.id)); }
 
   /**
-   * Data used to construct a new blank cover effect.
-   * @type {object}
+   * Get the default document data for this effect.
+   * @returns {object}
    */
-  get newCoverObjectData() {
-    return {
-      name: game.i18n.format(`${MODULE_ID}.phrases.xCoverEffect`, { cover: game.i18n.localize("New") }),
-      icon: ICONS.SHIELD_THICK_GRAY.FULL,
-      flags: {
-        [MODULE_ID]: {
-          [FLAGS.COVER_EFFECT.ID]: this.id,
-          [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 0,
-          [FLAGS.COVER_EFFECT.PRIORITY]: 0,
-          [FLAGS.COVER_EFFECT.OVERLAPS]: false,
-          [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
-          [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: false
-        }
-      }
-    }
+  get defaultDocumentData() {
+    const template = this.constructor.newCoverObjectData;
+    const data = this.defaultCoverObjectData;
+    const documentData = foundry.utils.mergeObject(template, data.documentData, { inplace: false });
+    documentData.name = game.i18n.localize(data.name);
+    // documentData._id = foundry.utils.randomID();
+    return documentData;
   }
 
   /**
@@ -386,6 +384,28 @@ export class CoverEffect {
     }
   }
 
+  /**
+   * Data used to construct a new blank cover effect.
+   * @type {object}
+   */
+  static get newCoverObjectData() {
+    return {
+      name: game.i18n.format(`${MODULE_ID}.phrases.xCoverEffect`, { cover: game.i18n.localize("New") }),
+      icon: ICONS.SHIELD_THICK_GRAY.FULL,
+      flags: {
+        [MODULE_ID]: {
+          [FLAGS.COVER_EFFECT.ID]: foundry.utils.randomID(),
+          [FLAGS.VERSION]: game.modules.get(MODULE_ID).version,
+          [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 0,
+          [FLAGS.COVER_EFFECT.PRIORITY]: 0,
+          [FLAGS.COVER_EFFECT.OVERLAPS]: false,
+          [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
+          [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: false
+        }
+      }
+    }
+  }
+
   // ----- NOTE: Static cover calculation methods ----- //
 
   /**
@@ -538,6 +558,7 @@ export class CoverEffect {
     let storedIds = this.storedCoverObjectIds;
     if ( !storedIds.size ) storedIds = this.defaultCoverObjectData.keys();
     for ( const id of storedIds ) await this.create(id);
+    this.transitionDocuments();
   }
 
   /**
@@ -600,6 +621,13 @@ export class CoverEffect {
       promises.push(coverObj.fromJSON(JSON.stringify(data)));
     }
     return Promise.allSettled(promises);
+  }
+
+  /**
+   * Transition all cover documents in a scene, when updating versions.
+   */
+  async transitionDocuments() {
+    console.error("CoverEffect#transitionDocuments must be handled by child class");
   }
 }
 

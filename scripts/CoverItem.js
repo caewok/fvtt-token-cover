@@ -33,16 +33,6 @@ export class CoverItem extends CoverEffect {
     return data;
   }
 
-  /**
-   * Data used to construct a new blank cover effect.
-   * @type {object}
-   */
-  get newCoverObjectData() {
-    const data = super.newCoverObjectData;
-    data.type = "Item";
-    return data;
-  }
-
   // ----- NOTE: Methods ----- //
 
   /**
@@ -86,7 +76,7 @@ export class CoverItem extends CoverEffect {
    */
   async _createStorageDocument() {
     // Add necessary settings for the active effect.
-    const data = this.defaultCoverObjectData ?? this.newCoverObjectData;
+    const data = this.defaultCoverObjectData ?? this.constructor.newCoverObjectData;
     let doc;
     if ( !game.user.isGM ) {
       try {
@@ -159,6 +149,19 @@ export class CoverItem extends CoverEffect {
     return false;
   }
 
+  // ----- NOTE: Static getters, setters, other properties ----- //
+
+  /**
+   * Data used to construct a new blank cover effect.
+   * @type {object}
+   */
+  static get newCoverObjectData() {
+    const data = CoverEffect.newCoverObjectData;
+    data.type = "Item";
+    return data;
+  }
+
+
   // ----- NOTE: Static token methods ----- //
 
   /**
@@ -185,8 +188,8 @@ export class CoverItemPF2E extends CoverItem {}
 export class CoverItemSFRPG extends CoverItem {
 
    /** @type {object|undefined} */
-  get newCoverObjectData() {
-    const data = super.newCoverObjectData;
+  static get newCoverObjectData() {
+    const data = CoverItem.newCoverObjectData;
     data.type = "effect";
     return data;
   }
