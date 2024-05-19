@@ -368,7 +368,7 @@ export class CoverEffect {
       if ( !coverEffect.priority ) unordered.add(coverEffect);
       else ordered.push(coverEffect);
     }
-    ordered.sort((a, b) => b.document.priority - a.document.priority);
+    ordered.sort((a, b) => b.priority - a.priority);
     return { ordered, unordered };
   }
 
@@ -423,7 +423,7 @@ export class CoverEffect {
     for ( const coverEffect of ordered ) {
       if ( coverEffect._couldApply(attackingToken, targetToken, opts) ) {
         effects.add(coverEffect);
-        break;
+        if ( !coverEffect.canOverlap ) break;
       }
     }
 
@@ -456,7 +456,7 @@ export class CoverEffect {
     const ID  = FLAGS.COVER_EFFECT;
     const objs = this.coverObjectsMap;
     for ( const effectDoc of this._effectDocumentsOnToken(token) ) {
-      const id = effectDoc.flags?.[MODULE_ID]?.[ID];
+      const id = effectDoc.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.ID];
       if ( id ) effects.add(objs.get(id));
     }
     return effects;

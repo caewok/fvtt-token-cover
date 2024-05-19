@@ -156,6 +156,7 @@ export class CoverCalculator extends AbstractCalculator {
    */
   targetCover(target) {
     // Use the possibly cached cover types.
+    target ??= this.target;
     const coverEffects = target.tokencover.coverFromAttacker(this.viewer);
 
     // Transform cover types into the deprecated COVER.TYPES values by comparing the min percent cover.

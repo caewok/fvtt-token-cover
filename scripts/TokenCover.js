@@ -204,8 +204,8 @@ export class TokenCover {
 
 
   /**
-   * Should the cover effect's icon be displayed?
-   * If the cover effect cannot be applied, its icon cannot be displayed.
+   * Should cover effect icons be displayed?
+   * If cover effects cannot be applied, their icons cannot be displayed.
    * @returns {boolean}
    */
   canDisplayCoverIcon() {
@@ -216,8 +216,8 @@ export class TokenCover {
   }
 
   /**
-   * Can the cover effect be applied to this token?
-   * For speed, the cover effect is not applied if the token is not visible and not targeted.
+   * Can any cover effect be applied to this token?
+   * For speed, a cover effect is not applied if the token is not visible and not targeted.
    * (Otherwise, all tokens on a map would need cover calculation every time an attacker updates.)
    * @returns {boolean}
    */
