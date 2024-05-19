@@ -103,7 +103,8 @@ export class CoverActiveEffect extends CoverEffect {
     const data = super.localDocumentData;
 
     // Use the icon as a status effect.
-    data.statuses = [data.icon];
+    data.statuses ??= [];
+    if ( !data.statuses.length ) data.statuses.push(data.icon);
     return data;
   }
 
@@ -374,13 +375,24 @@ export class CoverEffectDND5E extends CoverActiveEffect {
  */
 export class CoverActiveEffectDFreds extends CoverEffectDND5E {
 
+ /**
+   * Transition all cover documents in a scene, when updating versions.
+   * Transition the DFred's effects.
+   */
+  static async transitionDocuments() {
+    CoverEffectDND5E.transitionDocuments();
+    for ( const coverEffect of this.coverObjectsMap.values() ) {
+      this._transitionDocument(coverEffect.document);
+    }
+  }
+
   /**
    * Find the storage document for given cover effect id.
    * If id corresponds to DFred's effect, use that.
    * @returns {ActiveEffect|undefined} Undefined if no document found.
    */
   _findStorageDocument() {
-    const defaultData = CONFIG[MODULE_ID].CoverEffect.defaultCoverObjectData.get(this.id);
+    const defaultData = this.defaultCoverObjectData;
     if ( !defaultData ) return super._findStorageDocument();
 
     const dFredsEffect = game.dfreds.effectInterface.findCustomEffectByName(defaultData.dFredsName);
@@ -397,7 +409,7 @@ export class CoverActiveEffectDFreds extends CoverEffectDND5E {
    * @returns {ActiveEffect|undefined} Undefined if no document found
    */
   async _loadStorageDocument() {
-    const defaultData = CONFIG[MODULE_ID].CoverEffect.defaultCoverObjectData.get(this.id);
+    const defaultData = this.defaultCoverObjectData;
     if ( !defaultData ) return super._loadStorageDocument();
 
     let dFredsEffect = game.dfreds.effectInterface.findCustomEffectByName(defaultData.dFredsName);
