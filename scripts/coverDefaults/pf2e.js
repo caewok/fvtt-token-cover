@@ -30,7 +30,7 @@ coverEffects.lesser = {
   id: `${MODULE_ID}.${SYSTEM_ID}.lesser`,
   compendiumId: "3wuJNcYqrY1IEYm8",
 
-  documentData: {
+  document: {
     icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
     flags: {
       [MODULE_ID]: {
@@ -49,7 +49,7 @@ coverEffects.standard = {
   id: `${MODULE_ID}.${SYSTEM_ID}.standard`,
   compendiumId: "AhFNqnvBZ9K46LUK",
 
-  documentData: {
+  document: {
     icon: ICONS.SHIELD_THIN_GRAY.HALF,
     flags: {
       [MODULE_ID]: {
@@ -69,7 +69,7 @@ coverEffects.greater = {
   id: `${MODULE_ID}.${SYSTEM_ID}.greater`,
   compendiumId: "hPLXDSGyHzlupBS2",
 
-  documentData: {
+  document: {
     icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
     flags: {
       [MODULE_ID]: {

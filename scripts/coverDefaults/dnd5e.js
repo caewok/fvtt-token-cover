@@ -15,7 +15,7 @@ export const defaultCoverEffects = new Map();
 
 // ----- NOTE: Cover effects ----- //
 
-// documentData property is what the active effect or item uses.
+// document property is what the active effect or item uses.
 // Everything else is for the cover object class only, which should have name, id, and icon for display.
 
 // Optional rule that tokens provide at most half-cover.
@@ -24,7 +24,7 @@ coverEffects.halfToken = {
   id: `${MODULE_ID}.${SYSTEM_ID}.halfToken`,
   dFredsName: "Cover (Half)",
 
-  documentData: {
+  document: {
     name: "DND5E.CoverHalf",
     icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
     flags: {
@@ -57,7 +57,7 @@ coverEffects.half = {
   id: `${MODULE_ID}.${SYSTEM_ID}.half`,
   dFredsName: "Cover (Half)",
 
-  documentData: {
+  document: {
     name: "DND5E.CoverHalf",
     icon: ICONS.SHIELD_THIN_GRAY.HALF,
     flags: {
@@ -90,7 +90,7 @@ coverEffects.threeQuarters = {
   id: `${MODULE_ID}.${SYSTEM_ID}.three_quarters`,
   dFredsName: "Cover (Three-Quarters)",
 
-  documentData: {
+  document: {
     icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
     flags: {
       [MODULE_ID]: {
@@ -122,7 +122,7 @@ coverEffects.total = {
   id: `${MODULE_ID}.${SYSTEM_ID}.total`,
   dFredsName: "Cover (Total)",
 
-  documentData: {
+  document: {
     icon: ICONS.SHIELD_THIN_GRAY.FULL,
     flags: {
       [MODULE_ID]: {

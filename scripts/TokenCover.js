@@ -171,19 +171,9 @@ export class TokenCover {
   coverFromAttackers(attackingTokens) { return this.minimumCoverFromAttackers(attackingTokens); }
 
   /**
-   * Get the cover effects for the current attacker set.
-   * @returns {Set<CoverEffect>}
-   */
-  _coverFromCurrentAttackers() {
-    const coverTypes = this.minimumCoverFromAttackers();
-    const allCoverEffects = [...CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values()];
-    return new Set(allCoverEffects.filter(ce => coverTypes.intersects(ce.coverTypes)));
-  }
-
-  /**
    * Determine minimum cover types for a token from a group of attacking tokens.
    * @param {Token[]|Set<Token>} [attackingTokens]
-   * @returns {Set<CoverType>}
+   * @returns {Set<CoverEffect>}
    */
   minimumCoverFromAttackers(attackingTokens = this.constructor.attackers) {
     if ( !attackingTokens.length && !attackingTokens.size ) return NULL_SET;
@@ -197,7 +187,7 @@ export class TokenCover {
       const coverEffects = this.coverFromAttacker(attackingToken);
       const potentialOther = new Set();
       coverEffects.forEach(c => {
-        if ( !c.priority ) potentialOther.add(c);
+        if ( c.canOverlap ) potentialOther.add(c);
         else if ( minCoverPriority > c.priority ) {
           minCover = c;
           minCoverPriority = c.priority;
@@ -206,9 +196,10 @@ export class TokenCover {
       if ( !otherCover ) otherCover = potentialOther;
       else otherCover = otherCover.intersection(potentialOther);
     }
-    otherCoverTypes ||= Set.NULL_SET;
-    if ( minCoverType ) otherCoverTypes.add(minCoverType);
-    return otherCoverTypes;
+
+    otherCover ||= Set.NULL_SET;
+    if ( minCover ) otherCover.add(minCover);
+    return otherCover;
   }
 
 
@@ -328,7 +319,7 @@ export class TokenCover {
     let changed = false;
     if ( this.canApplyCover() && !CONFIG[MODULE_ID].CoverEffect.coverOverrideApplied(this.token) ) {
       log(`TokenCover#updateCover|${[...this.constructor.attackers.values().map(a => a.name + ": " + a.x + "," + a.y)].join("\t")}`);
-      const coverEffects = this._coverFromCurrentAttackers();
+      const coverEffects = this.minimumCoverFromAttackers();
       changed = this._replaceCover(coverEffects);
     } else changed = this.#clearCover();
 

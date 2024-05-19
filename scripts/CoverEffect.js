@@ -91,19 +91,20 @@ export class CoverEffect {
   get defaultDocumentData() {
     const template = this.constructor.newCoverObjectData;
     const data = this.defaultCoverObjectData;
-    const documentData = foundry.utils.mergeObject(template, data.documentData, { inplace: false });
-    documentData.name = game.i18n.localize(data.name);
-    // documentData._id = foundry.utils.randomID();
-    return documentData;
+    const doc = foundry.utils.mergeObject(template, data.document, { inplace: false });
+    doc.name = game.i18n.localize(data.name);
+    doc.flags[MODULE_ID][FLAGS.COVER_EFFECT.ID] = data.id;
+    return doc;
   }
 
   /**
-   * Get data used to construct a cover effect document.
+   * Get data used to construct a cover effect document based on the currently stored effect document.
    * @type {object}
    */
   get documentData() {
     const data = this.toJSON();
     data._id = foundry.utils.randomID();
+    data.flags[MODULE_ID][FLAGS.COVER_EFFECT.ID] = this.id;
     return data;
   }
 
@@ -180,7 +181,7 @@ export class CoverEffect {
    * @returns {boolean}
    */
   isOnToken(token) {
-    for ( const effectDoc of this.constructor._effectDocumentsOnToken.values(token) ) {
+    for ( const effectDoc of this.constructor._effectDocumentsOnToken(token).values() ) {
       if ( effectDoc.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.ID] === this.id ) return true;
     }
     return false;

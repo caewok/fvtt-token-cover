@@ -21,7 +21,7 @@ coverEffects.soft = {
   id: `${MODULE_ID}.${SYSTEM_ID}.soft`,
   compendiumId: "aolmL82yGMgAlEcf",
 
-  documentData: {
+  document: {
     icon: ICONS.SHIELD_THICK_GRAY.SPLAT,
     flags: {
       [MODULE_ID]: {
@@ -42,7 +42,7 @@ coverEffects.partial = {
   id: `${MODULE_ID}.${SYSTEM_ID}.partial`,
   compendiumId: "WhC815WlllSW8tT0",
 
-  documentData: {
+  document: {
     icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
     flags: {
       [MODULE_ID]: {
@@ -63,7 +63,7 @@ coverEffects.cover = {
   id: `${MODULE_ID}.${SYSTEM_ID}.half`,
   compendiumId: "bjq4ho7JXhgUDvG6",
 
-  documentData: {
+  document: {
     icon: ICONS.SHIELD_THIN_GRAY.HALF,
     flags: {
       [MODULE_ID]: {
@@ -83,7 +83,7 @@ coverEffects.improved = {
   id: `${MODULE_ID}.${SYSTEM_ID}.improved`,
   compendiumId: "kaIYAWHJ7up8rwOy",
 
-  documentData: {
+  document: {
     icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
     flags: {
       [MODULE_ID]: {
@@ -103,7 +103,7 @@ coverEffects.total = {
   id: `${MODULE_ID}.${SYSTEM_ID}.total`,
   compendiumId: "o0CFBHsprfadKuyd",
 
-  documentData: {
+  document: {
     icon: ICONS.SHIELD_THIN_GRAY.FULL,
     flags: {
       [MODULE_ID]: {

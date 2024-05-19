@@ -15,7 +15,7 @@ coverEffects.low = {
   name: `${MODULE_ID}.cover.low`,
   id: `${MODULE_ID}.${SYSTEM_ID}.low`,
 
-  documentData: {
+  document: {
     icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
     flags: {
       [MODULE_ID]: {
@@ -33,7 +33,7 @@ coverEffects.medium = {
   name:  `${MODULE_ID}.cover.medium`,
   id: `${MODULE_ID}.${SYSTEM_ID}.medium`,
 
-  documentData: {
+  document: {
     icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
     flags: {
       [MODULE_ID]: {
@@ -51,7 +51,7 @@ coverEffects.high = {
   name: `${MODULE_ID}.cover.high`,
   id: `${MODULE_ID}.${SYSTEM_ID}.high`,
 
-  documentData: {
+  document: {
     icon: ICONS.SHIELD_THIN_GRAY.FULL,
     flags: {
       [MODULE_ID]: {
