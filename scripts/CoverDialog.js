@@ -325,11 +325,14 @@ ${html}
    * @returns {string}    HTML string
    */
   _htmlConfirmCover() {
+    const targetData = this._targetData();
     const htmlTable = this._htmlCoverTable({
       tableId: this.attacker.id,
-      allowSelection: true
+      allowSelection: true,
+      targetData
     });
-    const htmlAttacker = this._htmlAttacker({ confirm: true });
+    const nCover = targetData.filter(td => td.priorityType.size || td.overlappingTypes.size).length;
+    const htmlAttacker = this._htmlAttacker({ confirm: true, nCover });
     const html =
     `
     ${htmlAttacker}
@@ -368,7 +371,7 @@ ${html}
     });
 
     // State how many targets have cover prior to the cover table.
-    const nCover = targetData.filter(td => td.priorityType.size || td.overlappingTypes.size).size;
+    const nCover = targetData.filter(td => td.priorityType.size || td.overlappingTypes.size).length;
     const htmlAttacker = this._htmlAttacker({ confirm: false, nCover, applied, imageWidth });
     const html =
     `
@@ -667,7 +670,7 @@ export async function coverAttackWorkflow(attacker, targets, actionType) {
     const CoverEffect = CONFIG[MODULE_ID].CoverEffect;
     for ( const [defender, coverEffects] of coverCalculations.entries() ) {
       if ( CoverEffect.coverOverrideApplied(defender) ) continue;
-      defender.tokencover._replaceCoverEffects(coverEffects);
+      defender.tokencover._replaceCover(coverEffects);
     }
   }
 
