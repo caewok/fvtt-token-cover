@@ -58,12 +58,11 @@ function createItem(document, _options, _userId) {
   if ( !actor || !(actor instanceof Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
-  if ( !(modFlags[FLAGS.COVER_EFFECT_ID] && !modFlags[FLAGS.LOCAL_COVER_EFFECT]) ) return;
+  if ( !(modFlags[FLAGS.COVER_EFFECT.ID] && !modFlags[FLAGS.COVER_EFFECT.LOCAL]) ) return;
 
   const token = actor.token?.object;
   if ( !token ) return;
-  token.tokencover.updateCoverTypes();
-  token.tokencover.updateCoverEffects();
+  token.tokencover.updateCover();
 }
 
 /**
@@ -77,11 +76,10 @@ function deleteItem(document, _options, _userId) {
   if ( !actor || !(actor instanceof Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
-  if ( !(modFlags[FLAGS.COVER_EFFECT_ID] && !modFlags[FLAGS.LOCAL_COVER_EFFECT]) ) return;
+  if ( !(modFlags[FLAGS.COVER_EFFECT.ID] && !modFlags[FLAGS.COVER_EFFECT.LOCAL]) ) return;
   const token = actor.token?.object;
   if ( !token ) return;
-  token.tokencover.updateCoverTypes();
-  token.tokencover.updateCoverEffects();
+  token.tokencover.updateCover();
 }
 
 PATCHES.BASIC.HOOKS = { createItem, deleteItem };

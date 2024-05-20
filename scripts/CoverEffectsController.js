@@ -9,7 +9,6 @@ game
 
 import { MODULE_ID } from "./const.js";
 import { log, dialogPromise } from "./util.js";
-import { CoverTypesListConfig } from "./CoverTypesListConfig.js";
 
 
 // Much of this is from
@@ -33,15 +32,6 @@ export class CoverEffectsController {
       isGM: game.user.isGM,
       effects
     };
-  }
-
-  /**
-   * Handles clicks on the list cover types button.
-   * Displays a mini-configuration that lists all cover types, allows for quick editing.
-   */
-  async onListCoverTypes(_event) {
-    log("CoverEffectsController|onListCoverTypes");
-    new CoverTypesListConfig().render(true);
   }
 
   /**

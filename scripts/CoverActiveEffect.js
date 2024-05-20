@@ -1,8 +1,12 @@
 /* globals
+canvas,
 CONFIG,
+foundry,
 fromUuid,
 game,
 Hooks,
+isNewerVersion,
+ItemDirectory,
 socketlib
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -73,15 +77,6 @@ async function deleteActiveCoverEffects(ids) {
  */
 export class CoverActiveEffect extends CoverEffect {
 
-  /**
-   * Check for a storage document in compendium or create a new one.
-   * Asynchronous unless document already exists.
-   */
-  async initialize() {
-    if ( !this.constructor.coverEffectsItem ) await this.constructor._initializeCoverEffectsItem();
-    return super.initialize();
-  }
-
 
   // ----- NOTE: Getters, setters, and related properties ----- //
 
@@ -100,27 +95,75 @@ export class CoverActiveEffect extends CoverEffect {
   }
 
   /**
+   * Get data used to construct a cover effect document.
+   * Use the icon as the status.
+   * @type {object}
+   */
+  get documentData() {
+    const data = super.documentData;
+
+    // Use the icon as a status effect.
+    data.statuses ??= [];
+    if ( !data.statuses.length ) data.statuses.push(data.icon);
+    return data;
+  }
+
+  /**
    * Data used when dragging a cover effect to an actor sheet.
    */
   get dragData() {
-    return {
-      name: this.name,
-      type: "ActiveEffect",
-      data: this.documentData
-    };
+    const data = super.dragData;
+    data.type = "ActiveEffect";
+    return data;
   }
 
-  /** @type {object} */
-  get newCoverObjectData () {
-    return {
-      origin: this.constructor.coverEffectItem.id,
-      transfer: false,
-      name: "New Cover Effect",
-      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECT_ID]: this.id, [FLAGS.COVER_TYPES]: [] } }
-    };
+
+  // ----- NOTE: Token/Actor methods ----- //
+
+  /**
+   * Internal method to add this cover effect to the token locally.
+   * @param {Token} token
+   * @returns {boolean} True if change was made.
+   */
+  _addToToken(token) {
+    const actor = token.actor;
+    if ( !actor ) return false;
+    const doc = this.localDocumentData;
+
+    // If token is secret, remove the status effect.
+    if ( token.document.disposition === CONST.TOKEN_DISPOSITIONS.SECRET &&
+      Settings.get(Settings.KEYS.DISPLAY_SECRET_COVER) ) {
+      doc.statuses ??= [];
+      if ( doc.icon ) doc.statuses.findSplice(elem => elem === doc.icon);
+    }
+
+    const ae = actor.effects.createDocument(doc);
+    log(`CoverActiveEffect#_addToToken|${actor.name} adding ${ae.id} ${this.name}`);
+    actor.effects.set(ae.id, ae);
+    return true;
   }
 
-  // ----- NOTE: Methods ----- //
+  /**
+   * Internal method to remove this cover effect from the token.
+   * @param {Token} token
+   * @returns {boolean} True if change was made.
+   */
+  _removeFromToken(token) {
+    const actor = token.actor;
+    if ( !actor ) return false;
+
+    // Remove the first instance found. (Should only be one present.)
+    for ( const [key, effect] of actor.effects.entries() ) {
+      if ( effect.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID) === this.id ) {
+        log(`CoverActiveEffect#_removeFromToken|${actor.name} removing ${key} ${this.name}`);
+        actor.effects.delete(key);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // ----- NOTE: Document Methods ----- //
 
   /**
    * Find the storage document for given cover effect id.
@@ -130,7 +173,7 @@ export class CoverActiveEffect extends CoverEffect {
     const coverEffectItem = this.constructor.coverEffectItem;
     if ( !coverEffectItem ) return;
     const id = this.id;
-    return coverEffectItem.effects.find(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === id);
+    return coverEffectItem.effects.find(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID) === id);
   }
 
   /**
@@ -139,12 +182,9 @@ export class CoverActiveEffect extends CoverEffect {
    * @returns {Promise<Document>|undefined} Undefined if no document found.
    */
   async _loadStorageDocument() {
-    if ( !this.constructor.coverEffectItem ) {
-      await this.constructor._initializeCoverEffectsItem();
-      // It is possible that _findStorageDocument failed b/c of not initializing the cover item. Retry.
-      return this._findStorageDocument();
-    }
-    return undefined;
+    if ( !this.constructor.coverEffectItem ) await this.constructor._initializeCoverEffectsItem();
+    // It is possible that _findStorageDocument failed b/c of not initializing the cover item. Retry.
+    return this._findStorageDocument();
   }
 
   /**
@@ -154,11 +194,14 @@ export class CoverActiveEffect extends CoverEffect {
    */
   async _createStorageDocument() {
     if ( !this.constructor.coverEffectItem ) await this.constructor._initializeCoverEffectsItem();
-    if ( !this.constructor.coverEffectItem ) return;
+    if ( !this.constructor.coverEffectItem ) {
+      console.error("CoverActiveEffect#_createStorageDocument|Cover effects item not found.");
+      return;
+    }
 
     // Create default effects on-the-fly if not present.
     // Otherwise, create a new cover effect.
-    const data = this.defaultCoverObjectData ?? this.newCoverObjectData;
+    const data = this.defaultDocumentData ?? this.constructor.newCoverObjectData;
     let doc;
     if ( !game.user.isGM ) {
       try {
@@ -203,89 +246,35 @@ export class CoverActiveEffect extends CoverEffect {
     } else await this.coverEffectItem.deleteEmbeddedDocuments("ActiveEffect", ids, { render: false });
   }
 
-  /**
-   * Test if the local effect is already on the actor.
-   * @param {Actor} actor
-   * @returns {boolean} True if local effect is on the actor.
-   */
-  _localEffectOnActor(actor) {
-    const activeEffectIds = this.constructor._documentIds;
-    for ( const key of actor.effects.keys() ) {
-      if ( !activeEffectIds.has(key) ) continue;
-      if ( activeEffectIds.get(key) === this ) return true;
-    }
-    return false;
-  }
-
-  /**
-   * Add the effect locally to an actor.
-   * @param {Actor} actor
-   * @returns {string} Returns the id of the document added
-   */
-  _addToActorLocally(actor) {
-    const ae = actor.effects.createDocument(this.documentData);
-
-    // Remove statuses so the AE does not display along with the cover icon.
-    ae.updateSource({ flags: { [MODULE_ID]: { [FLAGS.LOCAL_COVER_EFFECT]: true }}, statuses: [] });
-    log(`CoverActiveEffect#_addToActorLocally|${actor.name} adding ${ae.id} ${this.name}`);
-    actor.effects.set(ae.id, ae);
-    return ae.id;
-  }
-
-  /**
-   * Remove the effect locally from an actor.
-   * Presumes the effect is on the actor.
-   * @param {Actor} actor
-   * @returns {string[]} Returns array of document ids removed from the actor.
-   */
-  _removeFromActorLocally(actor) {
-    const activeEffectIds = this.constructor._documentIds;
-
-    // For safety, run through all effects and remove all instances of this cover effect.
-    let removedIds = [];
-    for ( const key of actor.effects.keys() ) {
-      if ( !activeEffectIds.has(key) ) continue;
-      if ( activeEffectIds.get(key) !== this ) continue;
-      log(`CoverActiveEffect#removeFromActorLocally|${actor.name} removing ${key} ${this.name}`);
-      actor.effects.delete(key);
-      removedIds.push(key);
-    }
-    return removedIds;
-  }
 
   // ----- NOTE: Static getters, setters, and related properties ----- //
 
   /** @type {Item} */
   static coverEffectItem; // Added by _initializeCoverEffectsItem.
 
-  // ----- NOTE: Static methods ----- //
-
   /**
-   * Determine if the GM has added a cover effect override to an actor.
-   * Cover effect overrides have a COVER_EFFECT_ID flag but no local flag.
-   * @param {Actor|Token} actor
-   * @returns {boolean}
+   * Data used to construct a new blank cover effect.
+   * @type {object}
    */
-  static coverOverrideApplied(actor) {
-    if ( actor instanceof Token ) actor = actor?.actor;
-    if ( !actor ) return;
-    return Boolean(actor.effects.find(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID)
-      && !e.getFlag(MODULE_ID, FLAGS.LOCAL_COVER_EFFECT)));
+  static get newCoverObjectData() {
+    const data = CoverEffect.newCoverObjectData;
+    data.origin = this.coverEffectItem.id;
+    data.transfer = false;
+    return data;
   }
 
+  // ----- NOTE: Static token/actor methods ----- //
+
   /**
-   * Retrieve all Cover Effects on the actor.
-   * @param {Actor} actor
-   * @returns {CoverEffect[]} Array of cover effects on the actor.
+   * Get all documents for a give token/actor that could contain a cover effect.
+   * Each document should be an object that has a "flags" property.
+   * @param {Token} token
+   * @returns {EmbeddedCollection|DocumentCollection|Map}
    */
-  static _allLocalEffectsOnActor(actor) {
-    if ( !actor ) return;
-    // Faster than calling _localEffectOnActor repeatedly.
-    // Don't map from a Map or a Set to avoid throwing errors if the Set size is modified.
-    const effects = [...actor.effects.filter(e => e.getFlag(MODULE_ID, FLAGS.LOCAL_COVER_EFFECT))];
-    return effects
-      .map(e => this._documentIds.get(e.id))
-      .filter(e => Boolean(e));
+  static _effectDocumentsOnToken(token) {
+   const actor = token.actor;
+    if ( !actor ) return new Map();
+    return actor.effects;
   }
 
   /**
@@ -294,13 +283,13 @@ export class CoverActiveEffect extends CoverEffect {
    * are saved.
    */
   static async _initializeCoverEffectsItem() {
-    this.coverEffectItem = game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECTS_ITEM));
+    this.coverEffectItem = game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ITEM));
     if ( this.coverEffectItem ) return;
     const data = {
       name: "Cover Effects",
       img: "icons/svg/ruins.svg",
       type: "base",
-      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECTS_ITEM]: true} }
+      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECT.ITEM]: true} }
     };
     let doc;
     if ( !game.user.isGM ) {
@@ -314,12 +303,97 @@ export class CoverActiveEffect extends CoverEffect {
     this.coverEffectItem = doc;
   }
 
+  /**
+   * Transition all cover documents in a scene, when updating versions.
+   */
+  static async transitionDocuments() {
+    if ( !this.coverEffectItem ) await this._initializeCoverEffectsItem();
+
+    // Transition each of the cover effects on the item.
+    const promises = [];
+    for ( const ae of this.coverEffectItem.effects.values() ) this._transitionDocument(ae, promises);
+
+    // Same for all tokens with cover effects.
+    for ( const token of canvas.tokens.placeables ) {
+      if ( !token.actor?.effects ) continue;
+      for ( const ae of token.actor.effects.values() ) this._transitionDocument(ae, promises);
+    }
+    return Promise.allSettled(promises);
+
+  }
+
+  /**
+   * Transition a single cover document.
+   * @param {ActiveEffect} ae         The active effect document to update
+   * @param {Promise<>[]} promises    Array to store promises to update the document
+   */
+  static _transitionDocument(ae, promises = []) {
+    const moduleVersion = game.modules.get(MODULE_ID).version;
+    const id = ae.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID);
+    if ( !id ) return;
+    const coverEffect = this.coverObjectsMap.get(id);
+    if ( !coverEffect ) return;
+
+    // Only update if the saved version is older than current module version.
+    const savedVersion = ae.getFlag(MODULE_ID, FLAGS.VERSION);
+    if ( savedVersion && !isNewerVersion(moduleVersion, savedVersion) ) return;
+
+    // Update the default document data fields.
+    const updateData = foundry.utils.mergeObject(
+      coverEffect.defaultDocumentData,
+      coverEffect.documentData,
+      { insertKeys: false, insertValues: false, inplace: false });
+    promises.push(ae.update(updateData));
+  }
+
+  /**
+   * Refresh the display of the cover effect on the token.
+   * Add refresh of the token icons.
+   * @param {Token} token
+   */
+  static refreshCoverDisplay(token) {
+    CoverEffect.refreshCoverDisplay(token);
+    token.renderFlags.set({ redrawEffects: true });
+  }
 }
+
+/**
+ * Specialized handling of cover effect rules in dnd5e.
+ */
+export class CoverEffectDND5E extends CoverActiveEffect {
+  /**
+   * Test if this cover effect could apply to a target token given an attacking token.
+   * Does not handle priority between cover effects. For that, use CoverEffect.coverEffectsForToken
+   * @param {Token} attackingToken        Token from which cover is sought
+   * @param {Token} targetToken           Token to which cover would apply
+   * @param {object} [opts]               Options used to determine whether to ignore cover
+   * @param {CONFIG.DND5E.itemActionTypes} [actionType="all"]   Attack action type
+   * @returns {boolean}
+   */
+  _couldApply(attackingToken, targetToken,  opts = {}) {
+    const actionType = opts.actionType ?? "all";
+    const ignoresCover = attackingToken.tokencover.ignoresCover?.[actionType];
+    if ( ignoresCover && ignoresCover >= this.document.percentThreshold ) return false;
+    return super._couldApply(attackingToken, targetToken);
+  }
+}
+
 
 /**
  * Uses DFred's CE exclusively instead of AE stored on the token cover item.
  */
-export class CoverActiveEffectDFreds extends CoverActiveEffect {
+export class CoverActiveEffectDFreds extends CoverEffectDND5E {
+
+ /**
+   * Transition all cover documents in a scene, when updating versions.
+   * Transition the DFred's effects.
+   */
+  static async transitionDocuments() {
+    CoverEffectDND5E.transitionDocuments();
+    for ( const coverEffect of this.coverObjectsMap.values() ) {
+      this._transitionDocument(coverEffect.document);
+    }
+  }
 
   /**
    * Find the storage document for given cover effect id.
@@ -327,14 +401,14 @@ export class CoverActiveEffectDFreds extends CoverActiveEffect {
    * @returns {ActiveEffect|undefined} Undefined if no document found.
    */
   _findStorageDocument() {
-    const defaultData = CONFIG[MODULE_ID].CoverEffect.defaultCoverObjectData.get(this.id);
+    const defaultData = this.defaultCoverObjectData;
     if ( !defaultData ) return super._findStorageDocument();
 
     const dFredsEffect = game.dfreds.effectInterface.findCustomEffectByName(defaultData.dFredsName);
     if ( !dFredsEffect ) return undefined;
 
     // Don't use unless it has the correct flags.
-    if ( dFredsEffect.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) ) return dFredsEffect;
+    if ( dFredsEffect.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID) ) return dFredsEffect;
     return undefined;
   }
 
@@ -344,7 +418,7 @@ export class CoverActiveEffectDFreds extends CoverActiveEffect {
    * @returns {ActiveEffect|undefined} Undefined if no document found
    */
   async _loadStorageDocument() {
-    const defaultData = CONFIG[MODULE_ID].CoverEffect.defaultCoverObjectData.get(this.id);
+    const defaultData = this.defaultCoverObjectData;
     if ( !defaultData ) return super._loadStorageDocument();
 
     let dFredsEffect = game.dfreds.effectInterface.findCustomEffectByName(defaultData.dFredsName);
@@ -357,8 +431,8 @@ export class CoverActiveEffectDFreds extends CoverActiveEffect {
     if ( !dFredsEffect ) return super._loadStorageDocument();
 
     // Don't use unless it has the correct flags.
-    await dFredsEffect.setFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID, this.id);
-    await dFredsEffect.setFlag(MODULE_ID, FLAGS.COVER_TYPES, defaultData.documentData.flags[MODULE_ID][FLAGS.COVER_TYPES]);
+    // TODO: Need to add all cover type flags
+    await dFredsEffect.setFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID, this.id);
     return dFredsEffect;
   }
 
@@ -382,7 +456,7 @@ export class CoverActiveEffectDFreds extends CoverActiveEffect {
  * @param {string} userId                           The ID of the User who triggered the deletion workflow
  */
 function deleteActiveEffectHook(activeEffect, _options, _userId) {
-  const id = activeEffect.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID);
+  const id = activeEffect.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID);
   if ( !id || activeEffect.parent?.name !== "Custom Convenient Effects") return;
   const ce =  CONFIG.tokencover.CoverEffect.coverObjectsMap.get(id);
   if ( !ce ) return;

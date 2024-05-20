@@ -2,6 +2,13 @@
     "tokencover.name": "Alt. Token Cover",
     "tokencover.nameAbbr": "ATC",
 
+    "tokencover.cover-effect.percent-threshold.Name": "Percent threshold",
+    "tokencover.cover-effect.can-overlap.Name": "Can overlap",
+    "tokencover.cover-effect.include-walls.Name": "Walls block",
+    "tokencover.cover-effect.include-tokens.Name": "Tokens block",
+    "tokencover.cover-effect.priority.Name": "Priority",
+    "tokencover.cover-effect.priority.Hint": "Larger priorities are tested first. Set priority to '0' to ignore.",
+
     "tokencover.settings.never": "Never",
     "tokencover.settings.combat": "During Combat",
     "tokencover.settings.combatant": "For Current Combatant Only",
@@ -179,6 +186,8 @@
     "tokencover.phrases.xCoverEffect": "{cover} Cover Effect",
     "tokencover.phrases.xCoverType": "{cover} Cover Type",
     "tokencover.phrases.xCover": "{cover} Cover",
+
+    "tokencover.cover.HalfToken": "Half (Token Only)",
 
     "tokencover.cover.None": "No Cover",
     "tokencover.cover.Low": "Low Cover",

@@ -69,6 +69,12 @@ For example, the Starfinder system defines a "soft" cover, meaning there is a to
 
 If a defender has 50% cover, it would be assigned the regular cover type becuase that is the highest priority. Then the overlapping "soft" cover would be tested. If a token occluded the defender, it would also gain the "soft" cover type. A defender with 30% cover, on the other hand, would fail the test for the regular cover type and instead be assigned the partial cover type. Again, the overlapping "soft" cover type would be tested separately.
 
+Overlap and priority in combination work as follows:
+- Priority, no overlap: Of all effects that could apply to the token given the percent cover, the highest priority effect is assigned.
+- Priority, overlap: Moving from highest to lowest priority, if an effect would take priority but can overlap, that effect is assigned but the priority list continues to be evaluated. So if A, B, and C are in priority order, and A can overlap, A and B would be assigned.
+- No priority, no overlap: This effect will only be assigned if no priority effect is assigned. If there are multiple no-priority effects, it is not guaranteed that this one will be chosen.
+- No priority, overlap: This effect will only be assigned if no priority effect is assigned. If there are multiple no-priority effects, this one will be assigned along with potentially others.
+
 # Cover Effect
 
 A cover effect represents an active effect (or, for some systems, an item representing an effect) that is applied to a defender with cover. Some cover effects are already defined, but the GM can edit those using the "Alt. Token Cover" book icon in the token controls. The GM can associate each cover effect with one or more cover types. If the cover type applies, the cover effect is then added to the defending token.

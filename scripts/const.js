@@ -31,28 +31,55 @@ export const FLAGS = {
     MAX_GRANT: "maximumCoverGrant"
   },
 
+  COVER_EFFECT: {
+    /**
+     * Store an identifier that links an active effect to its stored data.
+     * @type {string}
+     */
+    ID: "coverEffectId",
 
-  /**
-   * Identify what cover type should be associated with this active effect.
-   * @type {string[]} Array of cover type ids
-   */
-  COVER_TYPES: "coverTypes",
+    /**
+     * Identify a specific item as one that holds cover effects.
+     * @type {boolean}
+     */
+    ITEM: "coverEffectItem",
 
-  /**
-   * Store an identifier that links an active effect to its stored data.
-   * @type {string}
-   */
-  COVER_EFFECT_ID: "coverEffectId",
+    /**
+     * Cover effect applies when cover equals or exceeds this threshold.
+     * @type {number}
+     */
+    PERCENT_THRESHOLD: "percentThreshold",
 
-  /**
-   * Identify a specific item as one that holds cover effects.
-   */
-  COVER_EFFECTS_ITEM: "coverEffectItem",
+    /**
+     * Cover effect priority, when multiple covers apply.
+     * @type {number}
+     */
+    PRIORITY: "priority",
 
-  /**
-   * Identify that an item or effect represents a locally applied cover effect.
-   */
-  LOCAL_COVER_EFFECT: "coverEffectLocal",
+    /**
+     * Cover effect can overlap with another.
+     * @type {boolean}
+     */
+    CAN_OVERLAP: "canOverlap",
+
+    /**
+     * Cover effect includes walls in the cover calculation.
+     * @type {boolean}
+     */
+    INCLUDE_WALLS: "includeWalls",
+
+    /**
+     * Cover effect includes tokens in the cover calculation.
+     * @type {boolean}
+     */
+    INCLUDE_TOKENS: "includeTokens",
+
+    /**
+     * Cover effect has been applied locally.
+     * @param {boolean}
+     */
+    LOCAL: "coverEffectLocal"
+  },
 
   /**
    * For updating flag data to new versions of the module.

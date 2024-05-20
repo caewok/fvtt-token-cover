@@ -20,7 +20,6 @@ import { AsyncQueue } from "./AsyncQueue.js";
 // Cover objects
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
 import { CoverEffect } from "./CoverEffect.js";
-import { CoverType, CoverTypePF2E } from "./CoverType.js";
 import { CoverActiveEffect, CoverActiveEffectDFreds } from "./CoverActiveEffect.js";
 import { CoverItem, CoverItemPF2E, CoverItemSFRPG} from "./CoverItem.js";
 
@@ -81,11 +80,6 @@ Hooks.once("init", function() {
     renderTextureResolution: 1,
 
     /**
-     * What cover type class to use for this system.
-     */
-    CoverType,
-
-    /**
      * What cover effect class to use for this system.
      */
     CoverEffect
@@ -114,7 +108,6 @@ Hooks.once("init", function() {
     CoverCalculator,
     CoverDialog,
     COVER,
-    CoverType,
     CoverEffect,
     CoverItem,
     CoverItemSFRPG,
@@ -137,7 +130,6 @@ Hooks.once("init", function() {
       break;
 
     case "pf2e":
-      CONFIG[MODULE_ID].CoverType = CoverTypePF2E;
       CONFIG[MODULE_ID].CoverEffect = CoverItemPF2E;
       break;
 
@@ -167,7 +159,6 @@ Hooks.once("setup", function() {
 
 Hooks.once("ready", function() {
   // Initialize must happen after game is ready, so that settings can be saved if necessary.
-  CONFIG[MODULE_ID].CoverType.initialize();
   CONFIG[MODULE_ID].CoverEffect.initialize(); // Async
 });
 
