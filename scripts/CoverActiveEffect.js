@@ -128,7 +128,16 @@ export class CoverActiveEffect extends CoverEffect {
   _addToToken(token) {
     const actor = token.actor;
     if ( !actor ) return false;
-    const ae = actor.effects.createDocument(this.localDocumentData);
+    const doc = this.localDocumentData;
+
+    // If token is secret, remove the status effect.
+    if ( token.document.disposition === CONST.TOKEN_DISPOSITIONS.SECRET &&
+      Settings.get(Settings.KEYS.DISPLAY_SECRET_COVER) ) {
+      doc.statuses ??= [];
+      if ( doc.icon ) doc.statuses.findSplice(elem => elem === doc.icon);
+    }
+
+    const ae = actor.effects.createDocument(doc);
     log(`CoverActiveEffect#_addToToken|${actor.name} adding ${ae.id} ${this.name}`);
     actor.effects.set(ae.id, ae);
     return true;

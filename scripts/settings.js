@@ -191,7 +191,10 @@ export class Settings extends ModuleSettingsAbstract {
       config: true,
       type: Boolean,
       default: true,
-      onChange: _value => canvas.tokens.placeables.forEach(t => t.tokencover.updateCover())
+      onChange: _value => canvas.tokens.placeables.forEach(token => {
+        token[MODULE_ID].updateCoverIconDisplay();
+        CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
+      })
     });
 
     register(KEYS.DEBUG, {

@@ -202,17 +202,31 @@ export class TokenCover {
     return otherCover;
   }
 
+  /**
+   * Update the cover icon display for this token.
+   */
+  updateCoverIconDisplay() {
+    const coverEffects = CONFIG[MODULE_ID].CoverEffect.allLocalCoverOnToken(this.token);
+    if ( !effects.size ) return;
+    const displayIcon = this.canDisplayCoverIcon;
+    coverEffects.forEach(ce => {
+      if ( displayIcon ) {
+        if ( !ce.document.statuses.includes(ce.icon) ) ce.document.statuses.push(ce.icon);
+      } else ce.document.statuses.findSplice(s => s === ce.icon);
+    });
+  }
+
 
   /**
    * Should cover effect icons be displayed?
-   * If cover effects cannot be applied, their icons cannot be displayed.
+   * Does not account for whether cover can be applied.
    * @returns {boolean}
    */
   canDisplayCoverIcon() {
     if ( !this.token.isVisible ) return false;
     if ( !Settings.get(Settings.KEYS.DISPLAY_SECRET_COVER)
         && this.token.document.disposition === CONST.TOKEN_DISPOSITIONS.SECRET ) return false;
-    return this.canApplyCover();
+    return true;
   }
 
   /**

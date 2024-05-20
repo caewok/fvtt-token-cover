@@ -215,19 +215,20 @@ function getSnappedTokenPosition(token) {
  * @param {string} userId                           The ID of the User who triggered the update workflow
  */
 function updateToken(tokenD, change, _options, _userId) {
+  const token = tokenD.object;
+  if ( !token ) return;
+  if ( Object.hasOwn(change, "disposition") ) {
+    token[MODULE_ID].updateCoverIconDisplay();
+    CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
+  }
   if ( !(Object.hasOwn(change, "x")
       || Object.hasOwn(change, "y")
       || Object.hasOwn(change, "elevation")
       || Object.hasOwn(change, "rotation")) ) return;
 
   if ( CanvasAnimation.getAnimation(_token.animationName) ) return;
-
-  // Token moved
-  const token = tokenD.object;
-  if ( !token ) return;
   log(`updateToken hook|${token.name} moved from ${token.position.x},${token.position.y} -> ${token.document.x},${token.document.y} Center: ${token.center.x},${token.center.y}.`);
   TokenCover.tokenMoved(token);
-
 }
 
 /**
