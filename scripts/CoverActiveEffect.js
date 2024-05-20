@@ -95,12 +95,12 @@ export class CoverActiveEffect extends CoverEffect {
   }
 
   /**
-   * Get data used to construct a local cover effect document.
-   * Local cover effects have the local flag.
+   * Get data used to construct a cover effect document.
+   * Use the icon as the status.
    * @type {object}
    */
-  get localDocumentData() {
-    const data = super.localDocumentData;
+  get documentData() {
+    const data = super.documentData;
 
     // Use the icon as a status effect.
     data.statuses ??= [];

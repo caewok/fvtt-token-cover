@@ -122,7 +122,7 @@ export class TokenCover {
    * @type {Set<CoverEffect>}
    */
   get _currentCoverEffects() {
-    return CONFIG[MODULE_ID].CoverEffect.allCoverOnToken(this.token);
+    return CONFIG[MODULE_ID].CoverEffect.allLocalCoverOnToken(this.token);
   }
 
   constructor(token) {
