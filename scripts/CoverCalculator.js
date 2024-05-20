@@ -184,6 +184,7 @@ export class CoverCalculator extends AbstractCalculator {
     calc._clearCache();
 
     let percent = 1;
+    let minViewerPoint;
     const viewerOpts = {
       pointAlgorithm: Settings.get(Settings.KEYS.LOS.VIEWER.NUM_POINTS),
       inset: Settings.get(Settings.KEYS.LOS.VIEWER.INSET)
@@ -191,9 +192,16 @@ export class CoverCalculator extends AbstractCalculator {
     const viewerPoints = calc.constructor.constructViewerPoints(viewer, viewerOpts);
     for ( const viewerPoint of viewerPoints ) {
       calc.viewerPoint = viewerPoint;
-      percent = Math.min(percent, this._percentCover(opts));
-      if ( percent < 0 || percent.almostEqual(0) ) return 0;
+      const percentFromViewpoint = this._percentCover(opts);
+      if ( percentFromViewpoint < percent ) {
+        percent = percentFromViewpoint;
+        if ( percent < 0 || percent.almostEqual(0) ) return 0;
+        minViewerPoint = viewerPoint;
+      }
     }
+
+    // For debugging multiple points, set the viewer point to the minimum point.
+    calc.viewerPoint = minViewerPoint;
     return percent;
   }
 
