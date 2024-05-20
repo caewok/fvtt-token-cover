@@ -155,6 +155,7 @@ Hooks.once("setup", function() {
   initializePatching();
   Settings.registerAll();
   registerElevationConfig("TileConfig", "Alt. Token Cover");
+  if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) CONFIG[MODULE_ID].CoverEffect = CoverFlags;
 });
 
 Hooks.once("ready", function() {
