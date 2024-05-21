@@ -38,6 +38,9 @@
     "tokencover.settings.display-secret-cover.Name": "Display Cover on Secret Tokens",
     "tokencover.settings.display-secret-cover.Hint": "Toggle whether cover icons should be displayed on tokens with secret disposition.",
 
+    "tokencover.settings.only-cover-icons.Name": "Only Use Cover Icons",
+    "tokencover.settings.only-cover-icons.Hint": "When enabled, only cover icons will be displayed; no cover effects will be used. If you system is unsupported, try enabling this.",
+
     "tokencover.settings.cover-chat-message.Name": "Display Cover in Chat",
     "tokencover.settings.cover-chat-message.Hint": "When rolling an attack, display cover types for targets in the chat.",
 

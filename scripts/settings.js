@@ -41,6 +41,8 @@ export const SETTINGS = {
 
   DISPLAY_SECRET_COVER: "display-secret-cover",
 
+  ONLY_COVER_ICONS: "only-cover-icons", // Switches to CoverEffectFlags version that adds cover icons to tokens directly.
+
   COVER_EFFECTS: {
     USE: "use-cover-effects",
     CHOICES: USE_CHOICES,
@@ -195,6 +197,16 @@ export class Settings extends ModuleSettingsAbstract {
         token[MODULE_ID].updateCoverIconDisplay();
         CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
       })
+    });
+
+    register(KEYS.ONLY_COVER_ICONS, {
+      name: localize(`${KEYS.ONLY_COVER_ICONS}.Name`),
+      hint: localize(`${KEYS.ONLY_COVER_ICONS}.Hint`),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: false,
+      requiresReload: true
     });
 
     register(KEYS.DEBUG, {
