@@ -201,7 +201,7 @@ export class CoverCalculator extends AbstractCalculator {
     }
 
     // For debugging multiple points, set the viewer point to the minimum point.
-    calc.viewerPoint = minViewerPoint;
+    if ( minViewerPoint ) calc.viewerPoint = minViewerPoint;
     return percent;
   }
 

@@ -466,7 +466,7 @@ export class CoverEffect {
     const effects = new Set();
     const ID  = FLAGS.COVER_EFFECT;
     const objs = this.coverObjectsMap;
-    for ( const effectDoc of this._effectDocumentsOnToken(token) ) {
+    for ( const effectDoc of this._effectDocumentsOnToken(token).values() ) {
       const id = effectDoc.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.ID];
       const isLocal = effectDoc.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.LOCAL];
       if ( id && isLocal) effects.add(objs.get(id));
