@@ -94,13 +94,6 @@ export class CoverEffectsApp extends Application {
   _initContextMenus() {
     new ContextMenu(this._rootView, ".tokencover-effect", [
       {
-        name: "Edit Cover Effect",
-        icon: '<i class="fas fa-edit fa-fw"></i>',
-        condition: () => game.user.isGM,
-        callback: this._controller.onEditCoverEffect.bind(this._controller)
-      },
-
-      {
         name: "Edit Cover Rules",
         icon: '<i class="fas fa-edit fa-fw"></i>',
         condition: () => game.user.isGM,
