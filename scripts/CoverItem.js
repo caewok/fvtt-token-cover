@@ -139,8 +139,8 @@ export class CoverItem extends CoverEffect {
     if ( !actor ) return false;
 
     // Remove the first instance found. (Should only be one present.)
-    for ( const [key, effect] of actor.effects.entries() ) {
-      if ( effect.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID) === this.id ) {
+    for ( const [key, item] of actor.items.entries() ) {
+      if ( item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID) === this.id ) {
         log(`CoverItem#_removeFromToken|${actor.name} removing ${key} ${this.name}`);
         actor.items.delete(key);
         return true;
@@ -186,7 +186,7 @@ export class CoverItem extends CoverEffect {
 
     // Same for all tokens with cover effects.
     for ( const token of canvas.tokens.placeables ) {
-      if ( !token.actor?.effects ) continue;
+      if ( !token.actor?.items ) continue;
       for ( const item of token.actor.items.values() ) this._transitionDocument(item, promises);
     }
     return Promise.allSettled(promises);
