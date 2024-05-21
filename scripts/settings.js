@@ -47,7 +47,8 @@ export const SETTINGS = {
     USE: "use-cover-effects",
     CHOICES: USE_CHOICES,
     DATA: "cover-effects-data",
-    TARGETING: "cover-effects-targeting"
+    TARGETING: "cover-effects-targeting",
+    RULES: "cover-rules"
   },
 
   COVER_WORKFLOW: {
@@ -506,6 +507,12 @@ export class Settings extends ModuleSettingsAbstract {
     });
 
     register(KEYS.COVER_EFFECTS.DATA, {
+      scope: "world",
+      config: false,
+      default: {}
+    });
+
+    register(KEYS.COVER_EFFECTS.RULES, {
       scope: "world",
       config: false,
       default: {}

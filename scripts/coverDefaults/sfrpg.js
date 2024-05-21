@@ -5,6 +5,7 @@
 
 import { MODULE_ID, ICONS, FLAGS } from "../const.js";
 
+const RULES = FLAGS.COVER_EFFECT.RULES;
 const SYSTEM_ID = "sfrpg";
 const coverEffects = {};
 export const defaultCoverEffects = new Map();
@@ -25,11 +26,11 @@ coverEffects.soft = {
     icon: ICONS.SHIELD_THICK_GRAY.SPLAT,
     flags: {
       [MODULE_ID]: {
-        [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 0.01,
-        [FLAGS.COVER_EFFECT.PRIORITY]: 0,
-        [FLAGS.COVER_EFFECT.CAN_OVERLAP]: true,
-        [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: false,
-        [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: true
+        [RULES.PERCENT_THRESHOLD]: 0.01,
+        [RULES.PRIORITY]: 0,
+        [RULES.CAN_OVERLAP]: true,
+        [RULES.INCLUDE_WALLS]: false,
+        [RULES.INCLUDE_TOKENS]: true
       }
     }
   }
@@ -46,11 +47,11 @@ coverEffects.partial = {
     icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
     flags: {
       [MODULE_ID]: {
-        [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 0.25,
-        [FLAGS.COVER_EFFECT.PRIORITY]: 1,
-        [FLAGS.COVER_EFFECT.CAN_OVERLAP]: false,
-        [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
-        [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: true
+        [RULES.PERCENT_THRESHOLD]: 0.25,
+        [RULES.PRIORITY]: 1,
+        [RULES.CAN_OVERLAP]: false,
+        [RULES.INCLUDE_WALLS]: true,
+        [RULES.INCLUDE_TOKENS]: true
       }
     }
   }
@@ -67,11 +68,11 @@ coverEffects.cover = {
     icon: ICONS.SHIELD_THIN_GRAY.HALF,
     flags: {
       [MODULE_ID]: {
-        [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 0.5,
-        [FLAGS.COVER_EFFECT.PRIORITY]: 2,
-        [FLAGS.COVER_EFFECT.CAN_OVERLAP]: false,
-        [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
-        [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: true
+        [RULES.PERCENT_THRESHOLD]: 0.5,
+        [RULES.PRIORITY]: 2,
+        [RULES.CAN_OVERLAP]: false,
+        [RULES.INCLUDE_WALLS]: true,
+        [RULES.INCLUDE_TOKENS]: true
       }
     }
   }
@@ -87,11 +88,11 @@ coverEffects.improved = {
     icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
     flags: {
       [MODULE_ID]: {
-        [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 0.9,
-        [FLAGS.COVER_EFFECT.PRIORITY]: 3,
-        [FLAGS.COVER_EFFECT.CAN_OVERLAP]: false,
-        [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
-        [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: true
+        [RULES.PERCENT_THRESHOLD]: 0.9,
+        [RULES.PRIORITY]: 3,
+        [RULES.CAN_OVERLAP]: false,
+        [RULES.INCLUDE_WALLS]: true,
+        [RULES.INCLUDE_TOKENS]: true
       }
     }
   }
@@ -107,11 +108,11 @@ coverEffects.total = {
     icon: ICONS.SHIELD_THIN_GRAY.FULL,
     flags: {
       [MODULE_ID]: {
-        [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 1,
-        [FLAGS.COVER_EFFECT.PRIORITY]: 4,
-        [FLAGS.COVER_EFFECT.CAN_OVERLAP]: false,
-        [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
-        [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: true
+        [RULES.PERCENT_THRESHOLD]: 1,
+        [RULES.PRIORITY]: 4,
+        [RULES.CAN_OVERLAP]: false,
+        [RULES.INCLUDE_WALLS]: true,
+        [RULES.INCLUDE_TOKENS]: true
       }
     }
   }

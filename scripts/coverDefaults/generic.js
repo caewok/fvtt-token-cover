@@ -5,6 +5,7 @@
 
 import { MODULE_ID, ICONS, FLAGS } from "../const.js";
 
+const RULES = FLAGS.COVER_EFFECT.RULES;
 const SYSTEM_ID = "generic";
 const coverEffects = {};
 export const defaultCoverEffects = new Map();
@@ -19,11 +20,11 @@ coverEffects.low = {
     icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
     flags: {
       [MODULE_ID]: {
-        [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 0.5,
-        [FLAGS.COVER_EFFECT.PRIORITY]: 1,
-        [FLAGS.COVER_EFFECT.CAN_OVERLAP]: false,
-        [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
-        [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: false
+        [RULES.PERCENT_THRESHOLD]: 0.5,
+        [RULES.PRIORITY]: 1,
+        [RULES.CAN_OVERLAP]: false,
+        [RULES.INCLUDE_WALLS]: true,
+        [RULES.INCLUDE_TOKENS]: false
       }
     }
   }
@@ -37,11 +38,11 @@ coverEffects.medium = {
     icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
     flags: {
       [MODULE_ID]: {
-        [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 0.75,
-        [FLAGS.COVER_EFFECT.PRIORITY]: 2,
-        [FLAGS.COVER_EFFECT.CAN_OVERLAP]: false,
-        [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
-        [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: false
+        [RULES.PERCENT_THRESHOLD]: 0.75,
+        [RULES.PRIORITY]: 2,
+        [RULES.CAN_OVERLAP]: false,
+        [RULES.INCLUDE_WALLS]: true,
+        [RULES.INCLUDE_TOKENS]: false
       }
     }
   }
@@ -55,11 +56,11 @@ coverEffects.high = {
     icon: ICONS.SHIELD_THIN_GRAY.FULL,
     flags: {
       [MODULE_ID]: {
-        [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 1,
-        [FLAGS.COVER_EFFECT.PRIORITY]: 3,
-        [FLAGS.COVER_EFFECT.CAN_OVERLAP]: false,
-        [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
-        [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: false
+        [RULES.PERCENT_THRESHOLD]: 1,
+        [RULES.PRIORITY]: 3,
+        [RULES.CAN_OVERLAP]: false,
+        [RULES.INCLUDE_WALLS]: true,
+        [RULES.INCLUDE_TOKENS]: false
       }
     }
   }

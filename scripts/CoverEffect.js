@@ -85,6 +85,11 @@ export class CoverEffect {
   get defaultCoverObjectData() { return duplicate(this.constructor.defaultCoverObjectData.get(this.id)); }
 
   /**
+   * Get the stored settings data for this effect.
+   */
+  get settingsData() { return Settings.get(Settings.KEY.COVER_EFFECTS.RULES)?.[this.id] ?? {} }
+
+  /**
    * Get the default document data for this effect.
    * @returns {object}
    */
@@ -133,19 +138,19 @@ export class CoverEffect {
   // NOTE: Getters for cover calculation properties ------ //
 
   /** @type {number} */
-  get percentThreshold() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.PERCENT_THRESHOLD] || 0; }
+  get percentThreshold() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.PERCENT_THRESHOLD] || 0; }
 
   /** @type {number} */
-  get priority() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.PRIORITY] || 0; }
+  get priority() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.PRIORITY] || 0; }
 
   /** @type {boolean} */
-  get canOverlap() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.CAN_OVERLAP]; }
+  get canOverlap() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.CAN_OVERLAP]; }
 
   /** @type {boolean} */
-  get includeWalls() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.INCLUDE_WALLS]; }
+  get includeWalls() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.INCLUDE_WALLS]; }
 
   /** @type {boolean} */
-  get includeTokens() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.INCLUDE_TOKENS]; }
+  get includeTokens() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.INCLUDE_TOKENS]; }
 
 
   // ----- NOTE: Calculation methods ----- //
@@ -397,11 +402,11 @@ export class CoverEffect {
         [MODULE_ID]: {
           [FLAGS.COVER_EFFECT.ID]: foundry.utils.randomID(),
           [FLAGS.VERSION]: game.modules.get(MODULE_ID).version,
-          [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 0,
-          [FLAGS.COVER_EFFECT.PRIORITY]: 0,
-          [FLAGS.COVER_EFFECT.OVERLAPS]: false,
-          [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
-          [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: false
+          [FLAGS.COVER_EFFECT.RULES.PERCENT_THRESHOLD]: 0,
+          [FLAGS.COVER_EFFECT.RULES.PRIORITY]: 0,
+          [FLAGS.COVER_EFFECT.RULES.OVERLAPS]: false,
+          [FLAGS.COVER_EFFECT.RULES.INCLUDE_WALLS]: true,
+          [FLAGS.COVER_EFFECT.RULES.INCLUDE_TOKENS]: false
         }
       }
     }

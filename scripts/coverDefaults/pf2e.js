@@ -5,6 +5,7 @@
 
 import { MODULE_ID, ICONS, FLAGS } from "../const.js";
 
+const RULES = FLAGS.COVER_EFFECT.RULES;
 const SYSTEM_ID = "pf2e";
 const coverEffects = {};
 export const defaultCoverEffects = new Map();
@@ -34,11 +35,11 @@ coverEffects.lesser = {
     icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
     flags: {
       [MODULE_ID]: {
-        [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 0.25,
-        [FLAGS.COVER_EFFECT.PRIORITY]: 1,
-        [FLAGS.COVER_EFFECT.CAN_OVERLAP]: false,
-        [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: false,
-        [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: true
+        [RULES.PERCENT_THRESHOLD]: 0.25,
+        [RULES.PRIORITY]: 1,
+        [RULES.CAN_OVERLAP]: false,
+        [RULES.INCLUDE_WALLS]: false,
+        [RULES.INCLUDE_TOKENS]: true
       }
     }
   }
@@ -53,11 +54,11 @@ coverEffects.standard = {
     icon: ICONS.SHIELD_THIN_GRAY.HALF,
     flags: {
       [MODULE_ID]: {
-        [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 0.5,
-        [FLAGS.COVER_EFFECT.PRIORITY]: 2,
-        [FLAGS.COVER_EFFECT.CAN_OVERLAP]: false,
-        [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
-        [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: false
+        [RULES.PERCENT_THRESHOLD]: 0.5,
+        [RULES.PRIORITY]: 2,
+        [RULES.CAN_OVERLAP]: false,
+        [RULES.INCLUDE_WALLS]: true,
+        [RULES.INCLUDE_TOKENS]: false
       }
     }
   }
@@ -73,11 +74,11 @@ coverEffects.greater = {
     icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
     flags: {
       [MODULE_ID]: {
-        [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 1,
-        [FLAGS.COVER_EFFECT.PRIORITY]: 0,
-        [FLAGS.COVER_EFFECT.CAN_OVERLAP]: false,
-        [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
-        [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: false
+        [RULES.PERCENT_THRESHOLD]: 1,
+        [RULES.PRIORITY]: 0,
+        [RULES.CAN_OVERLAP]: false,
+        [RULES.INCLUDE_WALLS]: true,
+        [RULES.INCLUDE_TOKENS]: false
       }
     }
   }

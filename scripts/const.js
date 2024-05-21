@@ -45,40 +45,44 @@ export const FLAGS = {
     ITEM: "coverEffectItem",
 
     /**
-     * Cover effect applies when cover equals or exceeds this threshold.
-     * @type {number}
-     */
-    PERCENT_THRESHOLD: "percentThreshold",
-
-    /**
-     * Cover effect priority, when multiple covers apply.
-     * @type {number}
-     */
-    PRIORITY: "priority",
-
-    /**
-     * Cover effect can overlap with another.
-     * @type {boolean}
-     */
-    CAN_OVERLAP: "canOverlap",
-
-    /**
-     * Cover effect includes walls in the cover calculation.
-     * @type {boolean}
-     */
-    INCLUDE_WALLS: "includeWalls",
-
-    /**
-     * Cover effect includes tokens in the cover calculation.
-     * @type {boolean}
-     */
-    INCLUDE_TOKENS: "includeTokens",
-
-    /**
      * Cover effect has been applied locally.
      * @param {boolean}
      */
-    LOCAL: "coverEffectLocal"
+    LOCAL: "coverEffectLocal",
+
+    // Rules that define how cover is applied.
+    RULES: {
+
+      /**
+       * Cover effect applies when cover equals or exceeds this threshold.
+       * @type {number}
+       */
+      PERCENT_THRESHOLD: "percentThreshold",
+
+      /**
+       * Cover effect priority, when multiple covers apply.
+       * @type {number}
+       */
+      PRIORITY: "priority",
+
+      /**
+       * Cover effect can overlap with another.
+       * @type {boolean}
+       */
+      CAN_OVERLAP: "canOverlap",
+
+      /**
+       * Cover effect includes walls in the cover calculation.
+       * @type {boolean}
+       */
+      INCLUDE_WALLS: "includeWalls",
+
+      /**
+       * Cover effect includes tokens in the cover calculation.
+       * @type {boolean}
+       */
+      INCLUDE_TOKENS: "includeTokens",
+    }
   },
 
   /**
