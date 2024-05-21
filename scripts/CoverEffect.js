@@ -87,7 +87,7 @@ export class CoverEffect {
   /**
    * Get the stored settings data for this effect.
    */
-  get settingsData() { return Settings.get(Settings.KEY.COVER_EFFECTS.RULES)?.[this.id] ?? {} }
+  get settingsData() { return Settings.get(Settings.KEYS.COVER_EFFECTS.RULES)?.[this.id] ?? {} }
 
   /**
    * Get the default document data for this effect.
@@ -97,6 +97,7 @@ export class CoverEffect {
     const template = this.constructor.newCoverObjectData;
     const data = this.defaultCoverObjectData;
     const doc = foundry.utils.mergeObject(template, data.document, { inplace: false });
+    foundry.utils.mergeObject(doc, this.settingsData, { inplace: true });
     doc.name = game.i18n.localize(data.name);
     doc.flags[MODULE_ID][FLAGS.COVER_EFFECT.ID] = data.id;
     return doc;
@@ -340,6 +341,14 @@ export class CoverEffect {
    * Render the cover effect configuration window.
    */
   async renderConfig() { return this.document.sheet.render(true); }
+
+  /**
+   * Render the cover effect rules configuration window.
+   */
+  async renderRulesConfig() {
+    this.rulesConfig ??=  new CoverRulesConfig(this.document);
+    return this.rulesConfig.render(true);
+  }
 
   // ----- NOTE: Static getter, setters, related properties ----- //
 

@@ -1,25 +1,21 @@
 /* globals
 CONST,
-flattenObject
+flattenObject,
+foundry,
+game,
+isEmpty,
+saveDataToFile
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
-import { CoverActiveEffect } from "./CoverActiveEffect.js";
+import { MODULE_ID, FLAGS } from "./const.js";
+import { CoverEffect } from "./CoverEffect.js";
 import { Settings } from "./settings.js";
+import { CoverRulesConfig } from "./CoverRulesConfig.js";
 
-export class CoverFlags extends CoverActiveEffect {
-  /**
-   * Get data used to construct a local cover effect document.
-   * For CoverFlag, this strips down to just the flags.
-   * @type {object}
-   */
-  get localDocumentData() {
-    const { flags } = super.localDocumentData;
-    return { flags };
-  }
-
+export class CoverFlags extends CoverEffect {
+  // ----- NOTE: Token/Actor methods ----- //
 
   /**
    * Internal method to add this cover icon to the token locally.
@@ -65,6 +61,91 @@ export class CoverFlags extends CoverActiveEffect {
     return true;
   }
 
+  // ----- NOTE: Document Methods ----- //
+
+  /**
+   * Get data used to construct a local cover effect document.
+   * For CoverFlag, this strips down to just the flags.
+   * @type {object}
+   */
+  get localDocumentData() {
+    const { flags } = super.localDocumentData;
+    return { flags };
+  }
+
+  /**
+   * Find an existing local document to use for the storage.
+   * For cover flags, this is an object with flags defined by
+   * the stored setting.
+   * @returns {Document|object|undefined}
+   */
+  _findStorageDocument() {
+    return this.defaultDocumentData ?? this.constructor.newCoverObjectData;
+  }
+
+  /**
+   * Load an async document to use for storage.
+   * Async allows us to pull from compendiums or otherwise construct a default.
+   * @returns {Document|object|undefined}
+   */
+  async _loadStorageDocument() { return this._findStorageDocument(); }
+
+  /**
+   * Create a storage document from scratch.
+   * @returns {Document|object}
+   */
+  async _createStorageDocument() { return this._findStorageDocument(); }
+
+  /**
+   * Delete the underlying stored document.
+   */
+  async _deleteStorageDocument() {
+    const allData = Settings.get(Settings.KEY.COVER_EFFECTS.RULES) ?? {};
+    delete allData[this.id];
+    return Settings.set(Settings.KEY.COVER_EFFECTS.RULES, allData);
+  }
+
+  /**
+   * Update this object with the given data.
+   * @param {object} [config={}]
+   */
+  async update(config = {}) {
+    await super.update(config);
+
+    const modFlags = config?.flags?.[MODULE_ID];
+    if ( !modFlags ) return;
+    const ceId = modFlags[FLAGS.COVER_EFFECT.ID];
+    if ( !ceId || !modFlags[FLAGS.COVER_EFFECT.LOCAL] ) return;
+
+    const modFlagSet = new Set(Object.keys(modFlags));
+    const newSettings = {};
+    for( const flag in FLAGS.COVER_EFFECT.RULES ) {
+      if ( !modFlagSet.has(flag) ) continue;
+      newSettings[flag] = modFlags[flag];
+    }
+    if ( isEmpty(newSettings) ) return;
+    const prevSettings = Settings.get(Settings.KEYS.COVER_EFFECTS.RULES) ?? {};
+    foundry.utils.mergeObject(prevSettings, newSettings, { inplace: true });
+    return Settings.set(Settings.KEYS.COVER_EFFECTS.RULES, prevSettings); // Async
+  }
+
+  /**
+   * Render the cover effect configuration window.
+   */
+  async renderConfig() {
+    ui.notifications.notify("Editing Cover Effect not applicable when 'display cover icons only' setting is enabled. Try right-clicking and selecting 'Edit Cover Rules' instead.");
+  }
+
+  /**
+   * Render the cover effect rules configuration window.
+   */
+  async renderRulesConfig() {
+    this.rulesConfig ??=  new CoverFlagRulesConfig(this.document);
+    return this.rulesConfig.render(true);
+  }
+
+  // ----- NOTE: Static token methods ----- //
+
   /**
    * Get all documents for a give token/actor that could contain a cover effect.
    * Each document should be an object that has a "flags" property.
@@ -75,6 +156,46 @@ export class CoverFlags extends CoverActiveEffect {
     const m = new Map();
     m.set(token.id, token.document);
     return m;
+  }
+
+  // ----- NOTE: Static document methods ----- //
+
+  /**
+   * Save a json file for this cover object.
+   */
+  exportToJSON() {
+    const filename = `${MODULE_ID}_CoverFlag_${this.id}`;
+    const data = this.toJSON();
+    data.flags.exportSource = {
+      world: game.world.id,
+      system: game.system.id,
+      coreVersion: game.version,
+      systemVersion: game.system.version,
+      [`${MODULE_ID}Version`]: game.modules.get(MODULE_ID).version
+    };
+    saveDataToFile(JSON.stringify(data, null, 2), "text/json", `${filename}.json`);
+  }
+
+  /**
+   * Export this cover type data to JSON.
+   * @returns {object}
+   */
+  toJSON() { return this.document; }
+
+  /**
+   * Transition all cover documents in a scene, when updating versions.
+   */
+  static async transitionDocuments() {
+    return;
+  }
+
+  /**
+   * Refresh the display of the cover effect on the token.
+   * Add refresh of the token icons.
+   * @param {Token} token
+   */
+  static refreshCoverDisplay(token) {
+    token.renderFlags.set({ redrawEffects: true });
   }
 
 }
@@ -98,4 +219,54 @@ export class CoverFlagsDND5E extends CoverFlags {
     if ( ignoresCover && ignoresCover >= this.document.percentThreshold ) return false;
     return super._couldApply(attackingToken, targetToken);
   }
+}
+
+
+/**
+ * Separate config that works with the CoverFlag, which doesn't have a document sheet.
+ */
+export class CoverFlagRulesConfig extends FormApplication  {
+  /**
+   * Set the default size and other basic options for the form.
+   */
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      template: `modules/${MODULE_ID}/templates/cover-rules-config.html`,
+      height: "auto",
+      title: game.i18n.localize(`${MODULE_ID}.cover-rules-config.title`),
+      width: 500,
+      classes: [MODULE_ID, "settings"],
+      submitOnClose: true,
+      closeOnSubmit: true
+    });
+  }
+
+  /**
+   * Data is the cover flag document.
+   */
+  getData(options = {}) {
+    return {
+      isGM: game.user.isGM,
+      object: this.object
+    }
+  }
+
+  /**
+   * This method is called upon form submission after form data is validated
+   * @param {Event} event       The initial triggering submission event
+   * @param {object} formData   The object of validated form data with which to update the object
+   * @returns {Promise}         A Promise which resolves once the update operation has completed
+   * @abstract
+   */
+  async _updateObject(event, formData) {
+    const newFlags = expandObject(formData)
+    foundry.utils.mergeObject(this.object, newFlags, { inplace: true });
+
+    // Update the settings.
+    const id = this.object.flags[MODULE_ID].coverEffectId;
+    const prevSettings = Settings.get(Settings.KEYS.COVER_EFFECTS.RULES) ?? {};
+    prevSettings[id] = newFlags.flags[MODULE_ID];
+    return Settings.set(Settings.KEYS.COVER_EFFECTS.RULES, prevSettings); // Async
+  }
+
 }
