@@ -168,6 +168,8 @@
     "tokencover.tokenconfig.maximum-cover.name": "Maximum Cover",
     "tokencover.tokenconfig.maximum-cover.hint": "Maximum cover provided by this token. Example: A swarm of bees might only provide half cover. A ghost may provide no cover. Does nothing if tokens do not grant cover (see module settings).",
 
+    "tokencover.cover-rules-config.title": "Alt. Token Cover: Cover Rules",
+
     "tokencover.cover-effects-menu.listCoverTypes": "List Cover Types (Advanced Edit)",
 
     "tokencover.active-effect-config.coverType.name": "Cover Types",
@@ -182,6 +184,8 @@
     "tokencover.cover-types-list-config.import": "Import Cover Types",
     "tokencover.cover-types-list-config.export": "Export Cover Types",
     "tokencover.cover-types-list-config.reset": "Reset to Defaults",
+
+    "tokencover.phrases.coverRules": "Cover Rules",
 
     "tokencover.phrases.xCoverEffect": "{cover} Cover Effect",
     "tokencover.phrases.xCoverType": "{cover} Cover Type",

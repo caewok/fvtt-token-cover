@@ -101,6 +101,13 @@ export class CoverEffectsApp extends Application {
       },
 
       {
+        name: "Edit Cover Rules",
+        icon: '<i class="fas fa-edit fa-fw"></i>',
+        condition: () => game.user.isGM,
+        callback: this._controller.onEditCoverRules.bind(this._controller)
+      },
+
+      {
         name: "Duplicate",
         icon: '<i class="far fa-copy fa-fw"></i>',
         condition: () => game.user.isGM,

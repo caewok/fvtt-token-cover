@@ -175,6 +175,47 @@ export class CoverItem extends CoverEffect {
     if ( !actor ) return new Map();
     return actor.items;
   }
+
+  /**
+   * Transition all cover documents in a scene, when updating versions.
+   */
+  static async transitionDocuments() {
+    // Transition each cover item.
+    const promises = [];
+    for ( const coverEffect of this.coverObjectsMap.values() ) this._transitionDocument(coverEffect.document, promises)
+
+    // Same for all tokens with cover effects.
+    for ( const token of canvas.tokens.placeables ) {
+      if ( !token.actor?.effects ) continue;
+      for ( const item of token.actor.items.values() ) this._transitionDocument(item, promises);
+    }
+    return Promise.allSettled(promises);
+
+  }
+
+  /**
+   * Transition a single cover document.
+   * @param {ActiveEffect} ae         The active effect document to update
+   * @param {Promise<>[]} promises    Array to store promises to update the document
+   */
+  static _transitionDocument(item, promises = []) {
+    const moduleVersion = game.modules.get(MODULE_ID).version;
+    const id = item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID);
+    if ( !id ) return;
+    const coverEffect = this.coverObjectsMap.get(id);
+    if ( !coverEffect ) return;
+
+    // Only update if the saved version is older than current module version.
+    const savedVersion = item.getFlag(MODULE_ID, FLAGS.VERSION);
+    if ( savedVersion && !isNewerVersion(moduleVersion, savedVersion) ) return;
+
+    // Update the default document data fields.
+    const updateData = foundry.utils.mergeObject(
+      coverEffect.defaultDocumentData,
+      coverEffect.documentData,
+      { insertKeys: false, insertValues: false, inplace: false });
+    promises.push(item.update(updateData));
+  }
 }
 
 /**
