@@ -7,7 +7,7 @@ isEmpty
 "use strict";
 
 import { FLAGS, MODULE_ID } from "./const.js";
-import { Settings } from "./settings.js";
+// import { Settings } from "./settings.js";
 
 // Patches for the ActiveEffect class
 export const PATCHES = {};

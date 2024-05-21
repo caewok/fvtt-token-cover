@@ -13,7 +13,7 @@ import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
-import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
+import { POINT_TYPES } from "./LOS/AlternativeLOS.js";
 
 const USE_CHOICES = {
   NEVER: "never",
@@ -60,7 +60,7 @@ export const SETTINGS = {
   },
 
   // Taken from Alt. Token Visibility
-  POINT_TYPES: AlternativeLOS.POINT_TYPES,
+  POINT_TYPES,
 
   LOS: {
     VIEWER: {
