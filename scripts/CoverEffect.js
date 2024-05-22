@@ -2,6 +2,7 @@
 Application,
 duplicate,
 foundry,
+isEmpty,
 game,
 saveDataToFile
 */
@@ -12,6 +13,7 @@ import { Settings } from "./settings.js";
 import { MODULE_ID, ICONS, FLAGS } from "./const.js";
 import { log } from "./util.js";
 import { AsyncQueue } from "./AsyncQueue.js";
+import { CoverRulesConfig } from "./CoverRulesConfig.js";
 
 import { defaultCoverEffects as dnd5eCoverEffects } from "./coverDefaults/dnd5e.js";
 import { defaultCoverEffects as pf2eCoverEffects } from "./coverDefaults/pf2e.js";
@@ -85,6 +87,11 @@ export class CoverEffect {
   get defaultCoverObjectData() { return duplicate(this.constructor.defaultCoverObjectData.get(this.id)); }
 
   /**
+   * Get the stored settings data for this effect.
+   */
+  get savedCoverRules() { return Settings.get(Settings.KEYS.COVER_EFFECTS.RULES)?.[this.id] ?? {} }
+
+  /**
    * Get the default document data for this effect.
    * @returns {object}
    */
@@ -92,9 +99,24 @@ export class CoverEffect {
     const template = this.constructor.newCoverObjectData;
     const data = this.defaultCoverObjectData;
     const doc = foundry.utils.mergeObject(template, data.document, { inplace: false });
+    foundry.utils.mergeObject(doc.flags[MODULE_ID], this.savedCoverRules, { inplace: true });
     doc.name = game.i18n.localize(data.name);
     doc.flags[MODULE_ID][FLAGS.COVER_EFFECT.ID] = data.id;
     return doc;
+  }
+
+  /**
+   * Get the default cover rules for this effect.
+   * @returns {object}
+   */
+  get defaultCoverRules() {
+    const flags = this.defaultDocumentData?.flags?.[MODULE_ID];
+    if ( !flags ) return {};
+
+    // Pull only the rules values.
+    const rules = {};
+    for ( const key of Object.values(FLAGS.COVER_EFFECT.RULES) ) rules[key] = flags[key];
+    return rules;
   }
 
   /**
@@ -133,19 +155,19 @@ export class CoverEffect {
   // NOTE: Getters for cover calculation properties ------ //
 
   /** @type {number} */
-  get percentThreshold() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.PERCENT_THRESHOLD] || 0; }
+  get percentThreshold() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.PERCENT_THRESHOLD] || 0; }
 
   /** @type {number} */
-  get priority() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.PRIORITY] || 0; }
+  get priority() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.PRIORITY] || 0; }
 
   /** @type {boolean} */
-  get canOverlap() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.CAN_OVERLAP]; }
+  get canOverlap() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.CAN_OVERLAP]; }
 
   /** @type {boolean} */
-  get includeWalls() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.INCLUDE_WALLS]; }
+  get includeWalls() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.INCLUDE_WALLS]; }
 
   /** @type {boolean} */
-  get includeTokens() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.INCLUDE_TOKENS]; }
+  get includeTokens() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.INCLUDE_TOKENS]; }
 
 
   // ----- NOTE: Calculation methods ----- //
@@ -271,17 +293,7 @@ export class CoverEffect {
    */
   async update(config = {}) {
     foundry.utils.mergeObject(this.document, config);
-  }
-
-  /**
-   * Revert this object to default data based on its id.
-   */
-  async revertToDefaultData() {
-    // Delete and recreate the document entirely.
-    // Updating is too unreliable given different system reqs for docs.
-    await this._deleteStorageDocument();
-    await this.loadStorageDocument();
-    if ( !this.document ) await this.createStorageDocument();
+    return this.updateCoverRuleSettings(config?.flags?.[MODULE_ID]);
   }
 
   /**
@@ -335,6 +347,35 @@ export class CoverEffect {
    * Render the cover effect configuration window.
    */
   async renderConfig() { return this.document.sheet.render(true); }
+
+  /**
+   * Render the cover effect rules configuration window.
+   */
+  async renderRulesConfig() {
+    this.rulesConfig ??=  new CoverRulesConfig(this.document);
+    return this.rulesConfig.render(true);
+  }
+
+  /**
+   * Update the cover rules stored in settings for this effect.
+   * @param {object} newCoverRuleFlags   Object with keys from FLAGS.COVER.EFFECT.RULES
+   */
+  async updateCoverRuleSettings(newCoverRuleFlags = {}) {
+    if ( isEmpty(newCoverRuleFlags) ) return;
+
+    // Get prior data
+    const prevSettings = Settings.get(Settings.KEYS.COVER_EFFECTS.RULES) ?? {};
+    const prevRules = prevSettings[this.id] ?? {};
+    const defaultRules = this.defaultCoverRules;
+
+    // Update with the new rule, old settings rule, or default settings rule.
+    const newRules = {};
+    for ( const key of Object.values(FLAGS.COVER_EFFECT.RULES) ) newRules[key] = newCoverRuleFlags[key] ?? prevRules[key] ?? defaultRules[key];
+    prevSettings[this.id] = newRules;
+
+    // Update the setting.
+    return Settings.set(Settings.KEYS.COVER_EFFECTS.RULES, prevSettings); // Async
+  }
 
   // ----- NOTE: Static getter, setters, related properties ----- //
 
@@ -397,11 +438,11 @@ export class CoverEffect {
         [MODULE_ID]: {
           [FLAGS.COVER_EFFECT.ID]: foundry.utils.randomID(),
           [FLAGS.VERSION]: game.modules.get(MODULE_ID).version,
-          [FLAGS.COVER_EFFECT.PERCENT_THRESHOLD]: 0,
-          [FLAGS.COVER_EFFECT.PRIORITY]: 0,
-          [FLAGS.COVER_EFFECT.OVERLAPS]: false,
-          [FLAGS.COVER_EFFECT.INCLUDE_WALLS]: true,
-          [FLAGS.COVER_EFFECT.INCLUDE_TOKENS]: false
+          [FLAGS.COVER_EFFECT.RULES.PERCENT_THRESHOLD]: 0,
+          [FLAGS.COVER_EFFECT.RULES.PRIORITY]: 0,
+          [FLAGS.COVER_EFFECT.RULES.OVERLAPS]: false,
+          [FLAGS.COVER_EFFECT.RULES.INCLUDE_WALLS]: true,
+          [FLAGS.COVER_EFFECT.RULES.INCLUDE_TOKENS]: false
         }
       }
     }
@@ -453,7 +494,6 @@ export class CoverEffect {
    */
   static allCoverOnToken(token) {
     const effects = new Set();
-    const ID  = FLAGS.COVER_EFFECT;
     const objs = this.coverObjectsMap;
     for ( const effectDoc of this._effectDocumentsOnToken(token) ) {
       const id = effectDoc.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.ID];
@@ -464,7 +504,6 @@ export class CoverEffect {
 
   static allLocalCoverOnToken(token) {
     const effects = new Set();
-    const ID  = FLAGS.COVER_EFFECT;
     const objs = this.coverObjectsMap;
     for ( const effectDoc of this._effectDocumentsOnToken(token).values() ) {
       const id = effectDoc.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.ID];
@@ -503,6 +542,8 @@ export class CoverEffect {
    * @param {Token} token
    */
   static refreshCoverDisplay(token) {
+    token.renderFlags.set({ redrawEffects: true });
+
     const actor = token.actor;
     if ( !actor ) return;
     log(`CoverEffect#refreshCoverDisplay|${actor.name}`);
@@ -584,11 +625,12 @@ export class CoverEffect {
   }
 
   /**
-   * Reset to the defaults for this cover object type.
+   * Reset to the defaults for this cover object.
    */
   static async resetToDefaults() {
     await this._deleteAllDocuments();
     await this.removeAllStoredCoverObjectIds();
+    await Settings.set(Settings.KEYS.COVER_EFFECTS.RULES, {});
     this.coverObjectsMap.clear();
     return this.initialize();
   }

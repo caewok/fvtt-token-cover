@@ -13,7 +13,7 @@ import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
-import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
+import { POINT_TYPES } from "./LOS/AlternativeLOS.js";
 
 const USE_CHOICES = {
   NEVER: "never",
@@ -47,7 +47,8 @@ export const SETTINGS = {
     USE: "use-cover-effects",
     CHOICES: USE_CHOICES,
     DATA: "cover-effects-data",
-    TARGETING: "cover-effects-targeting"
+    TARGETING: "cover-effects-targeting",
+    RULES: "cover-rules"
   },
 
   COVER_WORKFLOW: {
@@ -59,7 +60,7 @@ export const SETTINGS = {
   },
 
   // Taken from Alt. Token Visibility
-  POINT_TYPES: AlternativeLOS.POINT_TYPES,
+  POINT_TYPES,
 
   LOS: {
     VIEWER: {
@@ -506,6 +507,12 @@ export class Settings extends ModuleSettingsAbstract {
     });
 
     register(KEYS.COVER_EFFECTS.DATA, {
+      scope: "world",
+      config: false,
+      default: {}
+    });
+
+    register(KEYS.COVER_EFFECTS.RULES, {
       scope: "world",
       config: false,
       default: {}

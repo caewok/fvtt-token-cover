@@ -37,6 +37,17 @@ import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
 
 const NULL_SET = new Set(); // Set intended to signify no items, as a placeholder.
 
+export const POINT_TYPES = {
+  CENTER: "points-center",
+  TWO: "points-two",
+  THREE: "points-three", //
+  FOUR: "points-four", // Five without center
+  FIVE: "points-five", // Corners + center
+  EIGHT: "points-eight", // Nine without center
+  NINE: "points-nine" // Corners, midpoints, center
+}
+
+
 /**
  * Base class to estimate line-of-sight between a source and a token using different methods.
  * The expectation is that the class will be initialized with a viewer token and target token,
@@ -642,15 +653,7 @@ export class AlternativeLOS {
   }
 
   // ----- NOTE: Static methods ----- //
-  static POINT_TYPES = {
-    CENTER: "points-center",
-    TWO: "points-two",
-    THREE: "points-three", //
-    FOUR: "points-four", // Five without center
-    FIVE: "points-five", // Corners + center
-    EIGHT: "points-eight", // Nine without center
-    NINE: "points-nine" // Corners, midpoints, center
-  };
+  static POINT_TYPES = POINT_TYPES;
 
   static constructViewerPoints(viewer, opts = {}) {
     opts.pointAlgorithm ??= this.POINT_TYPES.CENTER;

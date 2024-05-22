@@ -84,8 +84,7 @@ export class CoverEffectsController {
     log("CoverEffectsController|onEditCoverEffect");
     const ce = coverEffectForListItem(effectItem);
     if ( !ce ) return;
-    const config = new CoverRulesConfig(ce.document);
-    config.render(true);
+    ce.renderRulesConfig();
   }
 
   /**

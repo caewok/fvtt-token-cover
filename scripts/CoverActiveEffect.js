@@ -345,16 +345,6 @@ export class CoverActiveEffect extends CoverEffect {
       { insertKeys: false, insertValues: false, inplace: false });
     promises.push(ae.update(updateData));
   }
-
-  /**
-   * Refresh the display of the cover effect on the token.
-   * Add refresh of the token icons.
-   * @param {Token} token
-   */
-  static refreshCoverDisplay(token) {
-    CoverEffect.refreshCoverDisplay(token);
-    token.renderFlags.set({ redrawEffects: true });
-  }
 }
 
 /**

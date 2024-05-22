@@ -2,6 +2,7 @@
 Actor,
 canvas,
 ChatMessage,
+CONFIG,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -66,6 +67,22 @@ function createItem(document, _options, _userId) {
 }
 
 /**
+ * When updating an item, store the changed cover rule flags in cover flag settings.
+ * @param {Document} document                       The existing Document which was updated
+ * @param {object} change                           Differential data that was used to update the document
+ * @param {DocumentModificationContext} options     Additional options which modified the update request
+ * @param {string} userId                           The ID of the User who triggered the update workflow
+ */
+function updateItem(document, change, _options, _userId) {
+  const modFlags = change?.flags?.[MODULE_ID];
+  const id = modFlags?.[FLAGS.COVER_EFFECT.ID];
+  if ( !id ) return;
+  const ce = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.get(id);
+  if ( !ce ) return;
+  ce.updateCoverRuleSettings(modFlags); // Async
+}
+
+/**
  * When adding an active effect, check for overriding effect.
  * @param {Document} document                       The new Document instance which has been created
  * @param {DocumentModificationContext} options     Additional options which modified the creation request
@@ -82,4 +99,4 @@ function deleteItem(document, _options, _userId) {
   token.tokencover.updateCover();
 }
 
-PATCHES.BASIC.HOOKS = { createItem, deleteItem };
+PATCHES.BASIC.HOOKS = { createItem, updateItem, deleteItem };
