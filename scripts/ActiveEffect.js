@@ -1,7 +1,6 @@
 /* globals
 Actor,
-foundry,
-isEmpty
+CONFIG
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -41,20 +40,11 @@ function createActiveEffect(document, _options, _userId) {
  */
 function updateActiveEffect(document, change, _options, _userId) {
   const modFlags = change?.flags?.[MODULE_ID];
-  if ( !modFlags ) return;
-  const ceId = modFlags[FLAGS.COVER_EFFECT.ID];
-  if ( !ceId || !modFlags[FLAGS.COVER_EFFECT.LOCAL] ) return;
-
-  const modFlagSet = new Set(Object.keys(modFlags));
-  const newSettings = {};
-  for( const flag in FLAGS.COVER_EFFECT.RULES ) {
-    if ( !modFlagSet.has(flag) ) continue;
-    newSettings[flag] = modFlags[flag];
-  }
-  if ( isEmpty(newSettings) ) return;
-  const prevSettings = Settings.get(Settings.KEYS.COVER_EFFECTS.RULES) ?? {};
-  foundry.utils.mergeObject(prevSettings, newSettings, { inplace: true });
-  Settings.set(Settings.KEYS.COVER_EFFECTS.RULES, prevSettings); // Async
+  const id = modFlags?.[FLAGS.COVER_EFFECT.ID];
+  if ( !id ) return;
+  const ce = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.get(id);
+  if ( !ce ) return;
+  ce.updateCoverRuleSettings(modFlags); // Async
 }
 
 /**

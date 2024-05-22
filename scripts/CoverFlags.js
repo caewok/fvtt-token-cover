@@ -1,18 +1,20 @@
 /* globals
+CONFIG,
 CONST,
+expandObject,
 flattenObject,
+FormApplication,
 foundry,
 game,
-isEmpty,
-saveDataToFile
+saveDataToFile,
+ui
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS } from "./const.js";
+import { MODULE_ID } from "./const.js";
 import { CoverEffect } from "./CoverEffect.js";
 import { Settings } from "./settings.js";
-import { CoverRulesConfig } from "./CoverRulesConfig.js";
 
 export class CoverFlags extends CoverEffect {
   // ----- NOTE: Token/Actor methods ----- //
@@ -106,30 +108,6 @@ export class CoverFlags extends CoverEffect {
   }
 
   /**
-   * Update this object with the given data.
-   * @param {object} [config={}]
-   */
-  async update(config = {}) {
-    await super.update(config);
-
-    const modFlags = config?.flags?.[MODULE_ID];
-    if ( !modFlags ) return;
-    const ceId = modFlags[FLAGS.COVER_EFFECT.ID];
-    if ( !ceId || !modFlags[FLAGS.COVER_EFFECT.LOCAL] ) return;
-
-    const modFlagSet = new Set(Object.keys(modFlags));
-    const newSettings = {};
-    for( const flag in FLAGS.COVER_EFFECT.RULES ) {
-      if ( !modFlagSet.has(flag) ) continue;
-      newSettings[flag] = modFlags[flag];
-    }
-    if ( isEmpty(newSettings) ) return;
-    const prevSettings = Settings.get(Settings.KEYS.COVER_EFFECTS.RULES) ?? {};
-    foundry.utils.mergeObject(prevSettings, newSettings, { inplace: true });
-    return Settings.set(Settings.KEYS.COVER_EFFECTS.RULES, prevSettings); // Async
-  }
-
-  /**
    * Render the cover effect configuration window.
    */
   async renderConfig() {
@@ -191,10 +169,10 @@ export class CoverFlags extends CoverEffect {
 
   /**
    * Refresh the display of the cover effect on the token.
-   * Add refresh of the token icons.
    * @param {Token} token
    */
   static refreshCoverDisplay(token) {
+    // Drop refreshing the actor sheet as there is none for cover flags.
     token.renderFlags.set({ redrawEffects: true });
   }
 
@@ -244,7 +222,7 @@ export class CoverFlagRulesConfig extends FormApplication  {
   /**
    * Data is the cover flag document.
    */
-  getData(options = {}) {
+  getData(_options = {}) {
     return {
       isGM: game.user.isGM,
       object: this.object
@@ -259,14 +237,15 @@ export class CoverFlagRulesConfig extends FormApplication  {
    * @abstract
    */
   async _updateObject(event, formData) {
-    const newFlags = expandObject(formData)
-    foundry.utils.mergeObject(this.object, newFlags, { inplace: true });
+    const newFlags = expandObject(formData)?.flags?.[MODULE_ID];
+    if ( !newFlags ) return;
+    foundry.utils.mergeObject(this.object.flags[MODULE_ID], newFlags, { inplace: true });
 
     // Update the settings.
     const id = this.object.flags[MODULE_ID].coverEffectId;
-    const prevSettings = Settings.get(Settings.KEYS.COVER_EFFECTS.RULES) ?? {};
-    prevSettings[id] = newFlags.flags[MODULE_ID];
-    return Settings.set(Settings.KEYS.COVER_EFFECTS.RULES, prevSettings); // Async
-  }
+    const ce = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.get(id);
+    if ( !ce ) return;
+    return ce.updateCoverRuleSettings(newFlags); // Async
+   }
 
 }
