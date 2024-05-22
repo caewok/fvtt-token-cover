@@ -1,3 +1,12 @@
+## 0.8.0
+Consolidated "Cover Type" and "Cover Effect" into simply "Cover Effect." A Cover Effect is an item or active effect that represents a type of cover. The rules previously in Cover Type are now flags on the Cover Effect. In some systems, the GM can edit these rules directly from the Active Effect config window. Otherwise, in the Cover Book, right-click on a Cover Effect and select "Edit Cover Rules." (Because I cannot override config templates for every system.)
+
+All settings are now controlled by the GM.
+
+Added a toggle to "Only Use Cover Icons." This will disable application of all cover effect items or active effects. Instead, flags are used to track cover on each token and only the token status icons are changed. This allows cover icons to work in systems (like PF2e) where application of items/active effects is unsupported.
+
+When debugging cover with multiple view points, the debug should now display cover from the "best" point from point of view of the attacker. (Before, why the point was chosen was not easily discernable.)
+
 ## 0.7.5
 Bug fixes. Avoid error if destroyed token does not have geometry data to destroy. Remove call to `_coverAlgorithmChanged`, which does not exist anymore. Remove statuses before applying cover effects to avoid duplication with the cover type icons. Fix module settings appearing in multiple tabs for the active effect config.
 
