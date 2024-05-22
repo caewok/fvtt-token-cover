@@ -2,6 +2,13 @@
     "tokencover.name": "Alt. Token Cover",
     "tokencover.nameAbbr": "ATC",
 
+    "tokencover.cover-effect.percent-threshold.Name": "Percent threshold",
+    "tokencover.cover-effect.can-overlap.Name": "Can overlap",
+    "tokencover.cover-effect.include-walls.Name": "Walls block",
+    "tokencover.cover-effect.include-tokens.Name": "Tokens block",
+    "tokencover.cover-effect.priority.Name": "Priority",
+    "tokencover.cover-effect.priority.Hint": "Larger priorities are tested first. Set priority to '0' to ignore.",
+
     "tokencover.settings.never": "Never",
     "tokencover.settings.combat": "During Combat",
     "tokencover.settings.combatant": "For Current Combatant Only",
@@ -30,6 +37,9 @@
 
     "tokencover.settings.display-secret-cover.Name": "Display Cover on Secret Tokens",
     "tokencover.settings.display-secret-cover.Hint": "Toggle whether cover icons should be displayed on tokens with secret disposition.",
+
+    "tokencover.settings.only-cover-icons.Name": "Only Use Cover Icons",
+    "tokencover.settings.only-cover-icons.Hint": "When enabled, only cover icons will be displayed; no cover effects will be used. If you system is unsupported, try enabling this.",
 
     "tokencover.settings.cover-chat-message.Name": "Display Cover in Chat",
     "tokencover.settings.cover-chat-message.Hint": "When rolling an attack, display cover types for targets in the chat.",
@@ -161,6 +171,8 @@
     "tokencover.tokenconfig.maximum-cover.name": "Maximum Cover",
     "tokencover.tokenconfig.maximum-cover.hint": "Maximum cover provided by this token. Example: A swarm of bees might only provide half cover. A ghost may provide no cover. Does nothing if tokens do not grant cover (see module settings).",
 
+    "tokencover.cover-rules-config.title": "Alt. Token Cover: Cover Rules",
+
     "tokencover.cover-effects-menu.listCoverTypes": "List Cover Types (Advanced Edit)",
 
     "tokencover.active-effect-config.coverType.name": "Cover Types",
@@ -176,9 +188,13 @@
     "tokencover.cover-types-list-config.export": "Export Cover Types",
     "tokencover.cover-types-list-config.reset": "Reset to Defaults",
 
+    "tokencover.phrases.coverRules": "Cover Rules",
+
     "tokencover.phrases.xCoverEffect": "{cover} Cover Effect",
     "tokencover.phrases.xCoverType": "{cover} Cover Type",
     "tokencover.phrases.xCover": "{cover} Cover",
+
+    "tokencover.cover.HalfToken": "Half (Token Only)",
 
     "tokencover.cover.None": "No Cover",
     "tokencover.cover.Low": "Low Cover",

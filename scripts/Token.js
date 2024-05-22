@@ -215,19 +215,20 @@ function getSnappedTokenPosition(token) {
  * @param {string} userId                           The ID of the User who triggered the update workflow
  */
 function updateToken(tokenD, change, _options, _userId) {
+  const token = tokenD.object;
+  if ( !token ) return;
+  if ( Object.hasOwn(change, "disposition") ) {
+    token[MODULE_ID].updateCoverIconDisplay();
+    CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
+  }
   if ( !(Object.hasOwn(change, "x")
       || Object.hasOwn(change, "y")
       || Object.hasOwn(change, "elevation")
       || Object.hasOwn(change, "rotation")) ) return;
 
   if ( CanvasAnimation.getAnimation(_token.animationName) ) return;
-
-  // Token moved
-  const token = tokenD.object;
-  if ( !token ) return;
   log(`updateToken hook|${token.name} moved from ${token.position.x},${token.position.y} -> ${token.document.x},${token.document.y} Center: ${token.center.x},${token.center.y}.`);
   TokenCover.tokenMoved(token);
-
 }
 
 /**
@@ -254,12 +255,12 @@ function destroyToken(token) {
   canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(id));
 
   // If clone attacker, add back the original attacker.
-  if ( token._original && TokenCover.hasAttacker(token) ) TokenCover.addAttacker(token._original, false, false);
+  if ( token._original && TokenCover.attackers.has(token) ) TokenCover.addAttacker(token._original, false, false);
 
   // Remove as attacker.
   if ( token._snapClone ) {
     const snapClone = token._snapClone;
-    if ( TokenCover.hasAttacker(snapClone) ) TokenCover.addAttacker(token._original, false, false);
+    if ( TokenCover.attackers.has(snapClone) ) TokenCover.addAttacker(token._original, false, false);
     TokenCover.removeAttacker(snapClone);
     if ( !token._snapClone.destroyed ) token._snapClone.destroy();
   }

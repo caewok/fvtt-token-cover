@@ -84,7 +84,6 @@ export class CoverEffectsApp extends Application {
    */
   _initClickListeners() {
     this._createEffectButton.on("click", this._controller.onCreateCoverEffect.bind(this._controller));
-    this._listCoverTypesButton.on("click", this._controller.onListCoverTypes.bind(this._controller));
     this._resetToDefaultsButton.on("click", this._controller.onResetToDefaults.bind(this._controller));
     this._coverEffectItem.on("click", this._controller.onEditCoverEffect.bind(this._controller));
   }
@@ -95,10 +94,10 @@ export class CoverEffectsApp extends Application {
   _initContextMenus() {
     new ContextMenu(this._rootView, ".tokencover-effect", [
       {
-        name: "Edit Cover Effect",
+        name: "Edit Cover Rules",
         icon: '<i class="fas fa-edit fa-fw"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onEditCoverEffect.bind(this._controller)
+        callback: this._controller.onEditCoverRules.bind(this._controller)
       },
 
       {
@@ -135,11 +134,6 @@ export class CoverEffectsApp extends Application {
    * The button used to create a new active effect.
    */
   get _createEffectButton() { return this._rootView.find(".create-effect"); }
-
-  /**
-   * The button used to display a listing of all cover types.
-   */
-  get _listCoverTypesButton() { return this._rootView.find(".list-cover-types"); }
 
   /**
    * The button used to reset effects to default for the system.

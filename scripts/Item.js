@@ -2,6 +2,7 @@
 Actor,
 canvas,
 ChatMessage,
+CONFIG,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -58,12 +59,27 @@ function createItem(document, _options, _userId) {
   if ( !actor || !(actor instanceof Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
-  if ( !(modFlags[FLAGS.COVER_EFFECT_ID] && !modFlags[FLAGS.LOCAL_COVER_EFFECT]) ) return;
+  if ( !(modFlags[FLAGS.COVER_EFFECT.ID] && !modFlags[FLAGS.COVER_EFFECT.LOCAL]) ) return;
 
   const token = actor.token?.object;
   if ( !token ) return;
-  token.tokencover.updateCoverTypes();
-  token.tokencover.updateCoverEffects();
+  token.tokencover.updateCover();
+}
+
+/**
+ * When updating an item, store the changed cover rule flags in cover flag settings.
+ * @param {Document} document                       The existing Document which was updated
+ * @param {object} change                           Differential data that was used to update the document
+ * @param {DocumentModificationContext} options     Additional options which modified the update request
+ * @param {string} userId                           The ID of the User who triggered the update workflow
+ */
+function updateItem(document, change, _options, _userId) {
+  const modFlags = change?.flags?.[MODULE_ID];
+  const id = modFlags?.[FLAGS.COVER_EFFECT.ID];
+  if ( !id ) return;
+  const ce = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.get(id);
+  if ( !ce ) return;
+  ce.updateCoverRuleSettings(modFlags); // Async
 }
 
 /**
@@ -77,11 +93,10 @@ function deleteItem(document, _options, _userId) {
   if ( !actor || !(actor instanceof Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
-  if ( !(modFlags[FLAGS.COVER_EFFECT_ID] && !modFlags[FLAGS.LOCAL_COVER_EFFECT]) ) return;
+  if ( !(modFlags[FLAGS.COVER_EFFECT.ID] && !modFlags[FLAGS.COVER_EFFECT.LOCAL]) ) return;
   const token = actor.token?.object;
   if ( !token ) return;
-  token.tokencover.updateCoverTypes();
-  token.tokencover.updateCoverEffects();
+  token.tokencover.updateCover();
 }
 
-PATCHES.BASIC.HOOKS = { createItem, deleteItem };
+PATCHES.BASIC.HOOKS = { createItem, updateItem, deleteItem };
