@@ -83,7 +83,7 @@ export class CoverCalculator extends AbstractCalculator {
    * Ignore when token equals target.
    * @param {Token} token
    * @param {Token[]} targets
-   * @returns {Map<Token, Set<CoverType>>}
+   * @returns {Map<Token, Set<CoverEffect>>}
    */
   static coverCalculations(viewer, targets, calcs, opts) {
     if ( viewer instanceof Array ) {
@@ -94,7 +94,7 @@ export class CoverCalculator extends AbstractCalculator {
 
     const coverCalc = viewer.tokencover.coverCalculator;
     calcs ??= new Map();
-    for ( const target of targets ) calcs.set(target, coverCalc.coverTypes(target, opts));
+    for ( const target of targets ) calcs.set(target, coverCalc.coverEffects(target, opts));
     return calcs;
   }
 
@@ -105,7 +105,7 @@ export class CoverCalculator extends AbstractCalculator {
    * @param {object} [options]  Options that affect the html creation
    * @param {boolean} [options.include3dDistance]   Include 3d distance calculation.
    * @param {boolean} [options.includeZeroCover]  Include targets that have no cover in the resulting html.
-   * @returns {object {html: {string}, nCover: {number}, coverResults: {CoverType[][]}}}
+   * @returns {object {html: {string}, nCover: {number}, coverResults: {CoverEffect[][]}}}
    *   String of html content that can be used in a Dialog or ChatMessage.
    */
   static htmlCoverTable(token, targets, opts) {
@@ -136,17 +136,17 @@ export class CoverCalculator extends AbstractCalculator {
     return clone;
   }
 
-  // ----- NOTE: Cover Types ----- //
+  // ----- NOTE: Cover Effects ----- //
 
   /**
-   * Determine cover types.
+   * Determine cover effects.
    * @param {Token} [target]    Optional target if not already set
-   * @param [object] opts       Options passed to coverTypesForToken, such as actionType (dnd5e)
-   * @returns {Set<CoverType>}
+   * @param [object] opts       Options passed to coverForToken, such as actionType (dnd5e)
+   * @returns {Set<CoverEffect>}
    */
-  coverTypes(target, opts) {
+  coverEffects(target, opts) {
     if ( target ) this.target = target;
-    return CONFIG[MODULE_ID].CoverType.coverTypesForToken(this.viewer, this.target, opts);
+    return CONFIG[MODULE_ID].CoverEffect.coverForToken(this.viewer, this.target, opts);
   }
 
   /**
@@ -156,12 +156,13 @@ export class CoverCalculator extends AbstractCalculator {
    */
   targetCover(target) {
     // Use the possibly cached cover types.
-    const coverTypes = target.tokencover.coverTypesFromAttacker(this.viewer);
+    target ??= this.target;
+    const coverEffects = target.tokencover.coverFromAttacker(this.viewer);
 
     // Transform cover types into the deprecated COVER.TYPES values by comparing the min percent cover.
     let coverValue = COVER_TYPES.NONE;
-    for ( const coverType of coverTypes ) {
-      const threshold = coverType.document?.percentThreshold ?? 0;
+    for ( const coverEffect of coverEffects ) {
+      const threshold = coverEffect.percentThreshold;
       if ( threshold >= 1 ) return COVER_TYPES.HIGH; // Cannot do better than this.
       if ( threshold >= 0.75 ) coverValue = Math.max(COVER_TYPES.MEDIUM, coverValue);
       else if ( threshold >= 0.50 ) coverValue = Math.max(COVER_TYPES.LOW, coverValue);
@@ -183,6 +184,7 @@ export class CoverCalculator extends AbstractCalculator {
     calc._clearCache();
 
     let percent = 1;
+    let minViewerPoint;
     const viewerOpts = {
       pointAlgorithm: Settings.get(Settings.KEYS.LOS.VIEWER.NUM_POINTS),
       inset: Settings.get(Settings.KEYS.LOS.VIEWER.INSET)
@@ -190,9 +192,16 @@ export class CoverCalculator extends AbstractCalculator {
     const viewerPoints = calc.constructor.constructViewerPoints(viewer, viewerOpts);
     for ( const viewerPoint of viewerPoints ) {
       calc.viewerPoint = viewerPoint;
-      percent = Math.min(percent, this._percentCover(opts));
-      if ( percent < 0 || percent.almostEqual(0) ) return 0;
+      const percentFromViewpoint = this._percentCover(opts);
+      if ( percentFromViewpoint < percent ) {
+        percent = percentFromViewpoint;
+        if ( percent < 0 || percent.almostEqual(0) ) return 0;
+        minViewerPoint = viewerPoint;
+      }
     }
+
+    // For debugging multiple points, set the viewer point to the minimum point.
+    if ( minViewerPoint ) calc.viewerPoint = minViewerPoint;
     return percent;
   }
 

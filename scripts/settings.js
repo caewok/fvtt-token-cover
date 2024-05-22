@@ -13,7 +13,7 @@ import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
-import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
+import { POINT_TYPES } from "./LOS/AlternativeLOS.js";
 
 const USE_CHOICES = {
   NEVER: "never",
@@ -41,18 +41,14 @@ export const SETTINGS = {
 
   DISPLAY_SECRET_COVER: "display-secret-cover",
 
-  COVER_TYPES: {
-    USE: "use-cover-types",
-    CHOICES: USE_CHOICES,
-    DATA: "cover-types-data",
-    TARGETING: "cover-types-targeting"
-  },
+  ONLY_COVER_ICONS: "only-cover-icons", // Switches to CoverEffectFlags version that adds cover icons to tokens directly.
 
   COVER_EFFECTS: {
     USE: "use-cover-effects",
     CHOICES: USE_CHOICES,
     DATA: "cover-effects-data",
-    TARGETING: "cover-effects-targeting"
+    TARGETING: "cover-effects-targeting",
+    RULES: "cover-rules"
   },
 
   COVER_WORKFLOW: {
@@ -64,7 +60,7 @@ export const SETTINGS = {
   },
 
   // Taken from Alt. Token Visibility
-  POINT_TYPES: AlternativeLOS.POINT_TYPES,
+  POINT_TYPES,
 
   LOS: {
     VIEWER: {
@@ -174,27 +170,6 @@ export class Settings extends ModuleSettingsAbstract {
       restricted: true
     });
 
-    register(KEYS.COVER_TYPES.USE, {
-      name: localize(`${KEYS.COVER_TYPES.USE}.Name`),
-      hint: localize(`${KEYS.COVER_TYPES.USE}.Hint`),
-      scope: "user",
-      config: true,
-      type: String,
-      choices: coverTypeUseChoices,
-      default: KEYS.COVER_TYPES.CHOICES.ALWAYS,
-      onChange: _value => TokenCover._forceUpdateAllTokenCover()
-    });
-
-    register(KEYS.COVER_TYPES.TARGETING, {
-      name: localize(`${KEYS.COVER_TYPES.TARGETING}.Name`),
-      hint: localize(`${KEYS.COVER_TYPES.TARGETING}.Hint`),
-      scope: "world",
-      config: true,
-      type: Boolean,
-      default: false,
-      onChange: _value => TokenCover._forceUpdateAllTokenCover()
-    });
-
     register(KEYS.DISPLAY_COVER_BOOK, {
       name: localize(`${KEYS.DISPLAY_COVER_BOOK}.Name`),
       hint: localize(`${KEYS.DISPLAY_COVER_BOOK}.Hint`),
@@ -219,7 +194,20 @@ export class Settings extends ModuleSettingsAbstract {
       config: true,
       type: Boolean,
       default: true,
-      onChange: _value => canvas.tokens.placeables.forEach(t => t.tokencover.updateCoverTypes())
+      onChange: _value => canvas.tokens.placeables.forEach(token => {
+        token[MODULE_ID].updateCoverIconDisplay();
+        CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
+      })
+    });
+
+    register(KEYS.ONLY_COVER_ICONS, {
+      name: localize(`${KEYS.ONLY_COVER_ICONS}.Name`),
+      hint: localize(`${KEYS.ONLY_COVER_ICONS}.Hint`),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: game.system.id === "pf2e" ? true : false,
+      requiresReload: true
     });
 
     register(KEYS.DEBUG, {
@@ -524,7 +512,7 @@ export class Settings extends ModuleSettingsAbstract {
       default: {}
     });
 
-    register(KEYS.COVER_TYPES.DATA, {
+    register(KEYS.COVER_EFFECTS.RULES, {
       scope: "world",
       config: false,
       default: {}

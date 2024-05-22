@@ -17,10 +17,6 @@ _Cover Algorithms_:
 - Area2d. Test the percentage of the overhead view of a target token that is viewable from the perspective of a point on the viewer token. For overhead tiles, does not consider transparency.
 - Area3d. Test the percentage of the 3d view of a target token that is viewable from the perspective of a point on the viewer token. For overhead tiles, uses webGL to test transparency.
 
-As of version 0.7.0, the module introduces two concepts: _Cover Types_ and _Cover Effects_. A cover type is a set of rules that determine if a specific should apply. For example, low cover might be whenever 25% or more of a token is occluded by either tokens or walls. When a cover type applies, the icon for that type can be optionally displayed on the token that has that cover. A cover effect is an active effect (or for some systems, an item representing an effect) that can be applied when one or more cover types apply. Each cover effect can be associated with one or more cover types. The GM determines when and if cover effects are applied by the system. Cover effects can be used to grant bonuses or modify other attributes of actors when they are attacked.
-
-For dnd5e, additional settings are available to allow the GM or the user to confirm cover during an attack, and apply cover effects accordingly.
-
 # Installation
 
 Add this [Manifest URL](https://github.com/caewok/fvtt-token-cover/releases/latest/download/module.json) in Foundry to install.
@@ -31,7 +27,9 @@ Add this [Manifest URL](https://github.com/caewok/fvtt-token-cover/releases/late
 
 ## Known Issues
 
-In Pathfinder 2e, the items representing cover effects are applied to the token but are not visible to the user. It is likely that they are not getting applied properly and further investigation is needed to determine how to tell the system to correctly update the tokens' actors once the cover item is added.
+In Pathfinder 2e, the setting "Only Use Cover Icons" must be enabled for cover icons to appear. Cover effects (items in pf2e) are unsupported.
+
+(For the technically inclined, if you turn off "Only Use Cover Icons," the module correctly adds a Cover Effect item to a pf2e defender token with cover. But I cannot find a way to convince the pf2e system to update the actor sheet or the token status icon to indicate that cover is applied. I strongly suspect that the cover bonuses are also not being correctly applied. Compare this to Starfinder RPG, which also uses items but the module can trigger an update to the actor sheet and token status icons. If you know what might be wrong, feel free to submit a PR!)
 
 ## Recommended module additions
 - [Alternative Token Visibility](https://github.com/caewok/fvtt-token-visibility). Needed if you want token vision to exactly match token cover.
@@ -53,68 +51,74 @@ Note that very large tokens can be quite tall, and may poke through an overhead 
 
 By default, cover algorithms uses the "move" wall restriction when considering whether walls block. This is intended to be consistent with how walls that would physically block movement are most likely to provide cover. Using the API, it is possible to change this for a given calculation.
 
-# Cover Type
+# Cover Effect
 
-A cover type represents a set of rules that define a specific "cover" using certain parameters. These are preset for certain systems, but the GM can edit those using the "Alt. Token Cover" book icon in the token controls. Key parameters include:
-- Percent threshold: The percent by which the defender must be obscured from the attacker in order to be considered to have this cover type.
+A cover effect represents an active effect (or, for some systems, an item representing an effect) that is applied to a defender with cover. Some cover effects are already defined, but the GM can edit those using the "Alt. Token Cover" book icon in the token controls.
+
+## Cover Effect Rules
+
+The GM can set certain rules that define when a cover effect should be applied. These are preset for certain systems, but the GM can edit those by right-clicking on an effect in the Cover Book and clicking "Edit Cover Rules." For some systems, the GM can also edit the rules by editing the cover effect directly, by double-clicking the effect in the Cover Book to open its configuration window.
+
+ Key parameters include:
+- Percent threshold: The percent by which the defender must be obscured from the attacker in order to be considered to have this cover effect.
 - Include walls: Whether to include walls as potential obstacles.
 - Include tokens: Whether to include other tokens as potential obstacles.
-- Priority: In what order to test if a cover type applies. Typically, only a single cover type applies to a token. The first cover type to apply "wins." Priority is tested from highest to lowest. "0" priority cover types are omitted and considered only after all other priorities.
-- Overlap: If the cover type overlaps, it can be applied in addition to any other. Typically, overlapping cover types should have a 0 priority.
+- Priority: In what order to test if a cover effect applies. Typically, only a single cover effect applies to a token. The first cover effect to apply "wins." Priority is tested from highest to lowest. "0" priority cover effect are omitted and considered only after all other priorities.
+- Overlap: If the cover effect overlaps, it can be applied in addition to any other. Typically, overlapping cover effects should have a 0 priority.
 
 For example, the Starfinder system defines a "soft" cover, meaning there is a token between the defender and the attacker. In addition, a token gets partial cover from any obstacle that obscures more than 25%. Regular cover is more than 50%. This might look like:
 - Soft. Threshold ≥ 0.01. Includes tokens but not walls. Priority = 0. Overlaps.
 - Partial. Threshold ≥ 0.25. Includes tokens and walls. Priority = 1.
 - Regular. Threshold ≥ 0.50. Includes tokens and walls. Priority = 2.
 
-If a defender has 50% cover, it would be assigned the regular cover type becuase that is the highest priority. Then the overlapping "soft" cover would be tested. If a token occluded the defender, it would also gain the "soft" cover type. A defender with 30% cover, on the other hand, would fail the test for the regular cover type and instead be assigned the partial cover type. Again, the overlapping "soft" cover type would be tested separately.
+If a defender has 50% cover, it would be assigned the regular cover effect because that is the highest priority. Then the overlapping "soft" cover would be tested. If a token occluded the defender, it would also gain the "soft" cover effect. A defender with 30% cover, on the other hand, would fail the test for the regular cover effect and instead be assigned the partial cover effect. Again, the overlapping "soft" cover effect would be tested separately.
 
-# Cover Effect
+## Overlap and Priority rules
 
-A cover effect represents an active effect (or, for some systems, an item representing an effect) that is applied to a defender with cover. Some cover effects are already defined, but the GM can edit those using the "Alt. Token Cover" book icon in the token controls. The GM can associate each cover effect with one or more cover types. If the cover type applies, the cover effect is then added to the defending token.
+Overlap and priority in combination work as follows:
+- Priority, no overlap: Of all effects that could apply to the token given the percent cover, the highest priority effect is assigned.
+- Priority, overlap: Moving from highest to lowest priority, if an effect would take priority but can overlap, that effect is assigned but the priority list continues to be evaluated. So if A, B, and C are in priority order, and A can overlap, A and B would be assigned.
+- No priority, no overlap: This effect will only be assigned if no priority effect is assigned. If there are multiple no-priority effects, it is not guaranteed that this one will be chosen.
+- No priority, overlap: This effect will only be assigned if no priority effect is assigned. If there are multiple no-priority effects, this one will be assigned along with potentially others.
+
 
 # "Alt. Token Cover" token control (book icon)
 
 <img width="479" alt="Screenshot 2024-05-07 at 3 52 26 PM" src="https://github.com/caewok/fvtt-token-cover/assets/1267134/3830e745-78e4-4eb8-82f4-84bc8c3b5507">
 
-The GM can view and edit the Cover Effects and Cover types using the book icon in the token controls. Right-click a cover effect to import/export/duplicate/delete.
+The GM can view and edit the Cover Effects using the book icon in the token controls. Right-click a cover effect to import/export/duplicate/delete.
 
 # Performance
 
 Performance is inevitably a function of the number of tokens present on the scene and, to a lesser extent, the number of walls.
 
-For cover icons and cover effect "use" settings, least to most performant is:
+For cover effect "use" settings, least to most performant is:
 1. Always
 2. During combat
 3. Combatant only
 4. During attack
 5. Never.
 
-If you are not using the cover effects to apply bonuses or other features to defenders, set cover effects to "Never." Setting cover effect to be combatant or during attack may also help performance
-
-Enabling application of cover icons/effects only while targeting (again, in settings) should also improve performance.
+Enabling application of cover effects only while targeting (again, in settings) should also improve performance, possibly quite a bit for scenes with a lot of tokens.
 
 Performance is also a function of the cover calculation algorithm chosen, and its settings. The Points algorithm is generally faster than 2d or 3d, unless you are testing a lot of points on the target. And it will always be faster to test a single viewer point rather than multiple viewer points.
 
 # Main Settings Menu
 <img width="559" alt="ATC Main Settings" src="https://github.com/caewok/fvtt-token-cover/assets/1267134/63bd7a8e-b7d8-446e-985e-a435d5efe459">
 
-## Display Cover Icons
+## Display Cover Book
 
-A cover icon displays on the token if it has cover from a given attacker or attackers. The icon represents a cover type, and can be modified by the GM using the the "Alt. Token Cover" book icon in the token controls. (Note that if a cover type is overlapping, it may result in more than one cover type being applied and thus more than one cover icon.)
+The GM can choose whether the Cover Book is added to the Token Controls. The Cover Book is used to define specific cover rules and effect bonuses. The GM can also drag cover effects to tokens to override the automatic cover calculation for that token.
 
-Generally, if a user has selected a token, that token will be considered an "attacker" for purposes of cover, _for that user's view only_. Selecting multiple tokens will apply cover only if the defending token has that cover (or better) from every attacker. Generally, defending tokens are all non-selected tokens.
+If you are using DFred's Convenient Effects in dnd5e, you can use DFred's cover effects instead of the effects in the Cover Book.
 
-The user can select between different options for displaying cover icons:
-- Never: Don't display
-- During Combat: Only display if combat is present.
-- Current Combatant Only: Overrides selection rule to treat only the current combatant as the attacker.
-- During Attack: For systems like dnd5e only. The cover type is only displayed during the attack sequence.
-- Always: Always display, regardless of combat status.
+## Display Cover on Secret Tokens
 
-## Apply Cover Icons when targeting
+If disabled, cover icons will not be shown on tokens with secret disposition. The cover effect (with any applicable bonuses) will still be applied to that token.
 
-If enabled, the user must target one or more "defender" tokens to view their cover. Remember that, unless "current combatant only" was selected for the cover icon display, attackers are the selected tokens.
+## Only Use Cover Icons
+
+If enabled, only cover icons will be displayed; no cover effects (active effects or items) will be added to tokens. This setting is primarily for use with systems where the cover effects are unsupported. You can also use this if you don't want any active effects (e.g., defender bonuses) applied to tokens.
 
 ## Debug Cover
 
@@ -162,11 +166,20 @@ Settings relevant to automated workflow for applying cover effects to targeted t
 
 ### Apply Cover Effects
 
-As with cover icons, cover effects can be applied at different stages of the workflow.
+Cover effects can be applied at different stages of the workflow. When applied, a cover icon will be displayed on the token that has the cover.
+
+Generally, if a user has selected a token, that token will be considered an "attacker" for purposes of cover, _for that user's view only_. Selecting multiple tokens will apply cover only if the defending token has that cover (or better) from every attacker. Generally, defending tokens are all non-selected tokens.
+
+The GM can select between different options for displaying cover:
+- Never: Don't display
+- During Combat: Only display if combat is present.
+- Current Combatant Only: Overrides selection rule to treat only the current combatant as the attacker.
+- During Attack: For systems like dnd5e only. The cover effect is only displayed during the attack sequence.
+- Always: Always display, regardless of combat status.
 
 ### Apply Cover Effects only when targeting
 
-As with cover icons, cover effects can be applied only to targeted defenders.
+When enabled, cover effects will be applied only to targeted defenders. In other words, the user must control one or more tokens and target one or more other tokens to have cover be applied. This should increase performance for scenes with many tokens.
 
 ## Workflow: System-specific attack settings
 
@@ -175,7 +188,7 @@ As with cover icons, cover effects can be applied only to targeted defenders.
 Additional settings are available for systems like dnd5e for which ATC knows how to modify the system's attack workflow.
 
 ### Display cover in chat
-For dnd5e, enabling this will use the dnd5e attack hook to display cover of targeted tokens in the chat, when an attack is initiated. Targeted tokens without cover are not included in the chat message, and so if no targeted tokens have cover, nothing will be output to chat.
+Enabling this will display cover of targeted tokens in the chat, when an attack is initiated. Targeted tokens without cover are not included in the chat message, and so if no targeted tokens have cover, nothing will be output to chat.
 
 ## Confirm cover
 Should the attack workflow be paused to confirm cover?
@@ -184,13 +197,13 @@ Should the attack workflow be paused to confirm cover?
 - Ask GM to confirm.
 - Apply automatically; no dialog.
 
-The confirmation dialog pops up a list of targets with calculated covers. Cover types can then be changed by the user or GM, respectively.
+The confirmation dialog pops up a list of targets with calculated covers. Cover effects can then be changed by the user or GM, respectively.
 
 ## Confirm no cover
 If the defender is deemed to have no cover, should the confirmation dialog still be presented?
 
 ## Confirm only on change
-Should the confirmation dialog be skipped if the cover matches what was displayed to the user? Sometimes, the attack workflow can modify cover. For example, the attacker may be able to ignore cover based on the type of attack. As this is only known at the time of attack, it is possible for cover to change.
+Should the confirmation dialog be skipped if the cover matches what was displayed to the user? Sometimes, the attack workflow can modify cover. For example, the attacker may be able to ignore cover based on the type of attack. As this is only known at the time of attack, it is possible for cover to change at that time.
 
 ## Other
 Other settings that affect the line-of-sight calculation.
@@ -238,9 +251,10 @@ Feel free to message me in Discord if you have questions about specific methods.
 
 # API
 
-If you want specific cover types, cover effects, or support for your system's attack workflow, please feel free to open a Git issue. Please include details about where I can find your system's rules regarding cover and, preferably, where I can go with questions about how the system works.
+If you want specific cover effects or support for your system's attack workflow, please feel free to open a Git issue. Please include details about where I can find your system's rules regarding cover and, preferably, where I can go with questions about how the system works.
 
 If you would like to modify or extend this module, the following may be helpful:
 - You can access various classes at `game.modules.get("tokencover").api`.
 - Some defined values are at `CONFIG.tokencover`.
-- `CONFIG.tokencover.CoverType.coverObjectsMap` and `CONFIG.tokencover.CoverEffect.coverObjectsMap` stores all active cover types and cover effects. Note that `CoverType` and `CoverEffect` are singleton classes, based on id. Subclasses are used for some systems.
+- `CONFIG.tokencover.CoverEffect.coverObjectsMap` stores all active cover effects. Note that `CoverEffect` is a singleton class, with a single cover effect per id. Subclasses are used for some systems.
+- Various methods for testing token cover are present on the token: `token.tokencover`. The `token.tokencover.coverCalculator` determines cover from the perspective of the token as the attacker. Methods like `token.tokencover.coverPercentFromAttacker` determine cover from the perspective of the token as defender.

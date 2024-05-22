@@ -9,7 +9,7 @@ game
 
 import { MODULE_ID } from "./const.js";
 import { log, dialogPromise } from "./util.js";
-import { CoverTypesListConfig } from "./CoverTypesListConfig.js";
+import { CoverRulesConfig } from "./CoverRulesConfig.js";
 
 
 // Much of this is from
@@ -33,15 +33,6 @@ export class CoverEffectsController {
       isGM: game.user.isGM,
       effects
     };
-  }
-
-  /**
-   * Handles clicks on the list cover types button.
-   * Displays a mini-configuration that lists all cover types, allows for quick editing.
-   */
-  async onListCoverTypes(_event) {
-    log("CoverEffectsController|onListCoverTypes");
-    new CoverTypesListConfig().render(true);
   }
 
   /**
@@ -83,6 +74,17 @@ export class CoverEffectsController {
     const ce = coverEffectForListItem(effectItem);
     if ( !ce ) return;
     return ce.renderConfig();
+  }
+
+  /**
+   * Open a window that allows editing of the flags used on the cover document.
+   * @param {jQuery} effectItem - jQuery element representing the effect list item
+   */
+  async onEditCoverRules(effectItem) {
+    log("CoverEffectsController|onEditCoverEffect");
+    const ce = coverEffectForListItem(effectItem);
+    if ( !ce ) return;
+    ce.renderRulesConfig();
   }
 
   /**

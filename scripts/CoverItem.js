@@ -1,8 +1,7 @@
 /* globals
 CONFIG,
 fromUuid,
-game,
-Token
+game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -28,44 +27,11 @@ export class CoverItem extends CoverEffect {
    * Data used when dragging a cover effect to an actor sheet.
    */
   get dragData() {
-    const out = {
-      name: this.name,
-      type: "Item",
-      data: this.documentData
-    };
-    out.uuid = this.document?.uuid;
-    return out;
-  }
-
-  /** @type {object} */
-  get newCoverObjectData() {
-    return {
-      name: "New Cover Effect",
-      flags: { [MODULE_ID]: { [FLAGS.COVER_EFFECT_ID]: this.id } }
-    }
-  }
-
-  /** @type {object|undefined} */
-  get defaultCoverObjectData() {
-    const data = super.defaultCoverObjectData?.documentData;
-    if ( !data ) return undefined;
-    data.flags ??= {};
-    data.flags[MODULE_ID] ??= {};
-    data.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= this.id;
-
-    if ( data.coverTypes?.length ) data.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [...data.coverTypes];
-    else data.flags[MODULE_ID][FLAGS.COVER_TYPES] ??= [];
-
-    delete data.id;
-    delete data.compendiumId;
-    delete data.coverTypes;
-
+    const data = super.dragData;
     data.type = "Item";
-    data.name ??= "New Cover Effect";
-
+    data.uuid = this.document?.uuid;
     return data;
   }
-
 
   // ----- NOTE: Methods ----- //
 
@@ -74,7 +40,8 @@ export class CoverItem extends CoverEffect {
    * @returns {Item|undefined}
    */
   _findStorageDocument() {
-    return game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === this.id);
+    return game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID) === this.id
+      && item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.LOCAL));
   }
 
   /**
@@ -90,7 +57,7 @@ export class CoverItem extends CoverEffect {
     const data = await pack.getDocument(compendiumId); // Async
     data.flags ??= {};
     data.flags[MODULE_ID] ??= {};
-    data.flags[MODULE_ID][FLAGS.COVER_EFFECT_ID] ??= this.id;
+    data.flags[MODULE_ID][FLAGS.COVER_EFFECT.ID] ??= this.id;
     let doc;
     if ( !game.user.isGM ) {
       try {
@@ -109,7 +76,7 @@ export class CoverItem extends CoverEffect {
    */
   async _createStorageDocument() {
     // Add necessary settings for the active effect.
-    const data = this.defaultCoverObjectData ?? this.newCoverObjectData;
+    const data = this.defaultCoverObjectData ?? this.constructor.newCoverObjectData;
     let doc;
     if ( !game.user.isGM ) {
       try {
@@ -128,7 +95,8 @@ export class CoverItem extends CoverEffect {
    * @return {CoverEffect}
    */
   _findCoverEffect() {
-    return game.items.find(i => i.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID) === this.id);
+    return game.items.find(item => item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID) === this.id
+      && item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.LOCAL));
   }
 
   /**
@@ -148,125 +116,112 @@ export class CoverItem extends CoverEffect {
   // ----- NOTE: Methods specific to cover effects ----- //
 
   /**
-   * Test if the local effect is already on the actor.
-   * @param {Actor} actor
-   * @returns {boolean} True if local effect is on the actor.
+   * Internal method to add this cover effect to the token locally.
+   * @param {Token} token
+   * @returns {boolean} True if change was made.
    */
-  _localEffectOnActor(actor) {
-    const itemIds = this.constructor._documentIds;
-    for ( const key of actor.items.keys() ) {
-      if ( !itemIds.has(key) ) continue;
-      if ( itemIds.get(key) === this ) return true;
+  _addToToken(token) {
+    const actor = token.actor;
+    if ( !actor ) return false;
+    const item = actor.items.createDocument(this.localDocumentData);
+    log(`CoverItem#_addToActorLocally|${actor.name} adding ${item.id} ${this.name}`);
+    actor.items.set(item.id, item);
+    return true;
+  }
+
+  /**
+   * Internal method to remove this cover effect from the token.
+   * @param {Token} token
+   * @returns {boolean} True if change was made.
+   */
+  _removeFromToken(token) {
+    const actor = token.actor;
+    if ( !actor ) return false;
+
+    // Remove the first instance found. (Should only be one present.)
+    for ( const [key, item] of actor.items.entries() ) {
+      if ( item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID) === this.id ) {
+        log(`CoverItem#_removeFromToken|${actor.name} removing ${key} ${this.name}`);
+        actor.items.delete(key);
+        return true;
+      }
     }
     return false;
   }
 
+  // ----- NOTE: Static getters, setters, other properties ----- //
+
   /**
-   * Add the effect locally to an actor.
-   * @param {Actor} actor
-   * @returns {string} Returns the id of the document added
+   * Data used to construct a new blank cover effect.
+   * @type {object}
    */
-  _addToActorLocally(actor) {
-    const item = actor.items.createDocument(this.documentData);
-    log(`CoverItem#_addToActorLocally|${actor.name} adding ${item.id} ${this.name}`);
-    item.updateSource({ flags: { [MODULE_ID]: { [FLAGS.LOCAL_COVER_EFFECT]: true }}});
-    actor.items.set(item.id, item);
-    return item.id;
+  static get newCoverObjectData() {
+    const data = CoverEffect.newCoverObjectData;
+    data.type = "Item";
+    return data;
+  }
+
+
+  // ----- NOTE: Static token methods ----- //
+
+  /**
+   * Get all documents for a give token/actor that could contain a cover effect.
+   * Each document should be an object that has a "flags" property.
+   * @param {Token} token
+   * @returns {EmbeddedCollection|DocumentCollection|Map}
+   */
+  static _effectDocumentsOnToken(token) {
+    const actor = token.actor;
+    if ( !actor ) return new Map();
+    return actor.items;
   }
 
   /**
-   * Remove the item locally from an actor.
-   * Presumes the item is on the actor.
-   * @param {Actor} actor
-   * @returns {string[]} Returns array of document ids removed from the actor.
+   * Transition all cover documents in a scene, when updating versions.
    */
-  _removeFromActorLocally(actor) {
-    const itemIds = this.constructor._documentIds;
+  static async transitionDocuments() {
+    // Transition each cover item.
+    const promises = [];
+    for ( const coverEffect of this.coverObjectsMap.values() ) this._transitionDocument(coverEffect.document, promises)
 
-    // For safety, run through all items and remove all instances of this cover effect.
-    let removedIds = [];
-    for ( const key of actor.items.keys() ) {
-      if ( !itemIds.has(key) ) continue;
-      if ( itemIds.get(key) !== this ) continue;
-      log(`CoverItem#removeFromActorLocally|${actor.name} removing ${key} ${this.name}`);
-      actor.items.delete(key);
-      removedIds.push(key);
+    // Same for all tokens with cover effects.
+    for ( const token of canvas.tokens.placeables ) {
+      if ( !token.actor?.items ) continue;
+      for ( const item of token.actor.items.values() ) this._transitionDocument(item, promises);
     }
-    return removedIds;
-  }
+    return Promise.allSettled(promises);
 
-  // ----- NOTE: Static methods ----- //
-
-  // ----- NOTE: Static methods specific to cover effects ----- //
-
-  /**
-   * Determine if the GM has added a cover effect override to an actor.
-   * Cover effect overrides have a COVER_EFFECT_ID flag but no local flag.
-   * @param {Actor|Token} actor
-   * @returns {boolean}
-   */
-  static coverOverrideApplied(actor) {
-    if ( actor instanceof Token ) actor = actor?.actor;
-    if ( !actor ) return;
-    return Boolean(actor.items.find(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID)
-      && !e.getFlag(MODULE_ID, FLAGS.LOCAL_COVER_EFFECT)));
   }
 
   /**
-   * Retrieve all Cover Effects on the actor.
-   * @param {Actor} actor
-   * @returns {CoverEffect[]} Array of cover effects on the actor.
+   * Transition a single cover document.
+   * @param {ActiveEffect} ae         The active effect document to update
+   * @param {Promise<>[]} promises    Array to store promises to update the document
    */
-  static _allLocalEffectsOnActor(actor) {
-    if ( !actor ) return;
-    // Faster than calling _localEffectOnActor repeatedly.
-    const times = [... actor.items.filter(e => e.getFlag(MODULE_ID, FLAGS.COVER_EFFECT_ID))];
-    return times
-      .map(e => this._documentIds.get(e.id))
-      .filter(e => Boolean(e));
+  static _transitionDocument(item, promises = []) {
+    const moduleVersion = game.modules.get(MODULE_ID).version;
+    const id = item.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID);
+    if ( !id ) return;
+    const coverEffect = this.coverObjectsMap.get(id);
+    if ( !coverEffect ) return;
+
+    // Only update if the saved version is older than current module version.
+    const savedVersion = item.getFlag(MODULE_ID, FLAGS.VERSION);
+    if ( savedVersion && !isNewerVersion(moduleVersion, savedVersion) ) return;
+
+    // Update the default document data fields.
+    const updateData = foundry.utils.mergeObject(
+      coverEffect.defaultDocumentData,
+      coverEffect.documentData,
+      { insertKeys: false, insertValues: false, inplace: false });
+    promises.push(item.update(updateData));
   }
 }
-
 
 /**
  * Specialized handling for cover effects (cover items) in pf2e.
  */
-export class CoverItemPF2E extends CoverItem {
-
-  /**
-   * Localize document data. Meant for subclasses that are aware of the document structure.
-   * @param {object} coverEffectData
-   * @returns {object} coverEffectData
-   */
-  static _localizeDocumentData(coverEffectData) {
-    return coverEffectData;
-  }
-
-  /**
-   * Add the effect locally to an actor.
-   * For PF2e, to make the effect work, the effect rules must be activated.
-   * @param {Actor} actor
-   * @returns {string} Returns the id of the document added
-   */
-  _addToActorLocally(actor) {
-    const id = super._addToActorLocally(actor);
-//     actor.initialized = false;
-//     actor.prepareData();
-    return id;
-  }
-
-  /**
-   * Remove the item locally from an actor.
-   * Presumes the item is on the actor.
-   * @param {Actor} actor
-   * @returns {string[]} Returns array of document ids removed from the actor.
-   */
-  _removeFromActorLocally(actor) {
-    const removedIds = super._removeFromActorLocally(actor);
-//     actor.prepareData();
-    return removedIds;
-  }
-}
+export class CoverItemPF2E extends CoverItem {}
 
 /**
  * Specialized handling for cover effects (cover items) in sfrpg.
@@ -274,30 +229,9 @@ export class CoverItemPF2E extends CoverItem {
 export class CoverItemSFRPG extends CoverItem {
 
    /** @type {object|undefined} */
-  get defaultCoverObjectData() {
-    const data = super.defaultCoverObjectData;
+  static get newCoverObjectData() {
+    const data = CoverItem.newCoverObjectData;
     data.type = "effect";
     return data;
-  }
-
-  /** @type {object} */
-  get newCoverObjectData() {
-    const data = super.newCoverObjectData;
-    data.type = "effect";
-    return data;
-  }
-
-  /**
-   * Localize document data. Meant for subclasses that are aware of the document structure.
-   * @param {object} coverEffectData
-   * @returns {object} coverEffectData
-   */
-  static _localizeDocumentData(coverEffectData) {
-    if ( !coverEffectData.system?.modifiers ) return coverEffectData;
-
-    coverEffectData.system.modifiers.forEach(mod => {
-      mod.name = game.i18n.localize(mod.name);
-    });
-    return coverEffectData;
   }
 }

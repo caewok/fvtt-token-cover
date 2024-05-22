@@ -37,7 +37,7 @@ Effects require types, so greater number of attackers will be used.
 - Targeting boolean: Only assign cover types, effects to targeted tokens.
 
 
-CoverType icon display:
+CoverEffect icon display:
 - Only if visible.
 - Only if 1+ attackers
 - Only if token is not attacker.
@@ -51,7 +51,6 @@ CoverEffect application:
 
 Triggers:
 - Cover calc. setting changed. Wipe all cover calculations. Refresh all tokens.
-- CoverType use setting changed.
 - Attacker changed
 - Token selected/unselected. Potentially refresh display
 - Token targeted/untargeted
@@ -70,18 +69,14 @@ Use Settings triggers:
 
 Token getters:
 - coverCalculator: Instantiation of CoverCalculator where this token is the attacker.
-- coverTypes: Set of CoverTypes currently assigned to this token.
 - coverEffects: Set of CoverEffects currently assigned to this token.
-- coverFromMap: Percentage and CoverTypes for this token relative to every other token (attackers)
+- coverFromMap: Percentage and cover for this token relative to every other token (attackers)
 - ignoresCover: Instantiation fo IgnoresCover class to determine if this token ignores cover for attacks
 
 Token methods:
 - coverPercentFromAttacker: Calculated/cached percent cover for this token from an attacker. Uses coverFromMap
 - coverTypeFromAttacker: Calculated/cached cover type for this token from an attacker. Uses coverFromMap
-- updateCoverTypes: Updates the cover types for this token given updated attackers
-- updateCoverEffects: Updates the cover effects for this token given updated attackers
-- refreshCoverTypes: Sets icons representing cover types on this token, given token.coverTypes and current display settings.
-                     Setting icons can be forced, e.g. during attack roll.
+- updateCover: Updates the cover effects for this token given updated attackers
 - refreshCoverEffects: Sets effects representing cover effects on this token, given token.coverEffects and current display settings.
                        Setting effects can be forced, e.g. during attack roll.
 
@@ -114,19 +109,10 @@ export class TokenCover {
   /**
    * Map of token ids. Object is:
    *  - @prop {number} percentCover
-   *  - @prop {Set<CoverType>} coverTypes
+   *  - @prop {Set<CoverEffect>} cover
    * @type {Map<string|object>}
    */
   coverFromMap = new Map();
-
-  /**
-   * Current cover types (i.e., icons) displayed on the token.
-   * Should always be equal to the icons on display, but may not reflect actual measured
-   * cover if the token is in the process of being updated.
-   * Use coverTypesFromAttacker or coverTypesFromAttackers for this.
-   * @type {Set<CoverType>}
-   */
-  _currentCoverTypes = new Set();
 
   /**
    * Current cover effects applied to the token.
@@ -136,9 +122,7 @@ export class TokenCover {
    * @type {Set<CoverEffect>}
    */
   get _currentCoverEffects() {
-    const actor = this.token.actor;
-    if ( !actor ) return NULL_SET;
-    return new Set(CONFIG[MODULE_ID].CoverEffect.allLocalEffectsOnActor(actor));
+    return CONFIG[MODULE_ID].CoverEffect.allLocalCoverOnToken(this.token);
   }
 
   constructor(token) {
@@ -171,58 +155,96 @@ export class TokenCover {
   /**
    * Returns the stored cover type or calculates it, as necessary.
    * @param {Token} attackingToken   Other token from which this token may have cover
-   * @returns {CoverType[]}
+   * @returns {CoverEffect[]}
    */
-  coverTypesFromAttacker(attackingToken) {
+  coverFromAttacker(attackingToken) {
     const { coverFromMap, token } = this;
     if ( !coverFromMap.has(attackingToken.id) ) this.constructor.updateCoverFromToken(token, attackingToken);
-    return coverFromMap.get(attackingToken.id).coverTypes;
+    return coverFromMap.get(attackingToken.id).cover;
   }
 
   /**
    * Calculates the cover types for multiple attackers. Least cover wins.
    * @param {Token[]} attackingTokens
-   * @returns {Set<CoverType>}
-   */
-  coverTypesFromAttackers(attackingTokens) {
-    return CONFIG[MODULE_ID].CoverType.minimumCoverFromAttackers(this.token, attackingTokens);
-  }
-
-  /**
-   * Get the cover types for the current attacker set.
-   * @returns {Set<CoverType>}
-   */
-  _coverTypesFromCurrentAttackers() {
-    return CONFIG[MODULE_ID].CoverType.minimumCoverFromAttackers(this.token, this.constructor.attackers["COVER_TYPES"]);
-  }
-
-  /**
-   * Get the cover effects for the current attacker set.
    * @returns {Set<CoverEffect>}
    */
-  _coverEffectsFromCurrentAttackers() {
-    const coverTypes = CONFIG[MODULE_ID].CoverType.minimumCoverFromAttackers(this.token, this.constructor.attackers["COVER_EFFECTS"]);
-    const allCoverEffects = [...CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values()];
-    return new Set(allCoverEffects.filter(ce => coverTypes.intersects(ce.coverTypes)));
+  coverFromAttackers(attackingTokens) { return this.minimumCoverFromAttackers(attackingTokens); }
+
+  /**
+   * Determine minimum cover types for a token from a group of attacking tokens.
+   * @param {Token[]|Set<Token>} [attackingTokens]
+   * @returns {Set<CoverEffect>}
+   */
+  minimumCoverFromAttackers(attackingTokens = this.constructor.attackers) {
+    if ( !attackingTokens.length && !attackingTokens.size ) return NULL_SET;
+
+    // For priority cover, smallest priority wins.
+    // For other cover, only if this token has that cover from all attackers.
+    let minCoverPriority = Number.POSITIVE_INFINITY;
+    let minCover;
+    let otherCover;
+    for ( const attackingToken of attackingTokens ) {
+      const coverEffects = this.coverFromAttacker(attackingToken);
+      const potentialOther = new Set();
+      coverEffects.forEach(c => {
+        if ( c.canOverlap ) potentialOther.add(c);
+        else if ( minCoverPriority > c.priority ) {
+          minCover = c;
+          minCoverPriority = c.priority;
+        }
+      });
+      if ( !otherCover ) otherCover = potentialOther;
+      else otherCover = otherCover.intersection(potentialOther);
+    }
+
+    otherCover ||= Set.NULL_SET;
+    if ( minCover ) otherCover.add(minCover);
+    return otherCover;
   }
 
   /**
-   * Should the cover type/effect be applied to this token?
-   * @param {"COVER_TYPES"|"COVER_EFFECTS"} [type]    What setting type applies?
+   * Update the cover icon display for this token.
+   */
+  updateCoverIconDisplay() {
+    const coverEffects = CONFIG[MODULE_ID].CoverEffect.allLocalCoverOnToken(this.token);
+    if ( !effects.size ) return;
+    const displayIcon = this.canDisplayCoverIcon;
+    coverEffects.forEach(ce => {
+      if ( displayIcon ) {
+        if ( !ce.document.statuses.includes(ce.icon) ) ce.document.statuses.push(ce.icon);
+      } else ce.document.statuses.findSplice(s => s === ce.icon);
+    });
+  }
+
+
+  /**
+   * Should cover effect icons be displayed?
+   * Does not account for whether cover can be applied.
    * @returns {boolean}
    */
-  useCoverObject(type = "COVER_TYPES") {
+  canDisplayCoverIcon() {
+    if ( !this.token.isVisible ) return false;
+    if ( !Settings.get(Settings.KEYS.DISPLAY_SECRET_COVER)
+        && this.token.document.disposition === CONST.TOKEN_DISPOSITIONS.SECRET ) return false;
+    return true;
+  }
+
+  /**
+   * Can any cover effect be applied to this token?
+   * For speed, a cover effect is not applied if the token is not visible and not targeted.
+   * (Otherwise, all tokens on a map would need cover calculation every time an attacker updates.)
+   * @returns {boolean}
+   */
+  canApplyCover() {
     const token = this.token;
-    if ( type === "COVER_TYPES" ) {
+    const COVER_EFFECTS = Settings.KEYS.COVER_EFFECTS;
+    if ( !token.isTargeted ) {
       if ( !token.isVisible ) return false;
-      if ( !Settings.get(Settings.KEYS.DISPLAY_SECRET_COVER)
-        && token.document.disposition === CONST.TOKEN_DISPOSITIONS.SECRET ) return false;
+      if ( Settings.get(COVER_EFFECTS.TARGETING) ) return false;
     }
-    if ( this.isAttacker(type) ) return false;
-    const { TARGETING, USE, CHOICES } = Settings.KEYS[type];
-    const targetsOnly = Settings.get(TARGETING);
-    if ( targetsOnly && !token.isTargeted ) return false;
-    switch ( Settings.get(USE) ) {
+    if ( this.isAttacker() ) return false;
+    const CHOICES = COVER_EFFECTS.CHOICES;
+    switch ( Settings.get(COVER_EFFECTS.USE) ) {
       case CHOICES.NEVER: return false;
       case CHOICES.ATTACK: return false; // Handled by forcing application in the workflow.
       case CHOICES.ALWAYS: return true;
@@ -235,14 +257,13 @@ export class TokenCover {
   }
 
   /**
-   * Is this token an attacker for purposes of types and effects? Checks settings.
-   * @param {"COVER_TYPES"|"COVER_EFFECTS"} [type]    What setting type applies?
+   * Is this token an attacker for purposes of applying effects? Checks settings.
    * @return {boolean}
    */
-  isAttacker(type = "COVER_TYPES") {
-    const CHOICES = Settings.KEYS[type].CHOICES
+  isAttacker() {
+    const { USE, CHOICES } = Settings.KEYS.COVER_EFFECTS;
     const token = this.token;
-    switch ( Settings.get(Settings.KEYS[type].USE) ) {
+    switch ( Settings.get(USE) ) {
       case CHOICES.NEVER: return false;
       case CHOICES.COMBATANT: {
         return game.combat?.started
@@ -257,28 +278,22 @@ export class TokenCover {
 
   /**
    * Attacker set changed.
-   * @param {"COVER_TYPES"|"COVER_EFFECTS"} [type]    What setting type applies?
    */
-  attackersChanged(type = "COVER_TYPES") {
-    if ( this.constructor.attackers[type].has(this.token) ) {
-      if ( type === "COVER_TYPES" ) this.clearCoverTypes();
-      else if ( type === "COVER_EFFECTS" ) this.clearCoverEffects();
+  attackersChanged() {
+    if ( this.constructor.attackers.has(this.token) ) {
+      this.clearCover();
       return;
     }
-    if ( type === "COVER_TYPES" ) this.updateCoverTypes();
-    else if ( type === "COVER_EFFECTS" ) this.updateCoverEffects();
+    this.updateCover();
   }
 
   /**
    * Something about an attacker position was updated.
-   * @param {"COVER_TYPES"|"COVER_EFFECTS"} [type]    What setting type applies?
    */
-  attackerMoved(type = "COVER_TYPES") {
-    if ( this.constructor.attackers[type].has(this.token) ) return;
-
-    log(`TokenCover#attackerMoved|${type}|defender: ${this.token.name}`);
-    if ( type === "COVER_TYPES" ) this.updateCoverTypes();
-    else if ( type === "COVER_EFFECTS" ) this.updateCoverEffects();
+  attackerMoved() {
+    if ( this.constructor.attackers.has(this.token) ) return;
+    log(`TokenCover#attackerMoved|defender: ${this.token.name}`);
+    this.updateCover();
   }
 
   /**
@@ -286,59 +301,27 @@ export class TokenCover {
    */
   tokenMoved() {
     this.coverFromMap.clear();
-    this.updateCoverTypes();
-    this.updateCoverEffects();
+    this.updateCover();
   }
 
   /**
    * This token's target status changed.
    */
   targetStatusChanged() {
-    const { COVER_TYPES, COVER_EFFECTS } = Settings.KEYS;
-    if ( Settings.get(COVER_TYPES.TARGETING) ) {
-      if ( this.useCoverObject("COVER_TYPES") ) this.updateCoverTypes();
-      else this.clearCoverTypes();
+    if ( Settings.get(Settings.KEYS.COVER_EFFECTS.TARGETING) ) {
+      if ( this.canApplyCover() ) this.updateCover();
+      else this.clearCover();
     }
-    if ( Settings.get(COVER_EFFECTS.TARGETING) ) {
-      if ( this.useCoverObject("COVER_EFFECTS") ) this.updateCoverEffects();
-      else this.clearCoverEffects();
-    }
-  }
-
-  /**
-   * Remove all cover icons from this token.
-   * @returns {boolean} True if a change occurred
-   */
-  clearCoverTypes() {
-    const changed = this.#clearCoverTypes();
-    if ( changed ) log(`TokenCover#updateCoverTypes|${this.token.name}|clearing cover icons`);
-    return changed;
   }
 
   /**
    * Remove all cover effects from this token.
    * @returns {boolean} True if a change occurred
    */
-  clearCoverEffects() {
+  clearCover() {
     // Trigger local effects update for actor; return changed state.
-    const changed = this.#clearCoverEffects();
-    if ( changed ) log(`TokenCover#clearCoverEffects|${this.token.name}|clearing cover effects`);
-    return changed;
-  }
-
-  /**
-   * Add applicable cover types to this token.
-   * @returns {boolean} True if a change occurred
-   */
-  updateCoverTypes() {
-    let changed = false;
-    if ( this.useCoverObject("COVER_TYPES") && !CONFIG[MODULE_ID].CoverEffect.coverOverrideApplied(this.token) ) {
-      log(`TokenCover#updateCoverTypes|${[...this.constructor.attackers.COVER_TYPES.values().map(a => a.name + ": " + a.x + "," + a.y)].join("\t")}`);
-      const coverTypes = this._coverTypesFromCurrentAttackers();
-      changed = this.#replaceCoverTypes(coverTypes);
-    } else changed = this.#clearCoverTypes();
-
-    if ( changed ) log(`TokenCover#updateCoverTypes|${this.token.name}|changing cover icons to: ${[...this._currentCoverTypes.values().map(ct => ct.name)].join(", ")}`);
+    const changed = this.#clearCover();
+    if ( changed ) log(`TokenCover#clearCover|${this.token.name}|clearing cover effects`);
     return changed;
   }
 
@@ -346,100 +329,57 @@ export class TokenCover {
    * Add applicable cover effects to this token.
    * @returns {boolean} True if a change occurred
    */
-  updateCoverEffects() {
+  updateCover() {
     let changed = false;
-    if ( this.useCoverObject("COVER_EFFECTS") && !CONFIG[MODULE_ID].CoverEffect.coverOverrideApplied(this.token) ) {
-      log(`TokenCover#updateCoverEffects|${[...this.constructor.attackers.COVER_EFFECTS.values().map(a => a.name + ": " + a.x + "," + a.y)].join("\t")}`);
-      const coverEffects = this._coverEffectsFromCurrentAttackers();
-      changed = this._replaceCoverEffects(coverEffects);
-    } else changed = this.#clearCoverEffects();
+    if ( this.canApplyCover() && !CONFIG[MODULE_ID].CoverEffect.coverOverrideApplied(this.token) ) {
+      log(`TokenCover#updateCover|${[...this.constructor.attackers.values().map(a => a.name + ": " + a.x + "," + a.y)].join("\t")}`);
+      const coverEffects = this.minimumCoverFromAttackers();
+      changed = this._replaceCover(coverEffects);
+    } else changed = this.#clearCover();
 
-    if ( changed ) log(`TokenCover#updateCoverEffects|${this.token.name}|changing cover effects to: ${[...this._currentCoverEffects.values().map(ct => ct.name)].join(", ")}`);
+    if ( changed ) log(`TokenCover#updateCover|${this.token.name}|changing cover effects to: ${[...this._currentCoverEffects.values().map(ct => ct.name)].join(", ")}`);
     return changed;
-  }
-
-  /**
-   * Handle clearing all cover types.
-   * @returns {boolean} True if a change was made.
-   */
-  #clearCoverTypes() {
-    const coverTypes = this._currentCoverTypes;
-    if ( !coverTypes.size ) return false;
-    let change = false;
-    const token = this.token;
-    coverTypes.forEach(ct => {
-      const res = ct.removeFromToken(token);
-      change ||= res;
-    });
-    coverTypes.clear();
-    return change;
-  }
-
-  /**
-   * Handle adding and removing cover types based on the current set.
-   * Assumes that replacementCoverTypes only includes valid choices. (i.e., follows overlap rules).
-   * @param {Set<CoverType>} replacementCoverTypes
-   * @returns {boolean} True if a change was made.
-   */
-  #replaceCoverTypes(replacementCoverTypes = NULL_SET) {
-    const coverTypes = this._currentCoverTypes;
-    const toAdd = replacementCoverTypes.difference(coverTypes);
-    const toRemove = coverTypes.difference(replacementCoverTypes);
-    let change = false;
-    const token = this.token;
-    toRemove.forEach(ct => {
-      const res = ct.removeFromToken(token);
-      change ||= res;
-      coverTypes.delete(ct);
-    });
-    toAdd.forEach(ct => {
-      const res = ct.addToToken(token);
-      change ||= res;
-      coverTypes.add(ct);
-    });
-    return change;
   }
 
   /**
    * Handles clearing all cover effects.
    * @returns {boolean} True if a change was made.
    */
-  #clearCoverEffects() {
+  #clearCover() {
     const coverEffects = this._currentCoverEffects;
     if ( !coverEffects.size ) return false;
     let change = false;
-    const actor = this.token.actor;
-    if ( !actor ) return false;
+    const token = this.token;
     coverEffects.forEach(ce => {
-      const res = ce.removeFromActorLocally(actor, false);
+      const res = ce.removeFromToken(token, false);
       change ||= res;
     });
-    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshActorCoverEffect(actor);
+    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
     return change;
   }
 
   /**
    * Handle adding and removing cover effects based on the current set.
-   * Assumes that replacementCoverTypes only includes valid choices. (i.e., follows overlap rules).
-   * @param {Set<CoverEffect>} replacementCoverEffects
+   * Assumes that replacementCover only includes valid choices. (i.e., follows overlap rules).
+   * @param {Set<CoverEffect>} replacementCover
    * @returns {boolean} True if a change was made.
    */
-  _replaceCoverEffects(replacementCoverEffects = NULL_SET) {
+  _replaceCover(replacementCover = NULL_SET) {
     const coverEffects = this._currentCoverEffects;
-    const toAdd = replacementCoverEffects.difference(coverEffects);
-    const toRemove = coverEffects.difference(replacementCoverEffects);
+    const toAdd = replacementCover.difference(coverEffects);
+    const toRemove = coverEffects.difference(replacementCover);
     let change = false;
-    const actor = this.token.actor;
-    if ( !actor ) return false;
+
+    const token = this.token;
     toRemove.forEach(ce => {
-      const res = ce.removeFromActorLocally(actor, false);
+      const res = ce.removeFromToken(token, false);
       change ||= res;
     });
     toAdd.forEach(ce => {
-      const res = ce.addToActorLocally(actor, false);
+      const res = ce.addToToken(token, false);
       change ||= res;
     });
-    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshActorCoverEffect(actor);
+    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
     return change;
   }
 
@@ -448,22 +388,11 @@ export class TokenCover {
 
   /**
    * Track attackers for this user.
-   * @type {object}
-   *   - @prop {Set<Token>} COVER_TYPES
-   *   - @prop {Set<Token>} COVER_EFFECTS
+   * @type {Set<Token>}
    */
-  static attackers = {
-    COVER_TYPES: new Set(),
-    COVER_EFFECTS: new Set()
-  };
+  static attackers = new Set()
 
   // ----- NOTE: Static methods ----- //
-
-  /**
-   * Attacker is in either set.
-   * @param {Token} token
-   */
-  static hasAttacker(token) { return this.attackers.COVER_TYPES.has(token) || this.attackers.COVER_EFFECTS.has(token); }
 
   /**
    * A token position was updated.
@@ -478,8 +407,7 @@ export class TokenCover {
     token.tokencover.tokenMoved();
 
     // If this token is an attacker, tell all other tokens that their cover status may have changed.
-    if ( this.attackers.COVER_TYPES.has(token) ) canvas.tokens.placeables.forEach(t => t.tokencover.attackerMoved("COVER_TYPES"));
-    if ( this.attackers.COVER_EFFECTS.has(token) ) canvas.tokens.placeables.forEach(t => t.tokencover.attackerMoved("COVER_EFFECTS"));
+    if ( this.attackers.has(token) ) canvas.tokens.placeables.forEach(t => t.tokencover.attackerMoved());
   }
 
   /**
@@ -489,27 +417,13 @@ export class TokenCover {
    * @return {boolean} True if results in addition.
    */
   static addAttacker(token, force = false, update = true) {
-    const ctAdded = this._addAttacker(token, "COVER_TYPES", force, update);
-    const ceAdded = this._addAttacker(token, "COVER_EFFECTS", force, update);
-    return ctAdded || ceAdded;
-  }
-
-
-  /**
-   * Add an attacker to the user's set.
-   * @param {Token} token
-   * @param {"COVER_TYPES"|"COVER_EFFECTS"} [type]    What setting type applies?
-   * @param {boolean} [force=false]                   Should the attacker be added even if it fails "isAttacker"?
-   * @return {boolean} True if results in addition.
-   */
-  static _addAttacker(token, type = "COVER_TYPES", force = false, update = true) {
-    if ( this.attackers[type].has(token) ) return false;
-    if ( !force && !token.tokencover.isAttacker(type) ) return false;
-    this.attackers[type].add(token);
-    log(`TokenCover#addAttacker|Adding attacker ${token.name} for ${type}.`)
+    if ( this.attackers.has(token) ) return false;
+    if ( !force && !token.tokencover.isAttacker() ) return false;
+    this.attackers.add(token);
+    log(`TokenCover#addAttacker|Adding attacker ${token.name}.`)
 
     // Update each token's display.
-    if ( update ) canvas.tokens.placeables.forEach(t => t.tokencover.attackersChanged(type));
+    if ( update ) canvas.tokens.placeables.forEach(t => t.tokencover.attackersChanged());
   }
 
   /**
@@ -519,25 +433,12 @@ export class TokenCover {
    * @return {boolean} True if results in addition.
    */
   static removeAttacker(token, update = true) {
-    const ctRemoved = this._removeAttacker(token, "COVER_TYPES", update);
-    const ceRemoved = this._removeAttacker(token, "COVER_EFFECTS", update);
-    return ctRemoved || ceRemoved;
-  }
-
-  /**
-   * Remove an attacker from the user's set.
-   * @param {Token} token
-   * @param {"COVER_TYPES"|"COVER_EFFECTS"} [type]    What setting type applies?
-   * @param {boolean} [force=false]                   Should the attacker be added even if it fails "isAttacker"?
-   * @return {boolean} True if results in addition.
-   */
-  static _removeAttacker(token, type = "COVER_TYPES", update = true) {
-    if ( !this.attackers[type].has(token) ) return false;
-    this.attackers[type].delete(token);
-    log(`TokenCover#removeAttacker|Removing attacker ${token.name} for ${type}.`)
+    if ( !this.attackers.has(token) ) return false;
+    this.attackers.delete(token);
+    log(`TokenCover#removeAttacker|Removing attacker ${token.name}.`)
 
     // Update each token's display.
-    if ( update ) canvas.tokens.placeables.forEach(t => t.tokencover.attackersChanged(type));
+    if ( update ) canvas.tokens.placeables.forEach(t => t.tokencover.attackersChanged());
   }
 
   /**
@@ -545,29 +446,18 @@ export class TokenCover {
    * @return {boolean} True if results in change.
    */
   static updateAttackers() {
-    const ctChange = this._updateAttackers("COVER_TYPES");
-    const ceChange = this._updateAttackers("COVER_EFFECTS");
-    return ctChange || ceChange;
-  }
-
-  /**
-   * Determine the current attackers and update the attacker set accordingly.
-   * @param {"COVER_TYPES"|"COVER_EFFECTS"} [type]    What setting type applies?
-   * @return {boolean} True if results in change.
-   */
-  static _updateAttackers(type = "COVER_TYPES") {
-    const newAttackers = new Set(canvas.tokens.placeables.filter(t => t.tokencover.isAttacker(type)));
+    const newAttackers = new Set(canvas.tokens.placeables.filter(t => t.tokencover.isAttacker()));
     let change = false;
-    for ( const oldAttacker in this.attackers[type] ) {
+    for ( const oldAttacker in this.attackers ) {
       if ( newAttackers.has(oldAttacker) ) continue;
-      const res = this.removeAttacker(oldAttacker, type, false);
+      const res = this.removeAttacker(oldAttacker, false);
       change ||= res;
     }
     for ( const newAttacker in newAttackers ) {
-      const res = this.addAttacker(newAttacker, type, false, false);
+      const res = this.addAttacker(newAttacker, false, false);
       change ||= res;
     }
-    if ( change ) canvas.tokens.placeables.forEach(t => t.tokencover.attackersChanged(type));
+    if ( change ) canvas.tokens.placeables.forEach(t => t.tokencover.attackersChanged());
     return change;
   }
 
@@ -578,15 +468,14 @@ export class TokenCover {
    * Helper to update whether this token has cover from another token.
    * @param {Token} tokenToUpdate   Token whose cover should be calculated
    * @param {Token} attackingToken  Other token from which this token may have cover
-   * @returns {CoverTypes[]} Array of cover types, for convenience.
    */
   static updateCoverFromToken(tokenToUpdate, attackingToken) {
     const percentCover = attackingToken.tokencover.coverCalculator.percentCover(tokenToUpdate);
-    const coverTypes = attackingToken.tokencover.coverCalculator.coverTypes(tokenToUpdate);
+    const cover = attackingToken.tokencover.coverCalculator.coverEffects(tokenToUpdate);
     log(`updateCoverFromToken|${attackingToken.name} ⚔️ ${tokenToUpdate.name}: ${percentCover}
     \t${attackingToken.name} ${attackingToken.document.x},${attackingToken.document.y} Center ${attackingToken.center.x},${attackingToken.center.y}
     \t${tokenToUpdate.name} ${tokenToUpdate.document.x},${tokenToUpdate.document.y} Center ${tokenToUpdate.center.x},${tokenToUpdate.center.y}`);
-    tokenToUpdate.tokencover.coverFromMap.set(attackingToken.id, { coverTypes, percentCover});
+    tokenToUpdate.tokencover.coverFromMap.set(attackingToken.id, { cover, percentCover});
   }
 
 
@@ -598,8 +487,7 @@ export class TokenCover {
     this.updateAttackers();
     canvas.tokens.placeables.forEach(t => {
       log(`updateAllTokenCover|updating cover for ${t.name}.`);
-      t.tokencover.updateCoverTypes()
-      t.tokencover.updateCoverEffects()
+      t.tokencover.updateCover()
     });
   }
 
