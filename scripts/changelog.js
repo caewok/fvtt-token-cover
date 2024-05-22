@@ -119,7 +119,7 @@ Hooks.once("ready", () => {
       `
     })
 
-     .addEntry({
+    .addEntry({
       version: "0.7.3",
       title: "Speed",
       body: `\
@@ -134,6 +134,24 @@ Hooks.once("ready", () => {
 
         Dragging a cover effect (or a DFred's cover) is now considered an "override" that stops other cover icons or effects
         from being added to the token.
+      `
+    })
+
+    .addEntry({
+      version: "0.8.0",
+      title: "Consolidation",
+      body: `\
+        Consolidated "Cover Type" and "Cover Effect" into simply "Cover Effect." A Cover Effect is an
+        item or active effect that represents a type of cover. The rules previously in Cover Type are
+        now flags on the Cover Effect. In some systems, the GM can edit these rules directly from the Active Effect
+        config window. Otherwise, in the Cover Book, right-click on a Cover Effect and select "Edit Cover Rules."
+
+        Cover icons now generally appear whenever the cover effect is applied, and you can determine when
+        to apply cover effects in the GM Cover Settings.
+
+        I added a toggle in settings to "Only Use Cover Icons." This will disable application of all cover effect items
+        or active effects. Only status icons will be added to tokens (as well as flags on the token document.)
+        This allows cover icons to work in systems (like PF2e) where application of items/active effects is unsupported.
       `
     })
 

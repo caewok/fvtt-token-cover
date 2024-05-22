@@ -27,7 +27,9 @@ Add this [Manifest URL](https://github.com/caewok/fvtt-token-cover/releases/late
 
 ## Known Issues
 
-In Pathfinder 2e, the items representing cover effects are applied to the token but are not visible to the user. It is likely that they are not getting applied properly and further investigation is needed to determine how to tell the system to correctly update the tokens' actors once the cover item is added.
+In Pathfinder 2e, the setting "Only Use Cover Icons" must be enabled for cover icons to appear. Cover effects (items in pf2e) are unsupported.
+
+(For the technically inclined, if you turn off "Only Use Cover Icons," the module correctly adds a Cover Effect item to a pf2e defender token with cover. But I cannot find a way to convince the pf2e system to update the actor sheet or the token status icon to indicate that cover is applied. I strongly suspect that the cover bonuses are also not being correctly applied. Compare this to Starfinder RPG, which also uses items but the module can trigger an update to the actor sheet and token status icons. If you know what might be wrong, feel free to submit a PR!)
 
 ## Recommended module additions
 - [Alternative Token Visibility](https://github.com/caewok/fvtt-token-visibility). Needed if you want token vision to exactly match token cover.
@@ -116,7 +118,7 @@ If disabled, cover icons will not be shown on tokens with secret disposition. Th
 
 ## Only Use Cover Icons
 
-If enabled, only cover icons will be displayed; no cover effects (active effects or items) will be added to tokens. This setting is primarily for use with systems where the cover effects are unsupported.
+If enabled, only cover icons will be displayed; no cover effects (active effects or items) will be added to tokens. This setting is primarily for use with systems where the cover effects are unsupported. You can also use this if you don't want any active effects (e.g., defender bonuses) applied to tokens.
 
 ## Debug Cover
 
