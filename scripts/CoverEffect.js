@@ -84,7 +84,11 @@ export class CoverEffect {
    * Get the default data for this effect.
    * @returns {object}
    */
-  get defaultCoverObjectData() { return duplicate(this.constructor.defaultCoverObjectData.get(this.id)); }
+  get defaultCoverObjectData() {
+    const defaultData = this.constructor.defaultCoverObjectData.get(this.id);
+    if ( !defaultData ) return undefined;
+    return duplicate(defaultData);
+  }
 
   /**
    * Get the stored settings data for this effect.
@@ -93,11 +97,12 @@ export class CoverEffect {
 
   /**
    * Get the default document data for this effect.
-   * @returns {object}
+   * @returns {object|undefined}
    */
   get defaultDocumentData() {
-    const template = this.constructor.newCoverObjectData;
     const data = this.defaultCoverObjectData;
+    if ( !data ) return undefined;
+    const template = this.constructor.newCoverObjectData;
     const doc = foundry.utils.mergeObject(template, data.document, { inplace: false });
     foundry.utils.mergeObject(doc.flags[MODULE_ID], this.savedCoverRules, { inplace: true });
     doc.name = game.i18n.localize(data.name);
@@ -633,7 +638,7 @@ export class CoverEffect {
    */
   static async initialize() {
     let storedIds = this.storedCoverObjectIds;
-    if ( !storedIds.size ) storedIds = this.defaultCoverObjectData.keys();
+    if ( !storedIds.size ) storedIds = this.defaultCoverObjectData?.keys();
     for ( const id of storedIds ) await this.create(id);
     this.transitionDocuments();
   }
