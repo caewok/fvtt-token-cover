@@ -24,7 +24,7 @@ const RULES = FLAGS.COVER_EFFECT.RULES;
 coverEffects.halfToken = {
   name: `${MODULE_ID}.cover.HalfToken`,
   id: `${MODULE_ID}.${SYSTEM_ID}.halfToken`,
-  dFredsName: "Cover (Half)",
+  // No DFred's name b/c this cover is not defined.
 
   document: {
     icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
