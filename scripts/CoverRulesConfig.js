@@ -27,6 +27,12 @@ export class CoverRulesConfig extends DocumentSheetConfig  {
     });
   }
 
+  getData(options={}) {
+    const obj = super.getData(options);
+    obj.data = this.object; // To match ActiveEffectConfig data params
+    return obj;
+  }
+
   /**
    * This method is called upon form submission after form data is validated
    * @param {Event} event       The initial triggering submission event

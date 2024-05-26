@@ -167,7 +167,26 @@ export class CoverEffect {
   get includeWalls() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.INCLUDE_WALLS]; }
 
   /** @type {boolean} */
-  get includeTokens() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.INCLUDE_TOKENS]; }
+  get liveTokensBlock() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.LIVE_TOKENS_BLOCK]; }
+
+  /** @type {boolean} */
+  get deadTokensBlock() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.DEAD_TOKENS_BLOCK]; }
+
+  /** @type {boolean} */
+  get proneTokensBlock() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.PRONE_TOKENS_BLOCK]; }
+
+  /** @type {boolean} */
+  get includeTokens() { return this.liveTokensBlock || this.deadTokensBlock; }
+
+  /** @type {AlternativeLOSConfig} */
+  get calcConfig() {
+    return {
+      deadTokensBlock: this.deadTokensBlock,
+      liveTokensBlock: this.liveTokensBlock,
+      proneTokensBlock: this.proneTokensBlock,
+      wallsBlock: this.includeWalls
+    };
+  }
 
 
   // ----- NOTE: Calculation methods ----- //
@@ -180,7 +199,9 @@ export class CoverEffect {
    */
   percentCover(attackingToken, targetToken) {
     const { includeWalls, includeTokens } = this;
-    return attackingToken.tokencover.coverCalculator.percentCover(targetToken, { includeWalls, includeTokens });
+    const calc = attackingToken.tokencover.coverCalculator;
+    calc.updateConfiguration(this.calcConfig);
+    return calc.percentCover(targetToken, { includeWalls, includeTokens });
   }
 
   /**
@@ -442,7 +463,9 @@ export class CoverEffect {
           [FLAGS.COVER_EFFECT.RULES.PRIORITY]: 0,
           [FLAGS.COVER_EFFECT.RULES.OVERLAPS]: false,
           [FLAGS.COVER_EFFECT.RULES.INCLUDE_WALLS]: true,
-          [FLAGS.COVER_EFFECT.RULES.INCLUDE_TOKENS]: false
+          [FLAGS.COVER_EFFECT.RULES.LIVE_TOKENS_BLOCK]: false,
+          [FLAGS.COVER_EFFECT.RULES.DEAD_TOKENS_BLOCK]: false,
+          [FLAGS.COVER_EFFECT.RULES.PRONE_TOKENS_BLOCK]: false,
         }
       }
     }

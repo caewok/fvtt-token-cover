@@ -52,6 +52,7 @@ import "./changelog.js";
 Hooks.once("init", function() {
   registerGeometry();
   addDND5eCoverFeatFlags();
+  getTemplate(`modules/${MODULE_ID}/templates/cover-rules-partial.html`); // Async but not awaiting here.
 
   // Set CONFIGS used by this module.
   CONFIG[MODULE_ID] = {
