@@ -358,6 +358,7 @@ export class Settings extends ModuleSettingsAbstract {
         type: String,
         choices: coverConfirmChoices,
         default: KEYS.COVER_WORKFLOW.CONFIRM_CHOICES.AUTO,
+        horizontalDivider: true,
         tab: "workflow"
       });
 
