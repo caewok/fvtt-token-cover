@@ -155,6 +155,21 @@ Hooks.once("ready", () => {
       `
     })
 
+    .addEntry({
+      version: "0.8.1",
+      title: "Token Half-Cover",
+      body: `\
+        I removed the settings concerning applying cover for live/dead/prone tokens. You can now find these
+        in the configuration for each cover effect. (Open any effect in the Cover Book.)
+
+        In the default dnd5e cover effects, the Half (Token Only) cover effect applies half cover based solely on
+        whether intervening tokens provide cover. The default is that live or live prone tokens block,
+        but not dead tokens. You can change that in the Half (Token Only) configuration.
+
+        This change means it is possible to apply a specific cover effect when, say, dead tokens
+        provide cover versus when live tokens provide cover.
+      `
+    })
 
     .build()
     ?.render(true);

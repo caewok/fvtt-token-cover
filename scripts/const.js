@@ -77,11 +77,28 @@ export const FLAGS = {
        */
       INCLUDE_WALLS: "includeWalls",
 
+      // Options for tokens in the cover calculations
+
       /**
        * Cover effect includes tokens in the cover calculation.
        * @type {boolean}
        */
-      INCLUDE_TOKENS: "includeTokens",
+      LIVE_TOKENS_BLOCK: "liveTokensBlock",
+
+      /**
+       * Cover effect includes dead tokens in the cover calculation.
+       * @type {boolean}
+       */
+      DEAD_TOKENS_BLOCK: "deadTokensBlock",
+
+      /**
+       * Cover effect includes prone tokens
+       * Further limited to live/dead depending on those values. Does nothing if neither
+       * live nor dead tokens provide cover.
+       * @type {boolean}
+       */
+      PRONE_TOKENS_BLOCK: "proneTokensBlock"
+
     }
   },
 

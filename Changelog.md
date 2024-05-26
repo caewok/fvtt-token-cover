@@ -1,3 +1,8 @@
+## 0.8.1
+Fix for cover not getting applied for tokens behind other tokens. Closes #24. In part to fix this, token cover settings moved to the cover rules for specific cover effects. So now a specific cover effect can be applied based on cover from live/dead/prone tokens.
+Fix for new cover effect creation failing.
+Fix for duplicate half cover effect appearing when DFred's CE is active.
+
 ## 0.8.0
 Consolidated "Cover Type" and "Cover Effect" into simply "Cover Effect." A Cover Effect is an item or active effect that represents a type of cover. The rules previously in Cover Type are now flags on the Cover Effect. In some systems, the GM can edit these rules directly from the Active Effect config window. Otherwise, in the Cover Book, right-click on a Cover Effect and select "Edit Cover Rules." (Because I cannot override config templates for every system.)
 

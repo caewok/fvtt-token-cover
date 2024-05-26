@@ -24,56 +24,32 @@ let [viewer] = canvas.tokens.controlled;
 let [target] = game.user.targets;
 */
 
-const TARGET = Settings.KEYS.LOS.TARGET;
-
 export class CoverCalculator extends AbstractCalculator {
-  /**
-   * Map of settings to Cover configurations.
-   * @type {object}
-   */
-  static SETTINGS_CONFIG_MAP = {
-    // Target
-    [TARGET.LARGE]: "largeTarget",
-
-    // Target (PointsLOS)
-    [TARGET.POINT_OPTIONS.NUM_POINTS]: "numTargetPoints",
-    [TARGET.POINT_OPTIONS.INSET]: "targetInset",
-    [TARGET.POINT_OPTIONS.POINTS3D]: "points3d",
-
-    // Token blocking
-    [Settings.KEYS.LIVE_TOKENS.ALGORITHM]: "liveTokensAlgorithm",
-    [Settings.KEYS.DEAD_TOKENS_BLOCK]: "deadTokensBlock",
-    [Settings.KEYS.PRONE_TOKENS_BLOCK]: "proneTokensBlock"
-  };
-
-  get liveForceHalfCover() {
-    return this.calc.getConfiguration("liveTokensAlgorithm") === Settings.KEYS.LIVE_TOKENS.TYPES.HALF;
+  constructor(viewer, target, config = {}) {
+    config.algorithm ??= Settings.get(Settings.KEYS.LOS.TARGET.ALGORITHM);
+    super(viewer, target, config);
   }
+
+  /** @type {POINT_TYPES} */
+  get viewerNumPoints() { return Settings.get(Settings.KEYS.LOS.VIEWER.NUM_POINTS); }
+
+  /** @type {number} */
+  get viewerInset() { return Settings.get(Settings.KEYS.LOS.VIEWER.INSET); }
 
   static initialConfiguration(cfg = {}) {
     // Move type b/c cover relates to physical obstacles.
-    cfg.type = "move";
+    // Must set before the call to super.
+    cfg.type ??= "move";
+    cfg = super.initialConfiguration(cfg);
 
-    // Set liveTokensBlock based on underlying algorithm.
-    super.initialConfiguration(cfg);
-    cfg.liveTokensBlock = cfg.liveTokensAlgorithm !== Settings.KEYS.LIVE_TOKENS.TYPES.NONE;
+    // Target settings
+    const TARGET = Settings.KEYS.LOS.TARGET;
+    cfg.largeTarget = Settings.get(TARGET.LARGE);
+    cfg.numTargetPoints = Settings.get(TARGET.POINT_OPTIONS.NUM_POINTS);
+    cfg.targetInset = Settings.get(TARGET.POINT_OPTIONS.INSET);
+    cfg.points3d = Settings.get(TARGET.POINT_OPTIONS.POINTS3D);
+
     return cfg;
-  }
-
-  /**
-   * Update the calculator settings.
-   */
-  _updateConfigurationSettings() {
-    this.calc._configure();
-    this.calc._clearCache();
-  }
-
-  /**
-   * Destroy cover calculator clone, if any.
-   */
-  destroy() {
-    // if ( this.viewer._isCoverCalculatorClone && !this.viewer._destroyed ) this.viewer.destroy();
-    super.destroy();
   }
 
   // ----- NOTE: Static methods ----- //
@@ -186,8 +162,8 @@ export class CoverCalculator extends AbstractCalculator {
     let percent = 1;
     let minViewerPoint;
     const viewerOpts = {
-      pointAlgorithm: Settings.get(Settings.KEYS.LOS.VIEWER.NUM_POINTS),
-      inset: Settings.get(Settings.KEYS.LOS.VIEWER.INSET)
+      pointAlgorithm: this.viewerNumPoints,
+      inset: this.viewerInset
     };
     const viewerPoints = calc.constructor.constructViewerPoints(viewer, viewerOpts);
     for ( const viewerPoint of viewerPoints ) {
@@ -388,15 +364,5 @@ export class CoverCalculator extends AbstractCalculator {
    * @returns {string}
    */
   static attackNameForType(type) { return game.i18n.localize(WEAPON_ATTACK_TYPES[type]); }
-
-  /**
-   * Update one or more specific settings in the calculator.
-   */
-  _updateConfiguration(config) {
-    // Handle the live token cover choices.
-    const liveTokensAlg = config[Settings.KEYS.LIVE_TOKENS.ALGORITHM];
-    if ( liveTokensAlg ) config.liveTokensBlock = liveTokensAlg !== Settings.KEYS.LIVE_TOKENS.TYPES.NONE;
-    super._updateConfiguration(config);
-  }
 
 }

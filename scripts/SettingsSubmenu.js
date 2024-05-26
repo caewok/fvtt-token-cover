@@ -47,10 +47,6 @@ export class DefaultSettings {
       [TARGET.POINT_OPTIONS.NUM_POINTS]: Settings.KEYS.POINT_TYPES.NINE,
       [TARGET.POINT_OPTIONS.INSET]: 0.75,
       [TARGET.POINT_OPTIONS.POINTS3D]: false,
-
-      // Cover options
-      [Settings.KEYS.DEAD_TOKENS_BLOCK]: false,
-      [Settings.KEYS.LIVE_TOKENS.ALGORITHM]: Settings.KEYS.LIVE_TOKENS.TYPES.FULL
     };
   }
 
@@ -70,10 +66,6 @@ export class DefaultSettings {
       [TARGET.POINT_OPTIONS.NUM_POINTS]: Settings.KEYS.POINT_TYPES.FOUR,
       [TARGET.POINT_OPTIONS.INSET]: 0,
       [TARGET.POINT_OPTIONS.POINTS3D]: false,
-
-      // Cover options
-      [Settings.KEYS.DEAD_TOKENS_BLOCK]: false,
-      [Settings.KEYS.LIVE_TOKENS.ALGORITHM]: Settings.KEYS.LIVE_TOKENS.TYPES.HALF
     };
   }
 

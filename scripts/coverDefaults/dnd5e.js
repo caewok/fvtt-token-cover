@@ -24,10 +24,9 @@ const RULES = FLAGS.COVER_EFFECT.RULES;
 coverEffects.halfToken = {
   name: `${MODULE_ID}.cover.HalfToken`,
   id: `${MODULE_ID}.${SYSTEM_ID}.halfToken`,
-  dFredsName: "Cover (Half)",
+  // No DFred's name b/c this cover is not defined.
 
   document: {
-    name: "DND5E.CoverHalf",
     icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
     flags: {
       [MODULE_ID]: {
@@ -35,7 +34,9 @@ coverEffects.halfToken = {
         [RULES.PRIORITY]: 0,
         [RULES.CAN_OVERLAP]: false,
         [RULES.INCLUDE_WALLS]: false,
-        [RULES.INCLUDE_TOKENS]: true
+        [RULES.LIVE_TOKENS_BLOCK]: true,
+        [RULES.DEAD_TOKENS_BLOCK]: false,
+        [RULES.PRONE_TOKENS_BLOCK]: true
       }
     },
     changes: [
@@ -60,7 +61,6 @@ coverEffects.half = {
   dFredsName: "Cover (Half)",
 
   document: {
-    name: "DND5E.CoverHalf",
     icon: ICONS.SHIELD_THIN_GRAY.HALF,
     flags: {
       [MODULE_ID]: {
@@ -68,7 +68,9 @@ coverEffects.half = {
         [RULES.PRIORITY]: 1,
         [RULES.CAN_OVERLAP]: false,
         [RULES.INCLUDE_WALLS]: true,
-        [RULES.INCLUDE_TOKENS]: false
+        [RULES.LIVE_TOKENS_BLOCK]: false,
+        [RULES.DEAD_TOKENS_BLOCK]: false,
+        [RULES.PRONE_TOKENS_BLOCK]: false
       }
     },
     changes: [
@@ -100,7 +102,9 @@ coverEffects.threeQuarters = {
         [RULES.PRIORITY]: 2,
         [RULES.CAN_OVERLAP]: false,
         [RULES.INCLUDE_WALLS]: true,
-        [RULES.INCLUDE_TOKENS]: false
+        [RULES.LIVE_TOKENS_BLOCK]: false,
+        [RULES.DEAD_TOKENS_BLOCK]: false,
+        [RULES.PRONE_TOKENS_BLOCK]: false
       }
     },
     changes: [
@@ -132,7 +136,9 @@ coverEffects.total = {
         [RULES.PRIORITY]: 3,
         [RULES.CAN_OVERLAP]: false,
         [RULES.INCLUDE_WALLS]: true,
-        [RULES.INCLUDE_TOKENS]: false
+        [RULES.LIVE_TOKENS_BLOCK]: false,
+        [RULES.DEAD_TOKENS_BLOCK]: false,
+        [RULES.PRONE_TOKENS_BLOCK]: false
       }
     },
     changes: [
