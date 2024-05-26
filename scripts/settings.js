@@ -95,19 +95,6 @@ export const SETTINGS = {
   PRONE_MULTIPLIER: "prone-multiplier",
   VISION_HEIGHT_MULTIPLIER: "vision-height-multiplier",
 
-  DEAD_TOKENS_BLOCK: "dead-tokens-block",
-  PRONE_TOKENS_BLOCK: "prone-tokens-block",
-
-  LIVE_TOKENS: {
-    ALGORITHM: "cover-token-live",
-    // ATTRIBUTE: "cover-token-prone-attribute",
-    TYPES: {
-      NONE: "cover-token-live-none",
-      HALF: "cover-token-live-half",
-      FULL: "cover-token-live-full"
-    }
-  },
-
   // Hidden settings
   AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
   CHANGELOG: "changelog",
@@ -384,45 +371,6 @@ export class Settings extends ModuleSettingsAbstract {
     }
 
     // ----- NOTE: Other cover settings tab ----- //
-    const LIVECHOICES = KEYS.LIVE_TOKENS.TYPES;
-    register(KEYS.LIVE_TOKENS.ALGORITHM, {
-      name: localize(`${KEYS.LIVE_TOKENS.ALGORITHM}.Name`),
-      hint: localize(`${KEYS.LIVE_TOKENS.ALGORITHM}.Hint`),
-      scope: "world",
-      config: false,
-      type: String,
-      choices: {
-        [LIVECHOICES.NONE]: localize(LIVECHOICES.NONE),
-        [LIVECHOICES.FULL]: localize(LIVECHOICES.FULL),
-        [LIVECHOICES.HALF]: localize(LIVECHOICES.HALF)
-      },
-      default: LIVECHOICES.FULL,
-      onChange: value => this.losSettingChange(KEYS.LIVE_TOKENS.ALGORITHM, value),
-      tab: "other"
-    });
-
-    register(KEYS.DEAD_TOKENS_BLOCK, {
-      name: localize(`${KEYS.DEAD_TOKENS_BLOCK}.Name`),
-      hint: localize(`${KEYS.DEAD_TOKENS_BLOCK}.Hint`),
-      scope: "world",
-      config: false,
-      type: Boolean,
-      default: false,
-      onChange: value => this.losSettingChange(KEYS.DEAD_TOKENS_BLOCK, value),
-      tab: "other"
-    });
-
-    register(KEYS.PRONE_TOKENS_BLOCK, {
-      name: localize(`${KEYS.PRONE_TOKENS_BLOCK}.Name`),
-      hint: localize(`${KEYS.PRONE_TOKENS_BLOCK}.Hint`),
-      scope: "world",
-      config: false,
-      type: Boolean,
-      default: false,
-      onChange: value => this.losSettingChange(KEYS.PRONE_TOKENS_BLOCK, value),
-      tab: "other"
-    });
-
     if ( !MODULES_ACTIVE.TOKEN_VISIBILITY ) {
       register(KEYS.PRONE_MULTIPLIER, {
         name: localize(`${KEYS.PRONE_MULTIPLIER}.Name`),
@@ -437,7 +385,6 @@ export class Settings extends ModuleSettingsAbstract {
         },
         default: CONFIG.GeometryLib.proneMultiplier ?? 0.33, // Same as Wall Height
         tab: "other",
-        horizontalDivider: true,
         onChange: value => CONFIG.GeometryLib.proneMultiplier = value
       });
 
@@ -546,7 +493,7 @@ export class Settings extends ModuleSettingsAbstract {
     const cfg = { [key]: value };
     canvas.tokens.placeables
       .filter(t => t._tokencover) // Don't create a new coverCalc here.
-      .forEach(token => token[MODULE_ID].coverCalculator._updateConfiguration(cfg));
+      .forEach(token => token[MODULE_ID].coverCalculator._resetConfiguration());
   }
 
   static setProneStatusId(value) {

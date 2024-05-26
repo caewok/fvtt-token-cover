@@ -6,7 +6,6 @@ CONST,
 foundry,
 LimitedAnglePolygon,
 PIXI,
-PointSourcePolygon,
 Ray,
 VisionSource
 */
@@ -76,9 +75,13 @@ export class AlternativeLOS {
    * @property {boolean} deadTokensBlock              Can dead tokens block in this test?
    * @property {boolean} liveTokensBlock              Can live tokens block in this test?
    * @property {boolean} proneTokensBlock             Can prone tokens block in this test?
-   * @property {Point3d} visionOffset                 Offset delta from the viewer center for vision point.
-   * @property {PIXI.Polygon} visibleTargetShape      Portion of the token shape that is visible.
-   * @property {VisionSource} visionSource            Vision source of the viewer.
+   * @property {Point3d} visionOffset                 Offset delta from the viewer center for vision point
+   * @property {boolean} largeTarget                  Use special handling for targets larger than grid square
+   * @property {number} threshold                     Numeric threshold for determining LOS from percent visible
+   * @property {PIXI.Polygon} visibleTargetShape      Portion of the token shape that is visible
+   * @property {VisionSource} visionSource            Vision source of the viewer
+   * @property {boolean} useLitTargetShape            Should the illuminated target shape be used?
+   * @property {string} tokenHPAttribute              Location of the token's hit points property
    */
   #config = {};
 
@@ -123,10 +126,19 @@ export class AlternativeLOS {
     cfg.tokenHPAttribute = config.tokenHPAttribute ?? CONFIG.GeometryLib.tokenHPId; // Or undefined.
   }
 
+  /**
+   * Update a group of configuration properties.
+   * Clears cache if any changes made.
+   * @param {object} [config={}]
+   */
   updateConfiguration(config = {}) {
     const cfg = this.#config;
-    for ( const [key, value] of Object.entries(config) ) cfg[key] = value;
-    this._clearCache();
+    let changed = false;
+    for ( const [key, value] of Object.entries(config) ) {
+      changed ||= cfg[key] !== value;
+      cfg[key] = value;
+    }
+    if ( changed ) this._clearCache();
   }
 
   getConfiguration(key) { return this.#config[key]; }
@@ -407,10 +419,10 @@ export class AlternativeLOS {
    *   borders to avoid false positives for adjacent tokens.
    * @returns {boolean}
    */
-  tokensOverlap(token1, token2, pad = -1) {
+  tokensOverlap(token1, token2, pad = -2) {
     if ( token1.elevationE !== token2.elevationE ) return false;
-    const border1 = token1.constrainedTokenBorder.pad(-2);
-    const border2 = token2.constrainedTokenBorder.pad(-2);
+    const border1 = token1.constrainedTokenBorder.pad(pad);
+    const border2 = token2.constrainedTokenBorder.pad(pad);
     return border1.overlaps(border2);
   }
 

@@ -30,7 +30,9 @@ coverEffects.soft = {
         [RULES.PRIORITY]: 0,
         [RULES.CAN_OVERLAP]: true,
         [RULES.INCLUDE_WALLS]: false,
-        [RULES.INCLUDE_TOKENS]: true
+        [RULES.LIVE_TOKENS_BLOCK]: true,
+        [RULES.DEAD_TOKENS_BLOCK]: false,
+        [RULES.PRONE_TOKENS_BLOCK]: true
       }
     }
   }
@@ -51,7 +53,9 @@ coverEffects.partial = {
         [RULES.PRIORITY]: 1,
         [RULES.CAN_OVERLAP]: false,
         [RULES.INCLUDE_WALLS]: true,
-        [RULES.INCLUDE_TOKENS]: true
+        [RULES.LIVE_TOKENS_BLOCK]: true,
+        [RULES.DEAD_TOKENS_BLOCK]: false,
+        [RULES.PRONE_TOKENS_BLOCK]: true
       }
     }
   }
@@ -72,7 +76,9 @@ coverEffects.cover = {
         [RULES.PRIORITY]: 2,
         [RULES.CAN_OVERLAP]: false,
         [RULES.INCLUDE_WALLS]: true,
-        [RULES.INCLUDE_TOKENS]: true
+        [RULES.LIVE_TOKENS_BLOCK]: true,
+        [RULES.DEAD_TOKENS_BLOCK]: false,
+        [RULES.PRONE_TOKENS_BLOCK]: true
       }
     }
   }
@@ -92,7 +98,9 @@ coverEffects.improved = {
         [RULES.PRIORITY]: 3,
         [RULES.CAN_OVERLAP]: false,
         [RULES.INCLUDE_WALLS]: true,
-        [RULES.INCLUDE_TOKENS]: true
+        [RULES.LIVE_TOKENS_BLOCK]: true,
+        [RULES.DEAD_TOKENS_BLOCK]: false,
+        [RULES.PRONE_TOKENS_BLOCK]: true
       }
     }
   }
@@ -112,7 +120,9 @@ coverEffects.total = {
         [RULES.PRIORITY]: 4,
         [RULES.CAN_OVERLAP]: false,
         [RULES.INCLUDE_WALLS]: true,
-        [RULES.INCLUDE_TOKENS]: true
+        [RULES.LIVE_TOKENS_BLOCK]: true,
+        [RULES.DEAD_TOKENS_BLOCK]: false,
+        [RULES.PRONE_TOKENS_BLOCK]: true
       }
     }
   }
