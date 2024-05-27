@@ -332,12 +332,9 @@ export class TokenCover {
   updateCover() {
     let changed = false;
     if ( this.canApplyCover() && !CONFIG[MODULE_ID].CoverEffect.coverOverrideApplied(this.token) ) {
-      log(`TokenCover#updateCover|${[...this.constructor.attackers.values().map(a => a.name + ": " + a.x + "," + a.y)].join("\t")}`);
       const coverEffects = this.minimumCoverFromAttackers();
       changed = this._replaceCover(coverEffects);
     } else changed = this.#clearCover();
-
-    if ( changed ) log(`TokenCover#updateCover|${this.token.name}|changing cover effects to: ${[...this._currentCoverEffects.values().map(ct => ct.name)].join(", ")}`);
     return changed;
   }
 

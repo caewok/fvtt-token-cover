@@ -1,3 +1,6 @@
+## 0.8.2
+Remove call to `values().map` which does not work in some browsers.
+
 ## 0.8.1
 Fix for cover not getting applied for tokens behind other tokens. Closes #24. In part to fix this, token cover settings moved to the cover rules for specific cover effects. So now a specific cover effect can be applied based on cover from live/dead/prone tokens.
 Fix for new cover effect creation failing.
