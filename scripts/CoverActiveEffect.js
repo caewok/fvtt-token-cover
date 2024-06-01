@@ -5,7 +5,6 @@ foundry,
 fromUuid,
 game,
 Hooks,
-isNewerVersion,
 ItemDirectory,
 socketlib
 */
@@ -336,7 +335,7 @@ export class CoverActiveEffect extends CoverEffect {
 
     // Only update if the saved version is older than current module version.
     const savedVersion = ae.getFlag(MODULE_ID, FLAGS.VERSION);
-    if ( savedVersion && !isNewerVersion(moduleVersion, savedVersion) ) return;
+    if ( savedVersion && !foundry.utils.isNewerVersion(moduleVersion, savedVersion) ) return;
 
     // Update the default document data fields.
     const updateData = foundry.utils.mergeObject(
