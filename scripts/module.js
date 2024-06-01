@@ -12,7 +12,6 @@ import { MODULE_ID, FLAGS, COVER, setCoverIgnoreHandler } from "./const.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
-import { registerElevationConfig } from "./geometry/elevation_configs.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
 import { AsyncQueue } from "./AsyncQueue.js";
@@ -155,7 +154,6 @@ Hooks.once("init", function() {
 Hooks.once("setup", function() {
   initializePatching();
   Settings.registerAll();
-  registerElevationConfig("TileConfig", "Alt. Token Cover");
   if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) {
     switch ( game.system.id ) {
       case "dnd5e": CONFIG[MODULE_ID].CoverEffect = CoverFlagsDND5E; break;
