@@ -48,7 +48,7 @@ const PATCHES = {
   Token: foundry.utils.mergeObject(PATCHES_Token, PATCHES_TokenLOS),
   TokenConfig: PATCHES_TokenConfig,
   TokenDocument: PATCHES_TokenDocument,
-  VisionSource: PATCHES_VisionSource,
+  ["foundry.canvas.sources.PointVisionSource"]: PATCHES_VisionSource,
   Wall: PATCHES_Wall,
 
   Midiqol: PATCHES_Midiqol,
