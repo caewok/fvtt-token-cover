@@ -67,7 +67,7 @@ export class Area2dLOS extends AlternativeLOS {
    * @property {boolean} debug                        Enable debug visualizations.
    *
    * Added by this subclass:
-   * @property {VisionSource} visionSource            The vision source of the viewer. Required.
+   * @property {PointVisionSource} visionSource            The vision source of the viewer. Required.
    */
 
   /**

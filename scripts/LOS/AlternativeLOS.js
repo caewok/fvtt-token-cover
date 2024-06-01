@@ -6,8 +6,7 @@ CONST,
 foundry,
 LimitedAnglePolygon,
 PIXI,
-Ray,
-VisionSource
+Ray
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -79,19 +78,19 @@ export class AlternativeLOS {
    * @property {boolean} largeTarget                  Use special handling for targets larger than grid square
    * @property {number} threshold                     Numeric threshold for determining LOS from percent visible
    * @property {PIXI.Polygon} visibleTargetShape      Portion of the token shape that is visible
-   * @property {VisionSource} visionSource            Vision source of the viewer
+   * @property {PointVisionSource} visionSource            Vision source of the viewer
    * @property {boolean} useLitTargetShape            Should the illuminated target shape be used?
    * @property {string} tokenHPAttribute              Location of the token's hit points property
    */
   #config = {};
 
   /**
-   * @param {Point3d|Token|VisionSource} viewer   Point or object with z, y, z|elevationZ properties
+   * @param {Point3d|Token|PointVisionSource} viewer   Point or object with z, y, z|elevationZ properties
    * @param {Token} target
    * @param {AlternativeLOSConfig} config
    */
   constructor(viewer, target, config) {
-    if ( viewer instanceof VisionSource ) viewer = viewer.object;
+    if ( viewer instanceof foundry.canvas.sources.PointVisionSource ) viewer = viewer.object;
     this.#viewer = viewer;
     this.#target = target;
     this._initializeConfiguration(config);
@@ -185,7 +184,7 @@ export class AlternativeLOS {
   get viewer() { return this.#viewer; }
 
   set viewer(value) {
-    if ( value instanceof VisionSource ) value = value.object;
+    if ( value instanceof foundry.canvas.sources.PointVisionSource ) value = value.object;
     if ( value === this.#viewer ) return;
     this.#viewer = value;
     this._clearViewerCache();
@@ -1005,7 +1004,7 @@ export class AlternativeLOS {
 
   /**
    * Test if any part of the target is within the limited angle vision of the token.
-   * @param {VisionSource} visionSource
+   * @param {PointVisionSource} visionSource
    * @param {PIXI.Rectangle|PIXI.Polygon} targetShape
    * @returns {boolean}
    */
