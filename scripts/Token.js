@@ -169,8 +169,7 @@ function refreshToken(token, flags) {
       const snapClone = token._snapClone ?? (token._snapClone = CoverCalculator.cloneForTokenLocation(token));
 
       // Determine the snapped position.
-      const snappedPosition = getSnappedTokenPosition(token);
-      snapClone.document.updateSource(snappedPosition);
+      snapClone.document.updateSource(token.getSnappedPosition());
 
       // Remove original and animating clone from attackers.
       TokenCover.removeAttacker(token._original, false);
@@ -197,17 +196,6 @@ function refreshToken(token, flags) {
     // Remove any clones?
     TokenCover.tokenMoved(token);
   }
-}
-
-/**
- * Get the snapped position of a token.
- * @param {Token} token
- */
-function getSnappedTokenPosition(token) {
-  // See Token.prototype._onDragLeftDrop
-  const isTiny = (token.document.width < 1) && (token.document.height < 1);
-  const interval = canvas.grid.isHexagonal ? 1 : isTiny ? 2 : 1;
-  return canvas.grid.getSnappedPosition(token.x, token.y, interval, { token });
 }
 
 // TODO: Move the movement updates to tokenRefresh.
