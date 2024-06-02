@@ -780,7 +780,7 @@ export class TokenGeometryHandler extends PlaceableGeometryHandler {
    * @returns {ConstrainedToken3dGeometry|ConstrainedTokenHex3dGeometry}
    */
   _buildGeometry() {
-    const cl = canvas.grid.isHex ? ConstrainedTokenHex3dGeometry : ConstrainedToken3dGeometry;
+    const cl = canvas.grid.isHexagonal ? ConstrainedTokenHex3dGeometry : ConstrainedToken3dGeometry;
     return new cl(this.token);
   }
 

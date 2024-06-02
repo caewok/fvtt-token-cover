@@ -206,7 +206,7 @@ function refreshToken(token, flags) {
 function getSnappedTokenPosition(token) {
   // See Token.prototype._onDragLeftDrop
   const isTiny = (token.document.width < 1) && (token.document.height < 1);
-  const interval = canvas.grid.isHex ? 1 : isTiny ? 2 : 1;
+  const interval = canvas.grid.isHexagonal ? 1 : isTiny ? 2 : 1;
   return canvas.grid.getSnappedPosition(token.x, token.y, interval, { token });
 }
 
