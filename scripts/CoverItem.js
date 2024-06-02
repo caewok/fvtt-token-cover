@@ -18,12 +18,6 @@ export class CoverItem extends CoverEffect {
   // ----- NOTE: Getters, setters, and related properties ----- //
 
   /**
-   * Retrieve the cover effect icon for use in the list of cover effects.
-   * @return {string}
-   */
-  get img() { return this.document?.img; }
-
-  /**
    * Data used when dragging a cover effect to an actor sheet.
    */
   get dragData() {
