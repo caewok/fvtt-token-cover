@@ -581,7 +581,7 @@ export class CoverEffect {
     const actor = token.actor;
     if ( !actor ) return;
     log(`CoverEffect#refreshCoverDisplay|${actor.name}`);
-    actor.prepareData(); // Trigger active effect update on the actor data.
+    // actor.prepareData(); // Trigger active effect update on the actor data.
     queueSheetRefresh(actor);
   }
 
