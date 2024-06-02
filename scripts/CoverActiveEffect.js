@@ -95,15 +95,15 @@ export class CoverActiveEffect extends CoverEffect {
 
   /**
    * Get data used to construct a cover effect document.
-   * Use the icon as the status.
+   * Use the image as the status.
    * @type {object}
    */
   get documentData() {
     const data = super.documentData;
 
-    // Use the icon as a status effect.
+    // Use the image as a status effect.
     data.statuses ??= [];
-    if ( !data.statuses.length ) data.statuses.push(data.icon);
+    if ( !data.statuses.length ) data.statuses.push(data.img);
     return data;
   }
 
@@ -133,7 +133,7 @@ export class CoverActiveEffect extends CoverEffect {
     if ( token.document.disposition === CONST.TOKEN_DISPOSITIONS.SECRET &&
       Settings.get(Settings.KEYS.DISPLAY_SECRET_COVER) ) {
       doc.statuses ??= [];
-      if ( doc.icon ) doc.statuses.findSplice(elem => elem === doc.icon);
+      if ( doc.img ) doc.statuses.findSplice(elem => elem === doc.img);
     }
 
     const ae = actor.effects.createDocument(doc);

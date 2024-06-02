@@ -20,7 +20,7 @@ export class CoverFlags extends CoverEffect {
   // ----- NOTE: Token/Actor methods ----- //
 
   /**
-   * Internal method to add this cover icon to the token locally.
+   * Internal method to add this cover image to the token locally.
    * @param {Token} token
    * @returns {boolean} True if change was made.
    */
@@ -32,10 +32,10 @@ export class CoverFlags extends CoverEffect {
     if ( token.document.disposition === CONST.TOKEN_DISPOSITIONS.SECRET &&
       Settings.get(Settings.KEYS.DISPLAY_SECRET_COVER) ) return true;
 
-    if ( token.document.effects.includes(this.icon) ) return true;
+    if ( token.document.effects.includes(this.img) ) return true;
 
     // Add the status icon to the token.
-    token.document.effects.push(this.icon);
+    token.document.effects.push(this.img);
     return true;
   }
 

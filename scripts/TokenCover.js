@@ -211,10 +211,11 @@ export class TokenCover {
     const displayIcon = this.canDisplayCoverIcon;
     coverEffects.forEach(ce => {
       if ( displayIcon ) {
-        if ( !ce.document.statuses.includes(ce.icon) ) ce.document.statuses.push(ce.icon);
-      } else ce.document.statuses.findSplice(s => s === ce.icon);
+        if ( !ce.document.statuses.includes(ce.img) ) ce.document.statuses.push(ce.img);
+      } else ce.document.statuses.findSplice(s => s === ce.img);
     });
   }
+
 
 
   /**

@@ -69,10 +69,16 @@ export class CoverEffect {
   get document() { return this.#document || (this.#document = this._findStorageDocument()); }
 
   /**
-   * Retrieve the cover effect icon for use in the list of cover effects.
+   * Retrieve the cover effect image for use in the list of cover effects.
    * @returns {string}
    */
-  get icon() { return this.document?.icon; }
+  get img() { return this.document?.img || this.document?.icon; }
+
+  /** Alias @type{string} */
+  get image() { return this.img; }
+
+  /** Alias @type{string} */
+  get icon() { return this.img; }
 
   /**
    * Retrieve the name of the cover effect for use in the list of cover effects.
@@ -459,7 +465,7 @@ export class CoverEffect {
   static get newCoverObjectData() {
     return {
       name: game.i18n.format(`${MODULE_ID}.phrases.xCoverEffect`, { cover: game.i18n.localize("New") }),
-      icon: ICONS.SHIELD_THICK_GRAY.FULL,
+      img: ICONS.SHIELD_THICK_GRAY.FULL,
       flags: {
         [MODULE_ID]: {
           [FLAGS.COVER_EFFECT.ID]: foundry.utils.randomID(),

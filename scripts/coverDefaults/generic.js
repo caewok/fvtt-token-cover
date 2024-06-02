@@ -17,7 +17,7 @@ coverEffects.low = {
   id: `${MODULE_ID}.${SYSTEM_ID}.low`,
 
   document: {
-    icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
+    img: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
     flags: {
       [MODULE_ID]: {
         [RULES.PERCENT_THRESHOLD]: 0.5,
@@ -37,7 +37,7 @@ coverEffects.medium = {
   id: `${MODULE_ID}.${SYSTEM_ID}.medium`,
 
   document: {
-    icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
+    img: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
     flags: {
       [MODULE_ID]: {
         [RULES.PERCENT_THRESHOLD]: 0.75,
@@ -57,7 +57,7 @@ coverEffects.high = {
   id: `${MODULE_ID}.${SYSTEM_ID}.high`,
 
   document: {
-    icon: ICONS.SHIELD_THIN_GRAY.FULL,
+    img: ICONS.SHIELD_THIN_GRAY.FULL,
     flags: {
       [MODULE_ID]: {
         [RULES.PERCENT_THRESHOLD]: 1,
