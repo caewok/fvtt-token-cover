@@ -556,7 +556,8 @@ export class AlternativeLOS {
     // Use blockingObjects b/c more limited and we can modify it if necessary.
     // const collisionTest = (o, _rect) => o.t.document.overhead;
     // const tiles = canvas.tiles.quadtree.getObjects(ray.bounds, { collisionTest });
-    const tiles = this.blockingObjects.tiles.filter(t => t.document.overhead);
+    // TODO: Need more nuanced understanding of overhead tiles and what should block.
+    const tiles = this.blockingObjects.tiles.filter(t => t.document.elevation >= t.document.parent.foregroundElevation);
 
     // Because tiles are parallel to the XY plane, we need not test ones obviously above or below.
     const maxE = Math.max(startPt.z, endPt.z);
@@ -950,7 +951,8 @@ export class AlternativeLOS {
     const alphaThreshold = CONFIG[MODULE_ID].alphaThreshold;
     return tiles.filter(t => {
       // Only overhead tiles count for blocking vision
-      if ( !t.document.overhead ) return false;
+      // TODO: Need more nuanced understanding of overhead tiles and what should block.
+      if ( t.document.elevation < t.document.parent.foregroundElevation ) return false;
 
       // Check remainder against the vision polygon shape
       // const tBounds = t.bounds;
@@ -975,9 +977,10 @@ export class AlternativeLOS {
 
     // Filter by the precise triangle cone.
     const edges = visionPolygon._edges;
-    return walls.filter(w => {
-      if ( visionPolygon.contains(w.A.x, w.A.y) || visionPolygon.contains(w.B.x, w.B.y) ) return true;
-      return edges.some(e => foundry.utils.lineSegmentIntersects(w.A, w.B, e.A, e.B));
+    return walls.filter(wall => {
+      const { a, b } = wall.edge;
+      if ( visionPolygon.contains(a.x, a.y) || visionPolygon.contains(b.x, b.y) ) return true;
+      return edges.some(e => foundry.utils.lineSegmentIntersects(a, b, e.A, e.B));
     });
   }
 
