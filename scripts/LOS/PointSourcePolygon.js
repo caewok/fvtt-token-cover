@@ -105,7 +105,7 @@ export function testWallsForIntersections(origin, destination, walls, mode, type
   const collisions = [];
   for ( let wall of walls ) {
     // Check the 2d overhead first.
-    if ( !foundry.utils.lineSegmentIntersects(origin, destination, wall.A, wall.B) ) continue;
+    if ( !foundry.utils.lineSegmentIntersects(origin, destination, wall.edge.a, wall.edge.b) ) continue;
 
     const wallPoints = Point3d.fromWall(wall, { finite: true });
     const t = Plane.rayIntersectionQuad3dLD(
