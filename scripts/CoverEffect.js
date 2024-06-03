@@ -1,6 +1,5 @@
 /* globals
 Application,
-duplicate,
 foundry,
 isEmpty,
 game,
@@ -69,10 +68,16 @@ export class CoverEffect {
   get document() { return this.#document || (this.#document = this._findStorageDocument()); }
 
   /**
-   * Retrieve the cover effect icon for use in the list of cover effects.
+   * Retrieve the cover effect image for use in the list of cover effects.
    * @returns {string}
    */
-  get icon() { return this.document?.icon; }
+  get img() { return this.document?.img || this.document?.icon; }
+
+  /** Alias @type{string} */
+  get image() { return this.img; }
+
+  /** Alias @type{string} */
+  get icon() { return this.img; }
 
   /**
    * Retrieve the name of the cover effect for use in the list of cover effects.
@@ -87,7 +92,7 @@ export class CoverEffect {
   get defaultCoverObjectData() {
     const defaultData = this.constructor.defaultCoverObjectData.get(this.id);
     if ( !defaultData ) return undefined;
-    return duplicate(defaultData);
+    return foundry.utils.duplicate(defaultData);
   }
 
   /**
@@ -459,7 +464,7 @@ export class CoverEffect {
   static get newCoverObjectData() {
     return {
       name: game.i18n.format(`${MODULE_ID}.phrases.xCoverEffect`, { cover: game.i18n.localize("New") }),
-      icon: ICONS.SHIELD_THICK_GRAY.FULL,
+      img: ICONS.SHIELD_THICK_GRAY.FULL,
       flags: {
         [MODULE_ID]: {
           [FLAGS.COVER_EFFECT.ID]: foundry.utils.randomID(),
@@ -570,13 +575,15 @@ export class CoverEffect {
    * @param {Token} token
    */
   static refreshCoverDisplay(token) {
+    log(`CoverEffect#refreshCoverDisplay|${token.name}`);
     token.renderFlags.set({ redrawEffects: true });
 
-    const actor = token.actor;
-    if ( !actor ) return;
-    log(`CoverEffect#refreshCoverDisplay|${actor.name}`);
-    actor.prepareData(); // Trigger active effect update on the actor data.
-    queueSheetRefresh(actor);
+    // actor.applyActiveEffects(); // Trigger active effect update on the actor data.
+    // actor.prepareData(); // Trigger active effect update on the actor data.
+    if ( token.actor ) {
+      token.actor.reset(); // Works for items in pf2e and AE in dnd5e.
+      queueSheetRefresh(token.actor);
+    }
   }
 
   /**

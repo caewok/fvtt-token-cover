@@ -18,12 +18,6 @@ export class CoverItem extends CoverEffect {
   // ----- NOTE: Getters, setters, and related properties ----- //
 
   /**
-   * Retrieve the cover effect icon for use in the list of cover effects.
-   * @return {string}
-   */
-  get icon() { return this.document?.img; }
-
-  /**
    * Data used when dragging a cover effect to an actor sheet.
    */
   get dragData() {
@@ -207,7 +201,7 @@ export class CoverItem extends CoverEffect {
 
     // Only update if the saved version is older than current module version.
     const savedVersion = item.getFlag(MODULE_ID, FLAGS.VERSION);
-    if ( savedVersion && !isNewerVersion(moduleVersion, savedVersion) ) return;
+    if ( savedVersion && !foundry.utils.isNewerVersion(moduleVersion, savedVersion) ) return;
 
     // Update the default document data fields.
     const updateData = foundry.utils.mergeObject(

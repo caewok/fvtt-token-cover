@@ -67,7 +67,7 @@ export class Area2dLOS extends AlternativeLOS {
    * @property {boolean} debug                        Enable debug visualizations.
    *
    * Added by this subclass:
-   * @property {VisionSource} visionSource            The vision source of the viewer. Required.
+   * @property {PointVisionSource} visionSource            The vision source of the viewer. Required.
    */
 
   /**
@@ -76,7 +76,7 @@ export class Area2dLOS extends AlternativeLOS {
    */
   static get gridSquareArea() {
     const size = canvas.scene.dimensions.size;
-    if ( canvas.grid.isHex ) {
+    if ( canvas.grid.isHexagonal ) {
       // https://en.wikipedia.org/wiki/Hexagon
       const radius = size * 0.5;
       return 1.5 * Math.SQRT3 * radius * radius;

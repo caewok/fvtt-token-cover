@@ -2,7 +2,6 @@
 CONFIG,
 CONST,
 expandObject,
-flattenObject,
 FormApplication,
 foundry,
 game,
@@ -20,7 +19,7 @@ export class CoverFlags extends CoverEffect {
   // ----- NOTE: Token/Actor methods ----- //
 
   /**
-   * Internal method to add this cover icon to the token locally.
+   * Internal method to add this cover image to the token locally.
    * @param {Token} token
    * @returns {boolean} True if change was made.
    */
@@ -32,10 +31,14 @@ export class CoverFlags extends CoverEffect {
     if ( token.document.disposition === CONST.TOKEN_DISPOSITIONS.SECRET &&
       Settings.get(Settings.KEYS.DISPLAY_SECRET_COVER) ) return true;
 
-    if ( token.document.effects.includes(this.icon) ) return true;
+    if ( token[MODULE_ID].iconMap.has(this.id) ) return true;
 
     // Add the status icon to the token.
-    token.document.effects.push(this.icon);
+    token[MODULE_ID].addIcon({
+      id: this.id,
+      category: this.id,
+      src: this.img
+    });
     return true;
   }
 
@@ -47,7 +50,7 @@ export class CoverFlags extends CoverEffect {
   _removeFromToken(token) {
     if ( Object.hasOwn(token.document.flags, MODULE_ID) ) {
       // Drop each flag.
-      const tcDoc = flattenObject(this.localDocumentData);
+      const tcDoc = foundry.utils.flattenObject(this.localDocumentData);
       for ( const key of Object.keys(tcDoc) ) {
         delete tcDoc[key];
         const idx = key.lastIndexOf(".")
@@ -59,7 +62,11 @@ export class CoverFlags extends CoverEffect {
     }
 
     // Remove the status icon
-    token.document.effects.findSplice(elem => elem === this.icon)
+    token[MODULE_ID].removeIcon({
+      id: this.id,
+      category: this.id,
+      src: this.img
+    });
     return true;
   }
 
@@ -173,6 +180,7 @@ export class CoverFlags extends CoverEffect {
    */
   static refreshCoverDisplay(token) {
     // Drop refreshing the actor sheet as there is none for cover flags.
+    // Also don't need to reset the actor as no effects applied.
     token.renderFlags.set({ redrawEffects: true });
   }
 

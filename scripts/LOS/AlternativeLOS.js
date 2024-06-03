@@ -6,8 +6,7 @@ CONST,
 foundry,
 LimitedAnglePolygon,
 PIXI,
-Ray,
-VisionSource
+Ray
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -79,19 +78,19 @@ export class AlternativeLOS {
    * @property {boolean} largeTarget                  Use special handling for targets larger than grid square
    * @property {number} threshold                     Numeric threshold for determining LOS from percent visible
    * @property {PIXI.Polygon} visibleTargetShape      Portion of the token shape that is visible
-   * @property {VisionSource} visionSource            Vision source of the viewer
+   * @property {PointVisionSource} visionSource            Vision source of the viewer
    * @property {boolean} useLitTargetShape            Should the illuminated target shape be used?
    * @property {string} tokenHPAttribute              Location of the token's hit points property
    */
   #config = {};
 
   /**
-   * @param {Point3d|Token|VisionSource} viewer   Point or object with z, y, z|elevationZ properties
+   * @param {Point3d|Token|PointVisionSource} viewer   Point or object with z, y, z|elevationZ properties
    * @param {Token} target
    * @param {AlternativeLOSConfig} config
    */
   constructor(viewer, target, config) {
-    if ( viewer instanceof VisionSource ) viewer = viewer.object;
+    if ( viewer instanceof foundry.canvas.sources.PointVisionSource ) viewer = viewer.object;
     this.#viewer = viewer;
     this.#target = target;
     this._initializeConfiguration(config);
@@ -185,7 +184,7 @@ export class AlternativeLOS {
   get viewer() { return this.#viewer; }
 
   set viewer(value) {
-    if ( value instanceof VisionSource ) value = value.object;
+    if ( value instanceof foundry.canvas.sources.PointVisionSource ) value = value.object;
     if ( value === this.#viewer ) return;
     this.#viewer = value;
     this._clearViewerCache();
@@ -557,7 +556,8 @@ export class AlternativeLOS {
     // Use blockingObjects b/c more limited and we can modify it if necessary.
     // const collisionTest = (o, _rect) => o.t.document.overhead;
     // const tiles = canvas.tiles.quadtree.getObjects(ray.bounds, { collisionTest });
-    const tiles = this.blockingObjects.tiles.filter(t => t.document.overhead);
+    // TODO: Need more nuanced understanding of overhead tiles and what should block.
+    const tiles = this.blockingObjects.tiles.filter(t => t.document.elevation >= t.document.parent.foregroundElevation);
 
     // Because tiles are parallel to the XY plane, we need not test ones obviously above or below.
     const maxE = Math.max(startPt.z, endPt.z);
@@ -587,7 +587,7 @@ export class AlternativeLOS {
       if ( t === null || t < zeroMin || t > oneMax ) continue;
       const ix = new Point3d();
       startPt.add(rayVector.multiplyScalar(t, ix), ix);
-      if ( !tile.mesh?.containsPixel(ix.x, ix.y, 0.99) ) continue; // Transparent, so no collision.
+      if ( !tile.mesh?.containsCanvasPoint(ix.x, ix.y, 0.99 + 1e-06) ) continue; // Transparent, so no collision.
 
       return true;
     }
@@ -951,7 +951,8 @@ export class AlternativeLOS {
     const alphaThreshold = CONFIG[MODULE_ID].alphaThreshold;
     return tiles.filter(t => {
       // Only overhead tiles count for blocking vision
-      if ( !t.document.overhead ) return false;
+      // TODO: Need more nuanced understanding of overhead tiles and what should block.
+      if ( t.document.elevation < t.document.parent.foregroundElevation ) return false;
 
       // Check remainder against the vision polygon shape
       // const tBounds = t.bounds;
@@ -976,9 +977,10 @@ export class AlternativeLOS {
 
     // Filter by the precise triangle cone.
     const edges = visionPolygon._edges;
-    return walls.filter(w => {
-      if ( visionPolygon.contains(w.A.x, w.A.y) || visionPolygon.contains(w.B.x, w.B.y) ) return true;
-      return edges.some(e => foundry.utils.lineSegmentIntersects(w.A, w.B, e.A, e.B));
+    return walls.filter(wall => {
+      const { a, b } = wall.edge;
+      if ( visionPolygon.contains(a.x, a.y) || visionPolygon.contains(b.x, b.y) ) return true;
+      return edges.some(e => foundry.utils.lineSegmentIntersects(a, b, e.A, e.B));
     });
   }
 
@@ -992,7 +994,7 @@ export class AlternativeLOS {
     if (!wall.document[this.#config.type] || wall.isOpen ) return false;
 
     // Ignore one-directional walls facing away
-    const side = wall.orientPoint(this.viewerPoint);
+    const side = wall.edge.orientPoint(this.viewerPoint);
     return !wall.document.dir || (side !== wall.document.dir);
   }
 
@@ -1005,7 +1007,7 @@ export class AlternativeLOS {
 
   /**
    * Test if any part of the target is within the limited angle vision of the token.
-   * @param {VisionSource} visionSource
+   * @param {PointVisionSource} visionSource
    * @param {PIXI.Rectangle|PIXI.Polygon} targetShape
    * @returns {boolean}
    */

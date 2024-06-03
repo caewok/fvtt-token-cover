@@ -6,7 +6,7 @@
 import { MODULE_ID } from "./const.js";
 import { LOSCalculator } from "./LOSCalculator.js";
 
-// Patches for the VisionSource class
+// Patches for the PointVisionSource class
 export const PATCHES = {};
 PATCHES.LOS = {};
 
