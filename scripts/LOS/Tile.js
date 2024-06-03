@@ -1,5 +1,5 @@
 /* globals
-flattenObject
+foundry
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -31,7 +31,7 @@ function drawTileArea3d(tile) {
  * @param {string} userId                           The ID of the User who triggered the update workflow
  */
 function updateTileArea3d(tileD, changed, _options, _userId) {
-  const changeKeys = new Set(Object.keys(flattenObject(changed)));
+  const changeKeys = new Set(Object.keys(foundry.utils.flattenObject(changed)));
   if ( !(changeKeys.has("height")
       || changeKeys.has("width")
       || changeKeys.has("texture")
