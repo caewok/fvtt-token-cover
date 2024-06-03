@@ -20,7 +20,6 @@ import { PATCHES as PATCHES_TokenDocument } from "./TokenDocument.js";
 import { PATCHES as PATCHES_PointSourcePolygon } from "./LOS/PointSourcePolygon.js";
 import { PATCHES as PATCHES_Tile } from "./LOS/Tile.js";
 import { PATCHES as PATCHES_TokenLOS } from "./LOS/Token.js";
-import { PATCHES as PATCHES_VisionSource } from "./LOS/VisionSource.js";
 import { PATCHES as PATCHES_Wall } from "./LOS/Wall.js";
 
 // Midiqol
@@ -48,7 +47,6 @@ const PATCHES = {
   Token: foundry.utils.mergeObject(PATCHES_Token, PATCHES_TokenLOS),
   TokenConfig: PATCHES_TokenConfig,
   TokenDocument: PATCHES_TokenDocument,
-  VisionSource: PATCHES_VisionSource,
   Wall: PATCHES_Wall,
 
   Midiqol: PATCHES_Midiqol,

@@ -27,7 +27,7 @@ coverEffects.halfToken = {
   // No DFred's name b/c this cover is not defined.
 
   document: {
-    icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
+    img: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
     flags: {
       [MODULE_ID]: {
         [RULES.PERCENT_THRESHOLD]: 0.5,
@@ -61,7 +61,7 @@ coverEffects.half = {
   dFredsName: "Cover (Half)",
 
   document: {
-    icon: ICONS.SHIELD_THIN_GRAY.HALF,
+    img: ICONS.SHIELD_THIN_GRAY.HALF,
     flags: {
       [MODULE_ID]: {
         [RULES.PERCENT_THRESHOLD]: 0.5,
@@ -95,7 +95,7 @@ coverEffects.threeQuarters = {
   dFredsName: "Cover (Three-Quarters)",
 
   document: {
-    icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
+    img: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
     flags: {
       [MODULE_ID]: {
         [RULES.PERCENT_THRESHOLD]: 0.75,
@@ -129,7 +129,7 @@ coverEffects.total = {
   dFredsName: "Cover (Total)",
 
   document: {
-    icon: ICONS.SHIELD_THIN_GRAY.FULL,
+    img: ICONS.SHIELD_THIN_GRAY.FULL,
     flags: {
       [MODULE_ID]: {
         [RULES.PERCENT_THRESHOLD]: 1,

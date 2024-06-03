@@ -23,7 +23,7 @@ coverEffects.soft = {
   compendiumId: "aolmL82yGMgAlEcf",
 
   document: {
-    icon: ICONS.SHIELD_THICK_GRAY.SPLAT,
+    img: ICONS.SHIELD_THICK_GRAY.SPLAT,
     flags: {
       [MODULE_ID]: {
         [RULES.PERCENT_THRESHOLD]: 0.01,
@@ -46,7 +46,7 @@ coverEffects.partial = {
   compendiumId: "WhC815WlllSW8tT0",
 
   document: {
-    icon: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
+    img: ICONS.SHIELD_THIN_GRAY.ONE_QUARTER,
     flags: {
       [MODULE_ID]: {
         [RULES.PERCENT_THRESHOLD]: 0.25,
@@ -69,7 +69,7 @@ coverEffects.cover = {
   compendiumId: "bjq4ho7JXhgUDvG6",
 
   document: {
-    icon: ICONS.SHIELD_THIN_GRAY.HALF,
+    img: ICONS.SHIELD_THIN_GRAY.HALF,
     flags: {
       [MODULE_ID]: {
         [RULES.PERCENT_THRESHOLD]: 0.5,
@@ -91,7 +91,7 @@ coverEffects.improved = {
   compendiumId: "kaIYAWHJ7up8rwOy",
 
   document: {
-    icon: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
+    img: ICONS.SHIELD_THIN_GRAY.THREE_QUARTERS,
     flags: {
       [MODULE_ID]: {
         [RULES.PERCENT_THRESHOLD]: 0.9,
@@ -113,7 +113,7 @@ coverEffects.total = {
   compendiumId: "o0CFBHsprfadKuyd",
 
   document: {
-    icon: ICONS.SHIELD_THIN_GRAY.FULL,
+    img: ICONS.SHIELD_THIN_GRAY.FULL,
     flags: {
       [MODULE_ID]: {
         [RULES.PERCENT_THRESHOLD]: 1,

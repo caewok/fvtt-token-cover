@@ -105,7 +105,7 @@ export function testWallsForIntersections(origin, destination, walls, mode, type
   const collisions = [];
   for ( let wall of walls ) {
     // Check the 2d overhead first.
-    if ( !foundry.utils.lineSegmentIntersects(origin, destination, wall.A, wall.B) ) continue;
+    if ( !foundry.utils.lineSegmentIntersects(origin, destination, wall.edge.a, wall.edge.b) ) continue;
 
     const wallPoints = Point3d.fromWall(wall, { finite: true });
     const t = Plane.rayIntersectionQuad3dLD(
@@ -153,7 +153,7 @@ function originalTestWallInclusion(wall, bounds) {
   }
 
   // Ignore walls which are nearly collinear with the origin
-  const side = wall.orientPoint(this.origin);
+  const side = wall.edge.orientPoint(this.origin);
   if ( !side ) return false;
 
   // Always include interior walls underneath active roof tiles

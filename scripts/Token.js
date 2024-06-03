@@ -1,7 +1,9 @@
 /* globals
 canvas,
 CONFIG,
-game
+CONST,
+game,
+KeyboardManager
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
@@ -139,7 +141,16 @@ PATCHES.DEBUG.HOOKS = {
  * Adjust cover calculations as the token moves.
  */
 function refreshToken(token, flags) {
-  if ( !flags.refreshPosition ) return;
+  if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) {
+    if ( flags.redrawEffects ) token[MODULE_ID].drawIcons(); // Async.
+    else if ( flags.refreshEffects ) token[MODULE_ID]._refreshIcons();
+  }
+
+  if ( !(flags.refreshPosition
+      || flags.refreshElevation
+      || flags.refreshSize
+      || flags.refreshShape
+      || flags.refreshRotation)  ) return;
 
   log(`refreshToken hook|${token.name} at ${token.position.x},${token.position.y}. Token is ${token._original ? "Clone" : "Original"}
   \tdocument: ${token.document.x},${token.document.y}
@@ -165,8 +176,7 @@ function refreshToken(token, flags) {
       const snapClone = token._snapClone ?? (token._snapClone = CoverCalculator.cloneForTokenLocation(token));
 
       // Determine the snapped position.
-      const snappedPosition = getSnappedTokenPosition(token);
-      snapClone.document.updateSource(snappedPosition);
+      snapClone.document.updateSource(token.getSnappedPosition());
 
       // Remove original and animating clone from attackers.
       TokenCover.removeAttacker(token._original, false);
@@ -195,16 +205,7 @@ function refreshToken(token, flags) {
   }
 }
 
-/**
- * Get the snapped position of a token.
- * @param {Token} token
- */
-function getSnappedTokenPosition(token) {
-  // See Token.prototype._onDragLeftDrop
-  const isTiny = (token.document.width < 1) && (token.document.height < 1);
-  const interval = canvas.grid.isHex ? 1 : isTiny ? 2 : 1;
-  return canvas.grid.getSnappedPosition(token.x, token.y, interval, { token });
-}
+// TODO: Move the movement updates to tokenRefresh.
 
 /**
  * Hook: updateToken
@@ -221,14 +222,7 @@ function updateToken(tokenD, change, _options, _userId) {
     token[MODULE_ID].updateCoverIconDisplay();
     CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
   }
-  if ( !(Object.hasOwn(change, "x")
-      || Object.hasOwn(change, "y")
-      || Object.hasOwn(change, "elevation")
-      || Object.hasOwn(change, "rotation")) ) return;
-
-  if ( CanvasAnimation.getAnimation(_token.animationName) ) return;
-  log(`updateToken hook|${token.name} moved from ${token.position.x},${token.position.y} -> ${token.document.x},${token.document.y} Center: ${token.center.x},${token.center.y}.`);
-  TokenCover.tokenMoved(token);
+  // Token movement, resize now handled by refresh.
 }
 
 /**

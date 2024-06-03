@@ -1,5 +1,5 @@
 /* globals
-duplicate
+foundry
 */
 "use strict";
 
@@ -29,7 +29,7 @@ export const STATUS_EFFECTS = {
   }
 };
 
-STATUS_EFFECTS.dnd5e = duplicate(STATUS_EFFECTS.generic);
+STATUS_EFFECTS.dnd5e = foundry.utils.duplicate(STATUS_EFFECTS.generic);
 STATUS_EFFECTS.dnd5e.LOW.name = "DND5E.CoverHalf";
 STATUS_EFFECTS.dnd5e.MEDIUM.name = "DND5E.CoverThreeQuarters";
 STATUS_EFFECTS.dnd5e.HIGH.name = "DND5E.CoverTotal";
@@ -77,7 +77,7 @@ STATUS_EFFECTS.dnd5e.HIGH.changes = [
   }
 ];
 
-STATUS_EFFECTS.dnd5e_midiqol = duplicate(STATUS_EFFECTS.dnd5e);
+STATUS_EFFECTS.dnd5e_midiqol = foundry.utils.duplicate(STATUS_EFFECTS.dnd5e);
 STATUS_EFFECTS.dnd5e_midiqol.HIGH.changes = [
   {
     key: "flags.midi-qol.grants.attack.fail.all",
@@ -87,7 +87,7 @@ STATUS_EFFECTS.dnd5e_midiqol.HIGH.changes = [
 ];
 
 
-STATUS_EFFECTS.pf2e = duplicate(STATUS_EFFECTS.generic);
+STATUS_EFFECTS.pf2e = foundry.utils.duplicate(STATUS_EFFECTS.generic);
 STATUS_EFFECTS.pf2e.LOW.name = "PF2E.Cover.Lesser";
 STATUS_EFFECTS.pf2e.MEDIUM.name = "PF2E.Cover.Standard";
 STATUS_EFFECTS.pf2e.HIGH.name = "PF2E.Cover.Greater";
