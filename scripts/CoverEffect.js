@@ -1,6 +1,5 @@
 /* globals
 Application,
-duplicate,
 foundry,
 isEmpty,
 game,
@@ -93,7 +92,7 @@ export class CoverEffect {
   get defaultCoverObjectData() {
     const defaultData = this.constructor.defaultCoverObjectData.get(this.id);
     if ( !defaultData ) return undefined;
-    return duplicate(defaultData);
+    return foundry.utils.duplicate(defaultData);
   }
 
   /**
