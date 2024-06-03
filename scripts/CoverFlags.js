@@ -180,6 +180,7 @@ export class CoverFlags extends CoverEffect {
    */
   static refreshCoverDisplay(token) {
     // Drop refreshing the actor sheet as there is none for cover flags.
+    // Also don't need to reset the actor as no effects applied.
     token.renderFlags.set({ redrawEffects: true });
   }
 
