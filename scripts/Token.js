@@ -1,7 +1,9 @@
 /* globals
 canvas,
 CONFIG,
-game
+CONST,
+game,
+KeyboardManager
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
@@ -139,6 +141,11 @@ PATCHES.DEBUG.HOOKS = {
  * Adjust cover calculations as the token moves.
  */
 function refreshToken(token, flags) {
+  if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) {
+    if ( flags.redrawEffects ) token[MODULE_ID].drawIcons(); // Async.
+    else if ( flags.refreshEffects ) token[MODULE_ID]._refreshIcons();
+  }
+
   if ( !(flags.refreshPosition
       || flags.refreshElevation
       || flags.refreshSize
