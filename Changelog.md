@@ -1,3 +1,7 @@
+## 0.8.3
+Use `token.reset` to force the cover effects to apply, to avoid various errors related to applying active effects when using `prepareData`.
+Use the `tokenRefresh` hook instead of `tokenUpdate` to monitor for changes to token position, size, elevation, rotation.
+
 ## 0.8.2
 Remove call to `values().map` which does not work in some browsers.
 
