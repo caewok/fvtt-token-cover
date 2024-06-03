@@ -171,6 +171,19 @@ Hooks.once("ready", () => {
       `
     })
 
+    .addEntry({
+      version: "0.9.0",
+      title: "Foundry v12",
+      body: `\
+        Version 0.9.0 brings Foundry v12 compatibility. Sorry, this version is not backwards-compatible.
+        Look to the v0.8 series for v11 compatibility. I will try to keep the v0.8 series updated for awhile
+        as I know many are still using v11.
+
+        For those of you using Pathfinder 2e, this version appears to now apply the cover effect correctly,
+        which hopefully means full compatibility with that system! We will see how it works in practice.
+      `
+    })
+
     .build()
     ?.render(true);
 });
