@@ -1,3 +1,7 @@
+## 0.9.0
+Compatibility with FoundryVTT v12. Requires v12; use the v0.8 series if you are on v11.
+Fixes application of cover items in pf2e. This fix may improve application of cover effects in dnd5e and other systems.
+
 ## 0.8.2
 Remove call to `values().map` which does not work in some browsers.
 
