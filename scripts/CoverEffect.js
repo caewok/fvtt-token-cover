@@ -570,13 +570,15 @@ export class CoverEffect {
    * @param {Token} token
    */
   static refreshCoverDisplay(token) {
+    log(`CoverEffect#refreshCoverDisplay|${token.name}`);
     token.renderFlags.set({ redrawEffects: true });
 
-    const actor = token.actor;
-    if ( !actor ) return;
-    log(`CoverEffect#refreshCoverDisplay|${actor.name}`);
-    actor.prepareData(); // Trigger active effect update on the actor data.
-    queueSheetRefresh(actor);
+    // actor.applyActiveEffects(); // Trigger active effect update on the actor data.
+    // actor.prepareData(); // Trigger active effect update on the actor data.
+    if ( token.actor ) {
+      token.actor.reset(); // Works for items in pf2e and AE in dnd5e.
+      queueSheetRefresh(token.actor);
+    }
   }
 
   /**
