@@ -446,7 +446,7 @@ export class AlternativeLOS {
     const tokenBorder = token.constrainedTokenBorder;
 
     // If the global light source is present, then we can use the whole token.
-    if ( canvas.effects.illumination.globalLight ) return tokenBorder;
+    if ( canvas.environment.globalLightSource.active ) return tokenBorder;
 
     // Cannot really use quadtree b/c it doesn't contain all light sources.
     const lightShapes = [];
@@ -557,7 +557,7 @@ export class AlternativeLOS {
     // const collisionTest = (o, _rect) => o.t.document.overhead;
     // const tiles = canvas.tiles.quadtree.getObjects(ray.bounds, { collisionTest });
     // TODO: Need more nuanced understanding of overhead tiles and what should block.
-    const tiles = this.blockingObjects.tiles.filter(t => t.document.elevation >= t.document.parent.foregroundElevation);
+    const tiles = this.blockingObjects.tiles.filter(t => t.document.elevation >= t.document.parent?.foregroundElevation);
 
     // Because tiles are parallel to the XY plane, we need not test ones obviously above or below.
     const maxE = Math.max(startPt.z, endPt.z);
@@ -952,7 +952,7 @@ export class AlternativeLOS {
     return tiles.filter(t => {
       // Only overhead tiles count for blocking vision
       // TODO: Need more nuanced understanding of overhead tiles and what should block.
-      if ( t.document.elevation < t.document.parent.foregroundElevation ) return false;
+      if ( t.document.elevation < t.document.parent?.foregroundElevation ) return false;
 
       // Check remainder against the vision polygon shape
       // const tBounds = t.bounds;
