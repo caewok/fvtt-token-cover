@@ -135,7 +135,7 @@ export class TokenCover {
    * @type {Set<CoverEffect>}
    */
   get _currentCoverEffects() {
-    return CONFIG[MODULE_ID].CoverEffect.allLocalCoverOnToken(this.token);
+    return CONFIG[MODULE_ID].CoverEffect.allOnToken(this.token);
   }
 
   constructor(token) {
@@ -319,7 +319,7 @@ export class TokenCover {
    * Update the cover icon display for this token.
    */
   updateCoverIconDisplay() {
-    const coverEffects = CONFIG[MODULE_ID].CoverEffect.allLocalCoverOnToken(this.token);
+    const coverEffects = CONFIG[MODULE_ID].CoverEffect.allOnToken(this.token);
     if ( !coverEffects.size ) return;
     const displayIcon = this.canDisplayCoverIcon;
     coverEffects.forEach(ce => {
@@ -476,7 +476,7 @@ export class TokenCover {
    * @returns {boolean} True if a change was made.
    */
   _replaceCover(replacementCover = NULL_SET) {
-    const coverEffects = this._currentCoverEffects;
+    const coverEffects = new Set(this._currentCoverEffects);
     const toAdd = replacementCover.difference(coverEffects);
     const toRemove = coverEffects.difference(replacementCover);
     let change = false;

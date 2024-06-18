@@ -1,11 +1,10 @@
 /* globals
-foundry,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { ICONS, MODULE_ID } from "./const.js";
+import { ICONS, MODULE_ID, FLAGS } from "./const.js";
 
 /**
  * A mixin which extends the UniqueEffect with specialized terrain behaviors
@@ -92,10 +91,27 @@ export function CoverMixin(Base) {
     /** @type {object} */
     static get _storageMapData() {
       return {
-        name: "Cover",
+        name: "Cover Effects",
         img: ICONS.MODULE,
         type: "base",
       };
+    }
+
+    /**
+     * Determine if the GM has added a cover effect override to a token.
+     * Cover effect overrides have a COVER_EFFECT.ID flag but no local flag.
+     * @param {Token} actor
+     * @returns {boolean}
+     */
+    static coverOverrideApplied(token) {
+      // TODO: Either add LOCAL Flag or re-do so it is not needed. Maybe compare to source?
+      const { ID, LOCAL } = FLAGS.COVER_EFFECT;
+      for ( const effectDoc of CONFIG[MODULE_ID].CoverEffect._allUniqueEffectDocumentsOnToken(token) ) {
+        const modFlags = effectDoc?.flags?.[MODULE_ID];
+        if ( !modFlags ) continue;
+        if ( modFlags[ID] && !modFlags[LOCAL] ) return true;
+      }
+      return false;
     }
 
     /**

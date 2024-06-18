@@ -87,7 +87,7 @@ Hooks.once("ready", function() {
 
 Hooks.once("canvasReady", function() {
   transitionTokenMaximumCoverFlags();
-  CONFIG[MODULE_ID].Terrain.transitionTokens(); // Async
+  CONFIG[MODULE_ID].CoverEffect.transitionTokens(); // Async
 })
 
 

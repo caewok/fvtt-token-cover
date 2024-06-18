@@ -3,13 +3,14 @@ canvas,
 CONFIG,
 foundry,
 game,
+ItemDirectory
 ui
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
-import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, FLAGS } from "./const.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
@@ -25,7 +26,7 @@ PATCHES_ItemDirectory.BASIC = {};
  * From https://github.com/DFreds/dfreds-convenient-effects/blob/main/scripts/ui/remove-custom-item-from-sidebar.js#L3
  * @param {ItemDirectory} dir
  */
-function removeTerrainsItemFromSidebar(dir) {
+function removeCoverItemFromSidebar(dir) {
   if ( !(dir instanceof ItemDirectory) ) return;
   if ( !game.items ) return;
   for ( const item of game.items ) {
@@ -38,12 +39,12 @@ function removeTerrainsItemFromSidebar(dir) {
 /**
  * Hooks for changeSidebarTab and renderItemDirectory to remove the terrains item from the directory.
  */
-function removeTerrainItemHook(directory) {
-  removeTerrainsItemFromSidebar(directory);
+function removeCoverItemHook(directory) {
+  removeCoverItemFromSidebar(directory);
 }
 
-PATCHES_SidebarTab.BASIC.HOOKS = { changeSidebarTab: removeTerrainItemHook };
-PATCHES_ItemDirectory.BASIC.HOOKS = { renderItemDirectory: removeTerrainItemHook };
+PATCHES_SidebarTab.BASIC.HOOKS = { changeSidebarTab: removeCoverItemHook };
+PATCHES_ItemDirectory.BASIC.HOOKS = { renderItemDirectory: removeCoverItemHook };
 
 
 
@@ -522,7 +523,6 @@ export class Settings extends ModuleSettingsAbstract {
 
   static losSettingChange(key, value) {
     this.cache.delete(key);
-    const cfg = { [key]: value };
     canvas.tokens.placeables
       .filter(t => t._tokencover) // Don't create a new coverCalc here.
       .forEach(token => token[MODULE_ID].coverCalculator._resetConfiguration());
