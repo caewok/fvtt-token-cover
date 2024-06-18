@@ -76,6 +76,11 @@ export function CoverMixin(Base) {
       return this.percentCover(attackingToken, targetToken) >= this.percentThreshold;
     }
 
+    /**
+     * Alias
+     */
+    statid get coverObjectsMap() { return this._instances; }
+
 
     /**
      * Alias
@@ -95,6 +100,51 @@ export function CoverMixin(Base) {
         img: ICONS.MODULE,
         type: "base",
       };
+    }
+
+    /**
+     * Get all effects ordered by priority as well as unordered effects.
+     * @type {object}
+     *   - @prop {AbstractCoverObject[]} ordered          From highest to lowest priority
+     *   - @prop {Set<AbstractCoverObject> unordered}     All objects with priority === 0
+     */
+    static get sortedCoverObjects() {
+      const ordered = [];
+      const unordered = new Set();
+      for ( const coverEffect of this._instances.values() ) {
+        if ( !coverEffect.priority ) unordered.add(coverEffect);
+        else ordered.push(coverEffect);
+      }
+      ordered.sort((a, b) => b.priority - a.priority);
+      return { ordered, unordered };
+    }
+
+
+    /**
+     * Determine what cover effects apply to a target token given an attacking token.
+     * @param {Token} attackingToken
+     * @param {Token} targetToken
+     * @returns {Set<CoverEffect>}
+     */
+    static coverForToken(attackingToken, targetToken, opts = {}) {
+      const effects = new Set();
+      const { ordered, unordered } = this.sortedCoverObjects;
+
+      // Test cover effects in priority order.
+      for ( const coverEffect of ordered ) {
+        if ( coverEffect._couldApply(attackingToken, targetToken, opts) ) {
+          effects.add(coverEffect);
+          if ( !coverEffect.canOverlap ) break;
+        }
+      }
+
+      // Test cover effects without a set priority.
+      for ( const coverEffect of unordered ) {
+        // If there is already an effect, cannot use a non-overlapping effect.
+        if ( !coverEffect.canOverlap && effects.size ) continue;
+        if ( coverEffect._couldApply(attackingToken, targetToken, opts) ) effects.add(coverEffect);
+      }
+      return effects;
     }
 
     /**

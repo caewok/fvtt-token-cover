@@ -287,7 +287,7 @@ export class CoverFlagRulesConfig extends FormApplication  {
 
     // Update the settings.
     const id = this.object.flags[MODULE_ID].coverEffectId;
-    const ce = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.get(id);
+    const ce = CONFIG[MODULE_ID].CoverEffect._instances.get(id);
     if ( !ce ) return;
     return ce.updateCoverRuleSettings(newFlags); // Async
    }

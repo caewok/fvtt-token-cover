@@ -32,7 +32,7 @@ export class CoverEffectsController {
    */
   get data() {
     const effects = [];
-    CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.forEach(ce => effects.push({ name: ce.name, id: ce.id, icon: ce.img }));
+    CONFIG[MODULE_ID].CoverEffect._instances.forEach(ce => effects.push({ name: ce.name, id: ce.id, icon: ce.img }));
     return {
       isGM: game.user.isGM,
       effects,

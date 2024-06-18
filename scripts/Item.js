@@ -77,7 +77,7 @@ function updateItem(document, change, _options, _userId) {
   const modFlags = change?.flags?.[MODULE_ID];
   const id = modFlags?.[FLAGS.COVER_EFFECT.ID];
   if ( !id ) return;
-  const ce = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.get(id);
+  const ce = CONFIG[MODULE_ID].CoverEffect._instances.get(id);
   if ( !ce ) return;
   ce.updateCoverRuleSettings(modFlags); // Async
 }
