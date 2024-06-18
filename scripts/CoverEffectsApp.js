@@ -79,13 +79,16 @@ export class CoverEffectsApp extends Application {
   /** @override */
   _canDragStart(_selector) { return this._controller.canDragStart(); }
 
+  /** @override */
+  _onDrop(event) { return this._controller.onEffectDrop(event); }
+
   /**
    * Listeners for buttons in the menu
    */
   _initClickListeners() {
-    this._createEffectButton.on("click", this._controller.onCreateCoverEffect.bind(this._controller));
-    this._resetToDefaultsButton.on("click", this._controller.onResetToDefaults.bind(this._controller));
-    this._coverEffectItem.on("click", this._controller.onEditCoverEffect.bind(this._controller));
+    this._createEffectButton.on("click", this._controller.onCreateEffect.bind(this._controller));
+    this._createDefaultsButton.on("click", this._controller.onCreateDefaults.bind(this._controller));
+    this._coverEffectItem.on("click", this._controller.onEdit.bind(this._controller));
   }
 
   /**
@@ -97,35 +100,35 @@ export class CoverEffectsApp extends Application {
         name: "Edit Cover Rules",
         icon: '<i class="fas fa-edit fa-fw"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onEditCoverRules.bind(this._controller)
+        callback: this._controller.onEdit.bind(this._controller)
       },
 
       {
         name: "Duplicate",
         icon: '<i class="far fa-copy fa-fw"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onDuplicateCoverEffect.bind(this._controller)
+        callback: this._controller.onDuplicate.bind(this._controller)
       },
 
       {
         name: "Import Cover Effect",
         icon: '<i class="far fa-file-arrow-up"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onImportCoverEffect.bind(this._controller)
+        callback: this._controller.onImport.bind(this._controller)
       },
 
       {
         name: "Export Cover Effect",
         icon: '<i class="far fa-file-arrow-down"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onExportCoverEffect.bind(this._controller)
+        callback: this._controller.onExport.bind(this._controller)
       },
 
       {
         name: "Delete Cover Effect",
         icon: '<i class="fas fa-trash fa-fw"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onDeleteCoverEffect.bind(this._controller)
+        callback: this._controller.onDelete.bind(this._controller)
       }
     ]);
   }
@@ -138,7 +141,7 @@ export class CoverEffectsApp extends Application {
   /**
    * The button used to reset effects to default for the system.
    */
-  get _resetToDefaultsButton() { return this._rootView.find(".reset-defaults"); }
+  get _createDefaultsButton() { return this._rootView.find(".create-defaults"); }
 
   /**
    * The listed active effect target.

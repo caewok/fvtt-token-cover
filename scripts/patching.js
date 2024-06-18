@@ -9,6 +9,7 @@ import { Patcher } from "./Patcher.js";
 import { MODULES_ACTIVE } from "./const.js";
 import { WallGeometryHandler, TileGeometryHandler, TokenGeometryHandler } from "./LOS/Placeable3dGeometry.js";
 
+import { PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./settings.js";
 import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
 import { PATCHES as PATCHES_ActiveEffectConfig } from "./ActiveEffectConfig.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
@@ -31,9 +32,6 @@ import { PATCHES as PATCHES_ClientSettings } from "./ModuleSettingsAbstract.js";
 // Token configuration
 import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 
-// Cover Effect Item
-import { PATCHES as PATCHES_CoverActiveEffect, PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./CoverActiveEffect.js";
-
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
   ActiveEffectConfig: PATCHES_ActiveEffectConfig,
@@ -49,9 +47,7 @@ const PATCHES = {
   TokenDocument: PATCHES_TokenDocument,
   Wall: PATCHES_Wall,
 
-  Midiqol: PATCHES_Midiqol,
-
-  CoverActiveEffect: PATCHES_CoverActiveEffect
+  Midiqol: PATCHES_Midiqol
 };
 
 export const PATCHER = new Patcher();
