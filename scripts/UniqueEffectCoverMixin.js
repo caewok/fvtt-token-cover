@@ -76,14 +76,11 @@ export function CoverMixin(Base) {
       return this.percentCover(attackingToken, targetToken) >= this.percentThreshold;
     }
 
-    /**
-     * Alias
-     */
-    statid get coverObjectsMap() { return this._instances; }
-
+    /** @alias {Map<string, UniqueEffect} */
+    static get coverObjectsMap() { return this._instances; }
 
     /**
-     * Alias
+     * @alias
      * Test if a token has this terrain already.
      * @param {Token} token
      * @returns {boolean}
@@ -174,16 +171,15 @@ export function CoverMixin(Base) {
       data.name = game.i18n.localize(`${MODULE_ID}.phrases.newEffect`);
       data.img = ICONS.MODULE;
 
-      data.flags = {
-          [FLAGS.COVER_EFFECT.RULES.PERCENT_THRESHOLD]: 0,
-          [FLAGS.COVER_EFFECT.RULES.PRIORITY]: 0,
-          [FLAGS.COVER_EFFECT.RULES.OVERLAPS]: false,
-          [FLAGS.COVER_EFFECT.RULES.INCLUDE_WALLS]: true,
-          [FLAGS.COVER_EFFECT.RULES.LIVE_TOKENS_BLOCK]: false,
-          [FLAGS.COVER_EFFECT.RULES.DEAD_TOKENS_BLOCK]: false,
-          [FLAGS.COVER_EFFECT.RULES.PRONE_TOKENS_BLOCK]: false
-      };
-
+      // Cover Rules flags
+      const modFlags = data.flags[MODULE_ID];
+      modFlags[FLAGS.COVER_EFFECT.RULES.PERCENT_THRESHOLD] = 0;
+      modFlags[FLAGS.COVER_EFFECT.RULES.PRIORITY] = 0;
+      modFlags[FLAGS.COVER_EFFECT.RULES.CAN_OVERLAP] = false;
+      modFlags[FLAGS.COVER_EFFECT.RULES.INCLUDE_WALLS] = true;
+      modFlags[FLAGS.COVER_EFFECT.RULES.LIVE_TOKENS_BLOCK] = false;
+      modFlags[FLAGS.COVER_EFFECT.RULES.DEAD_TOKENS_BLOCK] = false;
+      modFlags [FLAGS.COVER_EFFECT.RULES.PRONE_TOKENS_BLOCK] = false;
       return data;
     }
 

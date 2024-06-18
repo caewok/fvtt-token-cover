@@ -30,7 +30,7 @@ function closeActiveEffectConfig(app, _html) {
  * @param {object} data                 The object of data used when rendering the application
  */
 async function renderActiveEffectConfig(app, html, data) {
-  if ( !app.object.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID) ) return;
+  if ( app.object.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.TYPE) !== "Cover" ) return;
 
   // Insert the new configuration fields into the active effect config.
   const template = `modules/${MODULE_ID}/templates/active-effect-config.html`;

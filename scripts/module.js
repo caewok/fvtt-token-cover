@@ -19,6 +19,7 @@ import { Settings } from "./settings.js";
 
 // Cover objects
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
+import { defaultCover } from "./default_cover.js";
 import {
   CoverActiveEffect,
   CoverItemEffect,
@@ -149,7 +150,13 @@ function initializeConfig() {
      * What cover effect class to use for this system.
      * @type {AbstractUniqueEffect}
      */
-    CoverEffect: CoverActiveEffect
+    CoverEffect: CoverActiveEffect,
+
+    /**
+     * Default terrain jsons
+     * @type {string} File path
+     */
+    defaultCoverJSONs: defaultCover()
   };
 
   switch ( game.system.id ) {
