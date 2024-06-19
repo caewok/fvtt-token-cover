@@ -45,7 +45,8 @@ export function defaultCover() {
       `modules/${MODULE_ID}/json/${systemId}/low.json`,
       `modules/${MODULE_ID}/json/${systemId}/medium.json`,
       `modules/${MODULE_ID}/json/${systemId}/high.json`,
-    ]
+      `modules/${MODULE_ID}/json/${systemId}/full.json`,
+    ];
   }
   return [];
 }
