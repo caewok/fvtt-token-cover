@@ -76,7 +76,9 @@ export class CoverEffectsController {
    */
   async onEffectClick(event) {
     log("CoverEffectsController|onEffectClick");
-    await this.onEdit(event);
+    const effectId = event.currentTarget.dataset.effectId;
+    const ce = CONFIG[MODULE_ID].CoverEffect._instances.get(effectId);
+    ce.document.sheet.render(true);
   }
 
   /**
