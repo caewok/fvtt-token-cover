@@ -465,7 +465,7 @@ export class TokenCover {
       const res = ce.removeFromToken(token, false);
       change ||= res;
     });
-    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
+    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshTokenDisplay(token);
     return change;
   }
 
@@ -490,7 +490,7 @@ export class TokenCover {
       const res = ce.addToToken(token, false);
       change ||= res;
     });
-    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
+    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshTokenDisplay(token);
     return change;
   }
 

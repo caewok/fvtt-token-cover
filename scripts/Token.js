@@ -220,7 +220,7 @@ function updateToken(tokenD, change, _options, _userId) {
   if ( !token ) return;
   if ( Object.hasOwn(change, "disposition") ) {
     token[MODULE_ID].updateCoverIconDisplay();
-    CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
+    CONFIG[MODULE_ID].CoverEffect.refreshTokenDisplay(token);
   }
   // Token movement, resize now handled by refresh.
 }

@@ -216,7 +216,7 @@ export class Settings extends ModuleSettingsAbstract {
       default: true,
       onChange: _value => canvas.tokens.placeables.forEach(token => {
         token[MODULE_ID].updateCoverIconDisplay();
-        CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
+        CONFIG[MODULE_ID].CoverEffect.refreshTokenDisplay(token);
       })
     });
 
