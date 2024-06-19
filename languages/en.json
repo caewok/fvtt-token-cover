@@ -2,6 +2,9 @@
     "tokencover.name": "Alt. Token Cover",
     "tokencover.nameAbbr": "ATC",
 
+    "tokencover.coverbook.create-cover": "Create Cover",
+    "tokencover.coverbook.create-defaults": "Reset Default Cover",
+
     "tokencover.cover-effect.percent-threshold.Name": "Percent threshold",
     "tokencover.cover-effect.can-overlap.Name": "Can overlap",
     "tokencover.cover-effect.include-walls.Name": "Walls block",
