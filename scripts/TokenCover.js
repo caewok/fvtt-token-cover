@@ -461,12 +461,7 @@ export class TokenCover {
     if ( !coverEffects.size ) return false;
     let change = false;
     const token = this.token;
-    coverEffects.forEach(ce => {
-      const res = ce.removeFromToken(token, false);
-      change ||= res;
-    });
-    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshTokenDisplay(token);
-    return change;
+    return CONFIG[MODULE_ID].CoverEffect.removeFromTokenLocally(token, coverEffects);
   }
 
   /**
@@ -480,16 +475,17 @@ export class TokenCover {
     const toAdd = replacementCover.difference(coverEffects);
     const toRemove = coverEffects.difference(replacementCover);
     let change = false;
+    let res = false
 
     const token = this.token;
-    toRemove.forEach(ce => {
-      const res = ce.removeFromToken(token, false);
+    if ( toRemove.size ) {
+      const res = CONFIG[MODULE_ID].CoverEffect.removeFromTokenLocally(token, toRemove, { refresh: false });
       change ||= res;
-    });
-    toAdd.forEach(ce => {
-      const res = ce.addToToken(token, false);
+    }
+    if ( toAdd.size ) {
+      const res = CONFIG[MODULE_ID].CoverEffect.addToTokenLocally(token, toAdd, { refresh: false });
       change ||= res;
-    });
+    }
     if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshTokenDisplay(token);
     return change;
   }
