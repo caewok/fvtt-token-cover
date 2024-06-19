@@ -88,7 +88,7 @@ export class CoverEffectsApp extends Application {
   _initClickListeners() {
     this._createEffectButton.on("click", this._controller.onCreateEffect.bind(this._controller));
     this._createDefaultsButton.on("click", this._controller.onCreateDefaults.bind(this._controller));
-    this._coverEffectItem.on("click", this._controller.onEdit.bind(this._controller));
+    this._effectListItems.on("click", this._controller.onEffectClick.bind(this._controller));
   }
 
   /**
@@ -146,5 +146,5 @@ export class CoverEffectsApp extends Application {
   /**
    * The listed active effect target.
    */
-  get _coverEffectItem() { return this._rootView.find(".tokencover-effect"); }
+  get _effectListItems() { return this._rootView.find(".tokencover-effect"); }
 }

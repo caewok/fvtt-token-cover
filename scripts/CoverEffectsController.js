@@ -32,7 +32,7 @@ export class CoverEffectsController {
    */
   get data() {
     const effects = [];
-    CONFIG[MODULE_ID].CoverEffect._instances.forEach(ce => effects.push({ name: ce.name, id: ce.id, icon: ce.img }));
+    CONFIG[MODULE_ID].CoverEffect._instances.forEach(ce => effects.push({ name: ce.name, id: ce.uniqueEffectId, icon: ce.img }));
     return {
       isGM: game.user.isGM,
       effects,
@@ -68,6 +68,15 @@ export class CoverEffectsController {
     const ce = await CONFIG[MODULE_ID].CoverEffect.create();
     this._viewMvc.render();
     ce.document.sheet.render(true);
+  }
+
+  /**
+   * Handles clicks on effect items by opening their edit control
+   * @param {MouseEvent} event - event that corresponds to clicking an effect item
+   */
+  async onEffectClick(event) {
+    log("CoverEffectsController|onEffectClick");
+    await this.onEdit(event);
   }
 
   /**
