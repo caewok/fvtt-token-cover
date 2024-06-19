@@ -152,11 +152,11 @@ export function CoverMixin(Base) {
      */
     static coverOverrideApplied(token) {
       // TODO: Either add LOCAL Flag or re-do so it is not needed. Maybe compare to source?
-      const { ID, LOCAL } = FLAGS.COVER_EFFECT;
+      const { ID, IS_LOCAL } = FLAGS.UNIQUE_EFFECT;
       for ( const effectDoc of CONFIG[MODULE_ID].CoverEffect._allUniqueEffectDocumentsOnToken(token) ) {
         const modFlags = effectDoc?.flags?.[MODULE_ID];
         if ( !modFlags ) continue;
-        if ( modFlags[ID] && !modFlags[LOCAL] ) return true;
+        if ( modFlags[ID] && !modFlags[IS_LOCAL] ) return true;
       }
       return false;
     }
@@ -187,7 +187,7 @@ export function CoverMixin(Base) {
      * Transition a single document stored in the storage object
      */
     static async _transitionDocument(doc) {
-      const coverEffectId = doc.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID);
+      const coverEffectId = doc.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID);
       if ( coverEffectId ) await doc.setFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID, coverEffectId);
     }
   };

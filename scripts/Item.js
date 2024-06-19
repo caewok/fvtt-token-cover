@@ -59,7 +59,7 @@ function createItem(document, _options, _userId) {
   if ( !actor || !(actor instanceof Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
-  if ( !(modFlags[FLAGS.COVER_EFFECT.ID] && !modFlags[FLAGS.COVER_EFFECT.LOCAL]) ) return;
+  if ( !(modFlags[FLAGS.UNIQUE_EFFECT.ID] && !modFlags[FLAGS.UNIQUE_EFFECT.LOCAL]) ) return;
 
   const token = actor.token?.object;
   if ( !token ) return;
@@ -75,7 +75,7 @@ function createItem(document, _options, _userId) {
  */
 function updateItem(document, change, _options, _userId) {
   const modFlags = change?.flags?.[MODULE_ID];
-  const id = modFlags?.[FLAGS.COVER_EFFECT.ID];
+  const id = modFlags?.[FLAGS.UNIQUE_EFFECT.ID];
   if ( !id ) return;
   const ce = CONFIG[MODULE_ID].CoverEffect._instances.get(id);
   if ( !ce ) return;
@@ -93,7 +93,7 @@ function deleteItem(document, _options, _userId) {
   if ( !actor || !(actor instanceof Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
-  if ( !(modFlags[FLAGS.COVER_EFFECT.ID] && !modFlags[FLAGS.COVER_EFFECT.LOCAL]) ) return;
+  if ( !(modFlags[FLAGS.UNIQUE_EFFECT.ID] && !modFlags[FLAGS.UNIQUE_EFFECT.LOCAL]) ) return;
   const token = actor.token?.object;
   if ( !token ) return;
   token.tokencover.updateCover();

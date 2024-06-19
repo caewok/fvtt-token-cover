@@ -191,7 +191,7 @@ export class CoverDFreds extends CoverDND5E {
     if ( !dFredsEffect ) return undefined;
 
     // Don't use unless it has the correct flags.
-    if ( dFredsEffect.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID) ) return dFredsEffect;
+    if ( dFredsEffect.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID) ) return dFredsEffect;
     return undefined;
   }
 
@@ -217,7 +217,7 @@ export class CoverDFreds extends CoverDND5E {
 
     // Don't use unless it has the correct flags.
     // TODO: Need to add all cover type flags
-    await dFredsEffect.setFlag(MODULE_ID, FLAGS.COVER_EFFECT.ID, this.id);
+    await dFredsEffect.setFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID, this.id);
     return dFredsEffect;
   }
 
