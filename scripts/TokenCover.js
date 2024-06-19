@@ -475,8 +475,6 @@ export class TokenCover {
     const toAdd = replacementCover.difference(coverEffects);
     const toRemove = coverEffects.difference(replacementCover);
     let change = false;
-    let res = false
-
     const token = this.token;
     if ( toRemove.size ) {
       const res = CONFIG[MODULE_ID].CoverEffect.removeFromTokenLocally(token, toRemove, { refresh: false });
