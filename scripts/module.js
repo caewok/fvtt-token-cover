@@ -78,14 +78,20 @@ Hooks.once("setup", function() {
       default: CONFIG[MODULE_ID].CoverEffect = CoverFlagEffect; break;
     }
   }
-  CONFIG[MODULE_ID].CoverEffect.initialize(); // Async
 });
 
-Hooks.once("ready", function() {
-  // Initialize must happen after game is ready, so that settings can be saved if necessary.
-
+/**
+ * A hook event that fires when the game is fully ready.
+ */
+Hooks.on("ready", async function(_canvas) {
+  CONFIG[MODULE_ID].CoverEffect.initialize(); // Async. Must wait until ready hook to store Settings for UniqueEffectFlag
 });
 
+
+/**
+ * A hook event that fires when the Canvas is ready.
+ * @param {Canvas} canvas The Canvas which is now ready for use
+ */
 Hooks.once("canvasReady", function() {
   transitionTokenMaximumCoverFlags();
   CONFIG[MODULE_ID].CoverEffect.transitionTokens(); // Async

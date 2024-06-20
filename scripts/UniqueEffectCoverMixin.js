@@ -90,15 +90,6 @@ export function CoverMixin(Base) {
     /** @type {string} */
     static type = "Cover";
 
-    /** @type {object} */
-    static get _storageMapData() {
-      return {
-        name: "Cover Effects",
-        img: ICONS.MODULE,
-        type: "base",
-      };
-    }
-
     /**
      * Get all effects ordered by priority as well as unordered effects.
      * @type {object}

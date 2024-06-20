@@ -68,6 +68,8 @@ export const SETTINGS = {
     COVER_EFFECTS: "cover-effects-control"
   },
 
+  UNIQUE_EFFECTS_FLAGS_DATA: "uniqueEffectsFlagsData",
+
   SUBMENU: "submenu",
 
   DISPLAY_COVER_BOOK: "display-cover-book",
@@ -494,6 +496,12 @@ export class Settings extends ModuleSettingsAbstract {
     });
 
     register(KEYS.COVER_EFFECTS.RULES, {
+      scope: "world",
+      config: false,
+      default: {}
+    });
+
+    this.register(KEYS.UNIQUE_EFFECTS_FLAGS_DATA, {
       scope: "world",
       config: false,
       default: {}

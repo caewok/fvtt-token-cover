@@ -17,6 +17,15 @@ import { loadDefaultCoverJSONs } from "./default_cover.js";
 
 export class CoverActiveEffect extends CoverMixin(UniqueActiveEffect) {
 
+  /** @type {object} */
+  static get _storageMapData() {
+    return {
+      name: "Cover Effects",
+      img: ICONS.MODULE,
+      type: "base",
+    };
+  }
+
   /**
    * Search documents for all stored effects.
    * Child class may also include default effects not yet created.
@@ -116,6 +125,21 @@ export class CoverFlagEffect extends CoverMixin(UniqueFlagEffect) {
     // Currently no default names, otherwise those would be valid as well.
     return map;
   }
+
+  /**
+   * Initialize default effects by adding the document(s) to the storage map.
+   */
+  static async _initializeDefaultEffects() {
+    if ( !CONFIG[MODULE_ID].defaultCoverJSONs.length ) return;
+    const defaultMap = await loadDefaultCoverJSONs(CONFIG[MODULE_ID].defaultCoverJSONs);
+    const promises = [];
+    defaultMap.forEach(data => {
+      data.name = game.i18n.localize(data.name);
+      promises.push(this._createNewDocument(data));
+    });
+    await Promise.allSettled(promises);
+  }
+
 }
 
 /**
@@ -226,7 +250,7 @@ export class CoverDFreds extends CoverDND5E {
 /**
  * Specialized handling of cover effect rules in dnd5e.
  */
-export class CoverFlagsDND5E extends UniqueFlagEffect {
+export class CoverFlagsDND5E extends CoverFlagEffect {
   /**
    * Test if this cover effect could apply to a target token given an attacking token.
    * Does not handle priority between cover effects. For that, use CoverEffect.coverEffectsForToken
