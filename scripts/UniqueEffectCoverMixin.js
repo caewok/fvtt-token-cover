@@ -137,7 +137,7 @@ export function CoverMixin(Base) {
 
     /**
      * Determine if the GM has added a cover effect override to a token.
-     * Cover effect overrides have a COVER_EFFECT.ID flag but no local flag.
+     * Cover effect overrides have a UNIQUE_EFFECT.ID flag but no local flag.
      * @param {Token} actor
      * @returns {boolean}
      */

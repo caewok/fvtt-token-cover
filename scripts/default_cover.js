@@ -36,9 +36,9 @@ export function defaultCover() {
     };
 
     case "pf2e": return {
-      "lesser": "RPZwppfuaMgBtCc8", // Lesser
-      "standard": "AhFNqnvBZ9K46LUK", // Standard
-      "greater": "hPLXDSGyHzlupBS2"  // Greater
+      "lesser": "KiJJPkS3ABHyKYre", // Lesser
+      "standard": "jAjwDIvPc2qFHg3r", // Standard
+      "greater": "1YTdEhijbc0nlQ2o"  // Greater
     };
 
     default: return {
@@ -82,12 +82,14 @@ export async function loadDefaultCompendiumItems(compendiumIds) {
   // Attempt to load data for each compendium item.
   const map = new Map();
   for ( const [key, compendiumId] of Object.entries(compendiumIds) ) {
-    const data = await pack.getDocument(compendiumId); // Async
+    let data = await pack.getDocument(compendiumId); // Async
     if ( !data ) continue;
-    map.set(key, data);
+    if ( data.toObject ) data = data.toObject();
+    const uniqueEffectId = `Cover_${key}`;
+    map.set(uniqueEffectId, data);
     data.flags ??= {};
     data.flags[MODULE_ID] ??= {};
-    data.flags[MODULE_ID][FLAGS.COVER_EFFECT.ID] = `Cover_${key}`;
+    data.flags[MODULE_ID][FLAGS.UNIQUE_EFFECT.ID] = uniqueEffectId;
   }
   return map;
 }

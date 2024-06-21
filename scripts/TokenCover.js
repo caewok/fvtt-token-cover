@@ -359,6 +359,7 @@ class TokenCoverBase {
    * @returns {boolean} True if a change was made.
    */
   #clearCover() {
+    log(`TokenCover##clearCover|Clearing cover for ${this.token.name}`);
     const coverEffects = this._currentCoverEffects;
     if ( !coverEffects.size ) return false;
     let change = false;
@@ -373,19 +374,23 @@ class TokenCoverBase {
    * @returns {boolean} True if a change was made.
    */
   _replaceCover(replacementCover = NULL_SET) {
+    log(`TokenCover#_replacecover|Replacing cover for ${this.token.name}. ${[...replacementCover.values()].map(ce => ce.name).join(", ")}`);
     const coverEffects = new Set(this._currentCoverEffects);
     const toAdd = replacementCover.difference(coverEffects);
     const toRemove = coverEffects.difference(replacementCover);
     let change = false;
     const token = this.token;
     if ( toRemove.size ) {
+      log(`TokenCover#_replacecover|Removing cover for ${this.token.name}. ${[...toRemove.values()].map(ce => ce.name).join(", ")}`);
       const res = CONFIG[MODULE_ID].CoverEffect.removeFromTokenLocally(token, toRemove, { refresh: false });
       change ||= res;
     }
     if ( toAdd.size ) {
+      log(`TokenCover#_replacecover|Adding cover for ${this.token.name}. ${[...toAdd.values()].map(ce => ce.name).join(", ")}`);
       const res = CONFIG[MODULE_ID].CoverEffect.addToTokenLocally(token, toAdd, { refresh: false });
       change ||= res;
     }
+    log(`TokenCover#_replacecover|Refreshing display for ${this.token.name}.`);
     if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshTokenDisplay(token);
     return change;
   }
