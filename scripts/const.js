@@ -152,6 +152,10 @@ export const ICONS = {
   MODULE: "icons/svg/shield.svg"
 };
 
+export const FA_ICONS = {
+  MODULE: "fa-solid fa-shield-halved"
+};
+
 export const COVER = {};
 COVER.NONE = 0;
 COVER.EXCLUDE = -1;

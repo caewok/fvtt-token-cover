@@ -9,7 +9,7 @@ ui
 */
 "use strict";
 
-import { MODULE_ID, FLAGS, COVER, TEMPLATES, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, FLAGS, COVER, TEMPLATES, setCoverIgnoreHandler, FA_ICONS } from "./const.js";
 import { log } from "./util.js";
 
 // Hooks and method registration
@@ -104,7 +104,7 @@ Hooks.once("canvasReady", function() {
 const COVER_EFFECTS_CONTROL = {
   name: Settings.KEYS.CONTROLS.COVER_EFFECTS,
   title: `${MODULE_ID}.controls.${Settings.KEYS.CONTROLS.COVER_EFFECTS}.name`,
-  icon: "fas fa-book",
+  icon: FA_ICONS.MODULE,
   button: true,
   onClick: () => { new CoverEffectsApp().render(true); },
   visible: false
