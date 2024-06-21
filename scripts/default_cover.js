@@ -36,7 +36,7 @@ export function defaultCover() {
     };
 
     case "pf2e": return {
-      "lesser": "gtyY5xUZXqNLCrMV", // Lesser
+      "lesser": "RPZwppfuaMgBtCc8", // Lesser
       "standard": "AhFNqnvBZ9K46LUK", // Standard
       "greater": "hPLXDSGyHzlupBS2"  // Greater
     };
