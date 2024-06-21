@@ -2,7 +2,7 @@
   "flags": {
     "tokencover": {
       "uniqueEffectType": "Cover",
-      "uniqueEffectId": "tokencover.Cover.dnd5e.half_token",
+      "uniqueEffectId": "Cover_half-token",
       "duplicatesAllowed": false,
       "displayStatusIcon": true,
       "version": "0.9.0",

@@ -8,7 +8,7 @@ game
 "use strict";
 
 import { Settings } from "./settings.js";
-import { MODULE_ID, FLAGS } from "./const.js";
+import { MODULE_ID, FLAGS, ICONS } from "./const.js";
 import { UniqueActiveEffect } from "./unique_effects/UniqueActiveEffect.js";
 import { UniqueItemEffect } from "./unique_effects/UniqueItemEffect.js";
 import { UniqueFlagEffect } from "./unique_effects/UniqueFlagEffect.js";

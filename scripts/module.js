@@ -70,8 +70,8 @@ Hooks.once("init", function() {
 });
 
 Hooks.once("setup", function() {
-  initializePatching();
   Settings.registerAll();
+  initializePatching();
   if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) {
     switch ( game.system.id ) {
       case "dnd5e": CONFIG[MODULE_ID].CoverEffect = CoverFlagsDND5E; break;
@@ -127,7 +127,6 @@ Hooks.on("getSceneControlButtons", controls => {
  */
 function initializeConfig() {
   CONFIG[MODULE_ID] = {
-
     /**
      * Turn on debug logging.
      */
@@ -165,6 +164,10 @@ function initializeConfig() {
     defaultCoverJSONs: defaultCover()
   };
 
+  Object.defineProperty(CONFIG[MODULE_ID], "UniqueEffect", {
+    get: function() { return this.CoverEffect; }
+  });
+
   switch ( game.system.id ) {
     case "sfrpg":
       CONFIG[MODULE_ID].CoverEffect = CoverSFRPG; break;
@@ -172,8 +175,7 @@ function initializeConfig() {
       CONFIG[MODULE_ID].CoverEffect = CoverPF2E; break;
   }
 
- if ( game.modules.get("dfreds-convenient-effects")?.active ) CONFIG[MODULE_ID].CoverEffect = CoverDFreds;
-
+  if ( game.modules.get("dfreds-convenient-effects")?.active ) CONFIG[MODULE_ID].CoverEffect = CoverDFreds;
 }
 
 /**

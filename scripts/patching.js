@@ -8,6 +8,7 @@ game,
 import { Patcher } from "./Patcher.js";
 import { MODULES_ACTIVE } from "./const.js";
 import { WallGeometryHandler, TileGeometryHandler, TokenGeometryHandler } from "./LOS/Placeable3dGeometry.js";
+import { Settings } from "./Settings.js";
 
 import { PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./settings.js";
 import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
@@ -75,6 +76,8 @@ export function initializePatching() {
   if ( game.system.id !== "pf2e" ) PATCHER.registerGroup("NO_PF2E");
 
   if ( game.modules.get("dfreds-convenient-effects")?.active ) PATCHER.registerGroup("DFREDS");
+
+  if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) PATCHER.registerGroup("COVER_FLAGS");
 }
 
 export function registerArea3d() {
