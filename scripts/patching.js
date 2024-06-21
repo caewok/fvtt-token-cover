@@ -17,6 +17,7 @@ import { PATCHES as PATCHES_Combat } from "./Combat.js";
 import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
 import { PATCHES as PATCHES_TokenDocument } from "./TokenDocument.js";
+import { PATCHES as PATCHES_ItemSheet } from "./ItemSheet.js";
 
 // LOS
 import { PATCHES as PATCHES_PointSourcePolygon } from "./LOS/PointSourcePolygon.js";
@@ -40,6 +41,7 @@ const PATCHES = {
   Combat: PATCHES_Combat,
   Item: PATCHES_Item,
   ItemDirectory: PATCHES_ItemDirectory,
+  ItemSheet: PATCHES_ItemSheet,
   SidebarTab: PATCHES_SidebarTab,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
   Tile: PATCHES_Tile,
@@ -74,6 +76,8 @@ export function initializePatching() {
   if ( game.system.id === "sfrpg" ) PATCHER.registerGroup("sfrpg");
 
   if ( game.system.id !== "pf2e" ) PATCHER.registerGroup("NO_PF2E");
+
+  if ( game.system.id === "sfrpg" || game.system.id === "pf2e" ) PATCHER.registerGroup("COVER_ITEM");
 
   if ( game.modules.get("dfreds-convenient-effects")?.active ) PATCHER.registerGroup("DFREDS");
 

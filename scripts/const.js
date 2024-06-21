@@ -122,7 +122,9 @@ export const TEMPLATES = {
   SETTINGS_BUTTONS: `modules/${MODULE_ID}/templates/settings-buttons.html`,
   SETTINGS_MENU_PARTIAL: `modules/${MODULE_ID}/templates/settings-menu-tab-partial.html`,
   SETTINGS_MENU: `modules/${MODULE_ID}/templates/settings-menu.html`,
-  COVER_RULES_PARTIAL: `modules/${MODULE_ID}/templates/cover-rules-partial.html`
+  COVER_RULES_PARTIAL: `modules/${MODULE_ID}/templates/cover-rules-partial.html`,
+  ACTIVE_EFFECT: `modules/${MODULE_ID}/templates/active-effect-config.html`,
+  COVER_RULES_PF2E: `modules/${MODULE_ID}/templates/cover-rules-pf2e.html`
 }
 
 export const ICONS = {

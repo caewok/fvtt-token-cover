@@ -7,8 +7,9 @@ renderTemplate
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS } from "./const.js";
+import { MODULE_ID, FLAGS, TEMPLATES } from "./const.js";
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
+import { renderTemplateSync } from "./util.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
@@ -28,12 +29,11 @@ function closeActiveEffectConfig(_app, _html) {
  * @param {jQuery} html                 The inner HTML of the document that will be displayed and may be modified
  * @param {object} data                 The object of data used when rendering the application
  */
-async function renderActiveEffectConfig(app, html, data) {
+function renderActiveEffectConfig(app, html, data) {
   if ( app.object.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.TYPE) !== "Cover" ) return;
 
   // Insert the new configuration fields into the active effect config.
-  const template = `modules/${MODULE_ID}/templates/active-effect-config.html`;
-  const myHTML = await renderTemplate(template, data);
+  const myHTML = renderTemplateSync(TEMPLATES.ACTIVE_EFFECT, data);
   html.find('.tab[data-tab="details"').children().last().after(myHTML);
   app.setPosition(app.position);
 }

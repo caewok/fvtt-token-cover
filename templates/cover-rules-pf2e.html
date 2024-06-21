@@ -1,0 +1,64 @@
+<fieldset>
+<legend>{{ localize "tokencover.name" }}</legend>
+
+<!-- Percent Threshold -->
+<div class="form-group">
+  <label>{{localize "tokencover.cover-effect.percent-threshold.Name"}}</label>
+  <div class="form-fields">
+    {{rangePicker name="document.flags.tokencover.percentThreshold" value=data.document.flags.tokencover.percentThreshold min="0" step="0.01" max="1" placeholder="0.5"}}
+  </div>
+</div>
+
+<!-- Priority -->
+<div class="form-group">
+  <label>{{localize "tokencover.cover-effect.priority.Name"}}</label>
+  <div class="form-fields">
+    <input type="number" name="document.flags.tokencover.priority" step="1" placeholder="0" value="{{ data.document.flags.tokencover.priority }}">
+  </div>
+  <p class="hint">{{localize "tokencover.cover-effect.priority.Hint"}} </p>
+</div>
+
+<!-- Overlaps -->
+<div class="form-group">
+  <label>{{localize "tokencover.cover-effect.can-overlap.Name"}}</label>
+  <div class="form-fields">
+    <input type="checkbox" name="document.flags.tokencover.canOverlap" {{ checked data.document.flags.tokencover.canOverlap }}>
+  </div>
+</div>
+
+<!-- Includes Walls -->
+<div class="form-group">
+  <label>{{localize "tokencover.cover-effect.include-walls.Name"}}</label>
+  <div class="form-fields">
+    <input type="checkbox" name="document.flags.tokencover.includeWalls" {{ checked data.document.flags.tokencover.includeWalls }}>
+  </div>
+</div>
+
+<!-- Live Tokens -->
+<div class="form-group">
+  <label>{{localize "tokencover.cover-effect.live-tokens-block.Name"}}</label>
+  <div class="form-fields">
+    <input type="checkbox" name="document.flags.tokencover.liveTokensBlock" {{ checked data.document.flags.tokencover.liveTokensBlock }}>
+  </div>
+</div>
+
+<!-- Dead Tokens -->
+<div class="form-group">
+  <label>{{localize "tokencover.cover-effect.dead-tokens-block.Name"}}</label>
+  <div class="form-fields">
+    <input type="checkbox" name="document.flags.tokencover.deadTokensBlock" {{ checked data.document.flags.tokencover.deadTokensBlock }}>
+  </div>
+  <p class="hint">{{localize "tokencover.cover-effect.dead-tokens-block.Hint"}} </p>
+</div>
+
+<!-- Prone Tokens -->
+<div class="form-group">
+  <label>{{localize "tokencover.cover-effect.prone-tokens-block.Name"}}</label>
+  <div class="form-fields">
+    <input type="checkbox" name="document.flags.tokencover.proneTokensBlock" {{ checked data.document.flags.tokencover.proneTokensBlock }}>
+  </div>
+  <p class="hint">{{localize "tokencover.cover-effect.prone-tokens-block.Hint"}} </p>
+</div>
+
+</legend>
+</fieldset>

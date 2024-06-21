@@ -19,55 +19,75 @@ Stored as json files. At json/systemid/terrain_name.json
 export function defaultCover() {
   const systemId = game.system.id;
   switch ( systemId ) {
-    case "dnd5e": return [
-      `modules/${MODULE_ID}/json/${systemId}/half_token.json`,
-      `modules/${MODULE_ID}/json/${systemId}/half.json`,
-      `modules/${MODULE_ID}/json/${systemId}/three_quarters.json`,
-      `modules/${MODULE_ID}/json/${systemId}/full.json`,
-    ];
+    case "dnd5e": return {
+      "half-token": `modules/${MODULE_ID}/json/${systemId}/half_token.json`,
+      "half": `modules/${MODULE_ID}/json/${systemId}/half.json`,
+      "three-quarters": `modules/${MODULE_ID}/json/${systemId}/three_quarters.json`,
+      "full": `modules/${MODULE_ID}/json/${systemId}/full.json`,
+    };
 
     // Compendium ids
-    case "sfrpg": return [
-      "aolmL82yGMgAlEcf", // Soft
-      "WhC815WlllSW8tT0", // Partial
-      "bjq4ho7JXhgUDvG6", // Cover
-      "kaIYAWHJ7up8rwOy", // Improved
-      "o0CFBHsprfadKuyd"  // Full
-    ];
+    case "sfrpg": return {
+      "soft": "aolmL82yGMgAlEcf", // Soft
+      "partial": "WhC815WlllSW8tT0", // Partial
+      "cover": "bjq4ho7JXhgUDvG6", // Cover
+      "improved": "kaIYAWHJ7up8rwOy", // Improved
+      "full": "o0CFBHsprfadKuyd"  // Full
+    };
 
-    case "pf2e": return [
-      "3wuJNcYqrY1IEYm8", // Lesser
-      "AhFNqnvBZ9K46LUK", // Standard
-      "hPLXDSGyHzlupBS2"  // Greater
-    ];
+    case "pf2e": return {
+      "lesser": "gtyY5xUZXqNLCrMV", // Lesser
+      "standard": "AhFNqnvBZ9K46LUK", // Standard
+      "greater": "hPLXDSGyHzlupBS2"  // Greater
+    };
 
-    default: return [
-      `modules/${MODULE_ID}/json/${systemId}/low.json`,
-      `modules/${MODULE_ID}/json/${systemId}/medium.json`,
-      `modules/${MODULE_ID}/json/${systemId}/high.json`,
-      `modules/${MODULE_ID}/json/${systemId}/full.json`,
-    ];
+    default: return {
+      "low": `modules/${MODULE_ID}/json/${systemId}/low.json`,
+      "medium": `modules/${MODULE_ID}/json/${systemId}/medium.json`,
+      "high": `modules/${MODULE_ID}/json/${systemId}/high.json`,
+      "full": `modules/${MODULE_ID}/json/${systemId}/full.json`,
+    };
   }
-  return [];
+  return null;
 }
 
 /**
  * Takes an array of json paths and loads them, returning a map of uniqueEffectId to the json data.
- * @param {string[]} paths
+ * @param {object} paths
  * @returns {Map<string, object>}
  */
 export async function loadDefaultCoverJSONs(paths) {
   // Load the JSONs
-  const promises = []
-  for ( const path of paths ) promises.push(foundry.utils.fetchJsonWithTimeout(path));
-  const jsonData = (await Promise.allSettled(promises)).map(p => p.value);
-
-  // Add each to the map
   const map = new Map();
-  for ( const jsonDatum of jsonData ) {
-    const key = jsonDatum?.flags?.[MODULE_ID]?.[FLAGS.UNIQUE_EFFECT.ID];
-    if ( !key ) continue;
-    map.set(key, jsonDatum);
+  for ( const [key, path] of Object.entries(paths) ) {
+    const jsonData = await foundry.utils.fetchJsonWithTimeout(path);
+    if ( !jsonData ) continue;
+    map.set(key, jsonData);
+    jsonData.flags ??= {};
+    jsonData.flags[MODULE_ID] ??= {};
+    jsonData.flags[MODULE_ID][FLAGS.UNIQUE_EFFECT.ID] = `Cover_${key}`;
+  }
+  return map;
+}
+
+/**
+ * Takes an array of compendium ids and loads them, returning a map of uniqueEffectId to the data.
+ * @param {object} compendiumIds
+ * @returns {Map<string, object>}
+ */
+export async function loadDefaultCompendiumItems(compendiumIds) {
+  const pack = game.packs.get(`${MODULE_ID}.${MODULE_ID}_items_${game.system.id}`);
+  if ( !pack ) return;
+
+  // Attempt to load data for each compendium item.
+  const map = new Map();
+  for ( const [key, compendiumId] of Object.entries(compendiumIds) ) {
+    const data = await pack.getDocument(compendiumId); // Async
+    if ( !data ) continue;
+    map.set(key, data);
+    data.flags ??= {};
+    data.flags[MODULE_ID] ??= {};
+    data.flags[MODULE_ID][FLAGS.COVER_EFFECT.ID] = `Cover_${key}`;
   }
   return map;
 }

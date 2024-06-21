@@ -13,7 +13,7 @@ import { UniqueActiveEffect } from "./unique_effects/UniqueActiveEffect.js";
 import { UniqueItemEffect } from "./unique_effects/UniqueItemEffect.js";
 import { UniqueFlagEffect } from "./unique_effects/UniqueFlagEffect.js";
 import { CoverMixin } from "./UniqueEffectCoverMixin.js";
-import { loadDefaultCoverJSONs } from "./default_cover.js";
+import { loadDefaultCoverJSONs, loadDefaultCompendiumItems } from "./default_cover.js";
 
 export class CoverActiveEffect extends CoverMixin(UniqueActiveEffect) {
 
@@ -30,8 +30,9 @@ export class CoverActiveEffect extends CoverMixin(UniqueActiveEffect) {
    * Initialize default effects by adding the document(s) to the storage map.
    */
   static async _initializeDefaultEffects() {
-    if ( !CONFIG[MODULE_ID].defaultCoverJSONs.length ) return;
-    const defaultMap = await loadDefaultCoverJSONs(CONFIG[MODULE_ID].defaultCoverJSONs);
+    const defaultCoverJSONs = CONFIG[MODULE_ID].defaultCoverJSONs;
+    if ( !defaultCoverJSONs ) return;
+    const defaultMap = await loadDefaultCoverJSONs(defaultCoverJSONs);
     const promises = [];
     defaultMap.forEach(data => {
       data.name = game.i18n.localize(data.name);
@@ -67,7 +68,25 @@ export class CoverActiveEffect extends CoverMixin(UniqueActiveEffect) {
 
 }
 
-export class CoverItemEffect extends CoverMixin(UniqueItemEffect) {}
+export class CoverItemEffect extends CoverMixin(UniqueItemEffect) {
+
+  /**
+   * Initialize default effects by adding the document(s) to the storage map.
+   */
+  static async _initializeDefaultEffects() {
+    const defaultCompendiumIds = CONFIG[MODULE_ID].defaultCoverJSONs;
+    if ( !defaultCompendiumIds ) return;
+    const defaultMap = await loadDefaultCompendiumItems(defaultCompendiumIds);
+    const promises = [];
+    defaultMap.forEach(data => {
+      data.name = game.i18n.localize(data.name);
+      promises.push(this._createNewDocument(data));
+    });
+    await Promise.allSettled(promises);
+  }
+
+
+}
 
 export class CoverFlagEffect extends CoverMixin(UniqueFlagEffect) {
 
@@ -84,8 +103,9 @@ export class CoverFlagEffect extends CoverMixin(UniqueFlagEffect) {
    * Initialize default effects by adding the document(s) to the storage map.
    */
   static async _initializeDefaultEffects() {
-    if ( !CONFIG[MODULE_ID].defaultCoverJSONs.length ) return;
-    const defaultMap = await loadDefaultCoverJSONs(CONFIG[MODULE_ID].defaultCoverJSONs);
+    const defaultCoverJSONs = CONFIG[MODULE_ID].defaultCoverJSONs;
+    if ( !defaultCoverJSONs ) return;
+    const defaultMap = await loadDefaultCoverJSONs(defaultCoverJSONs);
     const promises = [];
     defaultMap.forEach(data => {
       data.name = game.i18n.localize(data.name);
@@ -262,12 +282,6 @@ export class CoverFlagRulesConfig extends FormApplication  {
     const newFlags = foundry.utils.expandObject(formData)?.flags?.[MODULE_ID];
     if ( !newFlags ) return;
     foundry.utils.mergeObject(this.object.flags[MODULE_ID], newFlags, { inplace: true });
-
-    // Update the settings.
-    const id = this.object.flags[MODULE_ID].coverEffectId;
-    const ce = CONFIG[MODULE_ID].CoverEffect._instances.get(id);
-    if ( !ce ) return;
-    return ce.updateCoverRuleSettings(newFlags); // Async
    }
 
 }
