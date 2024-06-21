@@ -361,8 +361,7 @@ class TokenCoverBase {
   #clearCover() {
     log(`TokenCover##clearCover|Clearing cover for ${this.token.name}`);
     const coverEffects = this._currentCoverEffects;
-    if ( !coverEffects.size ) return false;
-    let change = false;
+    if ( !coverEffects.length ) return false;
     const token = this.token;
     return CONFIG[MODULE_ID].CoverEffect.removeFromTokenLocally(token, coverEffects);
   }
