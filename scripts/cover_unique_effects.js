@@ -1,5 +1,4 @@
 /* globals
-CONFIG,
 FormApplication,
 foundry,
 game
@@ -7,13 +6,11 @@ game
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { Settings } from "./settings.js";
 import { MODULE_ID, FLAGS, ICONS } from "./const.js";
 import { UniqueActiveEffect } from "./unique_effects/UniqueActiveEffect.js";
 import { UniqueItemEffect } from "./unique_effects/UniqueItemEffect.js";
 import { UniqueFlagEffect } from "./unique_effects/UniqueFlagEffect.js";
 import { CoverMixin } from "./UniqueEffectCoverMixin.js";
-import { loadDefaultCoverJSONs, loadDefaultCompendiumItems } from "./default_cover.js";
 
 export class CoverActiveEffect extends CoverMixin(UniqueActiveEffect) {
 
@@ -25,68 +22,9 @@ export class CoverActiveEffect extends CoverMixin(UniqueActiveEffect) {
       type: "base",
     };
   }
-
-  /**
-   * Initialize default effects by adding the document(s) to the storage map.
-   */
-  static async _initializeDefaultEffects() {
-    const defaultCoverJSONs = CONFIG[MODULE_ID].defaultCoverJSONs;
-    if ( !defaultCoverJSONs ) return;
-    const defaultMap = await loadDefaultCoverJSONs(defaultCoverJSONs);
-    const promises = [];
-    defaultMap.forEach(data => {
-      data.name = game.i18n.localize(data.name);
-      promises.push(this._createNewDocument(data));
-    });
-    await Promise.allSettled(promises);
-  }
-
-  /**
-   * Reset default effects by removing the existing ids and re-adding.
-   */
-  static async _resetDefaultEffects() {
-    if ( !CONFIG[MODULE_ID].defaultCoverJSONs.length ) return;
-    const defaultMap = await loadDefaultCoverJSONs(CONFIG[MODULE_ID].defaultCoverJSONs);
-
-    // Delete existing.
-    for ( const key of defaultMap.keys() ) {
-      const cover = this._instances.get(key);
-      if ( !cover ) continue;
-      await cover._deleteDocument();
-    }
-
-    const promises = [];
-    defaultMap.forEach(data => {
-      data.name = game.i18n.localize(data.name);
-      promises.push(this._createNewDocument(data));
-    });
-    await Promise.allSettled(promises);
-
-    // Re-create the terrains as necessary.
-    for ( const key of defaultMap.keys() ) { await CONFIG[MODULE_ID].CoverEffect.create(key); }
-  }
-
 }
 
-export class CoverItemEffect extends CoverMixin(UniqueItemEffect) {
-
-  /**
-   * Initialize default effects by adding the document(s) to the storage map.
-   */
-  static async _initializeDefaultEffects() {
-    const defaultCompendiumIds = CONFIG[MODULE_ID].defaultCoverJSONs;
-    if ( !defaultCompendiumIds ) return;
-    const defaultMap = await loadDefaultCompendiumItems(defaultCompendiumIds);
-    const promises = [];
-    defaultMap.forEach(data => {
-      data.name = game.i18n.localize(data.name);
-      promises.push(this._createNewDocument(data));
-    });
-    await Promise.allSettled(promises);
-  }
-
-
-}
+export class CoverItemEffect extends CoverMixin(UniqueItemEffect) {}
 
 export class CoverFlagEffect extends CoverMixin(UniqueFlagEffect) {
 
@@ -98,22 +36,6 @@ export class CoverFlagEffect extends CoverMixin(UniqueFlagEffect) {
       type: "base",
     };
   }
-
-  /**
-   * Initialize default effects by adding the document(s) to the storage map.
-   */
-  static async _initializeDefaultEffects() {
-    const defaultCoverJSONs = CONFIG[MODULE_ID].defaultCoverJSONs;
-    if ( !defaultCoverJSONs ) return;
-    const defaultMap = await loadDefaultCoverJSONs(defaultCoverJSONs);
-    const promises = [];
-    defaultMap.forEach(data => {
-      data.name = game.i18n.localize(data.name);
-      promises.push(this._createNewDocument(data));
-    });
-    await Promise.allSettled(promises);
-  }
-
 }
 
 /**
