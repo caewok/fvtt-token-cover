@@ -184,6 +184,17 @@
     "tokencover.cover-types-list-config.export": "Export Cover Types",
     "tokencover.cover-types-list-config.reset": "Reset to Defaults",
 
+    "TYPES.RegionBehavior.tokencover.setCover": "Set Minimum Cover",
+
+    "tokencover.behavior.types.set-cover.fields.cover.name": "Minimum Cover",
+    "tokencover.behavior.types.set-cover.fields.cover.hint": "Select a cover that will automatically apply to defending tokens within this region (unless a higher-priority cover applies).",
+
+    "tokencover.behavior.types.set-cover.fields.distance.name": "Min Distance",
+    "tokencover.behavior.types.set-cover.fields.distance.hint": "This cover is automatically applied only when a defender is more than this distance from the nearest attacker.",
+
+    "tokencover.behavior.types.set-cover.fields.exclusive.name": "Disable Cover",
+    "tokencover.behavior.types.set-cover.fields.exclusive.hint": "Disables all other cover within this region.",
+
     "tokencover.phrases.coverRules": "Cover Rules",
 
     "tokencover.phrases.xCoverEffect": "{cover} Cover Effect",
