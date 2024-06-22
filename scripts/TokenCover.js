@@ -216,6 +216,9 @@ class TokenCoverBase {
       exclusiveCoverBehaviors.push(...res.exclusiveCoverBehaviors);
     });
 
+    // TODO: Attacking behaviors should only apply cover to defending tokens if all attackers
+    //       have that cover.
+
     // If exclusive cover behaviors, these override any non-exclusive behaviors and attacker cover.
     if ( exclusiveCoverBehaviors.length ) {
       // If a cover region is exclusive, set to that cover.
