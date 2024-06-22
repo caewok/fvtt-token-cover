@@ -28,6 +28,12 @@ export class SetCoverRegionBehaviorType extends foundry.data.regionBehaviors.Reg
         step: 0.1
       }),
 
+      appliesToAttackers: new foundry.data.fields.BooleanField({
+        label: `${MODULE_ID}.behavior.types.set-cover.fields.appliesToAttackers.name`,
+        hint: `${MODULE_ID}.behavior.types.set-cover.fields.appliesToAttackers.hint`,
+        initial: false
+      }),
+
       exclusive: new foundry.data.fields.BooleanField({
         label: `${MODULE_ID}.behavior.types.set-cover.fields.exclusive.name`,
         hint: `${MODULE_ID}.behavior.types.set-cover.fields.exclusive.hint`,

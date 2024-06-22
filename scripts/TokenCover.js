@@ -2,8 +2,7 @@
 canvas,
 CONFIG,
 CONST,
-game,
-PIXI
+game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
@@ -207,16 +206,15 @@ class TokenCoverBase {
     let overlappingRegionCover = new Set();
     let overlappingAttackerCover = new Set();
 
-    // Sort the cover behaviors for regions containing the defending token.
-    const coverBehaviors = [];
-    const exclusiveCoverBehaviors = [];
-    for ( const coverRegion of this.coverRegions ) {
-      for ( const behavior of coverRegion.document.behaviors ) {
-        if ( behavior.type !== `${MODULE_ID}.setCover` ) continue;
-        if ( behavior.system.exclusive ) exclusiveCoverBehaviors.push(behavior);
-        else coverBehaviors.push(behavior);
-      }
-    }
+    // Group the cover behaviors for regions containing the defending token or possibly the attacking tokens
+    let coverBehaviors = [];
+    let exclusiveCoverBehaviors = [];
+    const defendingRegions = this.coverRegions;
+    attackingTokens.forEach(attackingToken => {
+      const res = applicableRegionBehaviors(attackingToken, this.token, defendingRegions);
+      coverBehaviors.push(...res.coverBehaviors);
+      exclusiveCoverBehaviors.push(...res.exclusiveCoverBehaviors);
+    });
 
     // If exclusive cover behaviors, these override any non-exclusive behaviors and attacker cover.
     if ( exclusiveCoverBehaviors.length ) {
@@ -224,11 +222,10 @@ class TokenCoverBase {
       // If 2+ exclusive, take highest priority.
       // If overlap, allow multiple.
       let maxScore = Number.NEGATIVE_INFINITY;
-      for ( const attackingToken of attackingTokens ) {
-        const { maxRegionCover, otherRegionCover } = maximumRegionCover(attackingToken, this.token, exclusiveCoverBehaviors, maxScore);
-        overlappingRegionCover = overlappingRegionCover.union(otherRegionCover);
-        if ( maxRegionCover && (maxScore < maxRegionCover.priority) ) maxRegionPriorityCover = maxRegionCover;
-      }
+      const { maxRegionCover, otherRegionCover } = maximumRegionCover(exclusiveCoverBehaviors, maxScore);
+      overlappingRegionCover = overlappingRegionCover.union(otherRegionCover);
+      if ( maxRegionCover && (maxScore < maxRegionCover.priority) ) maxRegionPriorityCover = maxRegionCover;
+
     } else {
       // For priority cover, smallest priority wins.
       // For other cover, only if this token has that cover from all attackers.
@@ -236,7 +233,7 @@ class TokenCoverBase {
       let minScore = Number.POSITIVE_INFINITY;
       for ( const attackingToken of attackingTokens ) {
         // Region cover.
-        const { maxRegionCover, otherRegionCover } = maximumRegionCover(attackingToken, this.token, coverBehaviors);
+        const { maxRegionCover, otherRegionCover } = maximumRegionCover(coverBehaviors, maxScore);
         overlappingRegionCover = overlappingRegionCover.intersection(otherRegionCover);
         if ( maxRegionCover && (maxScore < maxRegionCover.priority) ) {
           maxRegionPriorityCover = maxRegionCover;
@@ -583,6 +580,47 @@ export class TokenCover extends TokenIconMixin(TokenCoverBase) {}
 // ----- NOTE: Helper functions ----- //
 
 /**
+ * Locate all applicable region cover behaviors for a group of attacking tokens and defending token.
+ * Regions with a distance limitation may be excluded, based on distance between attacker and defender.
+ * @param {Token} attackingTokens             Token attacking defender
+ * @param {Token} defendingToken              Token to which cover may apply
+ * @param {Region[]} [defendingRegions]       Optional array of regions containing the defender
+ * @returns {object}
+ * - @prop {RegionBehavior[]} coverBehaviors            Applicable cover region behaviors
+ * - @prop {RegionBehavior[]} exclusiveCoverBehaviors   Applicable exclusive cover region behaviors
+ */
+function applicableRegionBehaviors(attackingToken, defendingToken, defendingRegions) {
+  defendingRegions ??= defendingToken[MODULE_ID].coverRegions;
+  const attackingRegions = attackingToken[MODULE_ID].coverRegions
+
+  // Accumulate all the potential behaviors.
+  const behaviors = [];
+  for ( const defendingRegion of defendingRegions ) behaviors.push(...defendingRegion.document.behaviors);
+  for ( const attackingRegion of attackingRegions ) {
+    for ( const behavior of attackingRegion.document.behaviors ) {
+       if ( !behavior.system.appliesToAttackers ) continue;
+       behaviors.push(behavior);
+    }
+  }
+
+  // Filter based on the set cover behavior settings.
+  const coverBehaviors = [];
+  const exclusiveCoverBehaviors = [];
+  let dist;
+  for ( const behavior of behaviors ) {
+    if ( behavior.type !== `${MODULE_ID}.setCover` ) continue;
+    if ( behavior.system.distance ) {
+      // Cache the distance measurement
+      dist ??= canvas.grid.measurePath([defendingToken.center, attackingToken.center]).distance;
+      if ( dist < behavior.system.distance ) continue;
+    }
+    if ( behavior.system.exclusive ) exclusiveCoverBehaviors.push(behavior);
+    else coverBehaviors.push(behavior);
+  }
+  return { coverBehaviors, exclusiveCoverBehaviors };
+}
+
+/**
  * Determine minimum cover for a given defender from an attacker.
  * @param {Token} attackingToken              Token attacking defender
  * @param {Token} defendingToken              Token to which cover may apply
@@ -606,22 +644,17 @@ function minimumAttackerCover(coverEffects = [], minCoverPriority = Number.POSIT
 }
 
 /**
- * Determine maximum region cover for a given defender and attacker.
- * @param {Token} attackingToken              Token attacking defender
- * @param {Token} defendingToken              Token to which cover may apply
+ * Determine maximum region cover from an array of applicable cover behaviors.
  * @param {RegionBehavior[]} [coverBehaviors=[]]                  Behaviors that apply to the defending token
  * @param {number} [maxCoverPriority=Number.NEGATIVE_INFINITY]    Max cover priority seen thus far
  * @returns {object}
  * - @prop {CoverEffect} maxRegionCover         Maximum cover applied to the defender by the region(s)
  * - @prop {Set<CoverEffect>} otherRegionCover  Other non-priority covers applied to the defender by the region(s)
  */
-function maximumRegionCover(attackingToken, defendingToken, coverBehaviors = [], maxCoverPriority = Number.NEGATIVE_INFINITY) {
+function maximumRegionCover(coverBehaviors = [], maxCoverPriority = Number.NEGATIVE_INFINITY) {
   let maxRegionCover;
   const otherRegionCover = new Set();
   for ( const coverBehavior of coverBehaviors ) {
-    if ( coverBehavior.system.distance
-      && canvas.grid.measurePath([defendingToken.center, attackingToken.center]).distance < coverBehavior.system.distance ) continue;
-
     const cover = CONFIG[MODULE_ID].CoverEffect._instances.get(coverBehavior.system.cover);
     if ( !cover ) continue;
     if ( cover.canOverlap ) otherRegionCover.add(cover);

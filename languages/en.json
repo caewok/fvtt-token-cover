@@ -195,6 +195,9 @@
     "tokencover.behavior.types.set-cover.fields.exclusive.name": "Disable Cover",
     "tokencover.behavior.types.set-cover.fields.exclusive.hint": "Disables all other cover within this region.",
 
+    "tokencover.behavior.types.set-cover.fields.appliesToAttackers.name": "Applies to Attackers",
+    "tokencover.behavior.types.set-cover.fields.appliesToAttackers.hint": "If enabled, defending tokens outside the region will gain cover from attacking tokens within the region. If not enabled, only defending tokens inside the region are affected.",
+
     "tokencover.phrases.coverRules": "Cover Rules",
 
     "tokencover.phrases.xCoverEffect": "{cover} Cover Effect",
