@@ -2,9 +2,7 @@
 canvas,
 CONFIG,
 CONST,
-foundry,
 game,
-loadTexture,
 PIXI
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -145,6 +143,16 @@ class TokenCoverBase {
     this.coverCalculator = new CoverCalculator(token);
   }
 
+
+  /**
+   * Get all cover regions for this token
+   */
+  get coverRegions() {
+    const token = this.token;
+    return canvas.regions.placeables.filter(region => region.document.behaviors.some(behavior => behavior.type === `${MODULE_ID}.setCover`)
+      && region.testPoint(token.center, token.elevationE));
+  }
+
   // ----- NOTE: Methods ----- //
 
   /**
@@ -193,28 +201,72 @@ class TokenCoverBase {
   minimumCoverFromAttackers(attackingTokens = this.constructor.attackers) {
     if ( !attackingTokens.length && !attackingTokens.size ) return NULL_SET;
 
-    // For priority cover, smallest priority wins.
-    // For other cover, only if this token has that cover from all attackers.
-    let minCoverPriority = Number.POSITIVE_INFINITY;
-    let minCover;
-    let otherCover;
-    for ( const attackingToken of attackingTokens ) {
-      const coverEffects = this.coverFromAttacker(attackingToken);
-      const potentialOther = new Set();
-      coverEffects.forEach(c => {
-        if ( c.canOverlap ) potentialOther.add(c);
-        else if ( minCoverPriority > c.priority ) {
-          minCover = c;
-          minCoverPriority = c.priority;
-        }
-      });
-      if ( !otherCover ) otherCover = potentialOther;
-      else otherCover = otherCover.intersection(potentialOther);
+    // Track priority and overlapping covers for regions and attackers separately.
+    let maxRegionPriorityCover;
+    let minAttackerPriorityCover;
+    let overlappingRegionCover = new Set();
+    let overlappingAttackerCover = new Set();
+
+    // Sort the cover behaviors for regions containing the defending token.
+    const coverBehaviors = [];
+    const exclusiveCoverBehaviors = [];
+    for ( const coverRegion of this.coverRegions ) {
+      for ( const behavior of coverRegion.document.behaviors ) {
+        if ( behavior.type !== `${MODULE_ID}.setCover` ) continue;
+        if ( behavior.system.exclusive ) exclusiveCoverBehaviors.push(behavior);
+        else coverBehaviors.push(behavior);
+      }
     }
 
-    otherCover ||= Set.NULL_SET;
-    if ( minCover ) otherCover.add(minCover);
-    return otherCover;
+    // If exclusive cover behaviors, these override any non-exclusive behaviors and attacker cover.
+    if ( exclusiveCoverBehaviors.length ) {
+      // If a cover region is exclusive, set to that cover.
+      // If 2+ exclusive, take highest priority.
+      // If overlap, allow multiple.
+      let maxScore = Number.NEGATIVE_INFINITY;
+      for ( const attackingToken of attackingTokens ) {
+        const { maxRegionCover, otherRegionCover } = maximumRegionCover(attackingToken, this.token, exclusiveCoverBehaviors, maxScore);
+        overlappingRegionCover = overlappingRegionCover.union(otherRegionCover);
+        if ( maxRegionCover && (maxScore < maxRegionCover.priority) ) maxRegionPriorityCover = maxRegionCover;
+      }
+    } else {
+      // For priority cover, smallest priority wins.
+      // For other cover, only if this token has that cover from all attackers.
+      let maxScore = Number.NEGATIVE_INFINITY;
+      let minScore = Number.POSITIVE_INFINITY;
+      for ( const attackingToken of attackingTokens ) {
+        // Region cover.
+        const { maxRegionCover, otherRegionCover } = maximumRegionCover(attackingToken, this.token, coverBehaviors);
+        overlappingRegionCover = overlappingRegionCover.intersection(otherRegionCover);
+        if ( maxRegionCover && (maxScore < maxRegionCover.priority) ) {
+          maxRegionPriorityCover = maxRegionCover;
+          maxScore = maxRegionCover.priority;
+        }
+
+        // Cover from attackers.
+        const coverEffects = this.coverFromAttacker(attackingToken);
+        const { minAttackerCover, otherAttackerCover } = minimumAttackerCover(coverEffects, minScore);
+        overlappingAttackerCover = overlappingAttackerCover.intersection(otherAttackerCover)
+        if ( minAttackerCover && (minScore > minAttackerCover.priority) ) {
+          minAttackerPriorityCover = minAttackerCover;
+          maxScore = minAttackerCover.priority;
+        }
+      }
+    }
+
+    // If region cover is higher, use it.
+    let priorityCover = maxRegionPriorityCover || minAttackerPriorityCover;
+    if ( maxRegionPriorityCover && minAttackerPriorityCover ) {
+      if ( maxRegionPriorityCover.priority >= minAttackerPriorityCover.priority ) priorityCover = maxRegionPriorityCover;
+      else priorityCover = minAttackerPriorityCover;
+    }
+
+    // Combine all non-priority cover
+    const overlappingCover = overlappingRegionCover.union(overlappingAttackerCover);
+
+    // Return the combined set.
+    if ( priorityCover ) overlappingCover.add(priorityCover);
+    return overlappingCover;
   }
 
   /**
@@ -403,6 +455,7 @@ class TokenCoverBase {
    */
   static attackers = new Set()
 
+
   // ----- NOTE: Static methods ----- //
 
   /**
@@ -526,3 +579,56 @@ class TokenCoverBase {
 }
 
 export class TokenCover extends TokenIconMixin(TokenCoverBase) {}
+
+// ----- NOTE: Helper functions ----- //
+
+/**
+ * Determine minimum cover for a given defender from an attacker.
+ * @param {Token} attackingToken              Token attacking defender
+ * @param {Token} defendingToken              Token to which cover may apply
+ * @param {CoverEffect[]} [coverEffects=[]]                       Covers from this attacker
+ * @param {number} [minCoverPriority=Number.POSITIVE_INFINITY]    Min cover priority seen thus far
+ * @returns {object}
+ * - @prop {CoverEffect} minAttackerCover           Minimum cover applied to the defender from the attacker
+ * - @prop {Set<CoverEffect>} otherAttackerCover    Other non-priority covers applied to the defender by the attacker
+ */
+function minimumAttackerCover(coverEffects = [], minCoverPriority = Number.POSITIVE_INFINITY) {
+  let minAttackerCover;
+  let otherAttackerCover = new Set();
+  for ( const coverEffect of coverEffects ) {
+    if ( coverEffect.canOverlap ) otherAttackerCover.add(coverEffect);
+    else if ( minCoverPriority > coverEffect.priority ) {
+      minCoverPriority = coverEffect.priority;
+      minAttackerCover = coverEffect;
+    }
+  }
+  return { minAttackerCover, otherAttackerCover}
+}
+
+/**
+ * Determine maximum region cover for a given defender and attacker.
+ * @param {Token} attackingToken              Token attacking defender
+ * @param {Token} defendingToken              Token to which cover may apply
+ * @param {RegionBehavior[]} [coverBehaviors=[]]                  Behaviors that apply to the defending token
+ * @param {number} [maxCoverPriority=Number.NEGATIVE_INFINITY]    Max cover priority seen thus far
+ * @returns {object}
+ * - @prop {CoverEffect} maxRegionCover         Maximum cover applied to the defender by the region(s)
+ * - @prop {Set<CoverEffect>} otherRegionCover  Other non-priority covers applied to the defender by the region(s)
+ */
+function maximumRegionCover(attackingToken, defendingToken, coverBehaviors = [], maxCoverPriority = Number.NEGATIVE_INFINITY) {
+  let maxRegionCover;
+  const otherRegionCover = new Set();
+  for ( const coverBehavior of coverBehaviors ) {
+    if ( coverBehavior.system.distance
+      && canvas.grid.measurePath([defendingToken.center, attackingToken.center]).distance < coverBehavior.system.distance ) continue;
+
+    const cover = CONFIG[MODULE_ID].CoverEffect._instances.get(coverBehavior.system.cover);
+    if ( !cover ) continue;
+    if ( cover.canOverlap ) otherRegionCover.add(cover);
+    else if ( maxCoverPriority < cover.priority ) {
+      maxCoverPriority = cover.priority;
+      maxRegionCover = cover;
+    }
+  }
+  return { maxRegionCover, otherRegionCover };
+}
