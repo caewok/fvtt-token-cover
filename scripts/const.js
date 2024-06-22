@@ -31,6 +31,14 @@ export const FLAGS = {
     MAX_GRANT: "maximumCoverGrant"
   },
 
+  UNIQUE_EFFECT: {
+    ID: "uniqueEffectId",
+    TYPE: "uniqueEffectType",
+    DUPLICATES_ALLOWED: "duplicatesAllowed",
+    IS_LOCAL: "isLocal",
+    DISPLAY_ICON: "displayStatusIcon"
+  },
+
   COVER_EFFECT: {
     /**
      * Store an identifier that links an active effect to its stored data.
@@ -113,7 +121,10 @@ export const TEMPLATES = {
   TOKEN_CONFIG: `modules/${MODULE_ID}/templates/token-config.html`,
   SETTINGS_BUTTONS: `modules/${MODULE_ID}/templates/settings-buttons.html`,
   SETTINGS_MENU_PARTIAL: `modules/${MODULE_ID}/templates/settings-menu-tab-partial.html`,
-  SETTINGS_MENU: `modules/${MODULE_ID}/templates/settings-menu.html`
+  SETTINGS_MENU: `modules/${MODULE_ID}/templates/settings-menu.html`,
+  COVER_RULES_PARTIAL: `modules/${MODULE_ID}/templates/cover-rules-partial.html`,
+  ACTIVE_EFFECT: `modules/${MODULE_ID}/templates/active-effect-config.html`,
+  COVER_RULES_PF2E: `modules/${MODULE_ID}/templates/cover-rules-pf2e.html`
 }
 
 export const ICONS = {
@@ -136,7 +147,13 @@ export const ICONS = {
     SPLAT: `modules/${MODULE_ID}/assets/shield_virus.svg`,
     HALF: `modules/${MODULE_ID}/assets/shield_halved.svg`,
     FULL: `modules/${MODULE_ID}/assets/shield.svg`
-  }
+  },
+
+  MODULE: "icons/svg/shield.svg"
+};
+
+export const FA_ICONS = {
+  MODULE: "fa-solid fa-shield-halved"
 };
 
 export const COVER = {};
