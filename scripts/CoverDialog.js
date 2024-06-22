@@ -131,7 +131,7 @@ export class CoverDialog {
    * Get JSON for the cover calculations.
    */
   static _coverCalculationsFromJSON(coverCalculations) {
-    const coverMap = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap;
+    const coverMap = CONFIG[MODULE_ID].CoverEffect._instances;
     const canvasTokens = new Map(canvas.tokens.placeables.map(t => [t.id, t]));
     const m = new Map(Object.entries(coverCalculations).map(([tokenId, coverId]) =>
       [canvasTokens.get(tokenId), new Set([...coverId].map(coverId => coverMap.get(coverId)))]));
@@ -500,7 +500,7 @@ ${html}
   } = {}) {
 
     targetData ??= this._targetData();
-    const allCover = new Set(CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values());
+    const allCover = new Set(CONFIG[MODULE_ID].CoverEffect._instances.values());
     const overlappingCover = allCover.filter(ct => ct.canOverlap);
     if ( !overlappingCover.size ) excludedColumns.add("overlappingCover");
 
@@ -605,7 +605,7 @@ ${html}
     chosen ??= new Set();
     id ??= foundry.utils.randomID();
     id = overlapping ? `CoverOverlappingSelect.${id}` : `CoverPrioritySelect.${id}`;
-    const allCover = new Set(CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.values());
+    const allCover = new Set(CONFIG[MODULE_ID].CoverEffect._instances.values());
     const cover = overlapping
       ? allCover.filter(c => c.canOverlap) : allCover.filter(c => !c.canOverlap);
 

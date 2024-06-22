@@ -10,17 +10,19 @@
       <div class='header-actions action-buttons flexrow'>
         <button class='create-effect'>
           <i class='fas fa-person-hiking'></i>
-          Create Cover Effect
+          {{ localize "tokencover.coverbook.create-cover" }}
         </button>
       </div>
 
-      <!-- Reset cover effects -->
+      <!-- Create Defaults Button -->
+      {{#if hasDefaults}}
       <div class='header-actions action-buttons flexrow'>
-        <button class='reset-defaults'>
-          <i class='fas fa-rotate-left'></i>
-          Reset Cover Effects to Defaults
+        <button class='create-defaults'>
+          <i class='fas fa-file-image'></i>
+           {{ localize "tokencover.coverbook.create-defaults" }}
         </button>
       </div>
+      {{/if}}
 
     {{/if}}
     </div>

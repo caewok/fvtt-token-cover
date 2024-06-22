@@ -3,17 +3,50 @@ canvas,
 CONFIG,
 foundry,
 game,
+ItemDirectory
 ui
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
-import { MODULE_ID, MODULES_ACTIVE } from "./const.js";
+import { MODULE_ID, MODULES_ACTIVE, FLAGS } from "./const.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
 import { POINT_TYPES } from "./LOS/AlternativeLOS.js";
+
+export const PATCHES_SidebarTab = {};
+export const PATCHES_ItemDirectory = {};
+PATCHES_SidebarTab.BASIC = {};
+PATCHES_ItemDirectory.BASIC = {};
+
+/**
+ * Remove the terrains item from sidebar so it does not display.
+ * From https://github.com/DFreds/dfreds-convenient-effects/blob/main/scripts/ui/remove-custom-item-from-sidebar.js#L3
+ * @param {ItemDirectory} dir
+ */
+function removeCoverItemFromSidebar(dir) {
+  if ( !(dir instanceof ItemDirectory) ) return;
+  if ( !game.items ) return;
+  for ( const item of game.items ) {
+    if ( !(item.name === "Cover" || item.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID)) ) continue;
+    const li = dir.element.find(`li[data-document-id="${item.id}"]`);
+    li.remove();
+  }
+}
+
+/**
+ * Hooks for changeSidebarTab and renderItemDirectory to remove the terrains item from the directory.
+ */
+function removeCoverItemHook(directory) {
+  removeCoverItemFromSidebar(directory);
+}
+
+PATCHES_SidebarTab.BASIC.HOOKS = { changeSidebarTab: removeCoverItemHook };
+PATCHES_ItemDirectory.BASIC.HOOKS = { renderItemDirectory: removeCoverItemHook };
+
+
 
 const USE_CHOICES = {
   NEVER: "never",
@@ -34,6 +67,8 @@ export const SETTINGS = {
   CONTROLS: {
     COVER_EFFECTS: "cover-effects-control"
   },
+
+  UNIQUE_EFFECTS_FLAGS_DATA: "uniqueEffectsFlagsData",
 
   SUBMENU: "submenu",
 
@@ -183,7 +218,7 @@ export class Settings extends ModuleSettingsAbstract {
       default: true,
       onChange: _value => canvas.tokens.placeables.forEach(token => {
         token[MODULE_ID].updateCoverIconDisplay();
-        CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
+        CONFIG[MODULE_ID].CoverEffect.refreshTokenDisplay(token);
       })
     });
 
@@ -466,6 +501,12 @@ export class Settings extends ModuleSettingsAbstract {
       default: {}
     });
 
+    this.register(KEYS.UNIQUE_EFFECTS_FLAGS_DATA, {
+      scope: "world",
+      config: false,
+      default: {}
+    });
+
     // ----- NOTE: Triggers based on starting settings ---- //
     // Start debug
     if ( this.get(this.KEYS.DEBUG) ) registerDebug();
@@ -490,7 +531,6 @@ export class Settings extends ModuleSettingsAbstract {
 
   static losSettingChange(key, value) {
     this.cache.delete(key);
-    const cfg = { [key]: value };
     canvas.tokens.placeables
       .filter(t => t._tokencover) // Don't create a new coverCalc here.
       .forEach(token => token[MODULE_ID].coverCalculator._resetConfiguration());

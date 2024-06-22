@@ -8,13 +8,16 @@ game,
 import { Patcher } from "./Patcher.js";
 import { MODULES_ACTIVE } from "./const.js";
 import { WallGeometryHandler, TileGeometryHandler, TokenGeometryHandler } from "./LOS/Placeable3dGeometry.js";
+import { Settings } from "./Settings.js";
 
+import { PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./settings.js";
 import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
 import { PATCHES as PATCHES_ActiveEffectConfig } from "./ActiveEffectConfig.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
 import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
 import { PATCHES as PATCHES_TokenDocument } from "./TokenDocument.js";
+import { PATCHES as PATCHES_ItemSheet } from "./ItemSheet.js";
 
 // LOS
 import { PATCHES as PATCHES_PointSourcePolygon } from "./LOS/PointSourcePolygon.js";
@@ -31,9 +34,6 @@ import { PATCHES as PATCHES_ClientSettings } from "./ModuleSettingsAbstract.js";
 // Token configuration
 import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 
-// Cover Effect Item
-import { PATCHES as PATCHES_CoverActiveEffect, PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./CoverActiveEffect.js";
-
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
   ActiveEffectConfig: PATCHES_ActiveEffectConfig,
@@ -41,6 +41,7 @@ const PATCHES = {
   Combat: PATCHES_Combat,
   Item: PATCHES_Item,
   ItemDirectory: PATCHES_ItemDirectory,
+  ItemSheet: PATCHES_ItemSheet,
   SidebarTab: PATCHES_SidebarTab,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
   Tile: PATCHES_Tile,
@@ -49,9 +50,7 @@ const PATCHES = {
   TokenDocument: PATCHES_TokenDocument,
   Wall: PATCHES_Wall,
 
-  Midiqol: PATCHES_Midiqol,
-
-  CoverActiveEffect: PATCHES_CoverActiveEffect
+  Midiqol: PATCHES_Midiqol
 };
 
 export const PATCHER = new Patcher();
@@ -78,7 +77,11 @@ export function initializePatching() {
 
   if ( game.system.id !== "pf2e" ) PATCHER.registerGroup("NO_PF2E");
 
+  if ( game.system.id === "sfrpg" || game.system.id === "pf2e" ) PATCHER.registerGroup("COVER_ITEM");
+
   if ( game.modules.get("dfreds-convenient-effects")?.active ) PATCHER.registerGroup("DFREDS");
+
+  if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) PATCHER.registerGroup("COVER_FLAGS");
 }
 
 export function registerArea3d() {

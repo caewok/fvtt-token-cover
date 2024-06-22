@@ -4,24 +4,34 @@ CONFIG,
 foundry,
 game,
 Hooks,
+loadTemplates,
 ui
 */
 "use strict";
 
-import { MODULE_ID, FLAGS, COVER, setCoverIgnoreHandler } from "./const.js";
+import { MODULE_ID, FLAGS, COVER, TEMPLATES, setCoverIgnoreHandler, FA_ICONS } from "./const.js";
+import { log } from "./util.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
-import { AsyncQueue } from "./AsyncQueue.js";
 
 // Cover objects
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
-import { CoverEffect } from "./CoverEffect.js";
-import { CoverActiveEffect, CoverActiveEffectDFreds } from "./CoverActiveEffect.js";
-import { CoverItem, CoverItemPF2E, CoverItemSFRPG} from "./CoverItem.js";
-import { CoverFlags, CoverFlagsDND5E } from "./CoverFlags.js";
+import { defaultCover } from "./default_cover.js";
+import {
+  CoverActiveEffect,
+  CoverItemEffect,
+  CoverFlagEffect,
+  CoverDND5E,
+  CoverFlagsDND5E,
+  CoverPF2E,
+  CoverSFRPG,
+  CoverDFreds } from "./cover_unique_effects.js";
+
+// Regions
+import { SetCoverRegionBehaviorType } from "./SetCoverRegionBehaviorType.js";
 
 // For API
 import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
@@ -50,12 +60,82 @@ import "./changelog.js";
 
 Hooks.once("init", function() {
   registerGeometry();
+  initializeConfig();
+  initializeAPI();
   addDND5eCoverFeatFlags();
-  getTemplate(`modules/${MODULE_ID}/templates/cover-rules-partial.html`); // Async but not awaiting here.
 
-  // Set CONFIGS used by this module.
+  if ( game.system.id === "dnd5e" ) {
+    setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
+  }
+
+  Object.assign(CONFIG.RegionBehavior.dataModels, {
+    [`${MODULE_ID}.setCover`]: SetCoverRegionBehaviorType
+  });
+
+  CONFIG.RegionBehavior.typeIcons[`${MODULE_ID}.setCover`] = FA_ICONS.MODULE;
+
+  // Must go at end?
+  loadTemplates(Object.values(TEMPLATES)).then(_value => log(`Templates loaded.`)); // eslint-disable-line no-unused-vars
+});
+
+Hooks.once("setup", function() {
+  Settings.registerAll();
+  initializePatching();
+  if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) {
+    switch ( game.system.id ) {
+      case "dnd5e": CONFIG[MODULE_ID].CoverEffect = CoverFlagsDND5E; break;
+      default: CONFIG[MODULE_ID].CoverEffect = CoverFlagEffect; break;
+    }
+  }
+});
+
+/**
+ * A hook event that fires when the game is fully ready.
+ */
+Hooks.on("ready", async function(_canvas) { // eslint-disable-line no-unused-vars
+  CONFIG[MODULE_ID].CoverEffect.initialize(); // Async. Must wait until ready hook to store Settings for UniqueEffectFlag
+});
+
+
+/**
+ * A hook event that fires when the Canvas is ready.
+ * @param {Canvas} canvas The Canvas which is now ready for use
+ */
+Hooks.once("canvasReady", function() {
+  transitionTokenMaximumCoverFlags();
+  CONFIG[MODULE_ID].CoverEffect.transitionTokens(); // Async
+})
+
+
+// ----- NOTE: Token Controls ----- //
+
+// Add pathfinding button to token controls.
+const COVER_EFFECTS_CONTROL = {
+  name: Settings.KEYS.CONTROLS.COVER_EFFECTS,
+  title: `${MODULE_ID}.controls.${Settings.KEYS.CONTROLS.COVER_EFFECTS}.name`,
+  icon: FA_ICONS.MODULE,
+  button: true,
+  onClick: () => { new CoverEffectsApp().render(true); },
+  visible: false
+};
+
+// Render the cover effects book control if setting enabled.
+Hooks.on("getSceneControlButtons", controls => {
+  if ( !canvas.scene || !ui.controls.activeControl === "token" ) return;
+  const tokenTools = controls.find(c => c.name === "token");
+  COVER_EFFECTS_CONTROL.visible = game.user.isGM && Settings.get(Settings.KEYS.DISPLAY_COVER_BOOK);
+  if ( game.user.isGM ) tokenTools.tools.push(COVER_EFFECTS_CONTROL);
+});
+
+
+// ----- NOTE: Helper Functions ----- //
+
+/**
+ * Initialize the CONFIG for this module, at CONFIG[MODULE_ID].
+ * Dynamic settings that may be changed by users or other modules or set by system type.
+ */
+function initializeConfig() {
   CONFIG[MODULE_ID] = {
-
     /**
      * Turn on debug logging.
      */
@@ -82,10 +162,36 @@ Hooks.once("init", function() {
 
     /**
      * What cover effect class to use for this system.
+     * @type {AbstractUniqueEffect}
      */
-    CoverEffect
+    CoverEffect: CoverActiveEffect,
+
+    /**
+     * Default terrain jsons
+     * @type {string} File path
+     */
+    defaultCoverJSONs: defaultCover()
   };
 
+  Object.defineProperty(CONFIG[MODULE_ID], "UniqueEffect", {
+    get: function() { return this.CoverEffect; }
+  });
+
+  switch ( game.system.id ) {
+    case "sfrpg":
+      CONFIG[MODULE_ID].CoverEffect = CoverSFRPG; break;
+    case "pf2e":
+      CONFIG[MODULE_ID].CoverEffect = CoverPF2E; break;
+  }
+
+  if ( game.modules.get("dfreds-convenient-effects")?.active ) CONFIG[MODULE_ID].CoverEffect = CoverDFreds;
+}
+
+/**
+ * Initialize the API for this module. At game.modules.get(MODULE_ID).api.
+ * Provides access to certain classes and functions for debugging and other modules.
+ */
+function initializeAPI() {
   game.modules.get(MODULE_ID).api = {
     losCalcMethods: {
       AlternativeLOS,
@@ -96,7 +202,6 @@ Hooks.once("init", function() {
       Area3dLOSWebGL2,
       Area3dLOSHybrid
     },
-    AsyncQueue,
 
     OPEN_POPOUTS,
 
@@ -109,10 +214,16 @@ Hooks.once("init", function() {
     CoverCalculator,
     CoverDialog,
     COVER,
-    CoverEffect,
-    CoverItem,
-    CoverItemSFRPG,
-    CoverItemPF2E,
+
+    // UniqueEffects
+    CoverActiveEffect,
+    CoverItemEffect,
+    CoverFlagEffect,
+    CoverDND5E,
+    CoverPF2E,
+    CoverSFRPG,
+    CoverDFreds,
+
     setCoverIgnoreHandler,
     Settings,
 
@@ -124,84 +235,8 @@ Hooks.once("init", function() {
 
     PATCHER
   };
+}
 
-  switch ( game.system.id ) {
-    case "sfrpg":
-      CONFIG[MODULE_ID].CoverEffect = CoverItemSFRPG; break;
-    case "pf2e":
-      CONFIG[MODULE_ID].CoverEffect = CoverItemPF2E; break;
-    default:
-      CONFIG[MODULE_ID].CoverEffect = CoverActiveEffect;
-  }
-
-
-
-
-  if ( game.system.id === "dnd5e" ) {
-    setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
-  }
-  if ( game.modules.get("dfreds-convenient-effects")?.active ) CONFIG[MODULE_ID].CoverEffect = CoverActiveEffectDFreds;
-
-//   if ( game.system.id === "pf2e" ) {
-//     CONFIG.statusEffects.push({
-//       id: "takeCover",
-//       label: `${MODULE_ID}.phrases.takeCover`,
-//       icon: `modules/${MODULE_ID}/assets/noun-hide-8013.svg`
-//     });
-//   }
-});
-
-Hooks.once("setup", function() {
-  initializePatching();
-  Settings.registerAll();
-  if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) {
-    switch ( game.system.id ) {
-      case "dnd5e": CONFIG[MODULE_ID].CoverEffect = CoverFlagsDND5E; break;
-      default: CONFIG[MODULE_ID].CoverEffect = CoverFlags; break;
-    }
-  }
-});
-
-Hooks.once("ready", function() {
-  // Initialize must happen after game is ready, so that settings can be saved if necessary.
-  CONFIG[MODULE_ID].CoverEffect.initialize(); // Async
-});
-
-Hooks.once("canvasReady", function() {
-  // Transitions to newer data. Requires canvas.scene to be loaded.
-  transitionTokenMaximumCoverFlags();
-
-  // If DFred's is active, mark DFred's cover effects with flags.
-//   if ( MODULES_ACTIVE.DFREDS_CE ) {
-//     const CoverEffect = CONFIG[MODULE_ID].CoverEffect
-//     for ( const id of CoverEffect.coverObjectsMap.keys() ) {
-//       const defaultData = CoverEffect.defaultCoverObjectData.get(id);
-//       const dFredsEffect = game.dfreds.effectInterface.findCustomEffectByName(defaultData.dFredsName);
-//       if ( !dFredsEffect ) continue;
-//       dFredsEffect.setFlag(MODULE_ID, coverEffectId, id); // Already present?
-//
-//     }
-//   }
-
-})
-
-// Add pathfinding button to token controls.
-const COVER_EFFECTS_CONTROL = {
-  name: Settings.KEYS.CONTROLS.COVER_EFFECTS,
-  title: `${MODULE_ID}.controls.${Settings.KEYS.CONTROLS.COVER_EFFECTS}.name`,
-  icon: "fas fa-book",
-  button: true,
-  onClick: () => { new CoverEffectsApp().render(true); },
-  visible: false
-};
-
-// Render the cover effects book control if setting enabled.
-Hooks.on("getSceneControlButtons", controls => {
-  if ( !canvas.scene || !ui.controls.activeControl === "token" ) return;
-  const tokenTools = controls.find(c => c.name === "token");
-  COVER_EFFECTS_CONTROL.visible = game.user.isGM && Settings.get(Settings.KEYS.DISPLAY_COVER_BOOK);
-  if ( game.user.isGM ) tokenTools.tools.push(COVER_EFFECTS_CONTROL);
-});
 
 /**
  * Transition token maximum cover flags.

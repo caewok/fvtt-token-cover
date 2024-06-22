@@ -20,6 +20,7 @@ PATCHES.BASIC = {};
 PATCHES.DEBUG = {};
 PATCHES.sfrpg = {};
 PATCHES.NO_PF2E = {};
+PATCHES.COVER_FLAGS = {};
 
 // ----- NOTE: Debug Hooks ----- //
 
@@ -141,10 +142,8 @@ PATCHES.DEBUG.HOOKS = {
  * Adjust cover calculations as the token moves.
  */
 function refreshToken(token, flags) {
-  if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) {
-    if ( flags.redrawEffects ) token[MODULE_ID].drawIcons(); // Async.
-    else if ( flags.refreshEffects ) token[MODULE_ID]._refreshIcons();
-  }
+  if ( flags.refreshEffects
+    && Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) token[MODULE_ID]._refreshIcons();
 
   if ( !(flags.refreshPosition
       || flags.refreshElevation
@@ -220,7 +219,7 @@ function updateToken(tokenD, change, _options, _userId) {
   if ( !token ) return;
   if ( Object.hasOwn(change, "disposition") ) {
     token[MODULE_ID].updateCoverIconDisplay();
-    CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
+    CONFIG[MODULE_ID].CoverEffect.refreshTokenDisplay(token);
   }
   // Token movement, resize now handled by refresh.
 }
@@ -295,6 +294,8 @@ function applyTokenStatusEffect(token, statusId, active) {
     : CoverCalculator.disableAllCover(token);
 }
 
+
+
 PATCHES.BASIC.HOOKS = { destroyToken, updateToken, controlToken, targetToken, refreshToken };
 PATCHES.sfrpg.HOOKS = { applyTokenStatusEffect };
 
@@ -317,3 +318,17 @@ PATCHES.BASIC.GETTERS = {
   tokencover,
   coverCalculator
 };
+
+// ----- NOTE: Wraps ----- //
+
+/**
+ * Draw the effect icons for ActiveEffect documents which apply to the Token's Actor.
+ * For CoverEffectFlags, draw the icon on the token.
+ */
+async function drawEffects(wrapped) {
+  await wrapped();
+  await this[MODULE_ID].drawIcons();
+  this.renderFlags.set({refreshEffects: true});
+}
+
+PATCHES.COVER_FLAGS.WRAPS = { drawEffects };

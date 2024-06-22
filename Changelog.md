@@ -1,3 +1,15 @@
+## 0.9.1
+
+### New Features
+Added a "Set Cover" region behavior. The GM can define a minimum cover that will be applied by that region. Defenders within that region gain at least that minimum cover (but may still gain greater cover due to walls, etc.) Options in Set Cover:
+- Set a minimum distance, below which the minimum cover will not apply.
+- Apply the cover to defenders outside the region if the attacker is within the region.
+- Disable all other cover calculations within the region.
+
+### Bug fixes / refactor
+Substantial refactor of internal classes used to apply cover effects, borrowing from Terrain Mapper code.
+Modified how default example covers are handled. For AE, default examples are stored in JSONs exported from cover objects. For item cover, like pf2e, still stored in compendium but simplified import.
+
 ## 0.9.0
 Compatibility with FoundryVTT v12. Requires v12; use the v0.8 series if you are on v11.
 Fixes application of cover items in pf2e. This fix may improve application of cover effects in dnd5e and other systems.

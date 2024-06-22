@@ -1,0 +1,159 @@
+{
+  "name": "Effect: Cover (Lesser)",
+  "type": "effect",
+  "effects": [],
+  "system": {
+    "description": {
+      "gm": "",
+      "value": "<p>When you're behind an obstacle that could block weapons, guard you against explosions, and make you harder to detect, you're behind cover. Standard cover gives you a +2 circumstance bonus to AC, to Reflex saves against area effects, and to Stealth checks to Hide, Sneak, or otherwise avoid detection. You can increase this to greater cover using the Take Cover basic action, increasing the circumstance bonus to +4. If cover is especially light, typically when it's provided by a creature, you have lesser cover, which grants a +1 circumstance bonus to AC. A creature with standard cover or greater cover can attempt to use Stealth to Hide, but lesser cover isn't sufficient.</p>"
+    },
+    "rules": [
+      {
+        "choices": [
+          {
+            "label": "PF2E.SpecificRule.Cover.Lesser",
+            "sort": 1,
+            "value": 1
+          },
+          {
+            "label": "PF2E.SpecificRule.Cover.Standard",
+            "sort": 2,
+            "value": 2
+          },
+          {
+            "label": "PF2E.SpecificRule.Cover.Greater",
+            "sort": 3,
+            "value": 4
+          }
+        ],
+        "flag": "coverBonus",
+        "key": "ChoiceSet",
+        "prompt": "PF2E.SpecificRule.Cover.Prompt",
+        "rollOption": "self:cover-bonus",
+        "selection": 1
+      },
+      {
+        "key": "FlatModifier",
+        "selector": "ac",
+        "type": "circumstance",
+        "value": "@item.flags.pf2e.rulesSelections.coverBonus"
+      },
+      {
+        "key": "FlatModifier",
+        "predicate": [
+          "area-effect"
+        ],
+        "selector": "reflex",
+        "type": "circumstance",
+        "value": "@item.flags.pf2e.rulesSelections.coverBonus"
+      },
+      {
+        "key": "FlatModifier",
+        "predicate": [
+          {
+            "or": [
+              "action:hide",
+              "action:sneak",
+              "avoid-detection"
+            ]
+          }
+        ],
+        "selector": "stealth",
+        "type": "circumstance",
+        "value": "@item.flags.pf2e.rulesSelections.coverBonus"
+      },
+      {
+        "key": "FlatModifier",
+        "predicate": [
+          "action:avoid-notice"
+        ],
+        "selector": "initiative",
+        "type": "circumstance",
+        "value": "@item.flags.pf2e.rulesSelections.coverBonus"
+      }
+    ],
+    "slug": "effect-cover",
+    "_migration": {
+      "version": 0.93,
+      "lastMigration": null,
+      "previous": {
+        "schema": 0.915,
+        "foundry": "12.327",
+        "system": "6.0.2"
+      }
+    },
+    "traits": {
+      "otherTags": [],
+      "value": [],
+      "rarity": "common"
+    },
+    "publication": {
+      "title": "Pathfinder Core Rulebook",
+      "authors": "",
+      "license": "OGL",
+      "remaster": false
+    },
+    "level": {
+      "value": 1
+    },
+    "duration": {
+      "value": -1,
+      "unit": "unlimited",
+      "expiry": null,
+      "sustained": false
+    },
+    "start": {
+      "value": 0,
+      "initiative": null
+    },
+    "tokenIcon": {
+      "show": true
+    },
+    "badge": null,
+    "context": null,
+    "target": null,
+    "unidentified": false
+  },
+  "img": "modules/tokencover/assets/shield_low_gray.svg",
+  "folder": null,
+  "flags": {
+    "core": {},
+    "exportSource": {
+      "world": "test-pf2e",
+      "system": "pf2e",
+      "coreVersion": "11.315",
+      "systemVersion": "5.12.2"
+    },
+    "tokencover": {
+      "uniqueEffectType": "Cover",
+      "uniqueEffectId": "Cover_KyeLvZzrW6j4WD61",
+      "duplicatesAllowed": false,
+      "displayStatusIcon": true,
+      "version": "0.9.0",
+      "percentThreshold": 0.25,
+      "priority": 1,
+      "canOverlap": false,
+      "includeWalls": false,
+      "liveTokensBlock": true,
+      "deadTokensBlock": false,
+      "proneTokensBlock": true
+    }
+  },
+  "_stats": {
+    "compendiumSource": null,
+    "duplicateSource": null,
+    "coreVersion": "12.327",
+    "systemId": "pf2e",
+    "systemVersion": "6.0.2",
+    "createdTime": 1718996215756,
+    "modifiedTime": 1718996218355,
+    "lastModifiedBy": "2pVrsrEmybzoncDe"
+  },
+  "ownership": {
+    "default": 0,
+    "2pVrsrEmybzoncDe": 3
+  },
+  "_id": "KiJJPkS3ABHyKYre",
+  "sort": 300000,
+  "_key": "!items!KiJJPkS3ABHyKYre"
+}

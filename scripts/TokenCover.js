@@ -2,10 +2,7 @@
 canvas,
 CONFIG,
 CONST,
-foundry,
-game,
-loadTexture,
-PIXI
+game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
@@ -13,6 +10,7 @@ import { MODULE_ID, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { Settings } from "./settings.js";
 import { log } from "./util.js";
+import { TokenIconMixin } from "./TokenIcon.js";
 
 const NULL_SET = new Set();
 
@@ -109,7 +107,7 @@ Triggers:
  * @prop {Color} [tint]                 Color to use for tint, if any
  */
 
-export class TokenCover {
+class TokenCoverBase {
   /** @type {Token} */
   token;
 
@@ -135,7 +133,7 @@ export class TokenCover {
    * @type {Set<CoverEffect>}
    */
   get _currentCoverEffects() {
-    return CONFIG[MODULE_ID].CoverEffect.allLocalCoverOnToken(this.token);
+    return CONFIG[MODULE_ID].CoverEffect.allOnToken(this.token);
   }
 
   constructor(token) {
@@ -144,103 +142,14 @@ export class TokenCover {
     this.coverCalculator = new CoverCalculator(token);
   }
 
-  // ----- NOTE: Draw local token icons ----- //
-
-  /** @type {Map<string, TokenIcon>} */
-  iconMap = new Map();
-
-  /** @type {PIXI.Sprite[]} */
-  icons = new WeakSet();
 
   /**
-   * Add a token icon to this token. Will remove any icon sharing the same category.
-   * Does not refresh the token display. Call token.renderFlags.set( drawEffects: true ) or drawIcons.
-   * @param {TokenIcon} tokenIcon         An object representing the token icon to add
-   * @param {boolean} [clearAll=false]    If true, clear all existing icons.
+   * Get all cover regions for this token
    */
-  addIcon(tokenIcon, clearAll = false) {
-    tokenIcon.id ??= foundry.utils.randomID();
-    tokenIcon.category ??= tokenIcon.icon;
-    if ( clearAll ) this.iconMap.clear();
-    this.iconMap.set(tokenIcon.category, tokenIcon);
-  }
-
-  /**
-   * Remove a token icon from this token's map. Does not refresh the token display.
-   *  Call token.renderFlags.set( drawEffects: true ).
-   * @param {TokenIcon} tokenIcon         An object representing the token icon to remove
-   */
-  removeIcon(tokenIcon) {
-    this.iconMap.delete(tokenIcon.category);
-  }
-
-  /**
-   * Draw the token's icons on the token.
-   */
-  async drawIcons() {
+  get coverRegions() {
     const token = this.token;
-    token.effects.renderable = false;
-
-    // Remove the old icons from the token's effects.
-    const numEffects = token.effects.children.length;
-    const removeIndices = [];
-    for ( let i = 0; i < numEffects; i += 1 ) {
-      const effect = token.effects.children[i];
-      if ( !this.icons.has(effect) ) continue;
-      removeIndices.push(i);
-      this.icons.delete(effect);
-    }
-    // Reverse so the index is not affected by the removal.
-    removeIndices.reverse().forEach(i => token.effects.removeChildAt(i)?.destroy())
-
-    const promises = [];
-    for ( let tokenIcon of this.iconMap.values() ) promises.push(this._drawIcon(tokenIcon.src, tokenIcon.tint));
-    await Promise.allSettled(promises);
-    token.effects.renderable = true;
-    this._refreshIcons();
-  }
-
-  /**
-   * Draw a single icon on the token.
-   * @param {string} src
-   * @param {number|null} tint
-   * @returns {Promise<PIXI.Sprite|undefined>}
-   */
-  async _drawIcon(src, tint) {
-    if ( !src ) return;
-    const tex = await loadTexture(src, { fallback: "icons/svg/hazard.svg"} );
-    const icon = new PIXI.Sprite(tex);
-    if ( tint ) icon.tint = Number(tint);
-    this.token.effects.addChild(icon);
-    this.icons.add(icon);
-  }
-
-  /**
-   * Refresh the display of icons, adjusting their position for token width and height.
-   */
-  _refreshIcons() {
-    const token = this.token;
-
-    // See Token#_refreshEffects.
-    let i = 0;
-    const iconsToRefresh = [];
-    for ( const effect of token.effects.children ) {
-      if ( effect === token.effects.bg ) continue;
-      if ( effect === token.effects.overlay ) continue;
-      if ( this.icons.has(effect) ) iconsToRefresh.push(effect);
-      else i += 1; // Determine how many non-icon effects are already drawn.
-    }
-
-    // Reorder on grid like with _refreshEffects.
-    const size = Math.round(canvas.dimensions.size / 10) * 2;
-    const rows = Math.floor(token.document.height * 5);
-    for ( const icon of iconsToRefresh ) {
-      icon.width = icon.height = size;
-      icon.x = Math.floor(i / rows) * size;
-      icon.y = (i % rows) * size;
-      token.effects.bg.drawRoundedRect(icon.x + 1, icon.y + 1, size - 2, size - 2, 2);
-      i += 1;
-    }
+    return canvas.regions.placeables.filter(region => region.document.behaviors.some(behavior => behavior.type === `${MODULE_ID}.setCover`)
+      && region.testPoint(token.center, token.elevationE));
   }
 
   // ----- NOTE: Methods ----- //
@@ -291,35 +200,80 @@ export class TokenCover {
   minimumCoverFromAttackers(attackingTokens = this.constructor.attackers) {
     if ( !attackingTokens.length && !attackingTokens.size ) return NULL_SET;
 
-    // For priority cover, smallest priority wins.
-    // For other cover, only if this token has that cover from all attackers.
-    let minCoverPriority = Number.POSITIVE_INFINITY;
-    let minCover;
-    let otherCover;
-    for ( const attackingToken of attackingTokens ) {
-      const coverEffects = this.coverFromAttacker(attackingToken);
-      const potentialOther = new Set();
-      coverEffects.forEach(c => {
-        if ( c.canOverlap ) potentialOther.add(c);
-        else if ( minCoverPriority > c.priority ) {
-          minCover = c;
-          minCoverPriority = c.priority;
+    // Track priority and overlapping covers for regions and attackers separately.
+    let maxRegionPriorityCover;
+    let minAttackerPriorityCover;
+    let overlappingRegionCover = new Set();
+    let overlappingAttackerCover = new Set();
+
+    // Group the cover behaviors for regions containing the defending token or possibly the attacking tokens
+    let coverBehaviors = [];
+    let exclusiveCoverBehaviors = [];
+    const defendingRegions = this.coverRegions;
+    attackingTokens.forEach(attackingToken => {
+      const res = applicableRegionBehaviors(attackingToken, this.token, defendingRegions);
+      coverBehaviors.push(...res.coverBehaviors);
+      exclusiveCoverBehaviors.push(...res.exclusiveCoverBehaviors);
+    });
+
+    // TODO: Attacking behaviors should only apply cover to defending tokens if all attackers
+    //       have that cover.
+
+    // If exclusive cover behaviors, these override any non-exclusive behaviors and attacker cover.
+    if ( exclusiveCoverBehaviors.length ) {
+      // If a cover region is exclusive, set to that cover.
+      // If 2+ exclusive, take highest priority.
+      // If overlap, allow multiple.
+      let maxScore = Number.NEGATIVE_INFINITY;
+      const { maxRegionCover, otherRegionCover } = maximumRegionCover(exclusiveCoverBehaviors, maxScore);
+      overlappingRegionCover = overlappingRegionCover.union(otherRegionCover);
+      if ( maxRegionCover && (maxScore < maxRegionCover.priority) ) maxRegionPriorityCover = maxRegionCover;
+
+    } else {
+      // For priority cover, smallest priority wins.
+      // For other cover, only if this token has that cover from all attackers.
+      let maxScore = Number.NEGATIVE_INFINITY;
+      let minScore = Number.POSITIVE_INFINITY;
+      for ( const attackingToken of attackingTokens ) {
+        // Region cover.
+        const { maxRegionCover, otherRegionCover } = maximumRegionCover(coverBehaviors, maxScore);
+        overlappingRegionCover = overlappingRegionCover.intersection(otherRegionCover);
+        if ( maxRegionCover && (maxScore < maxRegionCover.priority) ) {
+          maxRegionPriorityCover = maxRegionCover;
+          maxScore = maxRegionCover.priority;
         }
-      });
-      if ( !otherCover ) otherCover = potentialOther;
-      else otherCover = otherCover.intersection(potentialOther);
+
+        // Cover from attackers.
+        const coverEffects = this.coverFromAttacker(attackingToken);
+        const { minAttackerCover, otherAttackerCover } = minimumAttackerCover(coverEffects, minScore);
+        overlappingAttackerCover = overlappingAttackerCover.intersection(otherAttackerCover)
+        if ( minAttackerCover && (minScore > minAttackerCover.priority) ) {
+          minAttackerPriorityCover = minAttackerCover;
+          maxScore = minAttackerCover.priority;
+        }
+      }
     }
 
-    otherCover ||= Set.NULL_SET;
-    if ( minCover ) otherCover.add(minCover);
-    return otherCover;
+    // If region cover is higher, use it.
+    let priorityCover = maxRegionPriorityCover || minAttackerPriorityCover;
+    if ( maxRegionPriorityCover && minAttackerPriorityCover ) {
+      if ( maxRegionPriorityCover.priority >= minAttackerPriorityCover.priority ) priorityCover = maxRegionPriorityCover;
+      else priorityCover = minAttackerPriorityCover;
+    }
+
+    // Combine all non-priority cover
+    const overlappingCover = overlappingRegionCover.union(overlappingAttackerCover);
+
+    // Return the combined set.
+    if ( priorityCover ) overlappingCover.add(priorityCover);
+    return overlappingCover;
   }
 
   /**
    * Update the cover icon display for this token.
    */
   updateCoverIconDisplay() {
-    const coverEffects = CONFIG[MODULE_ID].CoverEffect.allLocalCoverOnToken(this.token);
+    const coverEffects = CONFIG[MODULE_ID].CoverEffect.allOnToken(this.token);
     if ( !coverEffects.size ) return;
     const displayIcon = this.canDisplayCoverIcon;
     coverEffects.forEach(ce => {
@@ -457,16 +411,11 @@ export class TokenCover {
    * @returns {boolean} True if a change was made.
    */
   #clearCover() {
+    log(`TokenCover##clearCover|Clearing cover for ${this.token.name}`);
     const coverEffects = this._currentCoverEffects;
-    if ( !coverEffects.size ) return false;
-    let change = false;
+    if ( !coverEffects.length ) return false;
     const token = this.token;
-    coverEffects.forEach(ce => {
-      const res = ce.removeFromToken(token, false);
-      change ||= res;
-    });
-    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
-    return change;
+    return CONFIG[MODULE_ID].CoverEffect.removeFromTokenLocally(token, coverEffects);
   }
 
   /**
@@ -476,21 +425,24 @@ export class TokenCover {
    * @returns {boolean} True if a change was made.
    */
   _replaceCover(replacementCover = NULL_SET) {
-    const coverEffects = this._currentCoverEffects;
+    log(`TokenCover#_replacecover|Replacing cover for ${this.token.name}. ${[...replacementCover.values()].map(ce => ce.name).join(", ")}`);
+    const coverEffects = new Set(this._currentCoverEffects);
     const toAdd = replacementCover.difference(coverEffects);
     const toRemove = coverEffects.difference(replacementCover);
     let change = false;
-
     const token = this.token;
-    toRemove.forEach(ce => {
-      const res = ce.removeFromToken(token, false);
+    if ( toRemove.size ) {
+      log(`TokenCover#_replacecover|Removing cover for ${this.token.name}. ${[...toRemove.values()].map(ce => ce.name).join(", ")}`);
+      const res = CONFIG[MODULE_ID].CoverEffect.removeFromTokenLocally(token, toRemove, { refresh: false });
       change ||= res;
-    });
-    toAdd.forEach(ce => {
-      const res = ce.addToToken(token, false);
+    }
+    if ( toAdd.size ) {
+      log(`TokenCover#_replacecover|Adding cover for ${this.token.name}. ${[...toAdd.values()].map(ce => ce.name).join(", ")}`);
+      const res = CONFIG[MODULE_ID].CoverEffect.addToTokenLocally(token, toAdd, { refresh: false });
       change ||= res;
-    });
-    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshCoverDisplay(token);
+    }
+    log(`TokenCover#_replacecover|Refreshing display for ${this.token.name}.`);
+    if ( change ) CONFIG[MODULE_ID].CoverEffect.refreshTokenDisplay(token);
     return change;
   }
 
@@ -502,6 +454,7 @@ export class TokenCover {
    * @type {Set<Token>}
    */
   static attackers = new Set()
+
 
   // ----- NOTE: Static methods ----- //
 
@@ -623,4 +576,95 @@ export class TokenCover {
       t.tokencover.coverFromMap.delete(id);
     });
   }
+}
+
+export class TokenCover extends TokenIconMixin(TokenCoverBase) {}
+
+// ----- NOTE: Helper functions ----- //
+
+/**
+ * Locate all applicable region cover behaviors for a group of attacking tokens and defending token.
+ * Regions with a distance limitation may be excluded, based on distance between attacker and defender.
+ * @param {Token} attackingTokens             Token attacking defender
+ * @param {Token} defendingToken              Token to which cover may apply
+ * @param {Region[]} [defendingRegions]       Optional array of regions containing the defender
+ * @returns {object}
+ * - @prop {RegionBehavior[]} coverBehaviors            Applicable cover region behaviors
+ * - @prop {RegionBehavior[]} exclusiveCoverBehaviors   Applicable exclusive cover region behaviors
+ */
+function applicableRegionBehaviors(attackingToken, defendingToken, defendingRegions) {
+  defendingRegions ??= defendingToken[MODULE_ID].coverRegions;
+  const attackingRegions = attackingToken[MODULE_ID].coverRegions
+
+  // Accumulate all the potential behaviors.
+  const behaviors = [];
+  for ( const defendingRegion of defendingRegions ) behaviors.push(...defendingRegion.document.behaviors);
+  for ( const attackingRegion of attackingRegions ) {
+    for ( const behavior of attackingRegion.document.behaviors ) {
+       if ( !behavior.system.appliesToAttackers ) continue;
+       behaviors.push(behavior);
+    }
+  }
+
+  // Filter based on the set cover behavior settings.
+  const coverBehaviors = [];
+  const exclusiveCoverBehaviors = [];
+  let dist;
+  for ( const behavior of behaviors ) {
+    if ( behavior.type !== `${MODULE_ID}.setCover` ) continue;
+    if ( behavior.system.distance ) {
+      // Cache the distance measurement
+      dist ??= canvas.grid.measurePath([defendingToken.center, attackingToken.center]).distance;
+      if ( dist < behavior.system.distance ) continue;
+    }
+    if ( behavior.system.exclusive ) exclusiveCoverBehaviors.push(behavior);
+    else coverBehaviors.push(behavior);
+  }
+  return { coverBehaviors, exclusiveCoverBehaviors };
+}
+
+/**
+ * Determine minimum cover for a given defender from an attacker.
+ * @param {Token} attackingToken              Token attacking defender
+ * @param {Token} defendingToken              Token to which cover may apply
+ * @param {CoverEffect[]} [coverEffects=[]]                       Covers from this attacker
+ * @param {number} [minCoverPriority=Number.POSITIVE_INFINITY]    Min cover priority seen thus far
+ * @returns {object}
+ * - @prop {CoverEffect} minAttackerCover           Minimum cover applied to the defender from the attacker
+ * - @prop {Set<CoverEffect>} otherAttackerCover    Other non-priority covers applied to the defender by the attacker
+ */
+function minimumAttackerCover(coverEffects = [], minCoverPriority = Number.POSITIVE_INFINITY) {
+  let minAttackerCover;
+  let otherAttackerCover = new Set();
+  for ( const coverEffect of coverEffects ) {
+    if ( coverEffect.canOverlap ) otherAttackerCover.add(coverEffect);
+    else if ( minCoverPriority > coverEffect.priority ) {
+      minCoverPriority = coverEffect.priority;
+      minAttackerCover = coverEffect;
+    }
+  }
+  return { minAttackerCover, otherAttackerCover}
+}
+
+/**
+ * Determine maximum region cover from an array of applicable cover behaviors.
+ * @param {RegionBehavior[]} [coverBehaviors=[]]                  Behaviors that apply to the defending token
+ * @param {number} [maxCoverPriority=Number.NEGATIVE_INFINITY]    Max cover priority seen thus far
+ * @returns {object}
+ * - @prop {CoverEffect} maxRegionCover         Maximum cover applied to the defender by the region(s)
+ * - @prop {Set<CoverEffect>} otherRegionCover  Other non-priority covers applied to the defender by the region(s)
+ */
+function maximumRegionCover(coverBehaviors = [], maxCoverPriority = Number.NEGATIVE_INFINITY) {
+  let maxRegionCover;
+  const otherRegionCover = new Set();
+  for ( const coverBehavior of coverBehaviors ) {
+    const cover = CONFIG[MODULE_ID].CoverEffect._instances.get(coverBehavior.system.cover);
+    if ( !cover ) continue;
+    if ( cover.canOverlap ) otherRegionCover.add(cover);
+    else if ( maxCoverPriority < cover.priority ) {
+      maxCoverPriority = cover.priority;
+      maxRegionCover = cover;
+    }
+  }
+  return { maxRegionCover, otherRegionCover };
 }

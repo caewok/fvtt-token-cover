@@ -184,6 +184,20 @@ Hooks.once("ready", () => {
       `
     })
 
+    .addEntry({
+      version: "0.9.1",
+      title: "Set Cover Region Behavior",
+      body: `\
+        I added a "Set Cover" region behavior. The GM can define a minimum cover that will be applied by that region.
+        Defenders within that region gain at least that minimum cover (but may get better cover from walls).
+
+        The GM can set a minimum distance, below which the minimum cover will not apply. For example, you might
+        have cover in a forest but not if someone is within 10 feet of you. Optionally, this minimum cover can
+        apply to defenders outside the region if the attacker is within the region. And the GM can chooose to
+        disable all other cover calculations within the region.
+      `
+    })
+
     .build()
     ?.render(true);
 });

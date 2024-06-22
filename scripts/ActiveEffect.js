@@ -25,26 +25,10 @@ function createActiveEffect(document, _options, _userId) {
   if ( !actor || !(actor instanceof Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
-  if ( !(modFlags[FLAGS.COVER_EFFECT.ID] && !modFlags[FLAGS.COVER_EFFECT.LOCAL]) ) return;
+  if ( !(modFlags[FLAGS.UNIQUE_EFFECT.ID] && !modFlags[FLAGS.UNIQUE_EFFECT.LOCAL]) ) return;
   const token = actor.token?.object;
   if ( !token ) return;
   token.tokencover.updateCover();
-}
-
-/**
- * When updating an active effect, store the changed cover rule flags in cover flag settings.
- * @param {Document} document                       The existing Document which was updated
- * @param {object} change                           Differential data that was used to update the document
- * @param {DocumentModificationContext} options     Additional options which modified the update request
- * @param {string} userId                           The ID of the User who triggered the update workflow
- */
-function updateActiveEffect(document, change, _options, _userId) {
-  const modFlags = change?.flags?.[MODULE_ID];
-  const id = modFlags?.[FLAGS.COVER_EFFECT.ID];
-  if ( !id ) return;
-  const ce = CONFIG[MODULE_ID].CoverEffect.coverObjectsMap.get(id);
-  if ( !ce ) return;
-  ce.updateCoverRuleSettings(modFlags); // Async
 }
 
 /**
@@ -58,10 +42,10 @@ function deleteActiveEffect(document, _options, _userId) {
   if ( !actor || !(actor instanceof Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
-  if ( !(modFlags[FLAGS.COVER_EFFECT.ID] && !modFlags[FLAGS.COVER_EFFECT.LOCAL]) ) return;
+  if ( !(modFlags[FLAGS.UNIQUE_EFFECT.ID] && !modFlags[FLAGS.UNIQUE_EFFECT.LOCAL]) ) return;
   const token = actor.token?.object;
   if ( !token ) return;
   token.tokencover.updateCover();
 }
 
-PATCHES.BASIC.HOOKS = { createActiveEffect, deleteActiveEffect, updateActiveEffect };
+PATCHES.BASIC.HOOKS = { createActiveEffect, deleteActiveEffect };
