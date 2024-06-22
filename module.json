@@ -71,6 +71,7 @@
       "system": "pf2e"
     }
   ],
+
   "languages": [
     {
       "lang": "en",
@@ -80,6 +81,13 @@
       "description": "Alternative token cover rules"
     }
   ],
+
+  "documentTypes": {
+    "RegionBehavior": {
+      "setCover": {}
+    }
+  },
+
   "url": "#{URL}#",
   "manifest": "#{MANIFEST}#",
   "download": "#{DOWNLOAD}#",

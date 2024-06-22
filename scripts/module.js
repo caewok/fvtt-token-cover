@@ -30,6 +30,9 @@ import {
   CoverSFRPG,
   CoverDFreds } from "./cover_unique_effects.js";
 
+// Regions
+import { SetCoverRegionBehaviorType } from "./SetCoverRegionBehaviorType.js";
+
 // For API
 import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
 import { PointsLOS } from "./LOS/PointsLOS.js";
@@ -65,6 +68,12 @@ Hooks.once("init", function() {
     setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
   }
 
+  Object.assign(CONFIG.RegionBehavior.dataModels, {
+    [`${MODULE_ID}.setCover`]: SetCoverRegionBehaviorType
+  });
+
+  CONFIG.RegionBehavior.typeIcons[`${MODULE_ID}.setCover`] = FA_ICONS.MODULE;
+
   // Must go at end?
   loadTemplates(Object.values(TEMPLATES)).then(_value => log(`Templates loaded.`)); // eslint-disable-line no-unused-vars
 });
@@ -83,7 +92,7 @@ Hooks.once("setup", function() {
 /**
  * A hook event that fires when the game is fully ready.
  */
-Hooks.on("ready", async function(_canvas) {
+Hooks.on("ready", async function(_canvas) { // eslint-disable-line no-unused-vars
   CONFIG[MODULE_ID].CoverEffect.initialize(); // Async. Must wait until ready hook to store Settings for UniqueEffectFlag
 });
 

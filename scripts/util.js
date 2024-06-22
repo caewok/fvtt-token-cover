@@ -125,3 +125,15 @@ export function renderTemplateSync(path, data) {
     allowProtoPropertiesByDefault: true
   });
 }
+
+/**
+ * Locates a single active gm.
+ * @returns {User|undefined}
+ */
+export function firstGM() { return game.users?.find((u) => u.isGM && u.active); }
+
+/**
+ * Is the current user the first active GM user?
+ * @returns {boolean}
+ */
+export function isFirstGM() { return game.user && game.user.id === firstGM()?.id; }
