@@ -1,3 +1,7 @@
+## 0.9.2
+Fix git workflow to include the json folder in the module zip. Closes issue #26.
+Make reference to "settings.js" lowercase. Closes issue #25.
+
 ## 0.9.1
 
 ### New Features
