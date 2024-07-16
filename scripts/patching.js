@@ -8,7 +8,7 @@ game,
 import { Patcher } from "./Patcher.js";
 import { MODULES_ACTIVE } from "./const.js";
 import { WallGeometryHandler, TileGeometryHandler, TokenGeometryHandler } from "./LOS/Placeable3dGeometry.js";
-import { Settings } from "./Settings.js";
+import { Settings } from "./settings.js";
 
 import { PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./settings.js";
 import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
