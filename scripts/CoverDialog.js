@@ -49,7 +49,8 @@ export class CoverDialog {
   config = {};
 
   constructor(attacker, targets, config = {}) {
-    attacker ??= game.user._lastSelected || canvas.tokens.controlled[0];
+    if ( !attacker && game.user._lastSelected ) attacker = fromUuidSync(game.user._lastSelected);
+    attacker ??= canvas.tokens.controlled[0];
     targets ??= game.user.targets;
     if ( targets instanceof Token ) targets = [targets];
 
