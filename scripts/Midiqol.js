@@ -19,8 +19,11 @@ async function midiqolPrePreambleComplete(workflow) {
   const { token, targets, item } = workflow;
   if ( !targets?.size || !token ) return true;
 
-  // Construct dialogs, if applicable
+  // For DND5e, only apply cover for ranged attacks.
   const actionType = item?.system?.actionType;
+  if ( actionType !== "rsak" && actionType !== "rwak" ) return true;
+
+  // Construct dialogs and apply cover.
   const out = await coverAttackWorkflow(token, targets, actionType);
   return Boolean(out);
 }
