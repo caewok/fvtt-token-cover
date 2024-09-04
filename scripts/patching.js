@@ -33,6 +33,9 @@ import { PATCHES as PATCHES_ClientSettings } from "./ModuleSettingsAbstract.js";
 // Token configuration
 import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 
+// Templates
+import { PATCHES as PATCHES_MeasuredTemplate } from "./MeasuredTemplate.js";
+
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
   ActiveEffectConfig: PATCHES_ActiveEffectConfig,
@@ -41,6 +44,7 @@ const PATCHES = {
   Item: PATCHES_Item,
   ItemDirectory: PATCHES_ItemDirectory,
   ItemSheet: PATCHES_ItemSheet,
+  MeasuredTemplate: PATCHES_MeasuredTemplate,
   SidebarTab: PATCHES_SidebarTab,
   PointSourcePolygon: PATCHES_PointSourcePolygon,
   Tile: PATCHES_Tile,
@@ -59,6 +63,7 @@ export function initializePatching() {
   PATCHER.registerGroup("BASIC");
   PATCHER.registerGroup("TILE");
   PATCHER.registerGroup("COVER_EFFECT");
+  PATCHER.registerGroup("TEMPLATES");
 
   // If ATV is not active, handle the LOS patches needed to run the calculator.
   if ( !MODULES_ACTIVE.TOKEN_VISIBILITY ) PATCHER.registerGroup("LOS");
