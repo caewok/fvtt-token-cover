@@ -174,8 +174,8 @@ class TokenCoverBase {
    */
   coverPercentFromAttacker(attackingToken) {
     const { coverFromMap, token } = this;
-    if ( !coverFromMap.has(attackingToken.id) ) this.constructor.updateCoverFromToken(token, attackingToken);
-    return coverFromMap.get(attackingToken.id).percentCover;
+    if ( !coverFromMap.has(attackingToken.id ?? attacker) ) this.constructor.updateCoverFromToken(token, attackingToken);
+    return coverFromMap.get(attackingToken.id ?? attacker).percentCover;
   }
 
   /**
@@ -185,8 +185,8 @@ class TokenCoverBase {
    */
   coverFromAttacker(attacker) {
     const { coverFromMap, token } = this;
-    if ( !coverFromMap.has(attacker.id) ) this.constructor.updateCoverFromToken(token, attacker);
-    return coverFromMap.get(attacker.id).cover;
+    if ( !coverFromMap.has(attacker.id ?? attacker) ) this.constructor.updateCoverFromToken(token, attacker);
+    return coverFromMap.get(attacker.id ?? attacker).cover;
   }
 
   /**
@@ -485,7 +485,7 @@ class TokenCoverBase {
     if ( !this.attackers.has(attacker) ) return;
 
     // Clear cover calculations from tokens.
-    const id = attacker.id;
+    const id = attacker.id ?? attacker;
     canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(id));
 
     // Tell all other tokens that their cover status may have changed.
@@ -571,7 +571,7 @@ class TokenCoverBase {
     log(`updateCoverFromToken|${attacker.name} ⚔️ ${tokenToUpdate.name}: ${percentCover}
     \t${attacker.name} ${attacker.document?.x},${attacker.document?.y} Center ${attacker.center?.x},${attacker.center?.y}
     \t${tokenToUpdate.name} ${tokenToUpdate.document.x},${tokenToUpdate.document.y} Center ${tokenToUpdate.center.x},${tokenToUpdate.center.y}`);
-    tokenToUpdate.tokencover.coverFromMap.set(attacker.id, { cover, percentCover});
+    tokenToUpdate.tokencover.coverFromMap.set(attacker.id ?? attacker, { cover, percentCover});
   }
 
 
@@ -602,7 +602,7 @@ class TokenCoverBase {
    */
   static resetTokenCoverFromAttacker(attacker) {
     // Clear all other token's cover calculations for this token.
-    const id = attacker.id;
+    const id = attacker.id ?? attacker;
     canvas.tokens.placeables.forEach(t => {
       if ( t === attacker ) return;
       t.tokencover.coverFromMap.delete(id);

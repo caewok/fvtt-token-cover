@@ -59,8 +59,17 @@ function refreshMeasuredTemplate(template, flags) {
     TokenCover.removeAttacker(template._original, false);
     TokenCover.addAttacker(template, false, false);
     TokenCover.attackerMoved(template);
+  } else if ( !template.id ){
+    log(`refreshTemplate hook|Template ${template.id} is original not yet placed.`);
+    TokenCover.addAttacker(template, false, false);
+    TokenCover.attackerMoved(template);
+  } else if ( template.hover ) {
+    log(`refreshTemplate hook|Hovering over template ${template.id}.`);
+    TokenCover.addAttacker(template, false, false);
+    TokenCover.attackerMoved(template);
   } else {
-    log(`refreshTemplate hook|Template ${template.id} is original but not animating.`);
+    log(`refreshTemplate hook|Not hovering over template ${template.id}.`);
+    TokenCover.addAttacker(template, false, false);
     TokenCover.attackerMoved(template);
   }
 }

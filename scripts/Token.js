@@ -234,6 +234,12 @@ function updateToken(tokenD, change, _options, _userId) {
  */
 function controlToken(controlledToken, controlled) {
   log(`controlToken hook|${controlledToken.name} ${controlled ? "selected" : "unselected"}`);
+
+  // Remove all template attackers.
+  [...TokenCover.attackers].forEach(attacker => {
+    if ( attacker instanceof MeasuredTemplate ) TokenCover.removeAttacker(attacker, false);
+  });
+
   if ( controlled ) TokenCover.addAttacker(controlledToken);
   else TokenCover.removeAttacker(controlledToken);
 }
