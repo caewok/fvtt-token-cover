@@ -140,6 +140,8 @@ PATCHES.DEBUG.HOOKS = {
  * Hook Token refresh
  * Adjust elevation as the token moves.
  * Adjust cover calculations as the token moves.
+ * @param {PlaceableObject} object    The object instance being refreshed
+ * @param {RenderFlags} flags         Render flags associated with the refresh
  */
 function refreshToken(token, flags) {
   if ( flags.refreshEffects

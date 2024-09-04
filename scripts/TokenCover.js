@@ -477,6 +477,22 @@ class TokenCoverBase {
   }
 
   /**
+   * An attacker position was updated.
+   * @param {Viewer} attacker
+   */
+  static attackerMoved(attacker) {
+    if ( attacker instanceof Token ) return this.tokenMoved();
+    if ( !this.attackers.has(attacker) ) return;
+
+    // Clear cover calculations from tokens.
+    const id = attacker.id;
+    canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(id));
+
+    // Tell all other tokens that their cover status may have changed.
+    canvas.tokens.placeables.forEach(t => t.tokencover.attackerMoved());
+  }
+
+  /**
    * Add an attacker to the user's set.
    * @param {Viewer} token
    * @param {boolean} [force=false]                   Should the attacker be added even if it fails "isAttacker"?
