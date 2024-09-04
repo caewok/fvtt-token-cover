@@ -12,7 +12,7 @@ ui
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
 import { MODULE_ID, MODULES_ACTIVE, FLAGS } from "./const.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
-import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
+import { registerArea3d, registerDebug, deregisterDebug, registerTemplates, deregisterTemplates } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
 import { POINT_TYPES } from "./LOS/AlternativeLOS.js";
 
@@ -75,6 +75,8 @@ export const SETTINGS = {
   DISPLAY_COVER_BOOK: "display-cover-book",
 
   DISPLAY_SECRET_COVER: "display-secret-cover",
+
+  TEMPLATES_USE_COVER: "templates-use-cover",
 
   ONLY_COVER_ICONS: "only-cover-icons", // Switches to CoverEffectFlags version that adds cover icons to tokens directly.
 
@@ -220,6 +222,16 @@ export class Settings extends ModuleSettingsAbstract {
         token[MODULE_ID].updateCoverIconDisplay();
         CONFIG[MODULE_ID].CoverEffect.refreshTokenDisplay(token);
       })
+    });
+
+    register(KEYS.TEMPLATES_USE_COVER, {
+      name: localize(`${KEYS.TEMPLATES_USE_COVER}.Name`),
+      hint: localize(`${KEYS.TEMPLATES_USE_COVER}.Hint`),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true,
+      onChange: value => value ? registerTemplates() : deregisterTemplates()
     });
 
     register(KEYS.ONLY_COVER_ICONS, {

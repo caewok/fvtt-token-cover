@@ -35,6 +35,7 @@ import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 
 // Templates
 import { PATCHES as PATCHES_MeasuredTemplate } from "./MeasuredTemplate.js";
+import { TokenCover } from "./TokenCover.js";
 
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
@@ -106,3 +107,10 @@ export function registerArea3d() {
 export function registerDebug() { PATCHER.registerGroup("DEBUG"); }
 
 export function deregisterDebug() { PATCHER.deregisterGroup("DEBUG"); }
+
+export function registerTemplates() { PATCHER.registerGroup("TEMPLATES"); }
+
+export function deregisterTemplates() {
+  canvas.templates.placeables.forEach(t => TokenCover.removeAttacker(t));
+  PATCHER.deregisterGroup("TEMPLATES");
+}
