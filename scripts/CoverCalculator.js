@@ -31,10 +31,16 @@ export class CoverCalculator extends AbstractCalculator {
   }
 
   /** @type {POINT_TYPES} */
-  get viewerNumPoints() { return Settings.get(Settings.KEYS.LOS.VIEWER.NUM_POINTS); }
+  get viewerNumPoints() {
+    if ( this.viewer instanceof Token ) return Settings.get(Settings.KEYS.LOS.VIEWER.NUM_POINTS);
+    return 1;
+  }
 
   /** @type {number} */
-  get viewerInset() { return Settings.get(Settings.KEYS.LOS.VIEWER.INSET); }
+  get viewerInset() {
+    if ( this.viewer instanceof Token ) return Settings.get(Settings.KEYS.LOS.VIEWER.INSET);
+    return 0;
+  }
 
   static initialConfiguration(cfg = {}) {
     // Move type b/c cover relates to physical obstacles.
@@ -107,7 +113,7 @@ export class CoverCalculator extends AbstractCalculator {
     elevation ??= token.elevationE;
     const clone = token.clone();
     clone.eventMode = "none";
-    clone.document.updateSource({ x, y , elevation });
+    clone.document.updateSource({ x, y, elevation });
     clone._isCoverCalculatorClone = true;
     return clone;
   }
@@ -304,7 +310,7 @@ export class CoverCalculator extends AbstractCalculator {
   }
 
 
-    /*
+  /*
     Example: token provides 75% cover.
     If without that token, you would have 50% cover but with that token, it is 100% cover, drops to 75%.
 

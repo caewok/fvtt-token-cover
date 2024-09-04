@@ -45,6 +45,10 @@ export const POINT_TYPES = {
   NINE: "points-nine" // Corners, midpoints, center
 }
 
+/**
+ * @typedef Viewer    Token|MeasuredTemplate|AmbientLight|AmbientSound|Point3d
+ * The object that is viewing / attacking.
+ */
 
 /**
  * Base class to estimate line-of-sight between a source and a token using different methods.
@@ -174,10 +178,10 @@ export class AlternativeLOS {
   // ----- NOTE: Viewer properties ----- //
 
   /**
-   * The token that is considered the "viewer" of the target.
+   * The token or other object that is considered the "viewer" of the target.
    * By default, the viewer is assumed to view from its center point, although this can
    * be changed by setting config.visionOffset.
-   * @type {Token}
+   * @type {Viewer}
    */
   #viewer;
 
@@ -198,9 +202,13 @@ export class AlternativeLOS {
    */
   get viewerPoint() {
     if ( this.#viewerPoint.x == null ) {
-      Point3d.fromTokenVisionHeight(this.viewer, this.#viewerPoint)
-        .add(this.#config.visionOffset, this.#viewerPoint);
+      const viewer = this.viewer;
+      if ( viewer instanceof Token ) Point3d.fromTokenVisionHeight(viewer, this.#viewerPoint);
+      else if ( viewer instanceof Point3d ) this.#viewerPoint.copyFrom(viewer);
+      else this.#viewerPoint.set(viewer.document.x, viewer.document.y, viewer.elevationZ);
+
     }
+    this.#viewerPoint.add(this.#config.visionOffset, this.#viewerPoint)
     return this.#viewerPoint;
   }
 
@@ -384,7 +392,7 @@ export class AlternativeLOS {
       || this.viewerPoint.almostEqual(Point3d.fromTokenCenter(this.target)) ) return 1;
 
     // If directly overlapping.
-    if ( this.tokensOverlap(this.viewer, this.target) ) return 1;
+    if ( (this.viewer instanceof Token) && this.tokensOverlap(this.viewer, this.target) ) return 1;
 
     // Treat the scene background as fully blocking, so basement tokens don't pop-up unexpectedly.
     const backgroundElevation = canvas.scene.flags?.levels?.backgroundElevation || 0;
@@ -667,13 +675,26 @@ export class AlternativeLOS {
   // ----- NOTE: Static methods ----- //
   static POINT_TYPES = POINT_TYPES;
 
+  /**
+   * @param {Viewer} viewer     Token or other object doing the viewing / attacking
+   * @param {object} [opts={}]  Passed to _constructTokenPoints
+   * @returns {Point3d[]}
+   */
   static constructViewerPoints(viewer, opts = {}) {
-    opts.pointAlgorithm ??= this.POINT_TYPES.CENTER;
-    opts.inset ??= 0;
-    opts.viewer ??= viewer.bounds; // TODO: Should probably handle hex token shapes?
-    return this._constructTokenPoints(viewer, opts);
+    if ( viewer instanceof Point3d ) return [viewer.clone()];
+    else if ( viewer instanceof Token ) {
+      opts.pointAlgorithm ??= this.POINT_TYPES.CENTER;
+      opts.inset ??= 0;
+      opts.viewer ??= viewer.bounds; // TODO: Should probably handle hex token shapes?
+      return this._constructTokenPoints(viewer, opts);
+    } else return [new Point3d(viewer.document.x, viewer.document.y, viewer.elevationZ)];
   }
 
+  /**
+   * @param {Token} target
+   * @param {object} [opts={}]  Passed to _constructTokenPoints
+   * @returns {Point3d[]}
+   */
   static constructTargetPoints(target, opts = {}) {
     opts.pointAlgorithm ??= this.POINT_TYPES.CENTER;
     opts.inset ??= 0.75;
@@ -681,6 +702,16 @@ export class AlternativeLOS {
     return this._constructTokenPoints(target, opts);
   }
 
+  /**
+   * @param {Token} token
+   * @param {object} [opts]
+   * @param {PIXI.Polygon|PIXI.Rectangle} [opts.tokenShape]
+   * @param {POINT_TYPES} [opts.pointAlgorithm]
+   * @param {number} [opts.inset]
+   * @param {boolean} [opts.isTarget]
+   * @param {Point3d} [opts.viewerPoint]
+   * @returns {Point3d[]}
+   */
   static _constructTokenPoints(token, { tokenShape, pointAlgorithm, inset, isTarget, viewerPoint } = {}) {
     const TYPES = this.POINT_TYPES;
     const center = Point3d.fromTokenCenter(token);

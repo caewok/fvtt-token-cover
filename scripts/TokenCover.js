@@ -2,7 +2,8 @@
 canvas,
 CONFIG,
 CONST,
-game
+game,
+Token
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
@@ -66,8 +67,6 @@ Use Settings triggers:
 - Combatant changed
 - Attack workflow
 
-
-
 Token getters:
 - coverCalculator: Instantiation of CoverCalculator where this token is the attacker.
 - coverEffects: Set of CoverEffects currently assigned to this token.
@@ -78,7 +77,8 @@ Token methods:
 - coverPercentFromAttacker: Calculated/cached percent cover for this token from an attacker. Uses coverFromMap
 - coverTypeFromAttacker: Calculated/cached cover type for this token from an attacker. Uses coverFromMap
 - updateCover: Updates the cover effects for this token given updated attackers
-- refreshCoverEffects: Sets effects representing cover effects on this token, given token.coverEffects and current display settings.
+- refreshCoverEffects: Sets effects representing cover effects on this token,
+                       given token.coverEffects and current display settings.
                        Setting effects can be forced, e.g. during attack roll.
 
 The refresh methods can be triggered by renderFlags. Render flags affect the token for all users.
@@ -96,6 +96,11 @@ Triggers:
 - Combat.
 -
 */
+
+/**
+ * @typedef Viewer    Token|MeasuredTemplate|AmbientLight|AmbientSound|Point3d
+ * The object that is viewing / attacking.
+ */
 
 /**
  * @typedef {object} TokenIcon
@@ -142,7 +147,6 @@ class TokenCoverBase {
     this.coverCalculator = new CoverCalculator(token);
   }
 
-
   /**
    * Get all cover regions for this token
    */
@@ -165,7 +169,7 @@ class TokenCoverBase {
 
   /**
    * Returns the stored cover percent or calculates it, as necessary.
-   * @param {Token} attackingToken   Other token from which this token may have cover
+   * @param {Viewer} attackingToken   Other token or object from which this token may have cover
    * @returns {number}
    */
   coverPercentFromAttacker(attackingToken) {
@@ -176,29 +180,29 @@ class TokenCoverBase {
 
   /**
    * Returns the stored cover type or calculates it, as necessary.
-   * @param {Token} attackingToken   Other token from which this token may have cover
+   * @param {Viewer} attacker   Other token or object from which this token may have cover
    * @returns {CoverEffect[]}
    */
-  coverFromAttacker(attackingToken) {
+  coverFromAttacker(attacker) {
     const { coverFromMap, token } = this;
-    if ( !coverFromMap.has(attackingToken.id) ) this.constructor.updateCoverFromToken(token, attackingToken);
-    return coverFromMap.get(attackingToken.id).cover;
+    if ( !coverFromMap.has(attacker.id) ) this.constructor.updateCoverFromToken(token, attacker);
+    return coverFromMap.get(attacker.id).cover;
   }
 
   /**
    * Calculates the cover types for multiple attackers. Least cover wins.
-   * @param {Token[]} attackingTokens
+   * @param {Token[]} attackers
    * @returns {Set<CoverEffect>}
    */
-  coverFromAttackers(attackingTokens) { return this.minimumCoverFromAttackers(attackingTokens); }
+  coverFromAttackers(attackers) { return this.minimumCoverFromAttackers(attackers); }
 
   /**
-   * Determine minimum cover types for a token from a group of attacking tokens.
-   * @param {Token[]|Set<Token>} [attackingTokens]
+   * Determine minimum cover types for a token from a group of attacking tokens or other objects.
+   * @param {Viewer[]|Set<Viewer>} [attackingTokens]
    * @returns {Set<CoverEffect>}
    */
-  minimumCoverFromAttackers(attackingTokens = this.constructor.attackers) {
-    if ( !attackingTokens.length && !attackingTokens.size ) return NULL_SET;
+  minimumCoverFromAttackers(attackers = this.constructor.attackers) {
+    if ( !attackers.length && !attackers.size ) return NULL_SET;
 
     // Track priority and overlapping covers for regions and attackers separately.
     let maxRegionPriorityCover;
@@ -210,8 +214,8 @@ class TokenCoverBase {
     let coverBehaviors = [];
     let exclusiveCoverBehaviors = [];
     const defendingRegions = this.coverRegions;
-    attackingTokens.forEach(attackingToken => {
-      const res = applicableRegionBehaviors(attackingToken, this.token, defendingRegions);
+    attackers.forEach(attacker => {
+      const res = applicableRegionBehaviors(attacker, this.token, defendingRegions);
       coverBehaviors.push(...res.coverBehaviors);
       exclusiveCoverBehaviors.push(...res.exclusiveCoverBehaviors);
     });
@@ -234,7 +238,7 @@ class TokenCoverBase {
       // For other cover, only if this token has that cover from all attackers.
       let maxScore = Number.NEGATIVE_INFINITY;
       let minScore = Number.POSITIVE_INFINITY;
-      for ( const attackingToken of attackingTokens ) {
+      for ( const attacker of attackers ) {
         // Region cover.
         const { maxRegionCover, otherRegionCover } = maximumRegionCover(coverBehaviors, maxScore);
         overlappingRegionCover = overlappingRegionCover.intersection(otherRegionCover);
@@ -244,9 +248,9 @@ class TokenCoverBase {
         }
 
         // Cover from attackers.
-        const coverEffects = this.coverFromAttacker(attackingToken);
+        const coverEffects = this.coverFromAttacker(attacker);
         const { minAttackerCover, otherAttackerCover } = minimumAttackerCover(coverEffects, minScore);
-        overlappingAttackerCover = overlappingAttackerCover.intersection(otherAttackerCover)
+        overlappingAttackerCover = overlappingAttackerCover.intersection(otherAttackerCover);
         if ( minAttackerCover && (minScore > minAttackerCover.priority) ) {
           minAttackerPriorityCover = minAttackerCover;
           maxScore = minAttackerCover.priority;
@@ -282,8 +286,6 @@ class TokenCoverBase {
       } else ce.document.statuses.findSplice(s => s === ce.img);
     });
   }
-
-
 
   /**
    * Should cover effect icons be displayed?
@@ -336,10 +338,10 @@ class TokenCoverBase {
       case CHOICES.COMBATANT: {
         return game.combat?.started
           && token.combatant
-          && game.combat.combatants.has(token.combatant.id)
+          && game.combat.combatants.has(token.combatant.id);
       }
       case CHOICES.COMBAT: if ( !game.combat?.started ) return false;
-      case CHOICES.ATTACK:  // eslint-disable-line no-fallthrough
+      case CHOICES.ATTACK:
       case CHOICES.ALWAYS: return token.controlled;
     }
   }
@@ -451,9 +453,9 @@ class TokenCoverBase {
 
   /**
    * Track attackers for this user.
-   * @type {Set<Token>}
+   * @type {Set<Viewer>}
    */
-  static attackers = new Set()
+  static attackers = new Set();
 
 
   // ----- NOTE: Static methods ----- //
@@ -476,15 +478,15 @@ class TokenCoverBase {
 
   /**
    * Add an attacker to the user's set.
-   * @param {Token} token
+   * @param {Viewer} token
    * @param {boolean} [force=false]                   Should the attacker be added even if it fails "isAttacker"?
    * @return {boolean} True if results in addition.
    */
-  static addAttacker(token, force = false, update = true) {
-    if ( this.attackers.has(token) ) return false;
-    if ( !force && !token.tokencover.isAttacker() ) return false;
-    this.attackers.add(token);
-    log(`TokenCover#addAttacker|Adding attacker ${token.name}.`)
+  static addAttacker(attacker, force = false, update = true) {
+    if ( this.attackers.has(attacker) ) return false;
+    if ( !force && (attacker instanceof Token) && !attacker.tokencover.isAttacker() ) return false;
+    this.attackers.add(attacker);
+    log(`TokenCover#addAttacker|Adding attacker ${attacker.name}.`);
 
     // Update each token's display.
     if ( update ) canvas.tokens.placeables.forEach(t => t.tokencover.attackersChanged());
@@ -492,14 +494,14 @@ class TokenCoverBase {
 
   /**
    * Remove an attacker from the user's set.
-   * @param {Token} token
+   * @param {Viewer} attacker
    * @param {boolean} [force=false]                   Should the attacker be added even if it fails "isAttacker"?
    * @return {boolean} True if results in addition.
    */
-  static removeAttacker(token, update = true) {
-    if ( !this.attackers.has(token) ) return false;
-    this.attackers.delete(token);
-    log(`TokenCover#removeAttacker|Removing attacker ${token.name}.`)
+  static removeAttacker(attacker, update = true) {
+    if ( !this.attackers.has(attacker) ) return false;
+    this.attackers.delete(attacker);
+    log(`TokenCover#removeAttacker|Removing attacker ${attacker.name}.`);
 
     // Update each token's display.
     if ( update ) canvas.tokens.placeables.forEach(t => t.tokencover.attackersChanged());
@@ -531,15 +533,16 @@ class TokenCoverBase {
   /**
    * Helper to update whether this token has cover from another token.
    * @param {Token} tokenToUpdate   Token whose cover should be calculated
-   * @param {Token} attackingToken  Other token from which this token may have cover
+   * @param {Viewer} attacker       Other token or object from which this token may have cover
    */
-  static updateCoverFromToken(tokenToUpdate, attackingToken) {
-    const percentCover = attackingToken.tokencover.coverCalculator.percentCover(tokenToUpdate);
-    const cover = attackingToken.tokencover.coverCalculator.coverEffects(tokenToUpdate);
-    log(`updateCoverFromToken|${attackingToken.name} ⚔️ ${tokenToUpdate.name}: ${percentCover}
-    \t${attackingToken.name} ${attackingToken.document.x},${attackingToken.document.y} Center ${attackingToken.center.x},${attackingToken.center.y}
+  static updateCoverFromToken(tokenToUpdate, attacker) {
+    const cc = attacker.tokencover?.coverCalculator ?? new CoverCalculator(attacker);
+    const percentCover = cc.percentCover(tokenToUpdate);
+    const cover = cc.coverEffects(tokenToUpdate);
+    log(`updateCoverFromToken|${attacker.name} ⚔️ ${tokenToUpdate.name}: ${percentCover}
+    \t${attacker.name} ${attacker.document?.x},${attacker.document?.y} Center ${attacker.center?.x},${attacker.center?.y}
     \t${tokenToUpdate.name} ${tokenToUpdate.document.x},${tokenToUpdate.document.y} Center ${tokenToUpdate.center.x},${tokenToUpdate.center.y}`);
-    tokenToUpdate.tokencover.coverFromMap.set(attackingToken.id, { cover, percentCover});
+    tokenToUpdate.tokencover.coverFromMap.set(attacker.id, { cover, percentCover});
   }
 
 
@@ -551,7 +554,7 @@ class TokenCoverBase {
     this.updateAttackers();
     canvas.tokens.placeables.forEach(t => {
       log(`updateAllTokenCover|updating cover for ${t.name}.`);
-      t.tokencover.updateCover()
+      t.tokencover.updateCover();
     });
   }
 
@@ -559,14 +562,14 @@ class TokenCoverBase {
    * Reset all cover maps.
    */
   static _resetAllCover() {
-    canvas.tokens.placeables.forEach(t =>  t.tokencover.coverFromMap.clear());
+    canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.clear());
   }
 
   /**
    * Helper to remove cover calculations for a given attacker.
    * The presumption here is that the attacker changed position or some other property meaning
    * that the previous cover calculation is no longer valid.
-   * @param {Token} attacker
+   * @param {Viewer} attacker
    */
   static resetTokenCoverFromAttacker(attacker) {
     // Clear all other token's cover calculations for this token.
@@ -585,36 +588,48 @@ export class TokenCover extends TokenIconMixin(TokenCoverBase) {}
 /**
  * Locate all applicable region cover behaviors for a group of attacking tokens and defending token.
  * Regions with a distance limitation may be excluded, based on distance between attacker and defender.
- * @param {Token} attackingTokens             Token attacking defender
+ * @param {Viewer} attacker                   Token or other object attacking defender
  * @param {Token} defendingToken              Token to which cover may apply
  * @param {Region[]} [defendingRegions]       Optional array of regions containing the defender
  * @returns {object}
  * - @prop {RegionBehavior[]} coverBehaviors            Applicable cover region behaviors
  * - @prop {RegionBehavior[]} exclusiveCoverBehaviors   Applicable exclusive cover region behaviors
  */
-function applicableRegionBehaviors(attackingToken, defendingToken, defendingRegions) {
+function applicableRegionBehaviors(attacker, defendingToken, defendingRegions) {
   defendingRegions ??= defendingToken[MODULE_ID].coverRegions;
-  const attackingRegions = attackingToken[MODULE_ID].coverRegions
+  let attackingCenter;
+  let attackingRegions;
+  if ( attacker instanceof Token ) {
+    attackingCenter = attacker.center;
+    attackingRegions = attacker[MODULE_ID].coverRegions;
+  } else if ( attacker instanceof CONFIG.GeometryLib.threeD.Point3d ) {
+    attackingCenter = attacker;
+    attackingRegions = coverRegions(attacker, CONFIG.GeometryLib.utils.gridUnitsToPixels(attacker.z));
+  } else {
+    attackingCenter = attacker.document;
+    attackingRegions = coverRegions(attacker.document, attacker.document.elevation);
+  }
 
   // Accumulate all the potential behaviors.
   const behaviors = [];
   for ( const defendingRegion of defendingRegions ) behaviors.push(...defendingRegion.document.behaviors);
   for ( const attackingRegion of attackingRegions ) {
     for ( const behavior of attackingRegion.document.behaviors ) {
-       if ( !behavior.system.appliesToAttackers ) continue;
-       behaviors.push(behavior);
+      if ( !behavior.system.appliesToAttackers ) continue;
+      behaviors.push(behavior);
     }
   }
 
   // Filter based on the set cover behavior settings.
   const coverBehaviors = [];
   const exclusiveCoverBehaviors = [];
+  const defenderCenter = defendingToken.center;
   let dist;
   for ( const behavior of behaviors ) {
     if ( behavior.type !== `${MODULE_ID}.setCover` ) continue;
     if ( behavior.system.distance ) {
       // Cache the distance measurement
-      dist ??= canvas.grid.measurePath([defendingToken.center, attackingToken.center]).distance;
+      dist ??= canvas.grid.measurePath([defenderCenter, attackingCenter]).distance;
       if ( dist < behavior.system.distance ) continue;
     }
     if ( behavior.system.exclusive ) exclusiveCoverBehaviors.push(behavior);
@@ -643,7 +658,7 @@ function minimumAttackerCover(coverEffects = [], minCoverPriority = Number.POSIT
       minAttackerCover = coverEffect;
     }
   }
-  return { minAttackerCover, otherAttackerCover}
+  return { minAttackerCover, otherAttackerCover };
 }
 
 /**
@@ -667,4 +682,14 @@ function maximumRegionCover(coverBehaviors = [], maxCoverPriority = Number.NEGAT
     }
   }
   return { maxRegionCover, otherRegionCover };
+}
+
+/**
+ * Cover regions for a given point
+ * @param {Point3d} pt
+ * @returns {Region[]}
+ */
+function coverRegions(pt, elevation) {
+  canvas.regions.placeables.filter(region => region.document.behaviors.some(behavior => behavior.type === `${MODULE_ID}.setCover`)
+      && region.testPoint(pt, elevation));
 }
