@@ -955,7 +955,7 @@ export class AlternativeLOS {
 
     // Filter tokens that directly overlaps the viewer.
     // Example: viewer is on a dragon.
-    tokens.filter(t => this.tokensOverlap(viewer, t)).forEach(t => tokens.delete(t));
+    if ( viewer instanceof Token ) tokens.filter(t => this.tokensOverlap(viewer, t)).forEach(t => tokens.delete(t));
 
     // Filter all mounts and riders of both viewer and target. Possibly covered by previous test.
     const api = MODULES_ACTIVE.API.RIDEABLE;

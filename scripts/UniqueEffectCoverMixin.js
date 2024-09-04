@@ -5,6 +5,7 @@ game
 "use strict";
 
 import { ICONS, MODULE_ID, FLAGS } from "./const.js";
+import { CoverCalculator } from "./CoverCalculator.js";
 
 /**
  * A mixin which extends the UniqueEffect with specialized terrain behaviors
@@ -53,13 +54,13 @@ export function CoverMixin(Base) {
 
     /**
      * Percent cover given this cover effect's settings for a pair of tokens.
-     * @param {Token} attackingToken
+     * @param {Viewer} attacker
      * @param {Token} targetToken
      * @returns {number}
      */
-    percentCover(attackingToken, targetToken) {
+    percentCover(attacker, targetToken) {
       const { includeWalls, includeTokens } = this;
-      const calc = attackingToken.tokencover.coverCalculator;
+      const calc = attacker.tokencover?.coverCalculator ?? new CoverCalculator(attacker);
       calc.updateConfiguration(this.calcConfig);
       return calc.percentCover(targetToken, { includeWalls, includeTokens });
     }
@@ -67,13 +68,13 @@ export function CoverMixin(Base) {
     /**
      * Test if this cover effect could apply to a target token given an attacking token.
      * Does not handle priority between cover effects. For that, use CoverEffect.coverEffectsForToken
-     * @param {Token} attackingToken      Token from which cover is sought
+     * @param {Viewer} attacker      Token from which cover is sought
      * @param {Token} targetToken         Token to which cover would apply
      * @param {object} [_opts]            Options parameter that can be used by child classes.
      * @returns {boolean}
      */
-    _couldApply(attackingToken, targetToken, _opts) {
-      return this.percentCover(attackingToken, targetToken) >= this.percentThreshold;
+    _couldApply(attacker, targetToken, _opts) {
+      return this.percentCover(attacker, targetToken) >= this.percentThreshold;
     }
 
     /** @alias {Map<string, UniqueEffect} */
