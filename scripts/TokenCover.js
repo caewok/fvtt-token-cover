@@ -480,6 +480,7 @@ class TokenCoverBase {
    * Add an attacker to the user's set.
    * @param {Viewer} token
    * @param {boolean} [force=false]                   Should the attacker be added even if it fails "isAttacker"?
+   * @param {boolean} [update=true]                   Should the token display be updated? Can set to false if triggering later.
    * @return {boolean} True if results in addition.
    */
   static addAttacker(attacker, force = false, update = true) {
@@ -495,8 +496,8 @@ class TokenCoverBase {
   /**
    * Remove an attacker from the user's set.
    * @param {Viewer} attacker
-   * @param {boolean} [force=false]                   Should the attacker be added even if it fails "isAttacker"?
-   * @return {boolean} True if results in addition.
+   * @param {boolean} [update=true]                   Should the token display be updated? Can set to false if triggering later.
+   * @return {boolean} True if results in removal.
    */
   static removeAttacker(attacker, update = true) {
     if ( !this.attackers.has(attacker) ) return false;
@@ -504,6 +505,18 @@ class TokenCoverBase {
     log(`TokenCover#removeAttacker|Removing attacker ${attacker.name}.`);
 
     // Update each token's display.
+    if ( update ) canvas.tokens.placeables.forEach(t => t.tokencover.attackersChanged());
+  }
+
+  /**
+   * Clear all attackers from the user's set.
+   * @param {boolean} [update=true]                   Should the token display be updated? Can set to false if triggering later.
+   * @return {boolean} True if results in change.
+   */
+  static clearAttackers(update = true) {
+    if ( !this.attackers.size ) return false;
+    log(`TokenCover#clearAttackers|Removing ${this.attackers.size} attacker(s).`);
+    this.attackers.clear();
     if ( update ) canvas.tokens.placeables.forEach(t => t.tokencover.attackersChanged());
   }
 
@@ -690,6 +703,6 @@ function maximumRegionCover(coverBehaviors = [], maxCoverPriority = Number.NEGAT
  * @returns {Region[]}
  */
 function coverRegions(pt, elevation) {
-  canvas.regions.placeables.filter(region => region.document.behaviors.some(behavior => behavior.type === `${MODULE_ID}.setCover`)
+  return canvas.regions.placeables.filter(region => region.document.behaviors.some(behavior => behavior.type === `${MODULE_ID}.setCover`)
       && region.testPoint(pt, elevation));
 }
