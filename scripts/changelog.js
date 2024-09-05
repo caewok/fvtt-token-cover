@@ -199,6 +199,22 @@ Hooks.once("ready", () => {
       `
     })
 
+    .addEntry({
+      version: "0.9.2",
+      title: "DFred's and Measured Templates",
+      body: `\
+        Added a setting to enable cover measurement for templates. When enabled, if you hover over a template in the
+        Templates layer, it will display cover for every token from the template. (Note that it currently does not test
+        for whether the token is within the template area.)
+
+        If Midi-qol module is active, an added spell configuration lets you have cover applied based on the template
+        origin or the caster location.
+
+        If DFred's Convenient Effects is active, this release fixes some bugs and lets you drag a convenient
+        effect to the cover book.
+      `
+    })
+
     .build()
     ?.render(true);
 });
