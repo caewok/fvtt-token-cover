@@ -1,4 +1,4 @@
-## 0.9.2
+## 0.9.3
 ### New Features
 Added a toggle to enable cover measurement for templates. When enabled, hovering over a template will display cover for tokens. (Note that it currently does not test for whether the token is within the template area.) Closes #14.
 When midi-qol module is active, a dropdown in the spell effects lets you apply cover to tokens from the template or from the caster when casting spells.
