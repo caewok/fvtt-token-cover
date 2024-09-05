@@ -148,6 +148,11 @@
     "tokencover.DrawingConfiguration.isHole.Name": "Drawing is Hole",
     "tokencover.DrawingConfiguration.isHole.Hint": "For area algorithms, treat the space indicated by the drawing (including elevation) as a hole for tiles. Only applicable when Levels is active.",
 
+    "tokencover.dnd5e.spell-configuration.useCover.Name": "Use Cover",
+    "tokencover.dnd5e.spell-configuration.useCover.no": "No",
+    "tokencover.dnd5e.spell-configuration.useCover.caster": "From Caster",
+    "tokencover.dnd5e.spell-configuration.useCover.template": "From Template",
+
     "tokencover.dnd5e.feats.cover.Name": "Ignore certain levels of cover",
     "tokencover.dnd5e.feats.cover.Hint": "Provided by feats and magic items.",
     "tokencover.dnd5e.feats.cover.OptionNone": "Don't ignore any cover.",

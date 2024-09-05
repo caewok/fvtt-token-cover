@@ -1,0 +1,10 @@
+<!-- Template options -->
+<div class="form-group">
+  <label>{{localize "tokencover.dnd5e.spell-configuration.useCover.Name"}}</label>
+  <div class="form-fields">
+    <select name="flags.tokencover.useCover">
+      {{ selectOptions tokencover.useCoverOptions selected=item.flags.tokencover.useCover localize=true }}
+    </select>
+  </div>
+  <p class="hint">
+</div>

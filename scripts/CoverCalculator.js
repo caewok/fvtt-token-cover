@@ -74,7 +74,7 @@ export class CoverCalculator extends AbstractCalculator {
     }
     if ( targets instanceof Token ) targets = [targets];
 
-    const coverCalc = viewer.tokencover.coverCalculator;
+    const coverCalc = viewer.tokencover?.coverCalculator ?? new CoverCalculator(viewer);
     calcs ??= new Map();
     for ( const target of targets ) calcs.set(target, coverCalc.coverEffects(target, opts));
     return calcs;
