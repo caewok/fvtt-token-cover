@@ -22,7 +22,7 @@ export class CoverEffectConfig extends ActiveEffectConfig {
   constructor(coverEffect, opts = {}) {
     super(opts);
     this.object = coverEffect;
-    // this.coverEffect = coverEffect;
+    // This.coverEffect = coverEffect;
     // this.object = coverEffect.createActiveEffect();
   }
 
@@ -31,7 +31,7 @@ export class CoverEffectConfig extends ActiveEffectConfig {
    * @param {*} options
    * @inheritdoc
    */
-  getData(options) { // eslint-disable-line no-unused-vars
+  getData(options) {
     const effect = this.object.toObject();
 
     return {

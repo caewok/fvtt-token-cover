@@ -4,10 +4,9 @@
   "version": "#{VERSION}#",
   "library": "false",
   "socket": "true",
-  "manifestPlusVersion": "1.0.0",
   "compatibility": {
     "minimum": "12",
-    "verified": "12.327"
+    "verified": "12.331"
   },
   "authors": [
     {
@@ -79,6 +78,11 @@
       "path": "languages/en.json",
       "title": "Alternative Token Cover",
       "description": "Alternative token cover rules"
+    },
+    {
+      "lang": "ru",
+      "name": "Русский",
+      "path": "languages/ru.json"
     }
   ],
 

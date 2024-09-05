@@ -66,7 +66,7 @@ export function TokenIconMixin(Base) {
       }
 
       // Reverse so the index is not affected by the removal.
-      removeIndices.reverse().forEach(i => token.effects.removeChildAt(i)?.destroy())
+      removeIndices.reverse().forEach(i => token.effects.removeChildAt(i)?.destroy());
 
       // Draw each icon.
       const promises = [];

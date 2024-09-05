@@ -1,6 +1,8 @@
 /* globals
 CONFIG,
 Dialog,
+game,
+Handlebars,
 renderTemplate
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -130,7 +132,7 @@ export function renderTemplateSync(path, data) {
  * Locates a single active gm.
  * @returns {User|undefined}
  */
-export function firstGM() { return game.users?.find((u) => u.isGM && u.active); }
+export function firstGM() { return game.users?.find(u => u.isGM && u.active); }
 
 /**
  * Is the current user the first active GM user?

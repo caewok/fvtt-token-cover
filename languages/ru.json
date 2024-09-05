@@ -1,0 +1,227 @@
+{
+    "tokencover.name": "Alt. Token Cover",
+    "tokencover.nameAbbr": "ATC",
+
+    "tokencover.coverbook.create-cover": "Создать Укрытие",
+    "tokencover.coverbook.create-defaults": "Сбросить по умолчанию",
+
+    "tokencover.cover-effect.percent-threshold.Name": "Порог в %",
+    "tokencover.cover-effect.can-overlap.Name": "Может стакаться",
+    "tokencover.cover-effect.include-walls.Name": "Стены – укрытие?",
+    "tokencover.cover-effect.include-tokens.Name": "Жетоны – укрытие?",
+    "tokencover.cover-effect.priority.Name": "Приоритет",
+    "tokencover.cover-effect.priority.Hint": "Чем больше, тем приоритетней. '0' - игнорировать.",
+    "tokencover.cover-effect.live-tokens-block.Name": "Укрытие – жетон живой:",
+    "tokencover.cover-effect.dead-tokens-block.Name": " Укрытие – жетон мертв:",
+    "tokencover.cover-effect.dead-tokens-block.Hint": " Смотрите настройки модуля, чтобы настроить атрибут, используемый для определения HP.",
+    "tokencover.cover-effect.prone-tokens-block.Name": "Лежачий жетон – укрыт?",
+    "tokencover.cover-effect.prone-tokens-block.Hint": " Если эта функция включена, жетон, находящийся в положении лежа, получает укрытие (на основе его роста, умноженного на множитель в настройках. Жетоны должны быть укрытием!",
+
+    "tokencover.settings.never": "Никогда",
+    "tokencover.settings.combat": "Только в бою",
+    "tokencover.settings.combatant": "Только в текущий ход бойца",
+    "tokencover.settings.always": "Всегда",
+    "tokencover.settings.attack": "Во время атаки",
+
+    "tokencover.settings.cover-workflow-confirm-user": "Спросить игроков",
+    "tokencover.settings.cover-workflow-confirm-user-cancel": " Спросить игроков (только отмена)",
+    "tokencover.settings.cover-workflow-confirm-gm": "Спросить ГМ",
+    "tokencover.settings.cover-workflow-confirm-automatic": "Применить автоматически",
+
+    "tokencover.settings.use-cover-types.Name": "Отображать иконки укрытий:",
+    "tokencover.settings.use-cover-types.Hint": "Когда эта функция включена, значки, обозначающие типы укрытия, будут отображаться локально (для каждого пользователя) на жетонах, чтобы указать, есть ли у них укрытие от контролируемых жетонов. Если выбрано несколько жетонов, то прикрытие будет минимальным из группы. Это отображение укрытия не учитывает некоторые специфические для системы функции, которые могут игнорировать укрытие (например, игнорирование укрытия только для определенных типов атак).",
+    "tokencover.settings.cover-types-targeting.Name": "Показывать иконки только после нацеливания:",
+    "tokencover.settings.cover-types-targeting.Hint": " Если эта опция включена, значки укрытия будут отображаться только для целей. В противном случае будут отображаться для всех неконтролируемых жетонов. Применяется только в том случае, если включен параметр - Отображать иконки укрытий.",
+
+    "tokencover.settings.use-cover-effects.Name": " Применять укрытия:",
+    "tokencover.settings.use-cover-effects.Hint": " Применяйте эффекты укрытия (активные эффекты или эквивалент системы) к жетонам локально. В dnd5e нижеприведенные настройки подтверждения укрытия могут впоследствии изменить эффекты, применяемые во время атаки.",
+
+    "tokencover.settings.cover-effects-targeting.Name": "Укрывать только в момент нацеливания:",
+    "tokencover.settings.cover-effects-targeting.Hint": " Если эта опция включена, эффекты укрытия будут применяться только к целям. В противном случае эффекты будут применяться ко всем неконтролируемым жетонам. Применяется только при включенной опции - Применять укрытия.",
+
+    "tokencover.settings.display-cover-book.Name": "Отображать значок на левой боковой панели?",
+    "tokencover.settings.display-cover-book.Hint": " Если эта функция включена, она добавляет значок в элементы управления жетонами для ГМа, что позволяет ему настраивать типы укрытий и их эффекты. ГМ также может перетащить эффекты на жетон, чтобы отменить автоматическое применение.",
+
+    "tokencover.settings.display-secret-cover.Name": "Не отображать иконку на скрытых жетонах:",
+    "tokencover.settings.display-secret-cover.Hint": " Отключите отображение значков укрытия на скрытых жетонах.",
+
+    "tokencover.settings.only-cover-icons.Name": "Использовать только иконки:",
+    "tokencover.settings.only-cover-icons.Hint": " Если эта функция включена, будут отображаться только значки укрытий; эффекты использоваться не будут. Если ваша система не поддерживается, попробуйте включить эту функцию.",
+
+    "tokencover.settings.cover-chat-message.Name": "Отображать значение укрытия в чате:",
+    "tokencover.settings.cover-chat-message.Hint": " При броске атаки отображайте типы укрытий для целей в чате.",
+
+    "tokencover.settings.cover-workflow-confirm.Name": "Подтверждать укрытие?",
+    "tokencover.settings.cover-workflow-confirm.Hint": " Должно ли при атаке появляться диалоговое окно, позволяющее пользователю подтвердить расчет укрытия?",
+
+    "tokencover.settings.cover-workflow-confirm-change-only.Name": "Подтверждение только при изменении:",
+    "tokencover.settings.cover-workflow-confirm-change-only.Hint": " Диалог подтверждения, если он включен, будет отображаться только в том случае, если тип укрытия или эффект(ы) на жетоне отличаются от рассчитанных.",
+
+    "tokencover.settings.cover-workflow-confirm-no-cover.Name": "Подтверждать ‘’Без укрытия’’?",
+    "tokencover.settings.cover-workflow-confirm-no-cover.Hint": " Если включено, подтверждение будет запрашиваться, когда у жетона нет укрытия.",
+
+    "tokencover.settings.points-center": "Только центр (1 точка)",
+    "tokencover.settings.points-two": "Передние края жетона (2 точки)",
+    "tokencover.settings.points-three": "Передние края + центр (3 точки)",
+    "tokencover.settings.points-four": "Углы жетона (4 точки)",
+    "tokencover.settings.points-five": "Углы + Центр (5 точек)",
+    "tokencover.settings.points-eight": "Точки в середине и углы (8 точек)",
+    "tokencover.settings.points-nine": "Точки в середине, углы и центр (9 точек)",
+
+    "tokencover.settings.los-algorithm.Name": "Алгоритм:",
+    "tokencover.settings.los-algorithm.Hint": " Как проверить, имеет ли целевой маркер покрытие по отношению к маркеру просмотра.",
+
+    "tokencover.settings.los-large-target.Name": " Субтаргетинг крупных жетонов ",
+    "tokencover.settings.los-large-target.Hint": "Если целевой жетон больше квадрата сетки, проверьте каждый квадрат сетки под жетоном отдельно на укрытие. Побеждает наименьшее укрытие. Полезно для больших целей, которые не должны быть укрыты, если зритель имеет прямую видимость значительной части цели. При использовании алгоритма по точкам это в целом соответствует правилу укрытия квадратов сетки в dnd5e.",
+
+    "tokencover.settings.los-points": "Точки",
+    "tokencover.settings.los-area-2d": "2d область (медленней)",
+    "tokencover.settings.los-area-3d": "3d область (самый медленный)",
+
+    "tokencover.settings.los-points-viewer.Name": "Точки",
+    "tokencover.settings.los-points-viewer.Hint": "Сколько точек на экране проверяется на наличие прямой видимости цели. Каждая точка зрителя рассматривается независимо; побеждает наименьшее укрытие. Имейте в виду, что это может значительно увеличить количество времени, необходимых для определения укрытия.",
+
+    "tokencover.settings.los-inset-viewer.Name": " Вставка",
+    "tokencover.settings.los-inset-viewer.Hint": " Для точек зрителя, отличных от центра, в каком процентном соотношении вставлять точку от границы жетона по направлению к его центру.",
+
+    "tokencover.settings.los-points-target.Name": "Точки",
+    "tokencover.settings.los-points-target.Hint": " Сколько точек на цели нужно проверить на укрытие от прямой видимости зрителя.",
+
+    "tokencover.settings.los-inset-target.Name": " Вставка ",
+    "tokencover.settings.los-inset-target.Hint": " Для точек на цели, отличных от центра, в каком процентном соотношении вставлять точку от границы жетона по направлению к его центру.",
+
+    "tokencover.settings.los-points-3d.Name": "Точки в 3d",
+    "tokencover.settings.los-points-3d.Hint": " Проверять верхнюю и нижнюю части цели в дополнение к точкам в середине жетона по вертикали.",
+
+    "tokencover.settings.debug-cover.Name": "Отладка",
+    "tokencover.settings.debug-cover.Hint": " Если включено, на сцене будет нарисовано изображение укрытия между зрителем и целью (целями). Если включена функция 3d область, то для появления окна отладки необходимо нацелиться на один жетон.",
+
+    "tokencover.settings.button-foundry-default.Name": "Изменить настройки на:",
+    "tokencover.settings.button-foundry-default.Label": "Сбросить по умолчанию",
+    "tokencover.settings.button-foundry-default.Notification": "Сброс к стандартным настройкам.",
+
+    "tokencover.settings.button-dnd5e-dmg.Name": "",
+    "tokencover.settings.button-dnd5e-dmg.Label": "Сброс на DND5e DMG",
+    "tokencover.settings.button-dnd5e-dmg.Notification": "Стандартная настройка для  D&D 5e",
+
+    "tokencover.settings.prone-status-id.Name": "Id статуса ‘Распластан’:",
+    "tokencover.settings.prone-status-id.Hint": " Строка, указывающая идентификатор для статуса ‘Распластан’. Если установлено, то для всех расчетов обзора и укрытия токены будут считаться полувысокими.",
+
+    "tokencover.settings.token-hp-attribute.Name": "HP атрибут жетонов",
+    "tokencover.settings.token-hp-attribute.Hint": " Строка, указывающая, на параметр НР для `token.actor`. Требуется для использования мертвых токенов в качестве укрытия.",
+
+    "tokencover.settings.prone-multiplier.Name": "Множитель ‘Лежа’",
+    "tokencover.settings.prone-multiplier.Hint": " Какой процент от высоты жетона следует использовать для жетонов, находящихся в состоянии распластанности. Например, если высота жетона составляет 5 футов, а множитель установлен на 0,6, то жетоны, лежащие на земле, будут считаться высотой 3 фута. Это влияет на точку обзора для жетонов, а также на форму, используемую, если жетоны блокируют обзор.",
+
+    "tokencover.settings.vision-height-multiplier.Name": " Множитель высоты зрения ",
+    "tokencover.settings.vision-height-multiplier.Hint": " Какой процент от высоты жетона занимает его зрение? 0% означает самый низ; 100% (1) означает самый верх.",
+
+    "tokencover.settings.atv-settings-message.Name": "Распластан / HP настройки:",
+    "tokencover.settings.atv-settings-message.Hint": " Если активна альтернативная видимость жетонов, множитель Лежа, множитель высоты зрения, идентификатор статуса и идентификатор HP жетонов используют настройки ATV.",
+
+    "tokencover.settings.button-pf2e.Label": "Сброс к PF2e",
+    "tokencover.settings.button-pf2e.Notification": "Сбросить к настройкам для PF2",
+
+    "tokencover.settings.button-dnd5e.Label": "Сбросить к DND5e DMG",
+    "tokencover.settings.button-dnd5e.Notification": " Сбросить к настройкам DND5e DMG ",
+
+    "tokencover.settings.button-threeD.Label": "Сбросить к 3-D",
+    "tokencover.settings.button-threeD.Notification": "Сбросить к настройкам 3D",
+
+    "tokencover.settings.button-documentation.Label": "Открыть документацию",
+    "tokencover.settings.button-issue.Label": "Сообщить об ошибке",
+
+    "tokencover.template.settings-config.tabs.los_viewer": "Зритель",
+    "tokencover.template.settings-config.tabs.los_target": "Цель",
+    "tokencover.template.settings-config.tabs.workflow": "Настройки поведения",
+    "tokencover.template.settings-config.tabs.other": "Настройки Укрытия",
+
+    "tokencover.settings.submenu.Name": "",
+    "tokencover.settings.submenu.Label": "Настройки Укрытия для GM",
+    "tokencover.settings.submenu.title": "Настройки ATC",
+
+    "tokencover.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
+    "tokencover.DrawingConfiguration.isHole.Name": " Рисунок - Дыра ",
+    "tokencover.DrawingConfiguration.isHole.Hint": " Для алгоритмов площадей пространство, указанное на рисунке (включая высоту), рассматривается как отверстие для плитки. Применяется только при активном режиме Levels.",
+
+    "tokencover.dnd5e.feats.cover.Name": " Игнорировать определенные типы укрытия:",
+    "tokencover.dnd5e.feats.cover.Hint": " Предоставляется чертой или магическими предметами.",
+    "tokencover.dnd5e.feats.cover.OptionNone": "Не игнорировать укрытия.",
+    "tokencover.dnd5e.feats.cover.OptionHalf": "Игнорировать Укрытие в 1/2.",
+    "tokencover.dnd5e.feats.cover.OptionThreeQuarters": " Игнорировать Укрытие в 3/4.",
+    "tokencover.dnd5e.feats.cover.OptionFull": "Игнорировать все укрытия.",
+
+    "tokencover.template.settings-config.viewer": "Жетон - Зритель",
+    "tokencover.template.settings-config.viewerDescription": " Настройки, относящиеся к зрению жетона/нацеливанию на другой жетон, который может иметь укрытие ",
+
+    "tokencover.template.settings-config.target": "Жетон - Цель",
+    "tokencover.template.settings-config.targetDescription": " Настройки, относящиеся к целевому токену (тот, для которого будет применяться укрытие).",
+
+    "tokencover.template.settings-config.workflow": "Поведение",
+    "tokencover.template.settings-config.workflowDescription": " Настройки, позволяющие регулировать определение укрытия во время передвижения жетона и боя.",
+
+    "tokencover.template.settings-config.other": "Укрытия",
+    "tokencover.template.settings-config.otherDescription": " Настройки для корректировки других правил укрытия и установки специфических для системы свойств укрытия.",
+
+    "tokencover.tokenconfig.maximum-cover.name": "Полное укрытие",
+    "tokencover.tokenconfig.maximum-cover.hint": " Максимальное укрытие, обеспечиваемое этим жетоном. Пример: Рой пчел может обеспечить только половину укрытия. Призрак может не дать никакого укрытия. Ничего не делает, если жетоны не дают укрытия (см. настройки модуля).",
+
+    "tokencover.cover-rules-config.title": "Alt. Token Cover: Правила Укрытий",
+
+    "tokencover.cover-effects-menu.listCoverTypes": "Список типов Укрытий (Расширенный режим)",
+
+    "tokencover.active-effect-config.coverType.name": "Типы Укрытий",
+    "tokencover.active-effect-config.coverType.hint": " Свяжите этот активный эффект с одним или несколькими определенными типами укрытий. В зависимости от настроек модуля, это может привести к тому, что активный эффект будет автоматически назначен жетону локально для данного пользователя.",
+
+    "tokencover.controls.cover-effects-control.name": "Alt. Token Cover",
+
+    "tokencover.cover-types-list-config.title": "Типы Укрытий",
+    "tokencover.cover-types-list-config.description": " Тип укрытия определяет конкретные свойства, используемые для контроля применения укрытия.",
+
+    "tokencover.cover-types-list-config.add": "Добавить тип Укрытия ",
+    "tokencover.cover-types-list-config.import": "Импорт",
+    "tokencover.cover-types-list-config.export": "Экспорт",
+    "tokencover.cover-types-list-config.reset": "Сброс по умолчанию.",
+
+    "TYPES.RegionBehavior.tokencover.setCover": "Установить Минимальное Укрытие",
+
+    "tokencover.behavior.types.set-cover.fields.cover.name": " Минимальное Укрытиеr ",
+    "tokencover.behavior.types.set-cover.fields.cover.hint": " Выберите укрытие, которое будет автоматически применяться к защищаемым жетонам в этом регионе (если не применяется укрытие с более высоким приоритетом).",
+
+    "tokencover.behavior.types.set-cover.fields.distance.name": "Минимальная дистанция",
+    "tokencover.behavior.types.set-cover.fields.distance.hint": " Это укрытие автоматически применяется только тогда, когда цель находится на расстоянии, превышающем это расстояние от ближайшего атакующего.",
+
+    "tokencover.behavior.types.set-cover.fields.exclusive.name": "Отключить Укрытие",
+    "tokencover.behavior.types.set-cover.fields.exclusive.hint": " Отключает все остальные укрытия в этом регионе.",
+
+    "tokencover.behavior.types.set-cover.fields.appliesToAttackers.name": " Применяется к атакующим:",
+    "tokencover.behavior.types.set-cover.fields.appliesToAttackers.hint": " Если эта функция включена, защищающиеся жетоны за пределами региона получают укрытие от атакующих жетонов внутри региона. Если эта опция не включена, то она действует только на защищающиеся жетоны внутри региона.",
+
+    "tokencover.phrases.coverRules": "Правила Укрытий",
+
+    "tokencover.phrases.xCoverEffect": "{cover} Эффект Укрытия",
+    "tokencover.phrases.xCoverType": "{cover} Тип Укрытия",
+    "tokencover.phrases.xCover": "{cover} Укрытие",
+
+    "tokencover.cover.HalfToken": "1/2 (Только жетон)",
+
+    "tokencover.cover.None": "Нет Укрытия",
+    "tokencover.cover.Low": "Слабое Укрытие",
+    "tokencover.cover.Medium": "Среднее Укрытие",
+    "tokencover.cover.High": "Высокое Укрытие",
+    "tokencover.cover.Total": "Полное Укрытие",
+
+    "tokencover.cover.NONE": "Нет Укрытие",
+    "tokencover.cover.LOW": "Слабое Укрытие",
+    "tokencover.cover.MEDIUM": " Среднее Укрытие",
+    "tokencover.cover.HIGH": " Высокое Укрытие",
+    "tokencover.cover.TOTAL": " Полное Укрытие",
+
+    "tokencover.phrases.Total": "Полное",
+    "tokencover.phrases.CoverByTarget": "Укрыт Целью",
+    "tokencover.phrases.Done": "Готово",
+    "tokencover.phrases.ConfirmCover": "Подтвердить",
+    "tokencover.phrases.AllAttacks": "Все атаки",
+    "tokencover.phrases.newEffect": "Новый эффект Укрытия",
+    "tokencover.phrases.takeCover": "В Укрытие!"
+}

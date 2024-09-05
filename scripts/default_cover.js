@@ -20,31 +20,31 @@ export function defaultCover() {
   switch ( systemId ) {
     case "dnd5e": return {
       "half-token": `modules/${MODULE_ID}/json/${systemId}/half_token.json`,
-      "half": `modules/${MODULE_ID}/json/${systemId}/half.json`,
+      half: `modules/${MODULE_ID}/json/${systemId}/half.json`,
       "three-quarters": `modules/${MODULE_ID}/json/${systemId}/three_quarters.json`,
-      "full": `modules/${MODULE_ID}/json/${systemId}/full.json`,
+      full: `modules/${MODULE_ID}/json/${systemId}/full.json`,
     };
 
     // Compendium ids
     case "sfrpg": return {
-      "soft": "aolmL82yGMgAlEcf", // Soft
-      "partial": "WhC815WlllSW8tT0", // Partial
-      "cover": "bjq4ho7JXhgUDvG6", // Cover
-      "improved": "kaIYAWHJ7up8rwOy", // Improved
-      "full": "o0CFBHsprfadKuyd"  // Full
+      soft: "aolmL82yGMgAlEcf", // Soft
+      partial: "WhC815WlllSW8tT0", // Partial
+      cover: "bjq4ho7JXhgUDvG6", // Cover
+      improved: "kaIYAWHJ7up8rwOy", // Improved
+      full: "o0CFBHsprfadKuyd"  // Full
     };
 
     case "pf2e": return {
-      "lesser": "KiJJPkS3ABHyKYre", // Lesser
-      "standard": "jAjwDIvPc2qFHg3r", // Standard
-      "greater": "1YTdEhijbc0nlQ2o"  // Greater
+      lesser: "KiJJPkS3ABHyKYre", // Lesser
+      standard: "jAjwDIvPc2qFHg3r", // Standard
+      greater: "1YTdEhijbc0nlQ2o"  // Greater
     };
 
     default: return {
-      "low": `modules/${MODULE_ID}/json/${systemId}/low.json`,
-      "medium": `modules/${MODULE_ID}/json/${systemId}/medium.json`,
-      "high": `modules/${MODULE_ID}/json/${systemId}/high.json`,
-      "full": `modules/${MODULE_ID}/json/${systemId}/full.json`,
+      low: `modules/${MODULE_ID}/json/${systemId}/low.json`,
+      medium: `modules/${MODULE_ID}/json/${systemId}/medium.json`,
+      high: `modules/${MODULE_ID}/json/${systemId}/high.json`,
+      full: `modules/${MODULE_ID}/json/${systemId}/full.json`,
     };
   }
 }

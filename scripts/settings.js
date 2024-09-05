@@ -12,7 +12,7 @@ ui
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
 import { MODULE_ID, MODULES_ACTIVE, FLAGS } from "./const.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
-import { registerArea3d, registerDebug, deregisterDebug } from "./patching.js";
+import { registerArea3d, registerDebug, deregisterDebug, registerTemplates, deregisterTemplates } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
 import { POINT_TYPES } from "./LOS/AlternativeLOS.js";
 
@@ -47,7 +47,6 @@ PATCHES_SidebarTab.BASIC.HOOKS = { changeSidebarTab: removeCoverItemHook };
 PATCHES_ItemDirectory.BASIC.HOOKS = { renderItemDirectory: removeCoverItemHook };
 
 
-
 const USE_CHOICES = {
   NEVER: "never",
   COMBAT: "combat",
@@ -61,7 +60,7 @@ const CONFIRM_CHOICES = {
   USER_CANCEL: "cover-workflow-confirm-user-cancel",
   GM: "cover-workflow-confirm-gm",
   AUTO: "cover-workflow-confirm-automatic"
-}
+};
 
 export const SETTINGS = {
   CONTROLS: {
@@ -75,6 +74,8 @@ export const SETTINGS = {
   DISPLAY_COVER_BOOK: "display-cover-book",
 
   DISPLAY_SECRET_COVER: "display-secret-cover",
+
+  TEMPLATES_USE_COVER: "templates-use-cover",
 
   ONLY_COVER_ICONS: "only-cover-icons", // Switches to CoverEffectFlags version that adds cover icons to tokens directly.
 
@@ -222,13 +223,23 @@ export class Settings extends ModuleSettingsAbstract {
       })
     });
 
+    register(KEYS.TEMPLATES_USE_COVER, {
+      name: localize(`${KEYS.TEMPLATES_USE_COVER}.Name`),
+      hint: localize(`${KEYS.TEMPLATES_USE_COVER}.Hint`),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true,
+      onChange: value => value ? registerTemplates() : deregisterTemplates()
+    });
+
     register(KEYS.ONLY_COVER_ICONS, {
       name: localize(`${KEYS.ONLY_COVER_ICONS}.Name`),
       hint: localize(`${KEYS.ONLY_COVER_ICONS}.Hint`),
       scope: "world",
       config: true,
       type: Boolean,
-      default: game.system.id === "pf2e" ? true : false,
+      default: game.system.id === "pf2e",
       requiresReload: true
     });
 
@@ -529,7 +540,7 @@ export class Settings extends ModuleSettingsAbstract {
       .forEach(token => token[MODULE_ID].coverCalculator._updateAlgorithm());
   }
 
-  static losSettingChange(key, value) {
+  static losSettingChange(key, _value) {
     this.cache.delete(key);
     canvas.tokens.placeables
       .filter(t => t._tokencover) // Don't create a new coverCalc here.

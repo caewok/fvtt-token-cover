@@ -55,18 +55,16 @@ export class UniqueActiveEffect extends AbstractUniqueEffect {
    */
   static async _addToToken(token, effects) {
     if ( !token.actor ) return false;
-    const uuids = effects.map(e => e.document.uuid)
-
-    // Force display of the status icon
+    const uuids = effects.map(e => e.document.uuid);
     let data;
     if ( token.document.disposition !== CONST.TOKEN_DISPOSITIONS.SECRET ) {
+      // Force display of the status icon
       data = effects.map(e => {
         const datum = { statuses: [] };
         if ( e.img && e.displayStatusIcon ) datum.statuses.push(e.img);
         return datum;
       });
     }
-
     await createEmbeddedDocuments(token.actor.uuid, "ActiveEffect", uuids, data);
     return true;
   }
@@ -86,7 +84,7 @@ export class UniqueActiveEffect extends AbstractUniqueEffect {
       // Force display of the status icon
       if ( token.document.disposition !== CONST.TOKEN_DISPOSITIONS.SECRET
         && effect.img
-        && effect.displayStatusIcon )  doc.statuses = [effect.img];
+        && effect.displayStatusIcon ) doc.statuses = [effect.img];
 
       const ae = token.actor.effects.createDocument(doc);
       token.actor.effects.set(ae.id, ae);
@@ -126,6 +124,22 @@ export class UniqueActiveEffect extends AbstractUniqueEffect {
   // ----- NOTE: Document-related methods ----- //
 
   /**
+   * Process an attempt to add an effect to the effect book via drop.
+   * @param {object} data     Data that was dropped
+   */
+  static async _processEffectDrop(data) {
+    if ( !data.uuid ) return;
+    const effect = await fromUuid(data.uuid);
+    if ( !(effect instanceof ActiveEffect) ) return;
+    const effectData = effect.toObject()
+    const uniqueEffectId = effect.getFlag("dfreds-convenient-effects", "ceEffectId") ?? this.uniqueEffectId();
+    // foundry.utils.setProperty(data, `flags.${MODULE_ID}.${FLAGS.UNIQUE_EFFECT.ID}`, uniqueEffectId);
+
+    const obj = await this.create(uniqueEffectId);
+    await obj.fromJSON(JSON.stringify(effectData));
+  }
+
+  /**
    * Data used when dragging an effect to an actor sheet or token.
    * @returns {object}
    */
@@ -142,6 +156,7 @@ export class UniqueActiveEffect extends AbstractUniqueEffect {
    */
   static async _createNewDocument(data) {
     log("UniqueActiveEffect#_createNewDocument|Creating embedded document");
+
     const res = await createEmbeddedDocuments(this._storageMap.model.uuid, "ActiveEffect", undefined, [data]);
     log("UniqueActiveEffect#_createNewDocument|Finished creating embedded document");
     return await fromUuid(res[0]);
@@ -216,7 +231,7 @@ export class UniqueActiveEffect extends AbstractUniqueEffect {
    * @returns {Object<string, string>} Effect id keyed to effect name
    */
   static _mapStoredEffectNames() {
-    const map = {}
+    const map = {};
     const storageData = this._storageMapData;
     const items = game.items ?? game.data.items;
     const item = items.find(item => item.name === storageData.name);

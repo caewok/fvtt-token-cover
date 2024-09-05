@@ -32,7 +32,8 @@ export class CoverEffectsController {
    */
   get data() {
     const effects = [];
-    CONFIG[MODULE_ID].CoverEffect._instances.forEach(ce => effects.push({ name: ce.name, id: ce.uniqueEffectId, icon: ce.img }));
+    CONFIG[MODULE_ID].CoverEffect._instances.forEach(ce =>
+      effects.push({ name: ce.name, id: ce.uniqueEffectId, icon: ce.img }));
     return {
       isGM: game.user.isGM,
       effects,
@@ -195,7 +196,7 @@ export class CoverEffectsController {
    * @param {DragEvent} event       The originating DragEvent
    */
   async onEffectDrop(event) {
-    log(`TerrainEffectsController|onEffectDrop`);
+    log("TerrainEffectsController|onEffectDrop");
     event.preventDefault();
     const data = TextEditor.getDragEventData(event);
     await CONFIG[MODULE_ID].CoverEffect._processEffectDrop(data);

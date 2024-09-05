@@ -1,4 +1,5 @@
 /* globals
+document,
 FormApplication
 foundry,
 game,
@@ -32,7 +33,6 @@ export class DefaultSettings {
   }
 
   static get pf2e() {
-    const COVER = Settings.KEYS.COVER;
     const { VIEWER, TARGET } = Settings.KEYS.LOS;
     return {
       // LOS Viewer
@@ -51,7 +51,6 @@ export class DefaultSettings {
   }
 
   static get dnd5e() {
-    const COVER = Settings.KEYS.COVER;
     const { VIEWER, TARGET } = Settings.KEYS.LOS;
     return {
       // LOS Viewer
@@ -215,13 +214,6 @@ export class SettingsSubmenu extends FormApplication {
     const losAlgorithm = event.target.value;
     this.#updatePointOptionDisplay(losAlgorithm);
     this.setPosition(this.position);
-
-    // Update the underlying setting sheet view.
-    const TARGET = Settings.KEYS.LOS.TARGET;
-    const targetPoints = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS}`).value;
-    const centerOnly = targetPoints === Settings.KEYS.POINT_TYPES.CENTER
-      && losAlgorithm === TARGET.TYPES.POINTS;
-    // game.settings._sheet._coverAlgorithmChanged(centerOnly);
   }
 
   #updatePointOptionDisplay(losAlgorithm) {
@@ -239,16 +231,10 @@ export class SettingsSubmenu extends FormApplication {
 
   losTargetPointsChanged(event) {
     const targetPoints = event.target.value;
-
     const elem = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.TARGET.ALGORITHM}`);
     const losAlgorithm = elem[0].value;
     this.#updateTargetInsetDisplay(targetPoints, losAlgorithm);
     this.setPosition(this.position);
-
-    // Update the underlying setting sheet view.
-    const TARGET = Settings.KEYS.LOS.TARGET;
-    const centerOnly = targetPoints === Settings.KEYS.POINT_TYPES.CENTER && losAlgorithm === TARGET.TYPES.POINTS;
-    // game.settings._sheet._coverAlgorithmChanged(centerOnly);
   }
 
   #updateTargetInsetDisplay(numPoints, losAlgorithm) {
@@ -265,8 +251,6 @@ export class SettingsSubmenu extends FormApplication {
    * For example, change range and LOS to match Foundry defaults.
    */
   submitSettingUpdates(defaultSettingName) {
-    event.preventDefault();
-    event.stopPropagation();
     const settings = DefaultSettings[defaultSettingName];
 
     ui.notifications.notify(game.i18n.localize(`${MODULE_ID}.settings.button-${defaultSettingName}.Notification`));

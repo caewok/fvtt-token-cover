@@ -27,8 +27,7 @@ import {
   CoverDND5E,
   CoverFlagsDND5E,
   CoverPF2E,
-  CoverSFRPG,
-  CoverDFreds } from "./cover_unique_effects.js";
+  CoverSFRPG } from "./cover_unique_effects.js";
 
 // Regions
 import { SetCoverRegionBehaviorType } from "./SetCoverRegionBehaviorType.js";
@@ -75,7 +74,7 @@ Hooks.once("init", function() {
   CONFIG.RegionBehavior.typeIcons[`${MODULE_ID}.setCover`] = FA_ICONS.MODULE;
 
   // Must go at end?
-  loadTemplates(Object.values(TEMPLATES)).then(_value => log(`Templates loaded.`)); // eslint-disable-line no-unused-vars
+  loadTemplates(Object.values(TEMPLATES)).then(_value => log("Templates loaded."));
 });
 
 Hooks.once("setup", function() {
@@ -92,7 +91,7 @@ Hooks.once("setup", function() {
 /**
  * A hook event that fires when the game is fully ready.
  */
-Hooks.on("ready", async function(_canvas) { // eslint-disable-line no-unused-vars
+Hooks.on("ready", async function(_canvas) {
   CONFIG[MODULE_ID].CoverEffect.initialize(); // Async. Must wait until ready hook to store Settings for UniqueEffectFlag
 });
 
@@ -104,7 +103,7 @@ Hooks.on("ready", async function(_canvas) { // eslint-disable-line no-unused-var
 Hooks.once("canvasReady", function() {
   transitionTokenMaximumCoverFlags();
   CONFIG[MODULE_ID].CoverEffect.transitionTokens(); // Async
-})
+});
 
 
 // ----- NOTE: Token Controls ----- //
@@ -183,8 +182,6 @@ function initializeConfig() {
     case "pf2e":
       CONFIG[MODULE_ID].CoverEffect = CoverPF2E; break;
   }
-
-  if ( game.modules.get("dfreds-convenient-effects")?.active ) CONFIG[MODULE_ID].CoverEffect = CoverDFreds;
 }
 
 /**
@@ -222,7 +219,6 @@ function initializeAPI() {
     CoverDND5E,
     CoverPF2E,
     CoverSFRPG,
-    CoverDFreds,
 
     setCoverIgnoreHandler,
     Settings,
@@ -258,7 +254,7 @@ function transitionTokenMaximumCoverFlags() {
       case 4: newMax = 1; break;
     }
     t.document.setFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT, newMax);
-    t.document.setFlag(MODULE_ID, FLAGS.VERSION, v)
+    t.document.setFlag(MODULE_ID, FLAGS.VERSION, v);
   });
   canvas.scene.setFlag(MODULE_ID, FLAGS.VERSION, v);
 }

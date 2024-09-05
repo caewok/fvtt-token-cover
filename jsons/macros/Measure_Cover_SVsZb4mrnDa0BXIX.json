@@ -1,0 +1,34 @@
+{
+  "name": "Measure Cover",
+  "type": "script",
+  "author": "nx29hoGineoQv9Bs",
+  "img": "icons/svg/shield.svg",
+  "scope": "global",
+  "command": "// Macro to measure cover between selected tokens and targets.\n// Determine token and targets.\nlet token;\nif ( game.user._lastSelected ) token = await fromUuid(game.user._lastSelected)?.object;\ntoken ??= canvas.tokens.controlled[0];\nif ( !token ) {\n  ui.notifications.error(\"Please select a token.\");\n  return;\n}\n\nlet targets = game.user.targets;\nif ( !targets.size ) {\n  targets = new Set(canvas.tokens.placeables);\n  targets.delete(token); // Remove the controlled token.\n}\n\nif ( !targets.size ) {\n  ui.notifications.error(\"Please target at least one target.\");\n  return;\n}\n\n// Display cover to user.\nconst api = game.modules.get(\"tokencover\").api;\nconst coverDialog = new api.CoverDialog(token, targets);\ncoverDialog.showCoverResults();",
+  "folder": null,
+  "ownership": {
+    "default": 0,
+    "nx29hoGineoQv9Bs": 3
+  },
+  "flags": {
+    "combat-utility-belt": {
+      "macroTrigger": ""
+    },
+    "core": {
+      "sourceId": "Compendium.tokencover.tokencover_macros.Macro.A7hcgqVaVk0Ebm7U"
+    }
+  },
+  "_stats": {
+    "compendiumSource": "Compendium.tokencover.tokencover_macros.Macro.A7hcgqVaVk0Ebm7U",
+    "duplicateSource": null,
+    "coreVersion": "12.331",
+    "systemId": "dnd5e",
+    "systemVersion": "3.3.1",
+    "createdTime": 1725381604084,
+    "modifiedTime": 1725381604084,
+    "lastModifiedBy": "nx29hoGineoQv9Bs"
+  },
+  "_id": "SVsZb4mrnDa0BXIX",
+  "sort": 0,
+  "_key": "!macros!SVsZb4mrnDa0BXIX"
+}

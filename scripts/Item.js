@@ -2,7 +2,6 @@
 Actor,
 canvas,
 ChatMessage,
-CONFIG,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -39,7 +38,7 @@ async function rollAttack(wrapper, options = {}) {
   if ( !targets.size ) return wrapper(options);
 
   // Construct dialogs, if applicable
-  const doAttack = await coverAttackWorkflow(token, targets, actionType);
+  const doAttack = await coverAttackWorkflow(token, targets, { actionType });
   if ( doAttack ) return wrapper(options);
 
   // If coverAttackWorkflow returns false, user canceled or eliminated all targets; simply return.

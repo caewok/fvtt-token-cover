@@ -1,8 +1,6 @@
 /* globals
-CONFIG,
-FormDataExtended,
-foundry,
-renderTemplate
+document,
+game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -36,7 +34,7 @@ function renderItemSheet(app, html, data) {
   const insertFn = INSERT_FNS[game.system.id];
   if ( insertFn ) insertFn(html, data);
 
-  // html.find('.tab[data-tab="details"').children().last().after(myHTML);
+  // Html.find('.tab[data-tab="details"').children().last().after(myHTML);
   app.setPosition(app.position);
 }
 
@@ -46,8 +44,8 @@ PATCHES.COVER_ITEM.HOOKS = { closeItemSheet, renderItemSheet };
 // ----- Helper functions ----- //
 
 const INSERT_FNS = {
-  "pf2e": insertPF2e,
-  "sfrpg": insertSFRPG
+  pf2e: insertPF2e,
+  sfrpg: insertSFRPG
 };
 
 /**
@@ -59,7 +57,7 @@ function insertPF2e(html, data) {
   div.innerHTML = myHTML;
 
   // Place at the bottom of the details tab.
-  const detailsTab = html.find(`.tab[data-tab="details"]`)[0];
+  const detailsTab = html.find(".tab[data-tab=\"details\"]")[0];
   if ( !detailsTab ) return;
   detailsTab.appendChild(div);
 }
@@ -67,6 +65,6 @@ function insertPF2e(html, data) {
 /**
  * Insert the html for a SFRPG effect item.
  */
-function insertSFRPG(html, data) {
+function insertSFRPG(_html, _data) {
 
 }
