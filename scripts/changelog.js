@@ -200,7 +200,7 @@ Hooks.once("ready", () => {
     })
 
     .addEntry({
-      version: "0.9.2",
+      version: "0.9.3",
       title: "DFred's and Measured Templates",
       body: `\
         Added a setting to enable cover measurement for templates. When enabled, if you hover over a template in the
