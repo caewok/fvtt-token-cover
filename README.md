@@ -10,6 +10,8 @@ This module provides options to calculate how much cover a targeted token has, w
 
 As of version 0.7.0, cover icons and effects are applied locally, per user. In other words, the cover icons and effects are not saved in the server database. This dramatically improves speed and allows different users to see different things. For example, if the user chooses to view cover icons all the time, that user will see cover icons for all other visible tokens based on the token they selected. Meanwhile, this user's selection will not affect the display of cover icons for other users.
 
+For Foundry v12, a "Set Cover" region behavior is available that allows the GM to have a minimum cover apply to defending tokens within that region.
+
 This module is closely related to [Alternative Token Visibility](https://github.com/caewok/fvtt-token-visibility). Both rely on the same underlying algorithms to determine whether there are obstacles between the viewer and the target.
 
 _Cover Algorithms_:
@@ -26,20 +28,12 @@ Add this [Manifest URL](https://github.com/caewok/fvtt-token-cover/releases/late
 - [socketlib](https://github.com/manuelVo/foundryvtt-socketlib)
 
 ## Known Issues
-
-In Pathfinder 2e, the setting "Only Use Cover Icons" must be enabled for cover icons to appear. Cover effects (items in pf2e) are unsupported.
-
-(For the technically inclined, if you turn off "Only Use Cover Icons," the module correctly adds a Cover Effect item to a pf2e defender token with cover. But I cannot find a way to convince the pf2e system to update the actor sheet or the token status icon to indicate that cover is applied. I strongly suspect that the cover bonuses are also not being correctly applied. Compare this to Starfinder RPG, which also uses items but the module can trigger an update to the actor sheet and token status icons. If you know what might be wrong, feel free to submit a PR!)
+None at this time.
 
 ## Recommended module additions
 - [Alternative Token Visibility](https://github.com/caewok/fvtt-token-visibility). Needed if you want token vision to exactly match token cover.
 - [Wall Height](https://github.com/theripper93/wall-height). Not only does Wall Height provide the ability to set elevation for wall tops and bottoms, it also gives tokens height based on their size. The Area3d option for Alt Token Visibility takes full advantage of token height.
-- [Elevated Vision](https://github.com/caewok/fvtt-elevated-vision). Can assist with setting terrain and token elevations.
 - [Midiqol](https://gitlab.com/tposney/midi-qol). If midiqol is installed, additional options are presented to allow cover calculations during an attack roll.
-
-## Levels
-
-Alternative Token Cover is intended to work with the [Levels](https://github.com/theripper93/Levels) module. Both the Points and the Area3d algorithms will ignore transparent portions of tiles as expected in Levels. The Area2d algorithm treats overhead tiles as blocking regardless of transparency and thus may not work in all cases with Levels.
 
 # Measuring cover
 
@@ -81,12 +75,17 @@ Overlap and priority in combination work as follows:
 - No priority, no overlap: This effect will only be assigned if no priority effect is assigned. If there are multiple no-priority effects, it is not guaranteed that this one will be chosen.
 - No priority, overlap: This effect will only be assigned if no priority effect is assigned. If there are multiple no-priority effects, this one will be assigned along with potentially others.
 
-
 # "Alt. Token Cover" token control (book icon)
 
 <img width="479" alt="Screenshot 2024-05-07 at 3 52 26 PM" src="https://github.com/caewok/fvtt-token-cover/assets/1267134/3830e745-78e4-4eb8-82f4-84bc8c3b5507">
 
 The GM can view and edit the Cover Effects using the book icon in the token controls. Right-click a cover effect to import/export/duplicate/delete.
+
+# "Set Cover" Region Behavior
+In the settings for a region in Foundry v12, the GM can apply a "Set Cover" behavior. This will apply the selected minimum cover to defending tokens within the region. Additional options change how that cover is applied:
+- Define a minimum distance, within which this minimum cover will not be set. For example, a defending token may have cover from an attacker in a forest until they are within 10 feet of one another.
+- Apply the cover to defending tokens outside the region if the attacker is within the region.
+- Disable all other cover calculations within the region.
 
 # Performance
 

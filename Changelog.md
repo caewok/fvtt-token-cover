@@ -9,6 +9,10 @@ Correct errors with provided macros when Walled Templates is active. Closes #27.
 Added Russian translation. Thanks @VirusNik21! Closes #28.
 Update libGeometry to v0.3.12.
 
+## 0.9.2
+Fix git workflow to include the json folder in the module zip. Closes issue #26.
+Make reference to "settings.js" lowercase. Closes issue #25.
+
 ## 0.9.1
 
 ### New Features
