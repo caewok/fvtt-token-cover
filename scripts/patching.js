@@ -36,7 +36,7 @@ import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 // Templates
 import { PATCHES as PATCHES_MeasuredTemplate } from "./MeasuredTemplate.js";
 import { TokenCover } from "./TokenCover.js";
-import { PATCHES_dnd5e } from "./dnd5e.js";
+import { PATCHES as PATCHES_dnd5e } from "./dnd5e.js";
 
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
@@ -78,7 +78,6 @@ export function initializePatching() {
   if ( game.system.id === "dnd5e" ) {
     if ( MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_MIDI")
     else PATCHER.registerGroup("DND5E_NO_MIDI");
-    PATCHER.registerGroup("dnd5e");
   }
 
   if ( game.system.id === "sfrpg" ) PATCHER.registerGroup("sfrpg");

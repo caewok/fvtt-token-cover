@@ -9,8 +9,8 @@ renderTemplate
 import { log } from "./util.js";
 import { MODULE_ID, FLAGS, LABELS, TEMPLATES } from "./const.js";
 
-export const PATCHES_dnd5e = {};
-PATCHES_dnd5e.dnd5e = {};
+export const PATCHES = {};
+PATCHES.DND5E_MIDI = {};
 
 // ----- NOTE: Hooks ----- //
 
@@ -51,4 +51,4 @@ async function render5eSpellTemplateConfig(app, html, data) {
   detailsTab[0].appendChild(div);
 }
 
-PATCHES_dnd5e.dnd5e.HOOKS = { renderItemSheet5e };
+PATCHES.DND5E_MIDI.HOOKS = { renderItemSheet5e };
