@@ -19,7 +19,6 @@ AbstractUniqueEffect
    - TerrainActiveEffect
    - CoverActiveEffect
      - CoverEffectDND5E
-     - CoverActiveEffectDFreds
 
    - UniqueFlags
      - TerrainFlags
@@ -827,7 +826,7 @@ export class AbstractUniqueEffect {
  * Handle multiple sheet refreshes by using an async queue.
  * If the actor sheet is rendering, wait for it to finish.
  */
-const sleep = function(delay) => new Promise(resolve => setTimeout(resolve, delay)); // eslint-disable-line no-promise-executor-return
+const sleep = delay => new Promise(resolve => setTimeout(resolve, delay)); // eslint-disable-line no-promise-executor-return
 
 const renderQueue = new AsyncQueue();
 

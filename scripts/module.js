@@ -27,8 +27,7 @@ import {
   CoverDND5E,
   CoverFlagsDND5E,
   CoverPF2E,
-  CoverSFRPG,
-  CoverDFreds } from "./cover_unique_effects.js";
+  CoverSFRPG } from "./cover_unique_effects.js";
 
 // Regions
 import { SetCoverRegionBehaviorType } from "./SetCoverRegionBehaviorType.js";
@@ -183,8 +182,6 @@ function initializeConfig() {
     case "pf2e":
       CONFIG[MODULE_ID].CoverEffect = CoverPF2E; break;
   }
-
-  if ( game.modules.get("dfreds-convenient-effects")?.active ) CONFIG[MODULE_ID].CoverEffect = CoverDFreds;
 }
 
 /**
@@ -222,7 +219,6 @@ function initializeAPI() {
     CoverDND5E,
     CoverPF2E,
     CoverSFRPG,
-    CoverDFreds,
 
     setCoverIgnoreHandler,
     Settings,
