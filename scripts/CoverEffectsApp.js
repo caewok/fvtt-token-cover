@@ -80,7 +80,7 @@ export class CoverEffectsApp extends Application {
   _canDragStart(_selector) { return this._controller.canDragStart(); }
 
   /** @override */
-  _onDrop(event) { return this._controller.onEffectDrop(event); }
+  async _onDrop(event) { return this._controller.onEffectDrop(event); }
 
   /**
    * Listeners for buttons in the menu
