@@ -1,12 +1,12 @@
 ## 0.9.2
 ### New Features
-Added a toggle to enable cover measurement for templates. When enabled, hovering over a template will display cover for tokens. (Note that it currently does not test for whether the token is within the template area.)
+Added a toggle to enable cover measurement for templates. When enabled, hovering over a template will display cover for tokens. (Note that it currently does not test for whether the token is within the template area.) Closes #14.
 When midi-qol module is active, a dropdown in the spell effects lets you apply cover to tokens from the template or from the caster when casting spells.
 
 ### Bug fixes
 Remove specialized handling of DFred's cover effects. Instead, you can now drag DFred's effects to the Cover Book to create new cover effects. Closes #31, #30, #29.
 Correct errors with provided macros when Walled Templates is active. Closes #27.
-
+Added Russian translation. Thanks @VirusNik21! Closes #28.
 
 ## 0.9.1
 
