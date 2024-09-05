@@ -548,7 +548,7 @@ export class AbstractUniqueEffect {
    * Process an attempt to add an effect to the effect book via drop.
    * @param {object} data     Data that was dropped
    */
-  static _processEffectDrop() { } // Must be handled by child class.
+  static async _processEffectDrop() { } // Must be handled by child class.
 
   // ----- NOTE: Static token handling ----- //
 
