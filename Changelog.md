@@ -7,6 +7,7 @@ When midi-qol module is active, a dropdown in the spell effects lets you apply c
 Remove specialized handling of DFred's cover effects. Instead, you can now drag DFred's effects to the Cover Book to create new cover effects. Closes #31, #30, #29.
 Correct errors with provided macros when Walled Templates is active. Closes #27.
 Added Russian translation. Thanks @VirusNik21! Closes #28.
+Update libGeometry to v0.3.12.
 
 ## 0.9.1
 
