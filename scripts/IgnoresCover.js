@@ -58,7 +58,7 @@ export class IgnoresCover {
    */
   static verifyCoverValue(cover) {
     if ( !cover.between(0, 1) ) {
-      console.warn(`IgnoresCover requires value between 0 and 1.`);
+      console.warn("IgnoresCover requires value between 0 and 1.");
       return false;
     }
 

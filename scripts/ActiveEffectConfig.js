@@ -1,8 +1,4 @@
 /* globals
-CONFIG,
-FormDataExtended,
-foundry,
-renderTemplate
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";

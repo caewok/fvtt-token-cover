@@ -169,13 +169,15 @@ class TokenCoverBase {
 
   /**
    * Returns the stored cover percent or calculates it, as necessary.
-   * @param {Viewer} attackingToken   Other token or object from which this token may have cover
+   * @param {Viewer} attacker   Other token or object from which this token may have cover
    * @returns {number}
    */
-  coverPercentFromAttacker(attackingToken) {
+  coverPercentFromAttacker(attacker) {
     const { coverFromMap, token } = this;
-    if ( !coverFromMap.has(attackingToken.id ?? attacker) ) this.constructor.updateCoverFromToken(token, attackingToken);
-    return coverFromMap.get(attackingToken.id ?? attacker).percentCover;
+    if ( !coverFromMap.has(attacker.id ?? attacker) ) {
+      this.constructor.updateCoverFromToken(token, attacker);
+    }
+    return coverFromMap.get(attacker.id ?? attacker).percentCover;
   }
 
   /**
@@ -261,8 +263,9 @@ class TokenCoverBase {
     // If region cover is higher, use it.
     let priorityCover = maxRegionPriorityCover || minAttackerPriorityCover;
     if ( maxRegionPriorityCover && minAttackerPriorityCover ) {
-      if ( maxRegionPriorityCover.priority >= minAttackerPriorityCover.priority ) priorityCover = maxRegionPriorityCover;
-      else priorityCover = minAttackerPriorityCover;
+      if ( maxRegionPriorityCover.priority >= minAttackerPriorityCover.priority ) {
+        priorityCover = maxRegionPriorityCover;
+      } else priorityCover = minAttackerPriorityCover;
     }
 
     // Combine all non-priority cover
@@ -495,8 +498,8 @@ class TokenCoverBase {
   /**
    * Add an attacker to the user's set.
    * @param {Viewer} token
-   * @param {boolean} [force=false]                   Should the attacker be added even if it fails "isAttacker"?
-   * @param {boolean} [update=true]                   Should the token display be updated? Can set to false if triggering later.
+   * @param {boolean} [force=false]   Should the attacker be added even if it fails "isAttacker"?
+   * @param {boolean} [update=true]   Should the token display be updated? Can set to false if triggering later.
    * @return {boolean} True if results in addition.
    */
   static addAttacker(attacker, force = false, update = true) {
@@ -512,7 +515,7 @@ class TokenCoverBase {
   /**
    * Remove an attacker from the user's set.
    * @param {Viewer} attacker
-   * @param {boolean} [update=true]                   Should the token display be updated? Can set to false if triggering later.
+   * @param {boolean} [update=true]   Should the token display be updated? Can set to false if triggering later.
    * @return {boolean} True if results in removal.
    */
   static removeAttacker(attacker, update = true) {
@@ -526,7 +529,7 @@ class TokenCoverBase {
 
   /**
    * Clear all attackers from the user's set.
-   * @param {boolean} [update=true]                   Should the token display be updated? Can set to false if triggering later.
+   * @param {boolean} [update=true]   Should the token display be updated? Can set to false if triggering later.
    * @return {boolean} True if results in change.
    */
   static clearAttackers(update = true) {

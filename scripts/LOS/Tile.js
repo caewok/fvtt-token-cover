@@ -6,11 +6,10 @@ foundry
 
 // Patches for the Tile class
 
-import { TileGeometryHandler } from "./Placeable3dGeometry.js";
-import { GEOMETRY_ID } from "./Placeable3dGeometry.js";
+import { TileGeometryHandler, GEOMETRY_ID } from "./Placeable3dGeometry.js";
 
 export const PATCHES = {};
-PATCHES.AREA3D = {}
+PATCHES.AREA3D = {};
 
 // ----- NOTE: Area3d Hooks ----- //
 

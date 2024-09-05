@@ -1,12 +1,10 @@
 /* globals
-Actor,
-CONFIG
+Actor
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { FLAGS, MODULE_ID } from "./const.js";
-// import { Settings } from "./settings.js";
 
 // Patches for the ActiveEffect class
 export const PATCHES = {};

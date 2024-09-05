@@ -1,4 +1,5 @@
 /* globals
+CONFIG,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -17,7 +18,9 @@ export function CoverMixin(Base) {
   return class Cover extends Base {
 
     /** @type {number} */
-    get percentThreshold() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.PERCENT_THRESHOLD] || 0; }
+    get percentThreshold() {
+      return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.PERCENT_THRESHOLD] || 0;
+    }
 
     /** @type {number} */
     get priority() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.PRIORITY] || 0; }
@@ -171,7 +174,7 @@ export function CoverMixin(Base) {
       modFlags[FLAGS.COVER_EFFECT.RULES.INCLUDE_WALLS] = true;
       modFlags[FLAGS.COVER_EFFECT.RULES.LIVE_TOKENS_BLOCK] = false;
       modFlags[FLAGS.COVER_EFFECT.RULES.DEAD_TOKENS_BLOCK] = false;
-      modFlags [FLAGS.COVER_EFFECT.RULES.PRONE_TOKENS_BLOCK] = false;
+      modFlags[FLAGS.COVER_EFFECT.RULES.PRONE_TOKENS_BLOCK] = false;
       return data;
     }
 

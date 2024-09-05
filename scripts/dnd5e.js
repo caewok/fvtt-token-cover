@@ -1,6 +1,7 @@
 /* globals
 canvas,
 CONFIG,
+document,
 PIXI,
 renderTemplate
 */

@@ -2,7 +2,6 @@
 Actor,
 canvas,
 ChatMessage,
-CONFIG,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */

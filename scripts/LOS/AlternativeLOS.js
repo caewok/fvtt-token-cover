@@ -6,7 +6,8 @@ CONST,
 foundry,
 LimitedAnglePolygon,
 PIXI,
-Ray
+Ray,
+Token
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -43,7 +44,7 @@ export const POINT_TYPES = {
   FIVE: "points-five", // Corners + center
   EIGHT: "points-eight", // Nine without center
   NINE: "points-nine" // Corners, midpoints, center
-}
+};
 
 /**
  * @typedef Viewer    Token|MeasuredTemplate|AmbientLight|AmbientSound|Point3d
@@ -208,7 +209,7 @@ export class AlternativeLOS {
       else this.#viewerPoint.set(viewer.document.x, viewer.document.y, viewer.elevationZ);
 
     }
-    this.#viewerPoint.add(this.#config.visionOffset, this.#viewerPoint)
+    this.#viewerPoint.add(this.#config.visionOffset, this.#viewerPoint);
     return this.#viewerPoint;
   }
 
@@ -545,10 +546,6 @@ export class AlternativeLOS {
     if ( !this.#config.wallsBlock ) return false;
     const walls = [...this.blockingObjects.walls, ...this.blockingObjects.terrainWalls];
     return testWallsForIntersections(startPt, endPt, walls, "any", this.config.type);
-
-//     const mode = "any";
-//     const type = this.#config.type;
-//     return PointSourcePolygon.testCollision3d(startPt, endPt, { mode, type });
   }
 
   /**
@@ -565,7 +562,8 @@ export class AlternativeLOS {
     // const collisionTest = (o, _rect) => o.t.document.overhead;
     // const tiles = canvas.tiles.quadtree.getObjects(ray.bounds, { collisionTest });
     // TODO: Need more nuanced understanding of overhead tiles and what should block.
-    const tiles = this.blockingObjects.tiles.filter(t => t.document.elevation >= t.document.parent?.foregroundElevation);
+    const tiles = this.blockingObjects.tiles.filter(t =>
+      t.document.elevation >= t.document.parent?.foregroundElevation);
 
     // Because tiles are parallel to the XY plane, we need not test ones obviously above or below.
     const maxE = Math.max(startPt.z, endPt.z);

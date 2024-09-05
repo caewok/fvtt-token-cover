@@ -47,7 +47,6 @@ PATCHES_SidebarTab.BASIC.HOOKS = { changeSidebarTab: removeCoverItemHook };
 PATCHES_ItemDirectory.BASIC.HOOKS = { renderItemDirectory: removeCoverItemHook };
 
 
-
 const USE_CHOICES = {
   NEVER: "never",
   COMBAT: "combat",
@@ -61,7 +60,7 @@ const CONFIRM_CHOICES = {
   USER_CANCEL: "cover-workflow-confirm-user-cancel",
   GM: "cover-workflow-confirm-gm",
   AUTO: "cover-workflow-confirm-automatic"
-}
+};
 
 export const SETTINGS = {
   CONTROLS: {
@@ -240,7 +239,7 @@ export class Settings extends ModuleSettingsAbstract {
       scope: "world",
       config: true,
       type: Boolean,
-      default: game.system.id === "pf2e" ? true : false,
+      default: game.system.id === "pf2e",
       requiresReload: true
     });
 
@@ -541,7 +540,7 @@ export class Settings extends ModuleSettingsAbstract {
       .forEach(token => token[MODULE_ID].coverCalculator._updateAlgorithm());
   }
 
-  static losSettingChange(key, value) {
+  static losSettingChange(key, _value) {
     this.cache.delete(key);
     canvas.tokens.placeables
       .filter(t => t._tokencover) // Don't create a new coverCalc here.

@@ -259,7 +259,7 @@ export class UnitTokenPoints3d extends TokenPoints3d {
       bottomZ: center.z - size_1_2,
       center: token.center,
       name: token.name
-    }
+    };
 
     super(fakeToken, opts);
     this.#token = token;

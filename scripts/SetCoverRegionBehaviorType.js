@@ -1,11 +1,12 @@
 /* globals
-RegionBehaviorType
+CONFIG,
+CONST,
+foundry
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { log } from "./util.js";
 
 /**
  * Abstract Region behavior re terrains
@@ -61,7 +62,7 @@ export class SetCoverRegionBehaviorType extends foundry.data.regionBehaviors.Reg
   }
 
   static coverChoices() {
-    return CONFIG[MODULE_ID].CoverEffect._mapStoredEffectNames()
+    return CONFIG[MODULE_ID].CoverEffect._mapStoredEffectNames();
   }
 }
 

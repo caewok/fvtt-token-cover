@@ -91,7 +91,8 @@ export class VerticalPoints3d extends PlanePoints3d {
       // If A and B are collinear to this edge, not within a *convex* polygon (part of the same edge)
       if ( !oA && !oB ) {
         // Collinear, so either A|B and edge overlap or they are one after the other.
-        // if ( !aOnSegment && !bOnSegment && !isOnSegment(A, B, edge.A, 1e-08) && !isOnSegment(A, B, edge.B) ) return false;
+        // if ( !aOnSegment && !bOnSegment && !isOnSegment(A, B, edge.A, 1e-08)
+        //   && !isOnSegment(A, B, edge.B) ) return false;
         // return true; // They overlap.
         return false;
       }

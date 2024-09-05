@@ -1,4 +1,5 @@
 /* globals
+canvas,
 foundry,
 game,
 */
@@ -72,11 +73,11 @@ export function initializePatching() {
   // If ATV is not active, handle the LOS patches needed to run the calculator.
   if ( !MODULES_ACTIVE.TOKEN_VISIBILITY ) PATCHER.registerGroup("LOS");
 
-//   if ( MODULES_ACTIVE.LEVELS ) PATCHER.registerGroup("LEVELS");
-//   else PATCHER.registerGroup("NO_LEVELS");
+  //   If ( MODULES_ACTIVE.LEVELS ) PATCHER.registerGroup("LEVELS");
+  //   else PATCHER.registerGroup("NO_LEVELS");
 
   if ( game.system.id === "dnd5e" ) {
-    if ( MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_MIDI")
+    if ( MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_MIDI");
     else PATCHER.registerGroup("DND5E_NO_MIDI");
   }
 

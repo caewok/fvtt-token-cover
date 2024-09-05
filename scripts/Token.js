@@ -3,7 +3,8 @@ canvas,
 CONFIG,
 CONST,
 game,
-KeyboardManager
+KeyboardManager,
+MeasuredTemplate
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
@@ -151,18 +152,18 @@ function refreshToken(token, flags) {
       || flags.refreshElevation
       || flags.refreshSize
       || flags.refreshShape
-      || flags.refreshRotation)  ) return;
+      || flags.refreshRotation) ) return;
 
   log(`refreshToken hook|${token.name} at ${token.position.x},${token.position.y}. Token is ${token._original ? "Clone" : "Original"}
   \tdocument: ${token.document.x},${token.document.y}
   \tcenter: ${token.center.x},${token.center.y}`);
 
   // Clear this token's cover calculations because it moved.
- // token.tokencover.coverFromMap.clear();
+  // token.tokencover.coverFromMap.clear();
 
   // Clear the cover calculations relative to this token.
-  //const id = token.id;
-  //canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(id));
+  // const id = token.id;
+  // canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(id));
 
 
   // TODO: Do we need to do anything different during token animation?
@@ -301,7 +302,6 @@ function applyTokenStatusEffect(token, statusId, active) {
   return active ? CoverCalculator.enableCover(token, COVER.TYPES_FOR_ID[MODULE_ID][statusId])
     : CoverCalculator.disableAllCover(token);
 }
-
 
 
 PATCHES.BASIC.HOOKS = { destroyToken, updateToken, controlToken, targetToken, refreshToken };

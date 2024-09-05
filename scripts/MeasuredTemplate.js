@@ -9,7 +9,6 @@ KeyboardManager
 
 import { TokenCover } from "./TokenCover.js";
 import { log } from "./util.js";
-import { CoverCalculator } from "./CoverCalculator.js";
 
 export const PATCHES = {};
 PATCHES.TEMPLATES = {};
@@ -59,7 +58,7 @@ function refreshMeasuredTemplate(template, flags) {
     TokenCover.removeAttacker(template._original, false);
     TokenCover.addAttacker(template, false, false);
     TokenCover.attackerMoved(template);
-  } else if ( !template.id ){
+  } else if ( !template.id ) {
     log(`refreshTemplate hook|Template ${template.id} is original not yet placed.`);
     TokenCover.addAttacker(template, false, false);
     TokenCover.attackerMoved(template);
