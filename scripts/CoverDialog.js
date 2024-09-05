@@ -3,6 +3,7 @@ canvas,
 ChatMessage,
 CONFIG,
 foundry,
+fromUuidSync,
 game,
 Hooks,
 socketlib,
@@ -60,7 +61,7 @@ export class CoverDialog {
     this.config = config;
 
     // Mostly for debugging
-    if ( !attacker || !(attacker instanceof Token) ) console.error("CoverDialog|no attacker provided.");
+    if ( !attacker ) console.error("CoverDialog|no attacker provided.");
     if ( this.targets.size < 1 ) console.warn("CoverDialog|no targets provided.");
   }
 
@@ -114,7 +115,7 @@ export class CoverDialog {
       if ( existingEffects.equals(coverEffects) ) return;
       existingEffects.clear();
       coverEffects.forEach(ct => existingEffects.add(ct)); // Copy so the newCalcs set is not tied to this one.
-    })
+    });
   }
 
   /**
@@ -257,7 +258,7 @@ export class CoverDialog {
         return this.coverCalculations;
       }
       case choices.GM: askGM = true;
-      case choices.USER: { // eslint-disable-line no-fallthrough
+      case choices.USER: {
         coverCalculationsJSON = await this.confirmCover({ askGM });
         break;
       }
@@ -392,7 +393,7 @@ ${html}
    * @returns {string} html
    */
   _htmlAttacker({ imageWidth = 50, confirm = false, nCover = 0, applied = false } = {}) {
-     // Describe the type of action the attacker is taking and whether the attacker ignores certain cover.
+    // Describe the type of action the attacker is taking and whether the attacker ignores certain cover.
     const ignoresCoverLabel = this._htmlIgnoresCover(this.config.actionType);
     const actionDescription = this.config.actionType ? `${CoverCalculator.attackNameForType(this.config.actionType)}.` : "";
 
@@ -406,15 +407,18 @@ ${html}
       numCoverLabel += " cover from ";
     }
 
+    const cfg = this.config?.attacker ?? {};
+    const img = cfg.img || (this.attacker.document?.texture?.src) || CONFIG.controlIcons.combat;
+    const name = cfg.name || this.attacker.name || game.i18n.localize("COMBAT.UnknownCombatant");
     const html =
     `
     <div class="flexrow">
       <div class="flexcol" style="flex-grow: 8">
-        ${targetLabel}${numCoverLabel}<b>${this.attacker.name}</b>
+        ${targetLabel}${numCoverLabel}<b>${name}</b>
         ${actionDescription} ${ignoresCoverLabel}
       </div
       <div class="flexcol" style="flex-grow: 1">
-        <img src="${this.attacker.document.texture.src}" alt="${this.attacker.name} image" width="${imageWidth}" style="border:0px">
+        <img src="${img}" alt="${name} image" width="${imageWidth}" style="border:0px">
       </div
     </div>
     `;
@@ -426,7 +430,8 @@ ${html}
    * @param {string|undefined} actionType   "msak"|"mwak"|"rsak"|"rwak". Used to check if attacker ignores cover
    */
   _htmlIgnoresCover(actionType) {
-    const ic = this.attacker.tokencover.ignoresCover;
+    const ic = this.attacker.tokencover?.ignoresCover;
+    if ( !ic ) return "";
     const allCoverIgnored = ic.all;
     const typeCoverIgnored = ic[actionType] || COVER.NONE;
 
@@ -452,7 +457,8 @@ ${html}
    *   - @prop {number} percentCover
    */
   _targetData() {
-    const attackerCenter = Point3d.fromToken(this.attacker).top; // Measure from attacker vision point.
+    const attackerCenter = this.attacker instanceof Token ? Point3d.fromToken(this.attacker).top // Measure from attacker vision point.
+      : new Point3d(this.attacker.document.x, this.attacker.document.y, this.attacker.elevationZ);
     return [...this.targets].map(target => {
       const data = {
         name: target.name,
@@ -516,7 +522,7 @@ ${html}
       if ( !includeZeroCover && !td.priorityType.size && !td.overlappingCover.size ) continue;
       if ( td.hasOverrideEffects ) tokensWithOverrideEffects.push(td.name);
 
-      let htmlRow = `<tr>`;
+      let htmlRow = "<tr>";
 
       if ( !excludedColumns.has("icon") ) {
         htmlRow +=
@@ -612,13 +618,13 @@ ${html}
 
     let coverOptions =
     `
-    <option value="NONE" ${chosen.size ?  "" : "selected"}>${game.i18n.localize("tokencover.cover.None")}</option>
+    <option value="NONE" ${chosen.size ? "" : "selected"}>${game.i18n.localize("tokencover.cover.None")}</option>
     `;
 
     for ( const c of cover ) {
       coverOptions +=
       `
-      <option value="${c.id}"${chosen.has(c) ? " selected" : ""}>${game.i18n.localize(c.name)}</option>
+      <option value="${c.uniqueEffectId}"${chosen.has(c) ? " selected" : ""}>${game.i18n.localize(c.name)}</option>
       `;
     }
 
@@ -652,17 +658,17 @@ function coverNames(coverEffects) {
  * Used by midi-qol and dnd5e functions.
  * @param {Token} attacker
  * @param {Set<Token>} targets    Targeted token set. May be modified by user choices.
- * @param {string} actionType
+ * @param {object} [opts]           Options passed to CoverDialog
  * @returns {boolean} True if attack should continue; false otherwise.
  */
-export async function coverAttackWorkflow(attacker, targets, actionType) {
+export async function coverAttackWorkflow(attacker, targets, opts) {
   // Construct dialogs, if applicable
   // tokenCoverCalculations will be:
   // - false if user canceled
   // - undefined if covercheck is set to NONE. NONE may still require chat display.
   // - Map otherwise
   const KEYS = Settings.KEYS;
-  const coverDialog = new CoverDialog(attacker, targets, { actionType });
+  const coverDialog = new CoverDialog(attacker, targets, opts);
   const coverCalculations = await coverDialog.workflow();
   if ( coverCalculations === false ) return false;  // User canceled
 
@@ -677,7 +683,7 @@ export async function coverAttackWorkflow(attacker, targets, actionType) {
 
   // Send to chat.
   if ( Settings.get(KEYS.COVER_WORKFLOW.CHAT) ) {
-    await coverDialog.sendCoverCalculationsToChat({ actionType, coverCalculations });
+    await coverDialog.sendCoverCalculationsToChat({ actionType: opts?.actionType, coverCalculations });
   }
   return true;
 }

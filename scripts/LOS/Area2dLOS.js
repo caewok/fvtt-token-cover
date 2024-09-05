@@ -11,6 +11,7 @@ import { AlternativeLOS } from "./AlternativeLOS.js";
 
 // Base folder
 import { CWSweepInfiniteWallsOnly } from "../CWSweepInfiniteWallsOnly.js";
+import { Settings } from "../settings.js";
 
 // Geometry folder
 import { Shadow } from "../geometry/Shadow.js";

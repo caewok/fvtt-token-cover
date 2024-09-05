@@ -1,7 +1,8 @@
 /* globals
 FormApplication,
 foundry,
-game
+game,
+Token
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -45,17 +46,18 @@ export class CoverDND5E extends CoverActiveEffect {
   /**
    * Test if this cover effect could apply to a target token given an attacking token.
    * Does not handle priority between cover effects. For that, use CoverEffect.coverEffectsForToken
-   * @param {Token} attackingToken        Token from which cover is sought
+   * @param {Viewer} attackingToken        Token or other object from which cover is sought
    * @param {Token} targetToken           Token to which cover would apply
    * @param {object} [opts]               Options used to determine whether to ignore cover
    * @param {CONFIG.DND5E.itemActionTypes} [actionType="all"]   Attack action type
    * @returns {boolean}
    */
-  _couldApply(attackingToken, targetToken,  opts = {}) {
+  _couldApply(attacker, targetToken, opts = {}) {
     const actionType = opts.actionType ?? "all";
-    const ignoresCover = attackingToken.tokencover.ignoresCover?.[actionType];
+    let ignoresCover = false;
+    if ( attacker instanceof Token ) ignoresCover = attacker.tokencover.ignoresCover?.[actionType];
     if ( ignoresCover && ignoresCover >= this.document.percentThreshold ) return false;
-    return super._couldApply(attackingToken, targetToken);
+    return super._couldApply(attacker, targetToken);
   }
 }
 
@@ -122,7 +124,7 @@ export class CoverDFreds extends CoverDND5E {
    * @param {string} uniqueEffectId
    * @returns {Document|object|undefined}
    */
-   async _loadDocument(_uniqueEffectId) {
+  async _loadDocument(_uniqueEffectId) {
     const defaultData = this.defaultCoverObjectData;
     if ( !defaultData ) return super._loadStorageDocument();
 
@@ -130,7 +132,7 @@ export class CoverDFreds extends CoverDND5E {
     if ( !dFredsEffect ) {
       const ae = game.dfreds.effectInterface.findEffectByName(defaultData.dFredsName);
       if ( !ae ) return super._loadStorageDocument();
-      dFredsEffect = await game.dfreds.effectInterface.createNewCustomEffectsWith({ activeEffects: [ae] })
+      dFredsEffect = await game.dfreds.effectInterface.createNewCustomEffectsWith({ activeEffects: [ae] });
       dFredsEffect = dFredsEffect[0];
     }
     if ( !dFredsEffect ) return super._loadStorageDocument();
@@ -156,18 +158,19 @@ export class CoverFlagsDND5E extends CoverFlagEffect {
    * @param {CONFIG.DND5E.itemActionTypes} [actionType="all"]   Attack action type
    * @returns {boolean}
    */
-  _couldApply(attackingToken, targetToken,  opts = {}) {
+  _couldApply(attacker, targetToken, opts = {}) {
     const actionType = opts.actionType ?? "all";
-    const ignoresCover = attackingToken.tokencover.ignoresCover?.[actionType];
+    let ignoresCover = false;
+    if ( attacker instanceof Token ) ignoresCover = attacker.tokencover.ignoresCover?.[actionType];
     if ( ignoresCover && ignoresCover >= this.document.percentThreshold ) return false;
-    return super._couldApply(attackingToken, targetToken);
+    return super._couldApply(attacker, targetToken);
   }
 }
 
 /**
  * Separate config that works with the CoverFlag, which doesn't have a document sheet.
  */
-export class CoverFlagRulesConfig extends FormApplication  {
+export class CoverFlagRulesConfig extends FormApplication {
   /**
    * Set the default size and other basic options for the form.
    */
@@ -190,7 +193,7 @@ export class CoverFlagRulesConfig extends FormApplication  {
     return {
       isGM: game.user.isGM,
       object: this.object
-    }
+    };
   }
 
   /**
@@ -204,6 +207,6 @@ export class CoverFlagRulesConfig extends FormApplication  {
     const newFlags = foundry.utils.expandObject(formData)?.flags?.[MODULE_ID];
     if ( !newFlags ) return;
     foundry.utils.mergeObject(this.object.flags[MODULE_ID], newFlags, { inplace: true });
-   }
+  }
 
 }

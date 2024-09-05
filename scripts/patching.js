@@ -1,4 +1,5 @@
 /* globals
+canvas,
 foundry,
 game,
 */
@@ -35,6 +36,8 @@ import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 
 // Templates
 import { PATCHES as PATCHES_MeasuredTemplate } from "./MeasuredTemplate.js";
+import { TokenCover } from "./TokenCover.js";
+import { PATCHES as PATCHES_dnd5e } from "./dnd5e.js";
 
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
@@ -52,7 +55,9 @@ const PATCHES = {
   TokenConfig: PATCHES_TokenConfig,
   Wall: PATCHES_Wall,
 
-  Midiqol: PATCHES_Midiqol
+  // Only works b/c these are all hooks. Otherwise, would need class breakdown.
+  Midiqol: PATCHES_Midiqol,
+  dnd5e: PATCHES_dnd5e
 };
 
 export const PATCHER = new Patcher();
@@ -68,11 +73,11 @@ export function initializePatching() {
   // If ATV is not active, handle the LOS patches needed to run the calculator.
   if ( !MODULES_ACTIVE.TOKEN_VISIBILITY ) PATCHER.registerGroup("LOS");
 
-//   if ( MODULES_ACTIVE.LEVELS ) PATCHER.registerGroup("LEVELS");
-//   else PATCHER.registerGroup("NO_LEVELS");
+  //   If ( MODULES_ACTIVE.LEVELS ) PATCHER.registerGroup("LEVELS");
+  //   else PATCHER.registerGroup("NO_LEVELS");
 
   if ( game.system.id === "dnd5e" ) {
-    if ( MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_MIDI")
+    if ( MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_MIDI");
     else PATCHER.registerGroup("DND5E_NO_MIDI");
   }
 
@@ -106,3 +111,10 @@ export function registerArea3d() {
 export function registerDebug() { PATCHER.registerGroup("DEBUG"); }
 
 export function deregisterDebug() { PATCHER.deregisterGroup("DEBUG"); }
+
+export function registerTemplates() { PATCHER.registerGroup("TEMPLATES"); }
+
+export function deregisterTemplates() {
+  canvas.templates.placeables.forEach(t => TokenCover.removeAttacker(t));
+  PATCHER.deregisterGroup("TEMPLATES");
+}

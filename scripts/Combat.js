@@ -1,9 +1,9 @@
 /* globals
+game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { CoverCalculator } from "./CoverCalculator.js"; // Required to avoid error that Settings cannot be accessed prior to initialization.
 import { Settings } from "./settings.js";
 import { TokenCover } from "./TokenCover.js";
 
@@ -21,7 +21,7 @@ PATCHES.BASIC = {};
  * @param {DocumentModificationContext} options     Additional options which modified the update request
  * @param {string} userId                           The ID of the User who triggered the update workflow
  */
-function updateCombat(document, change, options, userId) {
+function updateCombat(document, change, _options, _userId) {
   if ( !(Object.hasOwn(change, "turn")) ) return;
   const COVER_EFFECTS = Settings.KEYS.COVER_EFFECTS;
   if ( Settings.get(COVER_EFFECTS.USE) === COVER_EFFECTS.CHOICES.COMBATANT ) TokenCover.updateAttackers();
@@ -34,7 +34,7 @@ function updateCombat(document, change, options, userId) {
  * @param {number} updateData.round      The initial round
  * @param {number} updateData.turn       The initial turn
  */
-function combatStart(combat, updateData) {
+function combatStart(_combat, _updateData) {
   combatChange();
 }
 
@@ -48,7 +48,7 @@ function combatStart(combat, updateData) {
  * @param {DocumentModificationContext} options     Additional options which modified the deletion request
  * @param {string} userId                           The ID of the User who triggered the deletion workflow
  */
-function deleteCombat(document, options, userId) {
+function deleteCombat(_document, _options, _userId) {
   if ( game.combats ) return; // Other combats present.
   combatChange();
 }

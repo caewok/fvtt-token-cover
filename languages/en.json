@@ -46,6 +46,9 @@
     "tokencover.settings.display-secret-cover.Name": "Display Cover on Secret Tokens",
     "tokencover.settings.display-secret-cover.Hint": "Toggle whether cover icons should be displayed on tokens with secret disposition.",
 
+    "tokencover.settings.templates-use-cover.Name": "Display Cover for Templates",
+    "tokencover.settings.templates-use-cover.Hint": "Toggle whether to apply cover from templates.",
+
     "tokencover.settings.only-cover-icons.Name": "Only Use Cover Icons",
     "tokencover.settings.only-cover-icons.Hint": "When enabled, only cover icons will be displayed; no cover effects will be used. If you system is unsupported, try enabling this.",
 
@@ -144,6 +147,11 @@
     "tokencover.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
     "tokencover.DrawingConfiguration.isHole.Name": "Drawing is Hole",
     "tokencover.DrawingConfiguration.isHole.Hint": "For area algorithms, treat the space indicated by the drawing (including elevation) as a hole for tiles. Only applicable when Levels is active.",
+
+    "tokencover.dnd5e.spell-configuration.useCover.Name": "Use Cover",
+    "tokencover.dnd5e.spell-configuration.useCover.no": "No",
+    "tokencover.dnd5e.spell-configuration.useCover.caster": "From Caster",
+    "tokencover.dnd5e.spell-configuration.useCover.template": "From Template",
 
     "tokencover.dnd5e.feats.cover.Name": "Ignore certain levels of cover",
     "tokencover.dnd5e.feats.cover.Hint": "Provided by feats and magic items.",

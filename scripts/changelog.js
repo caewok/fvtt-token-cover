@@ -2,7 +2,8 @@
 Hooks,
 game,
 showdown,
-Dialog
+Dialog,
+window
 */
 "use strict";
 
@@ -98,7 +99,7 @@ Hooks.once("ready", () => {
       `
     })
 
-     .addEntry({
+    .addEntry({
       version: "0.7.0",
       title: "Per-User Cover",
       body: `\
@@ -225,7 +226,7 @@ class ChangelogBuilder {
     }
 
     for (let [index, { version, title, body }] of this.#entries.entries()) {
-      let entry = `<strong>v${version}</strong>${title ? ": " + title : ""}`;
+      let entry = `<strong>v${version}</strong>${title ? `: ${title}` : ""}`;
 
       if (index < curr) {
         entry = `<summary>${entry}</summary>`;

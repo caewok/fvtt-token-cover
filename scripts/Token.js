@@ -3,7 +3,8 @@ canvas,
 CONFIG,
 CONST,
 game,
-KeyboardManager
+KeyboardManager,
+MeasuredTemplate
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
@@ -140,6 +141,8 @@ PATCHES.DEBUG.HOOKS = {
  * Hook Token refresh
  * Adjust elevation as the token moves.
  * Adjust cover calculations as the token moves.
+ * @param {PlaceableObject} object    The object instance being refreshed
+ * @param {RenderFlags} flags         Render flags associated with the refresh
  */
 function refreshToken(token, flags) {
   if ( flags.refreshEffects
@@ -149,18 +152,18 @@ function refreshToken(token, flags) {
       || flags.refreshElevation
       || flags.refreshSize
       || flags.refreshShape
-      || flags.refreshRotation)  ) return;
+      || flags.refreshRotation) ) return;
 
   log(`refreshToken hook|${token.name} at ${token.position.x},${token.position.y}. Token is ${token._original ? "Clone" : "Original"}
   \tdocument: ${token.document.x},${token.document.y}
   \tcenter: ${token.center.x},${token.center.y}`);
 
   // Clear this token's cover calculations because it moved.
- // token.tokencover.coverFromMap.clear();
+  // token.tokencover.coverFromMap.clear();
 
   // Clear the cover calculations relative to this token.
-  //const id = token.id;
-  //canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(id));
+  // const id = token.id;
+  // canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(id));
 
 
   // TODO: Do we need to do anything different during token animation?
@@ -232,6 +235,12 @@ function updateToken(tokenD, change, _options, _userId) {
  */
 function controlToken(controlledToken, controlled) {
   log(`controlToken hook|${controlledToken.name} ${controlled ? "selected" : "unselected"}`);
+
+  // Remove all template attackers.
+  [...TokenCover.attackers].forEach(attacker => {
+    if ( attacker instanceof MeasuredTemplate ) TokenCover.removeAttacker(attacker, false);
+  });
+
   if ( controlled ) TokenCover.addAttacker(controlledToken);
   else TokenCover.removeAttacker(controlledToken);
 }
@@ -293,7 +302,6 @@ function applyTokenStatusEffect(token, statusId, active) {
   return active ? CoverCalculator.enableCover(token, COVER.TYPES_FOR_ID[MODULE_ID][statusId])
     : CoverCalculator.disableAllCover(token);
 }
-
 
 
 PATCHES.BASIC.HOOKS = { destroyToken, updateToken, controlToken, targetToken, refreshToken };

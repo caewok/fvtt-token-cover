@@ -1,5 +1,5 @@
 /* globals
-FormApplication,
+DocumentSheetConfig,
 foundry,
 game,
 */
@@ -11,7 +11,7 @@ import { MODULE_ID } from "./const.js";
 /**
  * Submenu for viewing and editing cover rules defined for the system.
  */
-export class CoverRulesConfig extends DocumentSheetConfig  {
+export class CoverRulesConfig extends DocumentSheetConfig {
   /**
    * Set the default size and other basic options for the form.
    */
@@ -40,9 +40,9 @@ export class CoverRulesConfig extends DocumentSheetConfig  {
    * @returns {Promise}         A Promise which resolves once the update operation has completed
    * @abstract
    */
-//   async _updateObject(event, formData) {
-//
-//     throw new Error("A subclass of the FormApplication must implement the _updateObject method.");
-//   }
+  //   async _updateObject(event, formData) {
+  //
+  //     throw new Error("A subclass of the FormApplication must implement the _updateObject method.");
+  //   }
 
 }

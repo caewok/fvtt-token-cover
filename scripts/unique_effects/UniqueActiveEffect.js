@@ -1,5 +1,4 @@
 /* globals
-ActiveEffect,
 CONFIG,
 CONST,
 foundry,

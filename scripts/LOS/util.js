@@ -1,9 +1,10 @@
 /* globals
+CONFIG,
 PIXI
 */
 "use strict";
 
-import { EPSILON } from "../const.js";
+import { EPSILON, MODULE_ID } from "../const.js";
 import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
 import { Point3d } from "../geometry/3d/Point3d.js";
 

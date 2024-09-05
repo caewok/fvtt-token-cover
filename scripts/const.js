@@ -15,6 +15,17 @@ export const ISSUE_URL = "https://github.com/caewok/fvtt-token-cover/issues";
 export const SOCKETS = { socket: null };
 
 export const FLAGS = {
+  DND5E: {
+    SPELL_CONFIG: {
+      USE_COVER: "useCover",
+      CHOICES: {
+        NO: "no",
+        CASTER: "caster",
+        TEMPLATE: "template"
+      }
+    }
+  },
+
   DRAWING: { IS_HOLE: "isHole" },
   COVER: {
     IGNORE: {
@@ -117,6 +128,19 @@ export const FLAGS = {
   VERSION: "version"
 };
 
+export const LABELS = {
+  DND5E: {
+    SPELL_CONFIG: {
+      USE_COVER: {
+        no: `${MODULE_ID}.dnd5e.spell-configuration.useCover.no`,
+        caster: `${MODULE_ID}.dnd5e.spell-configuration.useCover.caster`,
+        template: `${MODULE_ID}.dnd5e.spell-configuration.useCover.template`
+      }
+    }
+  }
+};
+
+
 export const TEMPLATES = {
   TOKEN_CONFIG: `modules/${MODULE_ID}/templates/token-config.html`,
   SETTINGS_BUTTONS: `modules/${MODULE_ID}/templates/settings-buttons.html`,
@@ -124,8 +148,9 @@ export const TEMPLATES = {
   SETTINGS_MENU: `modules/${MODULE_ID}/templates/settings-menu.html`,
   COVER_RULES_PARTIAL: `modules/${MODULE_ID}/templates/cover-rules-partial.html`,
   ACTIVE_EFFECT: `modules/${MODULE_ID}/templates/active-effect-config.html`,
-  COVER_RULES_PF2E: `modules/${MODULE_ID}/templates/cover-rules-pf2e.html`
-}
+  COVER_RULES_PF2E: `modules/${MODULE_ID}/templates/cover-rules-pf2e.html`,
+  SPELL_CONFIG_DND5E: `modules/${MODULE_ID}/templates/dnd5e-spell-config.html`
+};
 
 export const ICONS = {
   SHIELD_THIN_GRAY: {
@@ -176,7 +201,14 @@ export const WEAPON_ATTACK_TYPES = {
   mwak: "DND5E.ActionMWAK",
   msak: "DND5E.ActionMSAK",
   rwak: "DND5E.ActionRWAK",
-  rsak: "DND5E.ActionRSAK"
+  rsak: "DND5E.ActionRSAK",
+  save: "DND5E.ActionSave",
+  abil: "DND5E.ActionAbil",
+  ench: "DND5E.ActionEnch",
+  heal: "DND5E.ActionHeal",
+  other: "DND5E.ActionOther",
+  summ: "DND5E.ActionSumm",
+  util: "DND5E.ActionUtil"
 };
 
 export const MODULES_ACTIVE = { API: {} };

@@ -104,7 +104,7 @@ export class AbstractUniqueEffect {
 
     // Enforce singleton.
     const instances = this.constructor._instances;
-    if ( instances.has(uniqueEffectId) ) return instances.get(uniqueEffectId);
+    if ( instances.has(uniqueEffectId) ) return instances.get(uniqueEffectId); // eslint-disable-line no-constructor-return
     instances.set(this.uniqueEffectId, this);
   }
 
@@ -129,13 +129,13 @@ export class AbstractUniqueEffect {
 
   get document() { return this.#document || (this.#document = this._findLocalDocument(this.uniqueEffectId)); }
 
-  get allowsDuplicates() { return this.document?.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.DUPLICATES_ALLOWED) ?? false }
+  get allowsDuplicates() { return this.document?.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.DUPLICATES_ALLOWED) ?? false; }
 
   /**
    * Control whether it should display a status icon.
    * @type {boolean}
    */
-  get displayStatusIcon() { return this.document?.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.DISPLAY_ICON) ?? true }
+  get displayStatusIcon() { return this.document?.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.DISPLAY_ICON) ?? true; }
 
   /** @type {string} */
   get name() { return this.document?.name; }
@@ -168,7 +168,7 @@ export class AbstractUniqueEffect {
     return {
       name: this.document.name,
       uuid: this.document.uuid
-    }
+    };
   }
 
   /**
@@ -185,7 +185,7 @@ export class AbstractUniqueEffect {
 
     const data = await this.constructor.newDocumentData(uniqueEffectId);
     this.#document = await this.constructor._createNewDocument(data);
-    return;
+
   }
 
   /**
@@ -215,25 +215,25 @@ export class AbstractUniqueEffect {
    * Create an effect document from scratch.
    * @returns {Document|object}
    */
-//  static async _createNewDocument(data) {
-//     console.error("AbstractUniqueEffect#_createDocument must be defined by child class.");
-//   }
+  //  static async _createNewDocument(data) {
+  //     console.error("AbstractUniqueEffect#_createDocument must be defined by child class.");
+  //   }
 
   /**
    * Update the document for this effect.
    * Typically when importing from JSON.
    * @param {object} [config={}]    Data used to update the document
    */
-//   async updateDocument(_data) {
-//     console.error("AbstractUniqueEffect#updateDocument must be defined by child class.");
-//   }
+  //   async updateDocument(_data) {
+  //     console.error("AbstractUniqueEffect#updateDocument must be defined by child class.");
+  //   }
 
   /**
    * Delete the underlying stored document.
    */
-//   async _deleteDocument() {
-//     console.error("AbstractUniqueEffect#updateDocument must be defined by child class.");
-//   }
+  //   async _deleteDocument() {
+  //     console.error("AbstractUniqueEffect#updateDocument must be defined by child class.");
+  //   }
 
   /**
    * Duplicate the document data for this cover effect and place in a new document.
@@ -258,7 +258,7 @@ export class AbstractUniqueEffect {
   async fromJSON(json) {
     try {
       json = JSON.parse(json);
-    } catch (err) {
+    } catch(err) {
       console.error(`${MODULE_ID}|AbstractUniqueEffect#fromJSON`, err);
       return;
     }
@@ -349,7 +349,8 @@ export class AbstractUniqueEffect {
    * This is the only way to add effects to the token; other methods rely on this.
    * Effects may not be added if they would be duplicated.
    * @param {Token } token      Token to add the effects to.
-   * @param {AbstractUniqueEffect[]|Set<AbstractUniqueEffect>} effects   Effects to add. Each unique effect may only be added once each call.
+   * @param {AbstractUniqueEffect[]|Set<AbstractUniqueEffect>} effects   Effects to add.
+   *   Each unique effect may only be added once each call.
    * @returns {boolean} True if change was made.
    */
   static async addToToken(token, effects) {
@@ -361,14 +362,15 @@ export class AbstractUniqueEffect {
   /**
    * Method implemented by child class to add 1+ effects to token locally.
    * @param {Token } token      Token to add the effect(s) to.
-   * @param {AbstractUniqueEffect[]|Set<AbstractUniqueEffect>} effects   Effects to add. Each unique effect may only be added once each call.
+   * @param {AbstractUniqueEffect[]|Set<AbstractUniqueEffect>} effects
+   *   Effects to add. Each unique effect may only be added once each call.
    * @returns {boolean} True if change was made.
    */
   static addToTokenLocally(token, effects, { refresh = true } = {}) {
     const toAdd = this._trimDuplicates(token, effects);
     if ( !toAdd.length ) return false;
     if ( !this._addToTokenLocally(token, toAdd) ) return false;
-    if ( refresh ) this.refreshTokenDisplay(token)
+    if ( refresh ) this.refreshTokenDisplay(token);
     return true;
   }
 
@@ -376,7 +378,8 @@ export class AbstractUniqueEffect {
    * Method implemented by child class to add 1+ effects to the token.
    * Does not consider whether the effect is already present.
    * @param {Token } token      Token to remove the effect from.
-   * @param {AbstractUniqueEffect[]} effects   Effects to add; effects already on token may be duplicated
+   * @param {AbstractUniqueEffect[]} effects
+   *   Effects to add; effects already on token may be duplicated
    * @returns {boolean} True if change was made
    */
   static _addToToken(_token, _effects) {
@@ -398,7 +401,8 @@ export class AbstractUniqueEffect {
   /**
    * Trim duplicate effects from set to add
    * @param {Token } token      Token to add the effects to.
-   * @param {AbstractUniqueEffect[]|Set<AbstractUniqueEffect>} effects   Effects to add. Each unique effect may only be added once each call.
+   * @param {AbstractUniqueEffect[]|Set<AbstractUniqueEffect>} effects
+   *   Effects to add. Each unique effect may only be added once each call.
    * @returns {AbstractUniqueEffect[]} The trimmed set as an array
    */
   static _trimDuplicates(token, effects) {
@@ -536,9 +540,9 @@ export class AbstractUniqueEffect {
           [FLAGS.UNIQUE_EFFECT.DUPLICATES_ALLOWED]: false,
           [FLAGS.UNIQUE_EFFECT.DISPLAY_ICON]: true,
           [FLAGS.VERSION]: game.modules.get(MODULE_ID).version
-          }
         }
-      };
+      }
+    };
   }
 
   /**
@@ -630,7 +634,8 @@ export class AbstractUniqueEffect {
     if ( savedVersion && !foundry.utils.isNewerVersion(moduleVersion, savedVersion) ) return false;
 
     // Overwrite default new data with existing fields if present
-    const changes = foundry.utils.mergeObject(newDocData, doc.toObject(), { inplace: false, insertKeys: false, insertValues: true });
+    const changes = foundry.utils.mergeObject(newDocData, doc.toObject(), {
+      inplace: false, insertKeys: false, insertValues: true });
 
     // Ensure the unique id is correctly formatted by overwriting from a known good value.
     const oldId = doc.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID);
@@ -678,7 +683,7 @@ export class AbstractUniqueEffect {
    * are saved.
    */
   static async _initializeStorageMap() {
-     console.error("AbstractUniqueEffect._initializeStorageMap must be handled by child class");
+    console.error("AbstractUniqueEffect._initializeStorageMap must be handled by child class");
   }
 
   /**
@@ -822,7 +827,7 @@ export class AbstractUniqueEffect {
  * Handle multiple sheet refreshes by using an async queue.
  * If the actor sheet is rendering, wait for it to finish.
  */
-const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
+const sleep = function(delay) => new Promise(resolve => setTimeout(resolve, delay)); // eslint-disable-line no-promise-executor-return
 
 const renderQueue = new AsyncQueue();
 
@@ -841,8 +846,8 @@ const queueObjectFn = function(ms, actor) {
       log(`AbstractUniqueEffect#rerenderActorSheet|Refreshing sheet for ${actor.name}`);
       await actor.sheet.render(true);
     }
-  }
-}
+  };
+};
 
 function queueSheetRefresh(actor) {
   log(`AbstractUniqueEffect#rerenderActorSheet|Queuing sheet refresh for ${actor.name}`);
