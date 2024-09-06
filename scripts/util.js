@@ -16,11 +16,11 @@ import { MODULE_ID } from "./const.js";
  */
 class NullSet extends Set {
   add(value) {
-   console.error(`Attempted to add ${value} to a NullSet.`, value);
+   console.error(`${MODULE_ID}|Attempted to add ${value} to a NullSet.`, value);
    return this;
   }
 }
-const NULL_SET = new NullSet();
+export const NULL_SET = new NullSet();
 
 /**
  * Remove in place multiple elements of an array that would meet a find test.
