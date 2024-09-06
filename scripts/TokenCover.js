@@ -10,11 +10,8 @@ Token
 import { MODULE_ID, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { Settings } from "./settings.js";
-import { log } from "./util.js";
+import { log, NULL_SET } from "./util.js";
 import { TokenIconMixin } from "./TokenIcon.js";
-
-const NULL_SET = new Set();
-
 
 // Class to use to handle added methods and getters for token
 // Encapsulated inside Token.prototype.tokencover

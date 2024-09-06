@@ -22,7 +22,8 @@ import {
   lineIntersectionQuadrilateral3d,
   lineSegmentIntersectsQuadrilateral3d,
   getObjectProperty,
-  log } from "./util.js";
+  log,
+  NULL_SET } from "./util.js";
 
 
 // Geometry folder
@@ -34,7 +35,6 @@ import { ClipperPaths } from "../geometry/ClipperPaths.js";
 import { WallPoints3d } from "./PlaceablesPoints/WallPoints3d.js";
 import { TokenPoints3d } from "./PlaceablesPoints/TokenPoints3d.js";
 
-const NULL_SET = new Set(); // Set intended to signify no items, as a placeholder.
 
 export const POINT_TYPES = {
   CENTER: "points-center",
