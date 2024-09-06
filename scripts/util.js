@@ -11,6 +11,18 @@ renderTemplate
 import { MODULE_ID } from "./const.js";
 
 /**
+ * Define a null set class and null set which always contains 0 elements.
+ * The class removes the add method.
+ */
+class NullSet extends Set {
+  add(value) {
+   console.error(`${MODULE_ID}|Attempted to add ${value} to a NullSet.`, value);
+   return this;
+  }
+}
+export const NULL_SET = new NullSet();
+
+/**
  * Remove in place multiple elements of an array that would meet a find test.
  * @param {Array} arr             The array to modify
  * @param {function} find         Test for whether an element should be removed

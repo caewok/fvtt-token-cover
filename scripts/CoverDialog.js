@@ -17,10 +17,7 @@ import { MODULE_ID, COVER, SOCKETS } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Settings } from "./settings.js";
-import { dialogPromise } from "./util.js";
-
-
-const NULL_SET = new Set();
+import { dialogPromise, NULL_SET } from "./util.js";
 
 // ----- NOTE: Set up sockets so GM can create or modify items ----- //
 Hooks.once("socketlib.ready", () => {
@@ -135,12 +132,24 @@ export class CoverDialog {
   static _coverCalculationsFromJSON(coverCalculations) {
     const coverMap = CONFIG[MODULE_ID].CoverEffect._instances;
     const canvasTokens = new Map(canvas.tokens.placeables.map(t => [t.id, t]));
-    const m = new Map(Object.entries(coverCalculations).map(([tokenId, coverId]) =>
-      [canvasTokens.get(tokenId), new Set([...coverId].map(coverId => coverMap.get(coverId)))]));
-    if ( m.has(undefined) || m.has(null) ) {
-      ui.notifications.error(`${game.i18n.localize("tokencover.name")}|One or more tokens for the GM dialog were not found.`);
-      console.error(`${MODULE_ID}|CoverDialog#_coverCalculationsFromJSON|Tokens not found.`, coverCalculations``);
-      return false;
+    const m = new Map();
+    for ( let [tokenId, coverIds] of Object.entries(coverCalculations) ) {
+      const token = canvasTokens.get(tokenId);
+      if ( !token ) {
+        ui.notifications.error(`${game.i18n.localize("tokencover.name")}|Token ID ${tokenId} not found.`);
+        console.error(`${MODULE_ID}|CoverDialog#_coverCalculationsFromJSON|Token ${tokenId} not found.`, coverCalculations);
+        continue;
+      }
+      let value;
+      if ( !(coverIds instanceof Array) ) coverIds = [coverIds];
+      if ( coverIds[0] === COVER.NONE || coverIds[0] === "NONE" ) value = NULL_SET;
+      else value = new Set([...coverIds].map(coverId => coverMap.get(coverId)));
+      if ( value == null ) {
+        ui.notifications.error(`${game.i18n.localize("tokencover.name")}|coverId not found.`);
+        console.error(`${MODULE_ID}|CoverDialog#_coverCalculationsFromJSON|coverId ${coverIds} not found.`, coverCalculations);
+        continue;
+      }
+      m.set(token, value);
     }
     return m;
   }
@@ -499,7 +508,7 @@ ${html}
    */
   _htmlCoverTable({
     tableId = foundry.utils.randomID(),
-    excludedColumns = NULL_SET,
+    excludedColumns = new Set(),
     imageWidth = 50,
     includeZeroCover = true,
     allowSelection = false,
