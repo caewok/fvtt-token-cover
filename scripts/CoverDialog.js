@@ -133,7 +133,7 @@ export class CoverDialog {
     const coverMap = CONFIG[MODULE_ID].CoverEffect._instances;
     const canvasTokens = new Map(canvas.tokens.placeables.map(t => [t.id, t]));
     const m = new Map();
-    for ( const [tokenId, coverId] of Object.entries(coverCalculations) ) {
+    for ( let [tokenId, coverIds] of Object.entries(coverCalculations) ) {
       const token = canvasTokens.get(tokenId);
       if ( !token ) {
         ui.notifications.error(`${game.i18n.localize("tokencover.name")}|Token ID ${tokenId} not found.`);
@@ -141,11 +141,12 @@ export class CoverDialog {
         continue;
       }
       let value;
-      if ( coverId === COVER.NONE || coverId === "NONE" ) value = NULL_SET;
-      else value = new Set([...coverId].map(coverId => coverMap.get(coverId)));
+      if ( !(coverIds instanceof Array) ) coverIds = [coverIds];
+      if ( coverIds[0] === COVER.NONE || coverIds[0] === "NONE" ) value = NULL_SET;
+      else value = new Set([...coverIds].map(coverId => coverMap.get(coverId)));
       if ( value == null ) {
-        ui.notifications.error(`${game.i18n.localize("tokencover.name")}|coverId ${coverId} not found.`);
-        console.error(`${MODULE_ID}|CoverDialog#_coverCalculationsFromJSON|coverId ${coverId} not found.`, coverCalculations);
+        ui.notifications.error(`${game.i18n.localize("tokencover.name")}|coverId not found.`);
+        console.error(`${MODULE_ID}|CoverDialog#_coverCalculationsFromJSON|coverId ${coverIds} not found.`, coverCalculations);
         continue;
       }
       m.set(token, value);
