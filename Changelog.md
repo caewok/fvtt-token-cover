@@ -1,3 +1,6 @@
+## 0.9.4
+Fix for errors related to selecting No cover.
+
 ## 0.9.3
 ### New Features
 Added a toggle to enable cover measurement for templates. When enabled, hovering over a template will display cover for tokens. (Note that it currently does not test for whether the token is within the template area.) Closes #14.
