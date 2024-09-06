@@ -510,7 +510,7 @@ ${html}
    */
   _htmlCoverTable({
     tableId = foundry.utils.randomID(),
-    excludedColumns = NULL_SET,
+    excludedColumns = new Set(),
     imageWidth = 50,
     includeZeroCover = true,
     allowSelection = false,
