@@ -306,7 +306,7 @@ export class CoverCalculator extends AbstractCalculator {
     for ( let i = 0; i < nTokens; i += 1 ) newPercent += tPercentage[i] * tMaxCover[i];
     newPercent *= diff;
     newPercent += percentNoTokens;
-    return Math.clamped(newPercent, 0, 1);
+    return Math.clamp(newPercent, 0, 1);
   }
 
 
