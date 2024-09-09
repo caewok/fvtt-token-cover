@@ -635,8 +635,9 @@ function applicableRegionBehaviors(attacker, defendingToken, defendingRegions) {
     attackingCenter = attacker;
     attackingRegions = coverRegions(attacker, CONFIG.GeometryLib.utils.gridUnitsToPixels(attacker.z));
   } else {
+    if ( typeof attacker.document.elevation === "undefined" ) console.warn(`applicableRegionBehaviors|elevation is undefined`);
     attackingCenter = attacker.document;
-    attackingRegions = coverRegions(attacker.document, attacker.document.elevation);
+    attackingRegions = coverRegions(attacker.document, attacker.document?.elevation || 0 );
   }
 
   // Accumulate all the potential behaviors.
