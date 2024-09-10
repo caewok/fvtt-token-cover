@@ -23,7 +23,6 @@ export const PATCHES_ItemDirectory = {};
 PATCHES_SidebarTab.BASIC = {};
 PATCHES_ItemDirectory.BASIC = {};
 
-
 /**
  * A fake settings menu that acts as a button; downloading on render and displaying nothing.
  */
