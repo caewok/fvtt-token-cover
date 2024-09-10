@@ -15,7 +15,8 @@ import { Settings } from "./settings.js";
 
 export class DefaultSettings {
   static get changeableSettings() {
-    const { VIEWER, TARGET } = Settings.KEYS.LOS;
+    const { KEYS, ENUMS } = Settings;
+    const { VIEWER, TARGET } = KEYS.LOS;
     return [
       VIEWER.NUM_POINTS,
       VIEWER.INSET,
@@ -23,59 +24,62 @@ export class DefaultSettings {
       TARGET.ALGORITHM,
       TARGET.LARGE,
 
-      TARGET.POINT_OPTIONS.NUM_POINTS,
-      TARGET.POINT_OPTIONS.INSET,
-      TARGET.POINT_OPTIONS.POINTS3D,
+      ENUMS.POINT_OPTIONS.NUM_POINTS,
+      ENUMS.POINT_OPTIONS.INSET,
+      ENUMS.POINT_OPTIONS.POINTS3D,
 
-      Settings.KEYS.DEAD_TOKENS_BLOCK,
-      Settings.KEYS.LIVE_TOKENS.ALGORITHM
+      KEYS.DEAD_TOKENS_BLOCK,
+      KEYS.LIVE_TOKENS.ALGORITHM
     ];
   }
 
   static get pf2e() {
-    const { VIEWER, TARGET } = Settings.KEYS.LOS;
+    const { KEYS, ENUMS } = Settings;
+    const { VIEWER, TARGET } = KEYS.LOS;
     return {
       // LOS Viewer
-      [VIEWER.NUM_POINTS]: Settings.KEYS.POINT_TYPES.CENTER,
+      [VIEWER.NUM_POINTS]: ENUMS.POINT_TYPES.CENTER,
       // Unused: [Settings.KEYS.LOS.VIEWER.INSET]: 0
 
       // LOS Target
-      [TARGET.ALGORITHM]: TARGET.TYPES.POINTS,
+      [TARGET.ALGORITHM]: ENUMS.ALGORITHM_TYPES.POINTS,
       [TARGET.LARGE]: false,
 
       // LOS Point options
-      [TARGET.POINT_OPTIONS.NUM_POINTS]: Settings.KEYS.POINT_TYPES.NINE,
-      [TARGET.POINT_OPTIONS.INSET]: 0.75,
-      [TARGET.POINT_OPTIONS.POINTS3D]: false,
+      [ENUMS.POINT_OPTIONS.NUM_POINTS]: ENUMS.POINT_TYPES.NINE,
+      [ENUMS.POINT_OPTIONS.INSET]: 0.75,
+      [ENUMS.POINT_OPTIONS.POINTS3D]: false,
     };
   }
 
   static get dnd5e() {
-    const { VIEWER, TARGET } = Settings.KEYS.LOS;
+    const { KEYS, ENUMS } = Settings;
+    const { VIEWER, TARGET } = KEYS.LOS;
     return {
       // LOS Viewer
-      [VIEWER.NUM_POINTS]: Settings.KEYS.POINT_TYPES.FOUR,
+      [VIEWER.NUM_POINTS]: ENUMS.POINT_TYPES.FOUR,
       [VIEWER.INSET]: 0,
 
       // LOS Target
-      [TARGET.ALGORITHM]: TARGET.TYPES.POINTS,
+      [TARGET.ALGORITHM]: ENUMS.ALGORITHM_TYPES.POINTS,
       [TARGET.LARGE]: true,
 
       // LOS Point options
-      [TARGET.POINT_OPTIONS.NUM_POINTS]: Settings.KEYS.POINT_TYPES.FOUR,
-      [TARGET.POINT_OPTIONS.INSET]: 0,
-      [TARGET.POINT_OPTIONS.POINTS3D]: false,
+      [ENUMS.POINT_OPTIONS.NUM_POINTS]: ENUMS.POINT_TYPES.FOUR,
+      [ENUMS.POINT_OPTIONS.INSET]: 0,
+      [ENUMS.POINT_OPTIONS.POINTS3D]: false,
     };
   }
 
   static get threeD() {
-    const { VIEWER, TARGET } = Settings.KEYS.LOS;
+    const { KEYS, ENUMS } = Settings;
+    const { VIEWER, TARGET } = KEYS.LOS;
     return {
       // LOS Viewer
-      [VIEWER.NUM_POINTS]: Settings.KEYS.POINT_TYPES.CENTER,
+      [VIEWER.NUM_POINTS]: ENUMS.POINT_TYPES.CENTER,
 
       // LOS Target
-      [TARGET.ALGORITHM]: TARGET.TYPES.AREA3D,
+      [TARGET.ALGORITHM]: ENUMS.ALGORITHM_TYPES.AREA3D,
       [TARGET.PERCENT]: 0.2,
       [TARGET.LARGE]: true
     };
@@ -117,7 +121,7 @@ export class SettingsSubmenu extends FormApplication {
     // Hide certain settings depending on options selected.
     html.find(`[name="${MODULE_ID}.${Settings.KEYS.LOS.TARGET.ALGORITHM}"]`).change(this.losAlgorithmChanged.bind(this));
     html.find(`[name="${MODULE_ID}.${Settings.KEYS.LOS.VIEWER.NUM_POINTS}"]`).change(this.losViewerPointsChanged.bind(this));
-    html.find(`[name="${MODULE_ID}.${Settings.KEYS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS}"]`).change(this.losTargetPointsChanged.bind(this));
+    html.find(`[name="${MODULE_ID}.${Settings.ENUMS.POINT_OPTIONS.NUM_POINTS}"]`).change(this.losTargetPointsChanged.bind(this));
 
     // Buttons to reset settings to defaults.
     html.find(`[name="${MODULE_ID}-button-foundry"]`).click(this.submitSettingUpdates.bind(this, "pf2e"));
@@ -180,7 +184,7 @@ export class SettingsSubmenu extends FormApplication {
     const LOS = Settings.KEYS.LOS;
     const algorithm = Settings.get(LOS.TARGET.ALGORITHM);
     const viewerPoints = Settings.get(LOS.VIEWER.NUM_POINTS);
-    const targetPoints = Settings.get(LOS.TARGET.POINT_OPTIONS.NUM_POINTS);
+    const targetPoints = Settings.get(Settings.ENUMS.POINT_OPTIONS.NUM_POINTS);
     this.#updatePointOptionDisplay(algorithm);
     this.#updateViewerInsetDisplay(viewerPoints);
     this.#updateTargetInsetDisplay(targetPoints, algorithm);
@@ -190,7 +194,7 @@ export class SettingsSubmenu extends FormApplication {
   _updateDisplayOptions() {
     const algorithm = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.TARGET.ALGORITHM}`).value;
     const viewerPoints = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.VIEWER.NUM_POINTS}`).value;
-    const targetPoints = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS}`).value;
+    const targetPoints = document.getElementsByName(`${MODULE_ID}.${Settings.ENUMS.POINT_OPTIONS.NUM_POINTS}`).value;
     this.#updatePointOptionDisplay(algorithm);
     this.#updateViewerInsetDisplay(viewerPoints);
     this.#updateTargetInsetDisplay(targetPoints, algorithm);
@@ -204,7 +208,7 @@ export class SettingsSubmenu extends FormApplication {
   }
 
   #updateViewerInsetDisplay(numPoints) {
-    const displayInsetOpts = numPoints !== Settings.KEYS.POINT_TYPES.CENTER ? "block" : "none";
+    const displayInsetOpts = numPoints !== Settings.ENUMS.POINT_TYPES.CENTER ? "block" : "none";
     const elem = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.VIEWER.INSET}`);
     const div = elem[0].parentElement.parentElement;
     div.style.display = displayInsetOpts;
@@ -217,15 +221,15 @@ export class SettingsSubmenu extends FormApplication {
   }
 
   #updatePointOptionDisplay(losAlgorithm) {
-    const displayPointOpts = losAlgorithm === Settings.KEYS.LOS.TARGET.TYPES.POINTS ? "block" : "none";
-    const PT_OPTS = Settings.KEYS.LOS.TARGET.POINT_OPTIONS;
+    const displayPointOpts = losAlgorithm === Settings.ENUMS.ALGORITHM_TYPES.POINTS ? "block" : "none";
+    const PT_OPTS = Settings.ENUMS.POINT_OPTIONS;
     for ( const opt of Object.values(PT_OPTS) ) {
       const elem = document.getElementsByName(`${MODULE_ID}.${opt}`);
       const div = elem[0].parentElement.parentElement;
       div.style.display = displayPointOpts;
     }
 
-    const numPointsTarget = Settings.get(Settings.KEYS.LOS.TARGET.POINT_OPTIONS.NUM_POINTS);
+    const numPointsTarget = Settings.get(Settings.ENUMS.POINT_OPTIONS.NUM_POINTS);
     this.#updateTargetInsetDisplay(numPointsTarget, losAlgorithm);
   }
 
@@ -238,10 +242,10 @@ export class SettingsSubmenu extends FormApplication {
   }
 
   #updateTargetInsetDisplay(numPoints, losAlgorithm) {
-    const hasMultiplePoints = losAlgorithm === Settings.KEYS.LOS.TARGET.TYPES.POINTS
-      && numPoints !== Settings.KEYS.POINT_TYPES.CENTER;
+    const hasMultiplePoints = losAlgorithm === Settings.ENUMS.ALGORITHM_TYPES.POINTS
+      && numPoints !== Settings.ENUMS.POINT_TYPES.CENTER;
     const displayInsetOpts = hasMultiplePoints ? "block" : "none";
-    const elem = document.getElementsByName(`${MODULE_ID}.${Settings.KEYS.LOS.TARGET.POINT_OPTIONS.INSET}`);
+    const elem = document.getElementsByName(`${MODULE_ID}.${Settings.ENUMS.POINT_OPTIONS.INSET}`);
     const div = elem[0].parentElement.parentElement;
     div.style.display = displayInsetOpts;
   }

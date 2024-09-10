@@ -23,8 +23,8 @@ PATCHES.BASIC = {};
  */
 function updateCombat(document, change, _options, _userId) {
   if ( !(Object.hasOwn(change, "turn")) ) return;
-  const COVER_EFFECTS = Settings.KEYS.COVER_EFFECTS;
-  if ( Settings.get(COVER_EFFECTS.USE) === COVER_EFFECTS.CHOICES.COMBATANT ) TokenCover.updateAttackers();
+  const { KEYS, ENUMS } = Settings;
+  if ( Settings.get(KEYS.COVER_EFFECTS.USE) === ENUMS.USE_CHOICES.COMBATANT ) TokenCover.updateAttackers();
 }
 
 /**
@@ -61,10 +61,9 @@ PATCHES.BASIC.HOOKS = { updateCombat, combatStart, deleteCombat};
  * If combat starts/stops, update attackers.
  */
 function combatChange() {
-  const COVER_EFFECTS = Settings.KEYS.COVER_EFFECTS;
-  const COMBAT = COVER_EFFECTS.CHOICES.COMBAT;
-  const COMBATANT = COVER_EFFECTS.CHOICES.COMBATANT;
-  const useCover = Settings.get(COVER_EFFECTS.USE);
+  const { KEYS, ENUMS } = Settings;
+  const { COMBAT, COMBATANT } = ENUMS.USE_CHOICES;
+  const useCover = Settings.get(KEYS.COVER_EFFECTS.USE);
   if ( useCover === COMBAT || useCover === COMBATANT ) return TokenCover.updateAttackers();
 }
 

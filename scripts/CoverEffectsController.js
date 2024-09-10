@@ -203,7 +203,6 @@ export class CoverEffectsController {
     this._viewMvc.render();
   }
 
-
   /**
    * Open a dialog to import data into a terrain.
    * @param {UniqueActiveEffect} terrain    The terrain for which to overwrite
