@@ -3,7 +3,8 @@ canvas,
 CONFIG,
 foundry,
 game,
-ItemDirectory
+ItemDirectory,
+readTextFromFile
 ui
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -15,11 +16,54 @@ import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { registerArea3d, registerDebug, deregisterDebug, registerTemplates, deregisterTemplates } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
 import { POINT_TYPES } from "./LOS/AlternativeLOS.js";
+import { renderTemplateSync } from "./util.js";
 
 export const PATCHES_SidebarTab = {};
 export const PATCHES_ItemDirectory = {};
 PATCHES_SidebarTab.BASIC = {};
 PATCHES_ItemDirectory.BASIC = {};
+
+
+/**
+ * A fake settings menu that acts as a button; downloading on render and displaying nothing.
+ */
+class exportSettingsButton extends foundry.applications.api.ApplicationV2 {
+  async render() {
+    Settings.exportSettingsToJSON();
+    const moduleName = game.i18n.localize(`${MODULE_ID}.name`);
+    ui.notifications.notify(`The ${moduleName} settings have been downloaded to a JSON file.`);
+  }
+}
+
+/**
+ * Simple import dialog class for importing settings.
+ */
+class importSettingsDialog extends foundry.applications.api.DialogV2 {
+  _initializeApplicationOptions(options) {
+    const moduleName = game.i18n.localize(`${MODULE_ID}.name`);
+    const content = renderTemplateSync("templates/apps/import-data.html", {
+      hint1: `Replace ${moduleName} settings with those in a JSON file.`,
+      hint2: "This cannot be undone!"
+    });
+    const importCallBack = async (_event, _button, dialog) => {
+      const fileInput = dialog.getElementsByTagName("input")[0];
+      if ( !fileInput ) return console.error(`${MODULE_ID}|Error with the dialog input form.`);
+      const file = fileInput.files[0];
+      if ( !file ) return ui.notifications.error("You did not upload a data file!");
+      const json = await readTextFromFile(file);
+      await Settings.importSettingsFromJSON(json);
+      ui.notifications.notify(`${moduleName} settings updated.`);
+    };
+    options ??= {};
+    options.window = { title: `${moduleName}|Import Settings` };
+    options.content = content;
+    options.buttons = [
+      { action: "Replace", label: "Replace Settings", icon: "fas fa-file-import", callback: importCallBack },
+      { action: "Cancel", label: "Cancel", icon: "fas fa-xmark", default: true }
+    ];
+    return super._initializeApplicationOptions(options);
+  }
+}
 
 /**
  * Remove the terrains item from sidebar so it does not display.
@@ -46,30 +90,49 @@ function removeCoverItemHook(directory) {
 PATCHES_SidebarTab.BASIC.HOOKS = { changeSidebarTab: removeCoverItemHook };
 PATCHES_ItemDirectory.BASIC.HOOKS = { renderItemDirectory: removeCoverItemHook };
 
-
-const USE_CHOICES = {
-  NEVER: "never",
-  COMBAT: "combat",
-  COMBATANT: "combatant",
-  ATTACK: "attack",
-  ALWAYS: "always"
+const CONTROLS = {
+  COVER_EFFECTS: "cover-effects-control"
 };
 
-const CONFIRM_CHOICES = {
-  USER: "cover-workflow-confirm-user",
-  USER_CANCEL: "cover-workflow-confirm-user-cancel",
-  GM: "cover-workflow-confirm-gm",
-  AUTO: "cover-workflow-confirm-automatic"
+const MENUS = {
+  SUBMENU: "submenu",
+  EXPORT_BUTTON: "exportButton",
+  IMPORT_BUTTON: "importButton"
+};
+
+const ENUMS = {
+  USE_CHOICES: {
+    NEVER: "never",
+    COMBAT: "combat",
+    COMBATANT: "combatant",
+    ATTACK: "attack",
+    ALWAYS: "always"
+  },
+  CONFIRM_CHOICES: {
+    USER: "cover-workflow-confirm-user",
+    USER_CANCEL: "cover-workflow-confirm-user-cancel",
+    GM: "cover-workflow-confirm-gm",
+    AUTO: "cover-workflow-confirm-automatic"
+  },
+  POINT_TYPES,
+  ALGORITHM_TYPES: {
+    POINTS: "los-points",
+    AREA2D: "los-area-2d",
+    AREA3D: "los-area-3d",
+    AREA3D_GEOMETRIC: "los-area-3d-geometric",
+    AREA3D_WEBGL1: "los-area-3d-webgl1",
+    AREA3D_WEBGL2: "los-area-3d-webgl2",
+    AREA3D_HYBRID: "los-area-3d-hybrid"
+  },
+  POINT_OPTIONS: {
+    NUM_POINTS: "los-points-target",
+    INSET: "los-inset-target",
+    POINTS3D: "los-points-3d"
+  }
 };
 
 export const SETTINGS = {
-  CONTROLS: {
-    COVER_EFFECTS: "cover-effects-control"
-  },
-
   UNIQUE_EFFECTS_FLAGS_DATA: "uniqueEffectsFlagsData",
-
-  SUBMENU: "submenu",
 
   DISPLAY_COVER_BOOK: "display-cover-book",
 
@@ -81,7 +144,7 @@ export const SETTINGS = {
 
   COVER_EFFECTS: {
     USE: "use-cover-effects",
-    CHOICES: USE_CHOICES,
+    // CHOICES: USE_CHOICES,
     DATA: "cover-effects-data",
     TARGETING: "cover-effects-targeting",
     RULES: "cover-rules"
@@ -92,11 +155,11 @@ export const SETTINGS = {
     CONFIRM: "cover-workflow-confirm",
     CONFIRM_CHANGE_ONLY: "cover-workflow-confirm-change-only",
     CONFIRM_NO_COVER: "cover-workflow-confirm-no-cover",
-    CONFIRM_CHOICES,
+    // CONFIRM_CHOICES,
   },
 
   // Taken from Alt. Token Visibility
-  POINT_TYPES,
+  // POINT_TYPES,
 
   LOS: {
     VIEWER: {
@@ -107,20 +170,20 @@ export const SETTINGS = {
     TARGET: {
       ALGORITHM: "los-algorithm",
       LARGE: "los-large-target",
-      TYPES: {
-        POINTS: "los-points",
-        AREA2D: "los-area-2d",
-        AREA3D: "los-area-3d",
-        AREA3D_GEOMETRIC: "los-area-3d-geometric",
-        AREA3D_WEBGL1: "los-area-3d-webgl1",
-        AREA3D_WEBGL2: "los-area-3d-webgl2",
-        AREA3D_HYBRID: "los-area-3d-hybrid"
-      },
-      POINT_OPTIONS: {
-        NUM_POINTS: "los-points-target",
-        INSET: "los-inset-target",
-        POINTS3D: "los-points-3d"
-      }
+//       TYPES: {
+//         POINTS: "los-points",
+//         AREA2D: "los-area-2d",
+//         AREA3D: "los-area-3d",
+//         AREA3D_GEOMETRIC: "los-area-3d-geometric",
+//         AREA3D_WEBGL1: "los-area-3d-webgl1",
+//         AREA3D_WEBGL2: "los-area-3d-webgl2",
+//         AREA3D_HYBRID: "los-area-3d-hybrid"
+//       },
+//       POINT_OPTIONS: {
+//         NUM_POINTS: "los-points-target",
+//         INSET: "los-inset-target",
+//         POINTS3D: "los-points-3d"
+//       }
     }
   },
 
@@ -142,6 +205,11 @@ export class Settings extends ModuleSettingsAbstract {
   /** @type {object} */
   static KEYS = SETTINGS;
 
+  /** @type {object} */
+  static ENUMS = ENUMS;
+
+  /** @type {object} */
+  static CONTROLS = CONTROLS;
 
   static toggleDebugGraphics(enabled = false) {
     if ( enabled ) registerDebug();
@@ -157,11 +225,11 @@ export class Settings extends ModuleSettingsAbstract {
    * Register all settings
    */
   static registerAll() {
-    const { KEYS, register, registerMenu, localize } = this;
-    const PT_TYPES = KEYS.POINT_TYPES;
+    const { KEYS, ENUMS, register, registerMenu, localize } = this;
+    const PT_TYPES = ENUMS.POINT_TYPES;
     const RTYPES = [PT_TYPES.CENTER, PT_TYPES.FIVE, PT_TYPES.NINE];
-    const PT_OPTS = KEYS.LOS.TARGET.POINT_OPTIONS;
-    const LTYPES = foundry.utils.filterObject(KEYS.LOS.TARGET.TYPES, { POINTS: 0, AREA2D: 0, AREA3D: 0 });
+    const PT_OPTS = ENUMS.POINT_OPTIONS;
+    const LTYPES = foundry.utils.filterObject(ENUMS.ALGORITHM_TYPES, { POINTS: 0, AREA2D: 0, AREA3D: 0 });
     const losChoices = {};
     const ptChoices = {};
     const rangeChoices = {};
@@ -174,22 +242,38 @@ export class Settings extends ModuleSettingsAbstract {
     Object.values(LTYPES).forEach(type => losChoices[type] = localize(type));
     Object.values(PT_TYPES).forEach(type => ptChoices[type] = localize(type));
 
-    Object.values(USE_CHOICES).forEach(type => coverTypeUseChoices[type] = localize(type));
-    Object.values(USE_CHOICES).forEach(type => coverEffectUseChoices[type] = localize(type));
-    Object.values(CONFIRM_CHOICES).forEach(type => coverConfirmChoices[type] = localize(type));
+    Object.values(ENUMS.USE_CHOICES).forEach(type => coverTypeUseChoices[type] = localize(type));
+    Object.values(ENUMS.USE_CHOICES).forEach(type => coverEffectUseChoices[type] = localize(type));
+    Object.values(ENUMS.CONFIRM_CHOICES).forEach(type => coverConfirmChoices[type] = localize(type));
 
     // For most systems, no hooks set up into their attack sequence, so applying effects on attack is out.
     if ( game.system.id !== "dnd5e" ) {
-      delete coverTypeUseChoices[USE_CHOICES.ATTACK];
-      delete coverEffectUseChoices[USE_CHOICES.ATTACK];
+      delete coverTypeUseChoices[ENUMS.USE_CHOICES.ATTACK];
+      delete coverEffectUseChoices[ENUMS.USE_CHOICES.ATTACK];
     }
 
     // ----- Main Settings Menu ----- //
-    registerMenu(KEYS.SUBMENU, {
-      name: localize(`${KEYS.SUBMENU}.Name`),
-      label: localize(`${KEYS.SUBMENU}.Label`),
+    registerMenu(MENUS.SUBMENU, {
+      name: localize(`${MENUS.SUBMENU}.Name`),
+      label: localize(`${MENUS.SUBMENU}.Label`),
       icon: "fas fa-user-gear",
       type: SettingsSubmenu,
+      restricted: true
+    });
+
+    registerMenu(MENUS.EXPORT_BUTTON, {
+      name: localize(`${MENUS.EXPORT_BUTTON}.Name`),
+      label: localize(`${MENUS.EXPORT_BUTTON}.Label`),
+      icon: "far fa-file-arrow-down",
+      type: exportSettingsButton,
+      restricted: true
+    });
+
+    registerMenu(MENUS.IMPORT_BUTTON, {
+      name: localize(`${MENUS.IMPORT_BUTTON}.Name`),
+      label: localize(`${MENUS.IMPORT_BUTTON}.Label`),
+      icon: "far fa-file-arrow-up",
+      type: importSettingsDialog,
       restricted: true
     });
 
@@ -203,7 +287,7 @@ export class Settings extends ModuleSettingsAbstract {
       onChange: value => {
         if ( !canvas.scene || !ui.controls.activeControl === "token" ) return;
         const tokenTools = ui.controls.controls.find(c => c.name === "token");
-        const coverBook = tokenTools.tools.find(c => c.name === SETTINGS.CONTROLS.COVER_EFFECTS);
+        const coverBook = tokenTools.tools.find(c => c.name === CONTROLS.COVER_EFFECTS);
         if ( !coverBook ) return;
         coverBook.visible = value;
         ui.controls.render(true);
@@ -356,7 +440,7 @@ export class Settings extends ModuleSettingsAbstract {
       config: false,
       type: String,
       choices: coverEffectUseChoices,
-      default: KEYS.COVER_EFFECTS.CHOICES.NEVER,
+      default: ENUMS.USE_CHOICES.NEVER,
       tab: "workflow",
       onChange: _value => TokenCover._forceUpdateAllTokenCover()
     });
@@ -390,7 +474,7 @@ export class Settings extends ModuleSettingsAbstract {
         config: false,
         type: String,
         choices: coverConfirmChoices,
-        default: KEYS.COVER_WORKFLOW.CONFIRM_CHOICES.AUTO,
+        default: ENUMS.CONFIRM_CHOICES.AUTO,
         horizontalDivider: true,
         tab: "workflow"
       });
@@ -528,9 +612,9 @@ export class Settings extends ModuleSettingsAbstract {
   }
 
   static typesWebGL2 = new Set([
-    SETTINGS.LOS.TARGET.TYPES.AREA3D,
-    SETTINGS.LOS.TARGET.TYPES.AREA3D_WEBGL2,
-    SETTINGS.LOS.TARGET.TYPES.AREA3D_HYBRID]);
+    ENUMS.ALGORITHM_TYPES.AREA3D,
+    ENUMS.ALGORITHM_TYPES.AREA3D_WEBGL2,
+    ENUMS.ALGORITHM_TYPES.AREA3D_HYBRID]);
 
   static losAlgorithmChange(key, value) {
     this.cache.delete(key);

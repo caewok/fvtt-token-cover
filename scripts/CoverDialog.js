@@ -256,7 +256,7 @@ export class CoverDialog {
       && !this._coverCalculationsDiffer() ) return this.coverCalculations;
 
     const coverCheckOption = Settings.get(WF.CONFIRM);
-    const choices = WF.CONFIRM_CHOICES;
+    const choices = Settings.ENUMS.CONFIRM_CHOICES;
     let coverCalculationsJSON;
     let askGM = false;
     switch ( coverCheckOption ) {
@@ -676,13 +676,13 @@ export async function coverAttackWorkflow(attacker, targets, opts) {
   // - false if user canceled
   // - undefined if covercheck is set to NONE. NONE may still require chat display.
   // - Map otherwise
-  const KEYS = Settings.KEYS;
+  const { KEYS, ENUMS } = Settings;
   const coverDialog = new CoverDialog(attacker, targets, opts);
   const coverCalculations = await coverDialog.workflow();
   if ( coverCalculations === false ) return false;  // User canceled
 
   // Update the targets' cover effects.
-  if ( Settings.get(KEYS.COVER_EFFECTS.USE) !== KEYS.COVER_EFFECTS.CHOICES.NEVER ) {
+  if ( Settings.get(KEYS.COVER_EFFECTS.USE) !== ENUMS.USE_CHOICES.NEVER ) {
     const CoverEffect = CONFIG[MODULE_ID].CoverEffect;
     for ( const [defender, coverEffects] of coverCalculations.entries() ) {
       if ( CoverEffect.coverOverrideApplied(defender) ) continue;

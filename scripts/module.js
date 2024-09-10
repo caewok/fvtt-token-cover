@@ -75,6 +75,7 @@ Hooks.once("init", function() {
 
   // Must go at end?
   loadTemplates(Object.values(TEMPLATES)).then(_value => log("Templates loaded."));
+  loadTemplates(["templates/apps/import-data.html"]); // For settings dialog.
 });
 
 Hooks.once("setup", function() {
@@ -110,8 +111,8 @@ Hooks.once("canvasReady", function() {
 
 // Add pathfinding button to token controls.
 const COVER_EFFECTS_CONTROL = {
-  name: Settings.KEYS.CONTROLS.COVER_EFFECTS,
-  title: `${MODULE_ID}.controls.${Settings.KEYS.CONTROLS.COVER_EFFECTS}.name`,
+  name: Settings.CONTROLS.COVER_EFFECTS,
+  title: `${MODULE_ID}.controls.${Settings.CONTROLS.COVER_EFFECTS}.name`,
   icon: FA_ICONS.MODULE,
   button: true,
   onClick: () => { new CoverEffectsApp().render(true); },

@@ -307,14 +307,14 @@ class TokenCoverBase {
    */
   canApplyCover() {
     const token = this.token;
-    const COVER_EFFECTS = Settings.KEYS.COVER_EFFECTS;
+    const { KEYS, ENUMS } = Settings;
     if ( !token.isTargeted ) {
       if ( !token.isVisible ) return false;
-      if ( Settings.get(COVER_EFFECTS.TARGETING) ) return false;
+      if ( Settings.get(KEYS.COVER_EFFECTS.TARGETING) ) return false;
     }
     if ( this.isAttacker() ) return false;
-    const CHOICES = COVER_EFFECTS.CHOICES;
-    switch ( Settings.get(COVER_EFFECTS.USE) ) {
+    const CHOICES = ENUMS.USE_CHOICES;
+    switch ( Settings.get(KEYS.COVER_EFFECTS.USE) ) {
       case CHOICES.NEVER: return false;
       case CHOICES.ATTACK: return false; // Handled by forcing application in the workflow.
       case CHOICES.ALWAYS: return true;
@@ -331,9 +331,9 @@ class TokenCoverBase {
    * @return {boolean}
    */
   isAttacker() {
-    const { USE, CHOICES } = Settings.KEYS.COVER_EFFECTS;
+    const CHOICES = Settings.ENUMS.USE_CHOICES;
     const token = this.token;
-    switch ( Settings.get(USE) ) {
+    switch ( Settings.get(Settings.KEYS.COVER_EFFECTS.USE) ) {
       case CHOICES.NEVER: return false;
       case CHOICES.COMBATANT: {
         return game.combat?.started
