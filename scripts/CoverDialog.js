@@ -508,7 +508,7 @@ ${html}
    */
   _htmlCoverTable({
     tableId = foundry.utils.randomID(),
-    excludedColumns = new Set(),
+    excludedColumns = NULL_SET,
     imageWidth = 50,
     includeZeroCover = true,
     allowSelection = false,
@@ -518,7 +518,7 @@ ${html}
     targetData ??= this._targetData();
     const allCover = new Set(CONFIG[MODULE_ID].CoverEffect._instances.values());
     const overlappingCover = allCover.filter(ct => ct.canOverlap);
-    if ( !overlappingCover.size ) excludedColumns.add("overlappingCover");
+    if ( !overlappingCover.size ) excludedColumns = new Set([...excludedColumns, "overlappingCover"]);
 
     let htmlTable =
     `
