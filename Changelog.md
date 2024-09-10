@@ -1,6 +1,7 @@
 ## 0.9.5
 Fix for cover going to 100% whenever the defender is elevated. Closes #34.
 Added import and export buttons for the settings configuration.
+Switch to `Math.clamp` to avoid deprecation warning.
 
 ## 0.9.4
 Fix for errors related to selecting No cover.
