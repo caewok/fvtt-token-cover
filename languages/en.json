@@ -144,6 +144,12 @@
     "tokencover.settings.submenu.Label": "GM Cover Settings",
     "tokencover.settings.submenu.title": "Alternative Token Cover Settings",
 
+    "tokencover.settings.exportButton.Name": "",
+    "tokencover.settings.exportButton.Label": "Export Settings",
+
+    "tokencover.settings.importButton.Name": "",
+    "tokencover.settings.importButton.Label": "Import Settings",
+
     "tokencover.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
     "tokencover.DrawingConfiguration.isHole.Name": "Drawing is Hole",
     "tokencover.DrawingConfiguration.isHole.Hint": "For area algorithms, treat the space indicated by the drawing (including elevation) as a hole for tiles. Only applicable when Levels is active.",

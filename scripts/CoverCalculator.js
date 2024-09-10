@@ -50,10 +50,11 @@ export class CoverCalculator extends AbstractCalculator {
 
     // Target settings
     const TARGET = Settings.KEYS.LOS.TARGET;
+    const ENUMS = Settings.ENUMS;
     cfg.largeTarget = Settings.get(TARGET.LARGE);
-    cfg.numTargetPoints = Settings.get(TARGET.POINT_OPTIONS.NUM_POINTS);
-    cfg.targetInset = Settings.get(TARGET.POINT_OPTIONS.INSET);
-    cfg.points3d = Settings.get(TARGET.POINT_OPTIONS.POINTS3D);
+    cfg.numTargetPoints = Settings.get(ENUMS.POINT_OPTIONS.NUM_POINTS);
+    cfg.targetInset = Settings.get(ENUMS.POINT_OPTIONS.INSET);
+    cfg.points3d = Settings.get(ENUMS.POINT_OPTIONS.POINTS3D);
 
     return cfg;
   }
@@ -306,7 +307,7 @@ export class CoverCalculator extends AbstractCalculator {
     for ( let i = 0; i < nTokens; i += 1 ) newPercent += tPercentage[i] * tMaxCover[i];
     newPercent *= diff;
     newPercent += percentNoTokens;
-    return Math.clamped(newPercent, 0, 1);
+    return Math.clamp(newPercent, 0, 1);
   }
 
 

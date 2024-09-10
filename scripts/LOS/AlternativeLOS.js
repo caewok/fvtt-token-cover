@@ -207,9 +207,8 @@ export class AlternativeLOS {
       if ( viewer instanceof Token ) Point3d.fromTokenVisionHeight(viewer, this.#viewerPoint);
       else if ( viewer instanceof Point3d ) this.#viewerPoint.copyFrom(viewer);
       else this.#viewerPoint.set(viewer.document.x, viewer.document.y, viewer.elevationZ);
-
+      this.#viewerPoint.add(this.#config.visionOffset, this.#viewerPoint);
     }
-    this.#viewerPoint.add(this.#config.visionOffset, this.#viewerPoint);
     return this.#viewerPoint;
   }
 
