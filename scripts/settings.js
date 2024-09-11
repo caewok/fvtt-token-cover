@@ -73,21 +73,14 @@ function removeCoverItemFromSidebar(dir) {
   if ( !(dir instanceof ItemDirectory) ) return;
   if ( !game.items ) return;
   for ( const item of game.items ) {
-    if ( !(item.name === "Cover" || item.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID)) ) continue;
+    if ( !(item.name === "Unique Active Effects" || item.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID)) ) continue;
     const li = dir.element.find(`li[data-document-id="${item.id}"]`);
     li.remove();
   }
 }
 
-/**
- * Hooks for changeSidebarTab and renderItemDirectory to remove the terrains item from the directory.
- */
-function removeCoverItemHook(directory) {
-  removeCoverItemFromSidebar(directory);
-}
-
-PATCHES_SidebarTab.BASIC.HOOKS = { changeSidebarTab: removeCoverItemHook };
-PATCHES_ItemDirectory.BASIC.HOOKS = { renderItemDirectory: removeCoverItemHook };
+PATCHES_SidebarTab.BASIC.HOOKS = { changeSidebarTab: removeCoverItemFromSidebar };
+PATCHES_ItemDirectory.BASIC.HOOKS = { renderItemDirectory: removeCoverItemFromSidebar };
 
 const CONTROLS = {
   COVER_EFFECTS: "cover-effects-control"
