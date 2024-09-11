@@ -1,3 +1,8 @@
+## 0.9.6
+Update the macros to correct error re null set and undefined `coverCalc`.
+Fix for dialog displaying percent cover as 0 when it is not.
+Fix hiding of the cover item in the sidebar.
+
 ## 0.9.5
 Fix for cover going to 100% whenever the defender is elevated. Closes #34.
 Added import and export buttons for the settings configuration.
