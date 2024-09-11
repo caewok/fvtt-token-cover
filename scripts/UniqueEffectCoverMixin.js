@@ -26,19 +26,22 @@ export function CoverMixin(Base) {
     get priority() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.PRIORITY] || 0; }
 
     /** @type {boolean} */
-    get canOverlap() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.CAN_OVERLAP]; }
+    get canOverlap() { return Boolean(this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.CAN_OVERLAP]); }
 
     /** @type {boolean} */
-    get includeWalls() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.INCLUDE_WALLS]; }
+    get includeWalls() {
+      // Default to true if no flag.
+      return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.INCLUDE_WALLS] ?? true;
+    }
 
     /** @type {boolean} */
-    get liveTokensBlock() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.LIVE_TOKENS_BLOCK]; }
+    get liveTokensBlock() { return Boolean(this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.LIVE_TOKENS_BLOCK]); }
 
     /** @type {boolean} */
-    get deadTokensBlock() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.DEAD_TOKENS_BLOCK]; }
+    get deadTokensBlock() { return Boolean(this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.DEAD_TOKENS_BLOCK]); }
 
     /** @type {boolean} */
-    get proneTokensBlock() { return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.PRONE_TOKENS_BLOCK]; }
+    get proneTokensBlock() { return Boolean(this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.PRONE_TOKENS_BLOCK]); }
 
     /** @type {boolean} */
     get includeTokens() { return this.liveTokensBlock || this.deadTokensBlock; }
