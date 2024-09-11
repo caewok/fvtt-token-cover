@@ -566,9 +566,10 @@ class TokenCoverBase {
    */
   static updateCoverFromToken(tokenToUpdate, attacker) {
     const cc = attacker.tokencover?.coverCalculator ?? new CoverCalculator(attacker);
+    cc.calc.config.wallsBlock = true; // Some cover effects will measure percent cover without walls.
     const percentCover = cc.percentCover(tokenToUpdate);
     const cover = cc.coverEffects(tokenToUpdate);
-    log(`updateCoverFromToken|${attacker.name} ⚔️ ${tokenToUpdate.name}: ${percentCover}
+    log(`updateCoverFromToken|${attacker.name} ⚔️ ${tokenToUpdate.name}: ${percentCover} ${[...cover].map(c => c.name).join(", ")}
     \t${attacker.name} ${attacker.document?.x},${attacker.document?.y} Center ${attacker.center?.x},${attacker.center?.y}
     \t${tokenToUpdate.name} ${tokenToUpdate.document.x},${tokenToUpdate.document.y} Center ${tokenToUpdate.center.x},${tokenToUpdate.center.y}`);
     tokenToUpdate.tokencover.coverFromMap.set(attacker.id ?? attacker, { cover, percentCover});
