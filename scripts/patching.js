@@ -19,6 +19,9 @@ import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
 import { PATCHES as PATCHES_ItemSheet } from "./ItemSheet.js";
 
+// dnd5e
+import { PATCHES as PATCHES_AttackActivity } from "./AttackActivity.js";
+
 // LOS
 import { PATCHES as PATCHES_PointSourcePolygon } from "./LOS/PointSourcePolygon.js";
 import { PATCHES as PATCHES_Tile } from "./LOS/Tile.js";
@@ -42,6 +45,7 @@ import { PATCHES as PATCHES_dnd5e } from "./dnd5e.js";
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
   ActiveEffectConfig: PATCHES_ActiveEffectConfig,
+  ["CONFIG.DND5E.activityTypes.attack.documentClass"]: PATCHES_AttackActivity,
   ClientSettings: PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
   Item: PATCHES_Item,
@@ -78,7 +82,8 @@ export function initializePatching() {
 
   if ( game.system.id === "dnd5e" ) {
     if ( MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_MIDI");
-    else PATCHER.registerGroup("DND5E_NO_MIDI");
+    else if ( foundry.utils.isNewerVersion(game.system.version, "3.99") ) PATCHER.registerGroup("DND5E_v4");
+    else PATCHER.registerGroup("DND5E_v3");
   }
 
   if ( game.system.id === "sfrpg" ) PATCHER.registerGroup("sfrpg");
