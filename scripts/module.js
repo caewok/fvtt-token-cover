@@ -172,7 +172,7 @@ function initializeConfig() {
      * Default terrain jsons
      * @type {string} File path
      */
-    defaultCoverJSONs: defaultCover()
+    defaultCoverJSONs: defaultCover(),
 
     /**
      * The following statuses will cause the token to be ignored for purposes of granting cover.
