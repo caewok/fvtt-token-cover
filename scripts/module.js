@@ -173,6 +173,14 @@ function initializeConfig() {
      * @type {string} File path
      */
     defaultCoverJSONs: defaultCover()
+
+    /**
+     * The following statuses will cause the token to be ignored for purposes of granting cover.
+     * I.e., a token with "dead" status will not contribute cover if inbetween an attacker and a defender.
+     * Effectively overrides the "Maximum Cover" setting in the token config.
+     * Should be ids from `CONFIG.statusEffects`.
+     */
+    statusesGrantNoCover: new Set()
   };
 
   Object.defineProperty(CONFIG[MODULE_ID], "UniqueEffect", {

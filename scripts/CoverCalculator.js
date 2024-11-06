@@ -256,8 +256,10 @@ export class CoverCalculator extends AbstractCalculator {
     const calc = this.calc;
     const partialBlockingTokens = [];
     const nonBlockingTokens = [];
+    const statusesGrantNoCover = CONFIG[MODULE_ID].statusesGrantNoCover;
     for ( const token of calc.blockingObjects.tokens ) {
-      const maxCover = Number(token.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? 1);
+      let maxCover = Number(token.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? 1);
+      if ( token.actor && token.actor.statuses.intersects(statusesGrantNoCover).size ) maxCover = 0;
       if ( maxCover >= 1 ) continue;
       if ( !maxCover ) nonBlockingTokens.push(token);
       else partialBlockingTokens.push(token);
@@ -287,8 +289,11 @@ export class CoverCalculator extends AbstractCalculator {
     let tPercentage = [];
     const tMaxCover = [];
     // Avoid infinite loop here by using a copy of the blocking token set.
+    const statusesGrantNoCover = CONFIG[MODULE_ID].statusesGrantNoCover;
     partialBlockingTokens.forEach(t => {
-      tMaxCover.push(Number(t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? 1));
+      let maxCover = Number(t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? 1);
+      if ( t.actor && t.actor.statuses.intersects(statusesGrantNoCover).size ) maxCover = 0;
+      tMaxCover.push(maxCover);
       blockingTokens.delete(t);
       calc._blockingObjectsChanged();
       const percentMinusOneToken = 1 - calc.percentVisible();
