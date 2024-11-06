@@ -315,7 +315,7 @@ export class Settings extends ModuleSettingsAbstract {
       scope: "world",
       config: true,
       type: Boolean,
-      default: game.system.id === "pf2e",
+      default: false,
       requiresReload: true
     });
 

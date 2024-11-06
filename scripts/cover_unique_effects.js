@@ -10,7 +10,7 @@ Token
 import { MODULE_ID, FLAGS, ICONS } from "./const.js";
 import { UniqueActiveEffect } from "./unique_effects/UniqueActiveEffect.js";
 import { UniqueItemEffect } from "./unique_effects/UniqueItemEffect.js";
-import { UniqueFlagEffect } from "./unique_effects/UniqueFlagEffect.js";
+import { UniqueFlagEffect, UniqueFlagItemEffect } from "./unique_effects/UniqueFlagEffect.js";
 import { CoverMixin } from "./UniqueEffectCoverMixin.js";
 
 export class CoverActiveEffect extends CoverMixin(UniqueActiveEffect) {
@@ -37,6 +37,10 @@ export class CoverFlagEffect extends CoverMixin(UniqueFlagEffect) {
       type: "base",
     };
   }
+}
+
+export class CoverFlagItemEffect extends CoverMixin(UniqueFlagItemEffect) {
+
 }
 
 /**
@@ -77,6 +81,21 @@ export class CoverPF2E extends CoverItemEffect {
     return data;
   }
 }
+
+export class CoverFlagsPF2E extends CoverFlagItemEffect {
+
+  /**
+   * Default data required to be present in the base effect document.
+   * @param {string} [activeEffectId]   The id to use
+   * @returns {object}
+   */
+  static newDocumentData(activeEffectId) {
+    const data = CoverFlagItemEffect.newDocumentData.call(this, activeEffectId);
+    data.type = "effect";
+    return data;
+  }
+}
+
 
 /**
  * Specialized handling of cover effect rules in SFRPG
