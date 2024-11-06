@@ -30,12 +30,6 @@ function renderItemSheet5e(app, html, data) {
   render5eSpellTemplateConfig(app, html, data);
 }
 
-/**
- * Inject html to add controls to the measured template configuration:
- * 1. Switch to have the template be blocked by walls.
- *
- * templates/scene/template-config.html
- */
 async function render5eSpellTemplateConfig(app, html, data) {
   const detailsTab = html.find(".tab.details");
   if ( !detailsTab || !detailsTab.length ) return;

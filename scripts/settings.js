@@ -313,9 +313,9 @@ export class Settings extends ModuleSettingsAbstract {
       name: localize(`${KEYS.ONLY_COVER_ICONS}.Name`),
       hint: localize(`${KEYS.ONLY_COVER_ICONS}.Hint`),
       scope: "world",
-      config: false,
+      config: true,
       type: Boolean,
-      default: game.system.id === "pf2e",
+      default: false,
       requiresReload: true
     });
 
