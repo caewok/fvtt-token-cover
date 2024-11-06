@@ -313,7 +313,7 @@ export class Settings extends ModuleSettingsAbstract {
       name: localize(`${KEYS.ONLY_COVER_ICONS}.Name`),
       hint: localize(`${KEYS.ONLY_COVER_ICONS}.Hint`),
       scope: "world",
-      config: true,
+      config: false,
       type: Boolean,
       default: game.system.id === "pf2e",
       requiresReload: true

@@ -26,6 +26,7 @@ import {
   CoverFlagEffect,
   CoverDND5E,
   CoverFlagsDND5E,
+  CoverFlagsPF2E,
   CoverPF2E,
   CoverSFRPG } from "./cover_unique_effects.js";
 
@@ -84,6 +85,7 @@ Hooks.once("setup", function() {
   if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) {
     switch ( game.system.id ) {
       case "dnd5e": CONFIG[MODULE_ID].CoverEffect = CoverFlagsDND5E; break;
+      case "pf2e": CONFIG[MODULE_ID].CoverEffect = CoverFlagsPF2E; break;
       default: CONFIG[MODULE_ID].CoverEffect = CoverFlagEffect; break;
     }
   }
