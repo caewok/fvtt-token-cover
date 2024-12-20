@@ -3,6 +3,7 @@ Fix for options undefined error when rolling attack in dnd5e. Closes #43.
 Fix for adding to token failing in pf2e. Thanks @thasc and @mattraykowski! Closes #41.
 Fix for cover not getting applied when "combatant only" is set. Closes #37.
 Fix for undefined error for `allOnToken` when placing a new token. Possibly addresses #39.
+For dnd5e v4, apply status effects instead of modifiers in the active effects. Closes #45.
 
 ## 0.9.7
 Add `CONFIG.tokencover.statusesGrantNoCover` which allows users to add statuses to a Set that, when added, will cause tokens with 1+ of those statuses to not provide any cover. I.e., a token with "ethereal" status would not provide cover if between attacker and defender. #36.

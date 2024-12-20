@@ -215,6 +215,22 @@ Hooks.once("ready", () => {
       `
     })
 
+    .addEntry({
+      version: "0.9.8",
+      title: "dnd5e version 4",
+      body: `\
+        The default cover effects for dnd5e version 4 now apply the new cover statuses instead of
+        modifiers. If you are already using Alt. Token Cover, you can either make that change manually
+        by editing the cover effects in the Cover Book or go to the Cover Book and click "Reset Default Cover."
+        Don't reset the default cover if you already have made custom changes to the effects!
+        (The Cover Book is accessed via the shield icon in the token controls.)
+
+        Long-term, using cover statuses should improve compatibility with other modules and system automation in dnd5e.
+
+        Caution: dnd5e version 4 had a lot of breaking changes, so some things may still not work properly.
+      `
+    })
+
     .build()
     ?.render(true);
 });
