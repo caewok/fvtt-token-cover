@@ -16,14 +16,17 @@ Stored as json files. At json/systemid/terrain_name.json
  * be further modified on input. Typically used to localize the name.
  */
 export function defaultCover() {
-  const systemId = game.system.id;
+  let systemId = game.system.id;
   switch ( systemId ) {
-    case "dnd5e": return {
-      "half-token": `modules/${MODULE_ID}/json/${systemId}/half_token.json`,
-      half: `modules/${MODULE_ID}/json/${systemId}/half.json`,
-      "three-quarters": `modules/${MODULE_ID}/json/${systemId}/three_quarters.json`,
-      full: `modules/${MODULE_ID}/json/${systemId}/full.json`,
-    };
+    case "dnd5e": {
+      if ( !foundry.utils.isNewerVersion(game.system.version, "4.0.0") ) systemId = `${dnd5e_v3}`;
+      return {
+        "half-token": `modules/${MODULE_ID}/json/${systemId}/half_token.json`,
+        half: `modules/${MODULE_ID}/json/${systemId}/half.json`,
+        "three-quarters": `modules/${MODULE_ID}/json/${systemId}/three_quarters.json`,
+        full: `modules/${MODULE_ID}/json/${systemId}/full.json`,
+      };
+    }
 
     // Compendium ids
     case "sfrpg": return {
