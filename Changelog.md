@@ -1,3 +1,7 @@
+## 0.9.8
+Fix for options undefined error when rolling attack in dnd5e. Closes #43.
+
+
 ## 0.9.7
 Add `CONFIG.tokencover.statusesGrantNoCover` which allows users to add statuses to a Set that, when added, will cause tokens with 1+ of those statuses to not provide any cover. I.e., a token with "ethereal" status would not provide cover if between attacker and defender. #36.
 Basic dnd5e v4 compatibility by using the Attack Activity as the trigger for determining cover.
