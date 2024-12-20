@@ -338,7 +338,8 @@ class TokenCoverBase {
       case CHOICES.COMBATANT: {
         return game.combat?.started
           && token.combatant
-          && game.combat.combatants.has(token.combatant.id);
+          && game.combat.combatants.has(token.combatant.id)
+          && token.combatant.id === game.combat.current.combatantId;
       }
       case CHOICES.COMBAT: if ( !game.combat?.started ) return false;
       case CHOICES.ATTACK:

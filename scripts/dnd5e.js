@@ -87,11 +87,11 @@ export async function rollAttack_v4(wrapper, config, dialog, message) {
 async function _rollAttack(wrapper, actionType, ...args) {
   const actor = this.actor;
   const token = canvas.tokens.get(ChatMessage.getSpeaker({ actor }).token);
-  if ( !token || !token.isOwner ) return wrapper(options);
+  if ( !token || !token.isOwner ) return wrapper(...args);
 
   // Determine the targets for the user
   const targets = game.user.targets;
-  if ( !targets.size ) return wrapper(options);
+  if ( !targets.size ) return wrapper(...args);
 
   // Construct dialogs, if applicable
   const doAttack = await coverAttackWorkflow(token, targets, { actionType });

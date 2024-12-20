@@ -17,18 +17,31 @@
     "exportSource": {
       "world": "test-dnd5e",
       "system": "dnd5e",
-      "coreVersion": "12.331",
-      "systemVersion": "4.1.2",
-      "terrainMapperVersion": "0.9.6"
+      "coreVersion": "12.327",
+      "systemVersion": "3.2.0",
+      "terrainMapperVersion": "0.9.0"
     }
   },
   "transfer": false,
   "name": "Three-Quarters Cover",
   "img": "modules/tokencover/assets/shield_medium_gray.svg",
-  "_id": "4IwfayqjwPxTqTo2",
+  "_id": "YfUmEPBZJhoKfKUV",
   "type": "base",
   "system": {},
-  "changes": [],
+  "changes": [
+    {
+      "key": "system.attributes.ac.cover",
+      "mode": 2,
+      "value": "+5",
+      "priority": null
+    },
+    {
+      "key": "system.abilities.dex.bonuses.save",
+      "mode": 2,
+      "value": "+5",
+      "priority": null
+    }
+  ],
   "disabled": false,
   "duration": {
     "startTime": null,
@@ -42,18 +55,16 @@
   "description": "<p>Defending token receives +5 to AC and +5 to Dexterity saves when 75% or more of the token is blocked by walls.</p>",
   "origin": null,
   "tint": "#ffffff",
-  "statuses": [
-    "coverThreeQuarters"
-  ],
+  "statuses": [],
   "sort": 0,
   "_stats": {
     "compendiumSource": null,
     "duplicateSource": null,
-    "coreVersion": "12.331",
+    "coreVersion": "12.327",
     "systemId": "dnd5e",
-    "systemVersion": "3.3.1",
-    "createdTime": 1726065048978,
-    "modifiedTime": 1734715632078,
+    "systemVersion": "3.2.0",
+    "createdTime": 1718764008882,
+    "modifiedTime": 1718771432553,
     "lastModifiedBy": "nx29hoGineoQv9Bs"
   }
 }
