@@ -576,7 +576,9 @@ export class AbstractUniqueEffect {
    */
   static allOnToken(token) {
     const instances = [];
-    for ( const doc of this.getTokenStorage(token).values() ) {
+    const store = this.getTokenStorage(token);
+    if ( !store ) return instances;
+    for ( const doc of store.values() ) {
       const uniqueEffectId = doc.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID);
       if ( !uniqueEffectId ) continue;
       const instance = this._instances.get(uniqueEffectId);
