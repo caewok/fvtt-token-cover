@@ -89,7 +89,9 @@ export class UniqueActiveEffect extends AbstractUniqueEffect {
         && effect.img
         && effect.displayStatusIcon ) doc.statuses = [effect.img];
 
-      doc._id = foundry.utils.randomID(); // So duplicate effects can be added.
+      // Remove the _id to cause Foundry to add a new random id.
+      // See PR #44.
+      delete doc._id;
       const ae = token.actor.effects.createDocument(doc);
       token.actor.effects.set(ae.id, ae);
     }
