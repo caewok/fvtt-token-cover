@@ -1,4 +1,8 @@
 ## 0.9.8
+Fix for options undefined error when rolling attack in dnd5e. Closes #43.
+
+
+## 0.9.8
 Fix for adding to token failing in pf2e. Thanks @thasc and @mattraykowski! Closes #41.
 
 ## 0.9.7
