@@ -1,3 +1,6 @@
+## 0.9.9
+Fix for effects not being correctly added and statuses not getting added. Closes #46.
+
 ## 0.9.8
 Fix for options undefined error when rolling attack in dnd5e. Closes #43.
 Fix for adding to token failing in pf2e. Thanks @thasc and @mattraykowski! Closes #41.
