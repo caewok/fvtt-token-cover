@@ -85,9 +85,10 @@ export class UniqueActiveEffect extends AbstractUniqueEffect {
       doc.flags[MODULE_ID][FLAGS.UNIQUE_EFFECT.IS_LOCAL] = true;
       foundry.utils.mergeObject(doc, data);
       // Force display of the status icon
+      doc.statuses ??= [];
       if ( token.document.disposition !== CONST.TOKEN_DISPOSITIONS.SECRET
         && effect.img
-        && effect.displayStatusIcon ) doc.statuses = [effect.img];
+        && effect.displayStatusIcon ) doc.statuses.push(effect.img);
 
       // Remove the _id b/c the property might be locked. See PR #44.
       // Have to define it manually b/c for local docs, foundry will not assign random id. See #46.
