@@ -1,3 +1,7 @@
+## 0.9.10
+Fix for not loading in dnd5e v3.
+Update libGeometry to v0.3.19.
+
 ## 0.9.9
 Fix for effects not being correctly added and statuses not getting added. Closes #46.
 
