@@ -1,4 +1,5 @@
 /* globals
+foundry,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -19,7 +20,7 @@ export function defaultCover() {
   let systemId = game.system.id;
   switch ( systemId ) {
     case "dnd5e": {
-      if ( !foundry.utils.isNewerVersion(game.system.version, "4.0.0") ) systemId = `${dnd5e_v3}`;
+      if ( !foundry.utils.isNewerVersion(game.system.version, "4.0.0") ) systemId = "dnd5e_v3";
       return {
         "half-token": `modules/${MODULE_ID}/json/${systemId}/half_token.json`,
         half: `modules/${MODULE_ID}/json/${systemId}/half.json`,
