@@ -1,11 +1,10 @@
 /* globals
-game
+game,
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { log } from "./util.js";
 
 // Patches for the Setting class
 export const PATCHES = {};
@@ -60,11 +59,11 @@ export class ModuleSettingsAbstract {
     const cached = this.cache.get(key);
     if ( typeof cached !== "undefined" ) {
     // For debugging, can confirm against what the value should be.
-      //       const origValue = game.settings.get(MODULE_ID, key);
-      //       if ( origValue !== cached ) {
-      //         console.debug(`Settings cache fail: ${origValue} !== ${cached} for key ${key}`);
-      //         return origValue;
-      //       }
+//       const origValue = game.settings.get(MODULE_ID, key);
+//       if ( origValue !== cached ) {
+//         console.debug(`Settings cache fail: ${origValue} !== ${cached} for key ${key}`);
+//         return origValue;
+//       }
 
       return cached;
 
@@ -82,32 +81,9 @@ export class ModuleSettingsAbstract {
    */
   static async set(key, value) { return game.settings.set(MODULE_ID, key, value); }
 
-  /**
-   * Toggle a boolean setting on/off.
-   * @param {string} key
-   */
   static async toggle(key) {
     const curr = this.get(key);
     return this.set(key, !curr);
-  }
-
-  /**
-   * Helper to try to get a setting, failing silently if not a registered setting.
-   * @param {string} key
-   */
-  static tryToGetSetting(key) {
-    let value;
-    try { value = this.get(key); } catch (error) { log(error); }
-    return value;
-  }
-
-  /**
-   * Helper to try to set a setting, failing silently if not a registered setting.
-   * @param {string} key
-   * @param {*} value
-   */
-  static async tryToSetSetting(key, value) {
-    try { await this.set(key, value); } catch (error) { log(error); }
   }
 
   /**
@@ -147,38 +123,4 @@ export class ModuleSettingsAbstract {
     if ( storageType === "client" ) return game.settings.storage.get(storageType).getItem(`${MODULE_ID}.${storageKey}`);
     return game.settings.storage.get(storageType).getSetting(`${MODULE_ID}.${storageKey}`).value;
   }
-
-  static exportSettingsToJSON(filename) {
-    filename ??= `${MODULE_ID}_settings`;
-    const data = { settings: {}, flags: {} };
-    const settingKeys = foundry.utils.flattenObject(this.KEYS);
-    for ( const key of Object.values(settingKeys) ) {
-      const value = this.tryToGetSetting(key);
-      if ( typeof value !== "undefined" ) data.settings[key] = value;
-    }
-    data.flags.exportSource = {
-      world: game.world.id,
-      system: game.system.id,
-      coreVersion: game.version,
-      systemVersion: game.system.version,
-      [`${MODULE_ID}Version`]: game.modules.get(MODULE_ID).version
-    };
-    saveDataToFile(JSON.stringify(data, null, 2), "text/json", `${filename}.json`);
-  }
-
-  /**
-   * Import settings from a json file.
-   * @param {JSON} json   Data to import
-   */
-  static async importSettingsFromJSON(json) {
-    json = JSON.parse(json);
-    if ( !json.flags?.exportSource?.[`${MODULE_ID}Version`] || !json.settings ) {
-      console.error("JSON file not recognized.");
-      return;
-    }
-    const promises = [];
-    for ( const [key, value] of Object.entries(json.settings) ) promises.push(this.tryToSetSetting(key, value));
-    return Promise.allSettled(promises);
-  }
 }
-
