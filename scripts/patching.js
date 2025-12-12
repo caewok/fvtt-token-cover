@@ -8,10 +8,8 @@ game,
 
 import { Patcher } from "./Patcher.js";
 import { MODULES_ACTIVE } from "./const.js";
-import { WallGeometryHandler, TileGeometryHandler, TokenGeometryHandler } from "./LOS/Placeable3dGeometry.js";
-import { Settings } from "./settings.js";
 
-import { PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./settings.js";
+import { Settings, PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./settings.js";
 import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
 import { PATCHES as PATCHES_ActiveEffectConfig } from "./ActiveEffectConfig.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
@@ -19,14 +17,8 @@ import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
 import { PATCHES as PATCHES_ItemSheet } from "./ItemSheet.js";
 
-// dnd5e
+// Dnd5e
 import { PATCHES as PATCHES_AttackActivity } from "./AttackActivity.js";
-
-// LOS
-import { PATCHES as PATCHES_PointSourcePolygon } from "./LOS/PointSourcePolygon.js";
-import { PATCHES as PATCHES_Tile } from "./LOS/Tile.js";
-import { PATCHES as PATCHES_TokenLOS } from "./LOS/Token.js";
-import { PATCHES as PATCHES_Wall } from "./LOS/Wall.js";
 
 // Midiqol
 import { PATCHES as PATCHES_Midiqol } from "./Midiqol.js";
@@ -45,7 +37,7 @@ import { PATCHES as PATCHES_dnd5e } from "./dnd5e.js";
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
   ActiveEffectConfig: PATCHES_ActiveEffectConfig,
-  ["CONFIG.DND5E.activityTypes.attack.documentClass"]: PATCHES_AttackActivity,
+  "CONFIG.DND5E.activityTypes.attack.documentClass": PATCHES_AttackActivity,
   ClientSettings: PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
   Item: PATCHES_Item,
@@ -53,11 +45,8 @@ const PATCHES = {
   ItemSheet: PATCHES_ItemSheet,
   MeasuredTemplate: PATCHES_MeasuredTemplate,
   SidebarTab: PATCHES_SidebarTab,
-  PointSourcePolygon: PATCHES_PointSourcePolygon,
-  Tile: PATCHES_Tile,
-  Token: foundry.utils.mergeObject(PATCHES_Token, PATCHES_TokenLOS),
+  Token: PATCHES_Token,
   TokenConfig: PATCHES_TokenConfig,
-  Wall: PATCHES_Wall,
 
   // Only works b/c these are all hooks. Otherwise, would need class breakdown.
   Midiqol: PATCHES_Midiqol,
@@ -82,8 +71,7 @@ export function initializePatching() {
 
   if ( game.system.id === "dnd5e" ) {
     if ( MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_MIDI");
-    else if ( foundry.utils.isNewerVersion(game.system.version, "3.99") ) PATCHER.registerGroup("DND5E_v4");
-    else PATCHER.registerGroup("DND5E_v3");
+    else PATCHER.registerGroup("DND5E");
   }
 
   if ( game.system.id === "sfrpg" ) PATCHER.registerGroup("sfrpg");
@@ -93,22 +81,6 @@ export function initializePatching() {
   if ( game.system.id === "sfrpg" || game.system.id === "pf2e" ) PATCHER.registerGroup("COVER_ITEM");
 
   if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) PATCHER.registerGroup("COVER_FLAGS");
-}
-
-export function registerArea3d() {
-  if ( MODULES_ACTIVE.TOKEN_VISIBILITY ) {
-    // Use the ATV hooks instead, to avoid potentially updating twice.
-    const api = game.modules.get("tokenvisibility").api;
-    api.PATCHER.registerGroup("AREA3D");
-    return;
-  }
-
-  PATCHER.registerGroup("AREA3D");
-
-  // Create placeable geometry handlers for placeables already in the scene.
-  WallGeometryHandler.registerPlaceables();
-  TileGeometryHandler.registerPlaceables();
-  TokenGeometryHandler.registerPlaceables();
 }
 
 export function registerDebug() { PATCHER.registerGroup("DEBUG"); }

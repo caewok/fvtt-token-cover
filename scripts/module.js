@@ -201,23 +201,7 @@ function initializeConfig() {
  */
 function initializeAPI() {
   game.modules.get(MODULE_ID).api = {
-    losCalcMethods: {
-      AlternativeLOS,
-      PointsLOS,
-      Area2dLOS,
-      Area3dLOSGeometric,
-      Area3dLOSWebGL,
-      Area3dLOSWebGL2,
-      Area3dLOSHybrid
-    },
-
     OPEN_POPOUTS,
-
-    webgl: {
-      Token3dGeometry, Wall3dGeometry, DirectionalWall3dGeometry, ConstrainedToken3dGeometry,
-      Placeable3dShader, Tile3dShader,
-      Placeable3dDebugShader, Tile3dDebugShader
-    },
 
     CoverCalculator,
     CoverDialog,
@@ -240,7 +224,7 @@ function initializeAPI() {
       IgnoresCoverSimbuls
     },
 
-    PATCHER
+    PATCHER,
   };
 }
 
