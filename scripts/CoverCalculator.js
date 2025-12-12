@@ -10,7 +10,7 @@ import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID, COVER_TYPES } from "./const.js";
 import { Settings } from "./settings.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 import { CoverDialog } from "./CoverDialog.js";
-import { AbstractCalculator } from "./LOS/AbstractCalculator.js";
+import { AbstractCalculator } from "./LOS/calculators/AbstractCalculator.js";
 
 
 /* Testing

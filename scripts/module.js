@@ -34,13 +34,6 @@ import {
 import { SetCoverRegionBehaviorType } from "./SetCoverRegionBehaviorType.js";
 
 // For API
-import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
-import { PointsLOS } from "./LOS/PointsLOS.js";
-import { Area2dLOS } from "./LOS/Area2dLOS.js";
-import { Area3dLOSGeometric } from "./LOS/Area3dLOSGeometric.js";
-import { Area3dLOSWebGL } from "./LOS/Area3dLOSWebGL1.js";
-import { Area3dLOSWebGL2 } from "./LOS/Area3dLOSWebGL2.js";
-import { Area3dLOSHybrid } from "./LOS/Area3dLOSHybrid.js";
 import { OPEN_POPOUTS } from "./LOS/Area3dPopout.js";
 import { Token3dGeometry, Wall3dGeometry, DirectionalWall3dGeometry, ConstrainedToken3dGeometry } from "./LOS/Placeable3dGeometry.js";
 import { Placeable3dShader, Tile3dShader, Placeable3dDebugShader, Tile3dDebugShader } from "./LOS/Placeable3dShader.js";
