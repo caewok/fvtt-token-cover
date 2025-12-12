@@ -7,21 +7,14 @@ game
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { rollAttack_v3 } from "./dnd5e.js";
 import { MODULE_ID, FLAGS } from "./const.js";
 
 // Patches for the dnd5e Item class
 export const PATCHES = {};
 PATCHES.BASIC = {};
-PATCHES.DND5E_v3 = {}; // Only if midiqol is not active.
-PATCHES.DND5E_v4 = {};
 
 // ----- NOTE: MIXES ----- //
 
-/**
- * Mixed wrap Item5e.prototype.rollAttack
- */
-PATCHES.DND5E_v3.MIXES = { rollAttack: rollAttack_v3 };
 
 /**
  * When adding an active effect, check for overriding effect.

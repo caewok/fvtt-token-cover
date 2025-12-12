@@ -52,19 +52,6 @@ async function render5eSpellTemplateConfig(app, html, data) {
 PATCHES.DND5E_MIDI.HOOKS = { renderItemSheet5e };
 
 
-// For Item (v3)
-const ELIGIBLE_ACTION_TYPES = new Set(["mwak", "msak", "rsak", "rwak"]);
-export async function rollAttack_v3(wrapper, options = {}) {
-  if ( !this.hasAttack ) return wrapper(options);
-
-  // Determine the attack type
-  const actionType = this.system?.actionType;
-  if ( !ELIGIBLE_ACTION_TYPES.has(actionType) ) return wrapper(options);
-
-  return _rollAttack.call(this, wrapper, actionType, options);
-}
-
-
 /**
  * v4 AttackActivity#rollAttack
  * @param {AttackRollProcessConfiguration} config  Configuration information for the roll.
@@ -72,7 +59,7 @@ export async function rollAttack_v3(wrapper, options = {}) {
  * @param {BasicRollMessageConfiguration} message  Configuration for the roll message.
  * @returns {Promise<D20Roll[]|null>}
  */
-export async function rollAttack_v4(wrapper, config, dialog, message) {
+export async function rollAttack(wrapper, config, dialog, message) {
 
   let actionType;
   const isRanged = this.attack.type.value === "ranged";
