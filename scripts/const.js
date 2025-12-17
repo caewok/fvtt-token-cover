@@ -245,3 +245,8 @@ export function setCoverIgnoreHandler(handler) {
   if ( !canvas.tokens?.placeables ) return;
   canvas.tokens.placeables.forEach(t => t.tokencover.ignoresCover = undefined);
 }
+
+export const TRACKER_IDS = {
+  COVER: "cover",
+};
+

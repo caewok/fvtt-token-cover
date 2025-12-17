@@ -10,8 +10,7 @@ import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID, COVER_TYPES } from "./const.js";
 import { Settings } from "./settings.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 import { CoverDialog } from "./CoverDialog.js";
-import { AbstractCalculator } from "./LOS/calculators/AbstractCalculator.js";
-
+import { ViewerLOS } from "./LOS/ViewerLOS.js";
 
 /* Testing
 Draw = CONFIG.GeometryLib.Draw
@@ -24,40 +23,26 @@ let [viewer] = canvas.tokens.controlled;
 let [target] = game.user.targets;
 */
 
-export class CoverCalculator extends AbstractCalculator {
-  constructor(viewer, target, config = {}) {
-    config.algorithm ??= Settings.get(Settings.KEYS.LOS.TARGET.ALGORITHM);
-    super(viewer, target, config);
+export class CoverCalculator {
+  /** @type {string} */
+  static ID = TRACKER_IDS.COVER;
+
+  /** @type {Token} */
+  viewer;
+
+  /** @type {ViewerLOS} */
+  losViewer;
+
+  constructor(token) {
+    token[MODULE_ID] ??= {};
+    token[MODULE_ID][this.constructor.ID] = this;
+    this.losViewer = buildLOSViewer(token);
+    this.viewer = token;
   }
 
-  /** @type {POINT_TYPES} */
-  get viewerNumPoints() {
-    if ( this.viewer instanceof Token ) return Settings.get(Settings.KEYS.LOS.VIEWER.NUM_POINTS);
-    return 1;
-  }
+  /** @type {PercentVisibleCalculator} */
+  get losCalc() { return this.losViewer.losCalc; }
 
-  /** @type {number} */
-  get viewerInset() {
-    if ( this.viewer instanceof Token ) return Settings.get(Settings.KEYS.LOS.VIEWER.INSET);
-    return 0;
-  }
-
-  static initialConfiguration(cfg = {}) {
-    // Move type b/c cover relates to physical obstacles.
-    // Must set before the call to super.
-    cfg.type ??= "move";
-    cfg = super.initialConfiguration(cfg);
-
-    // Target settings
-    const TARGET = Settings.KEYS.LOS.TARGET;
-    const ENUMS = Settings.ENUMS;
-    cfg.largeTarget = Settings.get(TARGET.LARGE);
-    cfg.numTargetPoints = Settings.get(ENUMS.POINT_OPTIONS.NUM_POINTS);
-    cfg.targetInset = Settings.get(ENUMS.POINT_OPTIONS.INSET);
-    cfg.points3d = Settings.get(ENUMS.POINT_OPTIONS.POINTS3D);
-
-    return cfg;
-  }
 
   // ----- NOTE: Static methods ----- //
 
@@ -156,13 +141,22 @@ export class CoverCalculator extends AbstractCalculator {
   // ----- NOTE: Percent Cover ----- //
 
   /**
+   * @typedef {Object} PercentCoverOptions
+   *
+   * @property {boolean} [includeWalls=true]      Should walls be considered blocking?
+   * @property {boolean} [includeTokens=true]     Should tokens be considered blocking?
+   * @property {Token[]} [tokensToExclude=[]]     What tokens to not include in blocking objects. GM settings may further modify which tokens block.
+   * @property {Token[]} [onlyTokens=[]]          Only include these tokens as potentially blocking.
+   */
+
+  /**
    * Calculate the percentage cover over all viewer points if more than one in settings.
-   * @param {Token} [target]    Optional target if not already set
-   * @param {object} [opts]     Options passed to _percentCover
+   * @param {Token} target                      Target
+   * @param {object} [PercentCoverOptions]      Options passed to _percentCover
    * @returns {number} Percent between 0 and 1.
    */
   percentCover(target, opts) {
-    const { viewer, calc } = this;
+    const { viewer, losCalc } = this;
     if ( target ) calc.target = target;
     calc._clearCache();
 
@@ -190,12 +184,7 @@ export class CoverCalculator extends AbstractCalculator {
 
   /**
    * Calculate the percentage cover for the current viewer point.
-   * @param {object} [opts]                     Options to manipulate the LOS calculation
-   * @param {boolean} [opts.includeWalls=true]    Should walls be considered blocking?
-   * @param {boolean} [opts.includeTokens=true]   Should tokens be considered blocking?
-   *                                            GM settings may further modify which tokens block
-   * @param {Token[]} [opts.tokensToExclude=[]] What tokens to not include in blocking objects
-   * @param {Token[]} [opts.onlyTokens=[]]      Only include these tokens as potentially blocking
+   * @param {object} [PercentCoverOptions]                     Options to manipulate the LOS calculation
    * @returns {number} Percent between 0 and 1.
    */
   _percentCover({ includeWalls = true, includeTokens = true, tokensToExclude = [], onlyTokens = [] } = {}) {

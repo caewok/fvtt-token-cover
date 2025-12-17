@@ -305,9 +305,8 @@ class AbstractRegionShapeGeometryTracker extends allGeometryMixin(AbstractPlacea
   calculateScaleMatrix() {
     const { topZ, bottomZ } = this.constructor.regionElevationZ(this.region);
     const zHeight = topZ - bottomZ;
-    const z = topZ - (zHeight * 0.5);
     const { x, y } = this._xyScale();
-    MatrixFloat32.scale(x, y, z, this.matrices.scale);
+    MatrixFloat32.scale(x, y, zHeight, this.matrices.scale);
     return this.matrices.scale;
   }
 
@@ -371,8 +370,10 @@ class AbstractRegionShapeGeometryTracker extends allGeometryMixin(AbstractPlacea
    */
   rayIntersection(rayOrigin, rayDirection, minT = 0, maxT = Number.POSITIVE_INFINITY) {
     if ( !this.isHole ) {
-      const t = this.faces.top.intersectionT(rayOrigin, rayDirection);
-      if ( t !== null && almostBetween(t, minT, maxT) ) return t;
+      for ( const face of [this.faces.top, this.faces.bottom] ) {
+        const t = this.faces.top.intersectionT(rayOrigin, rayDirection);
+        if ( t !== null && almostBetween(t, minT, maxT) ) return t;
+      }
     }
     for ( const side of this.faces.sides ) {
       const t = side.intersectionT(rayOrigin, rayDirection);
@@ -382,7 +383,7 @@ class AbstractRegionShapeGeometryTracker extends allGeometryMixin(AbstractPlacea
   }
 }
 
-class CircleRegionShapeGeometryTracker extends AbstractRegionShapeGeometryTracker {
+export class CircleRegionShapeGeometryTracker extends AbstractRegionShapeGeometryTracker {
   static geomClass = GeometryCircleRegionShape;
 
   static polygonClass = Circle3d;
@@ -399,7 +400,7 @@ class CircleRegionShapeGeometryTracker extends AbstractRegionShapeGeometryTracke
   }
 }
 
-class EllipseRegionShapeGeometryTracker extends AbstractRegionShapeGeometryTracker {
+export class EllipseRegionShapeGeometryTracker extends AbstractRegionShapeGeometryTracker {
   static geomClass = GeometryEllipseRegionShape;
 
   static polygonClass = Ellipse3d;
@@ -416,7 +417,7 @@ class EllipseRegionShapeGeometryTracker extends AbstractRegionShapeGeometryTrack
   }
 }
 
-class RectangleRegionShapeGeometryTracker extends AbstractRegionShapeGeometryTracker {
+export class RectangleRegionShapeGeometryTracker extends AbstractRegionShapeGeometryTracker {
   static geomClass = GeometryRectangleRegionShape;
 
   static polygonClass = Quad3d;
@@ -429,12 +430,12 @@ class RectangleRegionShapeGeometryTracker extends AbstractRegionShapeGeometryTra
 
   _xyScale() {
     const { width, height } = this.shape.data;
-    return { x: width * 0.5, y: height * 0.5 };
+    return { x: width, y: height };
   }
 
 }
 
-class PolygonRegionShapeGeometryTracker extends AbstractRegionShapeGeometryTracker {
+export class PolygonRegionShapeGeometryTracker extends AbstractRegionShapeGeometryTracker {
   static geomClass = GeometryPolygonRegionShape;
 
   static polygonClass = Polygon3d;

@@ -93,11 +93,9 @@ export class PercentVisibleCalculatorGeometric extends PercentVisibleCalculatorA
    */
   static SCALING_FACTOR = 100;
 
-  initializeCalculations() {
+  _initializeCalculation() {
+    super._initializeCalculation();
     this._initializeCamera();
-    this.occlusionTester._initialize(this);
-    this._constructPerspectiveObstaclePolygons();
-    this._constructObstaclePaths();
   }
 
   _calculate() {
@@ -105,8 +103,9 @@ export class PercentVisibleCalculatorGeometric extends PercentVisibleCalculatorA
     if ( result.visibility === PercentVisibleResult.VISIBILITY.NONE ) return result; // Outside of radius.
     result.visibility = PercentVisibleResult.VISIBILITY.MEASURED;
 
-    this.initializeCalculations();
     this._constructPerspectiveTargetPolygons();
+    this._constructPerspectiveObstaclePolygons();
+    this._constructObstaclePaths();
     result.data.targetPaths = this._constructTargetPath();
     result.data.blockingPaths = this._constructObstaclePaths();
     return result;
@@ -116,12 +115,6 @@ export class PercentVisibleCalculatorGeometric extends PercentVisibleCalculatorA
     this.camera.cameraPosition = this.viewpoint;
     this.camera.targetPosition = this.targetLocation;
     this.camera.setTargetTokenFrustum(this.target);
-  }
-
-  _initializeObstacles() {
-    // Obstacles will not change even if target shape does.
-    this._constructPerspectiveObstaclePolygons();
-    this._constructObstaclePaths();
   }
 
   blockingTerrainPaths;
@@ -306,7 +299,7 @@ export class PercentVisibleCalculatorGeometric extends PercentVisibleCalculatorA
     // Construct polygons representing the perspective view of the blocking objects.
     const lookAtM = this.camera.lookAtMatrix;
     const perspectiveM = this.camera.perspectiveMatrix;
-    const { walls, terrainWalls, proximateWalls, reverseProximateWalls, tokens, tiles,  regions } = this.occlusionTester.obstacles;
+    const { walls, terrainWalls, proximateWalls, reverseProximateWalls, tokens, tiles, regions } = this.occlusionTester.obstacles;
 
     // If the proximity threshold is met, this edge excluded from perception calculations.
     const senseType = this._config.senseType;
