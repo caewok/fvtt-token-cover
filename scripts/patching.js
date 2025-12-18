@@ -7,7 +7,7 @@ game,
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
 import { Patcher } from "./Patcher.js";
-import { MODULES_ACTIVE } from "./const.js";
+import { OTHER_MODULES } from "./const.js";
 
 import { Settings, PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./settings.js";
 import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
@@ -64,13 +64,13 @@ export function initializePatching() {
   PATCHER.registerGroup("TEMPLATES");
 
   // If ATV is not active, handle the LOS patches needed to run the calculator.
-  if ( !MODULES_ACTIVE.TOKEN_VISIBILITY ) PATCHER.registerGroup("LOS");
+  if ( !OTHER_MODULES.TOKEN_VISIBILITY ) PATCHER.registerGroup("LOS");
 
-  //   If ( MODULES_ACTIVE.LEVELS ) PATCHER.registerGroup("LEVELS");
+  //   If ( OTHER_MODULES.LEVELS ) PATCHER.registerGroup("LEVELS");
   //   else PATCHER.registerGroup("NO_LEVELS");
 
   if ( game.system.id === "dnd5e" ) {
-    if ( MODULES_ACTIVE.MIDI_QOL ) PATCHER.registerGroup("DND5E_MIDI");
+    if ( OTHER_MODULES.MIDI_QOL ) PATCHER.registerGroup("DND5E_MIDI");
     else PATCHER.registerGroup("DND5E");
   }
 

@@ -211,24 +211,49 @@ export const WEAPON_ATTACK_TYPES = {
   util: "DND5E.ActionUtil"
 };
 
-export const MODULES_ACTIVE = { API: {} };
+// Track certain modules that complement features of this module.
+export const OTHER_MODULES = {
+  TERRAIN_MAPPER: {
+    KEY: "terrainmapper",
+    FLAGS: {
+      REGION: {
+        WALL_RESTRICTIONS: "wallRestrictions"
+      },
+    },
+  },
+  LEVELS: {
+    KEY: "levels",
+    FLAGS: {
+      ALLOW_SIGHT: "noCollision",
+    },
+  },
+  WALL_HEIGHT: { KEY: "wall-height" },
+  ATC: { KEY: "token_cover" },
+  ATV: { KEY: "token_visibility" },
+  RIDEABLE: { KEY: "Rideable" },
+  DFREDS_CE: { KEY: "dfreds-convenient-effects" },
+  SIMBULS_CC: { KEY: "simbuls-cover-calculator" },
+  MIDI_QOL: { KEY: "midi-qol" },
+  RIDEABLE: { KEY: "Rideable" },
+};
 
 // Hook init b/c game.modules is not initialized at start.
 Hooks.once("init", function() {
-  MODULES_ACTIVE.WALL_HEIGHT = game.modules.get("wall-height")?.active;
-  MODULES_ACTIVE.TOKEN_VISIBILITY = game.modules.get("tokenvisibility")?.active;
-  MODULES_ACTIVE.LEVELS = game.modules.get("levels")?.active;
-  MODULES_ACTIVE.DFREDS_CE = game.modules.get("dfreds-convenient-effects")?.active;
-  MODULES_ACTIVE.SIMBULS_CC = game.modules.get("simbuls-cover-calculator")?.active;
-  MODULES_ACTIVE.MIDI_QOL = game.modules.get("midi-qol")?.active;
-  MODULES_ACTIVE.ELEVATED_VISION = game.modules.get("elevatedvision")?.active;
-  MODULES_ACTIVE.RIDEABLE = game.modules.get("Rideable")?.active;
+  for ( const [key, obj] of Object.entries(OTHER_MODULES) ) {
+    if ( !game.modules.get(obj.KEY)?.active ) delete OTHER_MODULES[key];
+  }
 });
 
 // API not necessarily available until ready hook. (Likely added at init.)
 Hooks.once("ready", function() {
-  if ( MODULES_ACTIVE.RIDEABLE ) MODULES_ACTIVE.API.RIDEABLE = game.modules.get("Rideable").api;
+  const { TERRAIN_MAPPER, RIDEABLE } = OTHER_MODULES;
+  if ( TERRAIN_MAPPER ) TERRAIN_MAPPER.API = game.modules.get(TERRAIN_MAPPER.KEY).api;
+  if ( RIDEABLE ) RIDEABLE.API = game.modules.get(RIDEABLE.KEY).api;
 });
+
+export const MODULES_ACTIVE = { API: {} };
+
+export const ATV_ID = "tokenvisibility";
 
 /**
  * Helper to set the cover ignore handler and, crucially, update all tokens.

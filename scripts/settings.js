@@ -11,7 +11,7 @@ ui
 "use strict";
 
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
-import { MODULE_ID, MODULES_ACTIVE, FLAGS } from "./const.js";
+import { MODULE_ID, OTHER_MODULES, FLAGS } from "./const.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { registerArea3d, registerDebug, registerTemplates, deregisterTemplates } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
@@ -545,7 +545,7 @@ export class Settings extends ModuleSettingsAbstract {
     }
 
     // ----- NOTE: Other cover settings tab ----- //
-    if ( !MODULES_ACTIVE.TOKEN_VISIBILITY ) {
+    if ( !OTHER_MODULES.TOKEN_VISIBILITY ) {
       register(KEYS.PRONE_MULTIPLIER, {
         name: localize(`${KEYS.PRONE_MULTIPLIER}.Name`),
         hint: localize(`${KEYS.PRONE_MULTIPLIER}.Hint`),
@@ -714,7 +714,7 @@ export class Settings extends ModuleSettingsAbstract {
 
   static setProneStatusId(value) {
     CONFIG.GeometryLib.proneStatusId = value;
-    if ( MODULES_ACTIVE.TOKEN_VISIBILITY) game.settings.set("tokenvisibility", SETTINGS.PRONE_STATUS_ID, value);
+    if ( OTHER_MODULES.TOKEN_VISIBILITY) game.settings.set("tokenvisibility", SETTINGS.PRONE_STATUS_ID, value);
   }
 }
 

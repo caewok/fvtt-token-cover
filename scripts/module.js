@@ -17,6 +17,16 @@ import { registerGeometry } from "./geometry/registration.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
 
+// Trackers
+import {
+  TokenGeometryTracker,
+  LitTokenGeometryTracker,
+  BrightLitTokenGeometryTracker,
+  SphericalTokenGeometryTracker, } from "./LOS/placeable_tracking/TokenGeometryTracker.js";
+import { WallGeometryTracker } from "./LOS/placeable_tracking/WallGeometryTracker.js";
+import { TileGeometryTracker } from "./LOS/placeable_tracking/TileGeometryTracker.js";
+import { RegionGeometryTracker } from "./LOS/placeable_tracking/RegionGeometryTracker.js";
+
 // Cover objects
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
 import { defaultCover } from "./default_cover.js";
@@ -84,9 +94,59 @@ Hooks.once("setup", function() {
 /**
  * A hook event that fires when the game is fully ready.
  */
-Hooks.on("ready", async function(_canvas) {
+Hooks.once("ready", async function(_canvas) {
   CONFIG[MODULE_ID].CoverEffect.initialize(); // Async. Must wait until ready hook to store Settings for UniqueEffectFlag
+
+  Settings.initializeDebugGraphics();
+
+  // Only register geometry hooks if ATV is not present.
+  if ( !OTHER_MODULES.TOKEN_VISIBILITY ) {
+    WallGeometryTracker.registerPlaceableHooks();
+    TileGeometryTracker.registerPlaceableHooks();
+    TokenGeometryTracker.registerPlaceableHooks();
+    SphericalTokenGeometryTracker.registerPlaceableHooks();
+    LitTokenGeometryTracker.registerPlaceableHooks();
+    BrightLitTokenGeometryTracker.registerPlaceableHooks();
+    RegionGeometryTracker.registerPlaceableHooks();
+  } else {
+    const getterFn = function() {
+      this.tokenvisibility ??= {};
+      return this.tokenvisibility;
+    }
+    const ATV = {};
+    ATV.GETTERS = { [MODULE_ID]: getterFn };
+    const PATCHES = {
+      "foundry.canvas.placeables.Token": ATV,
+      "foundry.canvas.placeables.Wall": ATV,
+      "foundry.canvas.placeables.Tile": ATV,
+      "foundry.canvas.placeables.Region": ATV,
+      "foundry.data.regionShapes.RegionCircleShape": ATV,
+      "foundry.data.regionShapes.RegionEllipseShape": ATV,
+      "foundry.data.regionShapes.RegionRectangleShape": ATV,
+      "foundry.data.regionShapes.RegionPolygonShape": ATV,
+    };
+    PATCHER.addPatchesFromRegistrationObject(PATCHES);
+  }
+
 });
+
+/**
+ * New method: Token.tokencover
+ * Class that handles various token cover functions and getters.
+ */
+function tokencover() { return (this._tokencover ??= new TokenCover(this)); }
+
+/**
+ * New getter: Token.prototype.coverCalculator
+ * Retrieve a valid cover calculator or construct a new one.
+ */
+function coverCalculator() { return this.tokencover.coverCalculator; }
+
+
+PATCHES.BASIC.GETTERS = {
+  tokencover,
+  coverCalculator
+};
 
 
 /**
@@ -170,7 +230,55 @@ function initializeConfig() {
      * Effectively overrides the "Maximum Cover" setting in the token config.
      * Should be ids from `CONFIG.statusEffects`.
      */
-    statusesGrantNoCover: new Set()
+    statusesGrantNoCover: new Set(),
+
+    /**
+     * Function to determine if a token is alive.
+     * @type {function}
+     */
+    tokenIsAlive,
+
+    /**
+     * Function to determine if a token is dead
+     * @type {function}
+     */
+    tokenIsDead,
+
+    /**
+     * Classes and associated calculators that can determine percent visibility.
+     * Created and initialized at canvasReady hook
+     * Each calculator can calculate visibility based on viewer, target, and optional viewer/target locations.
+     */
+    calculatorClasses: {
+      points: PercentVisibleCalculatorPoints,
+      geometric: PercentVisibleCalculatorGeometric,
+      webgl2: PercentVisibleCalculatorWebGL2,
+      // webgpu: PercentVisibleCalculatorWebGPU,
+      // "webgpu-async": PercentVisibleCalculatorWebGPUAsync,
+      "per-pixel": PercentVisibleCalculatorPerPixel,
+    },
+
+    losCalculators: {
+      points: null,
+      geometric: null,
+      webgl2: null,
+      // webgpu: null,
+      // "webgpu-async": null,
+      "per-pixel": null,
+    },
+
+    /**
+     * Classes used to view the debugger for different algorithms.
+     */
+    debugViewerClasses: {
+      points: DebugVisibilityViewerPoints,
+      geometric: DebugVisibilityViewerGeometric,
+      webgl2: DebugVisibilityViewerWebGL2,
+      // webgpu: DebugVisibilityViewerWebGPU,
+      // "webgpu-async": DebugVisibilityViewerWebGPUAsync,
+      "per-pixel": DebugVisibilityViewerPerPixel,
+    },
+
   };
 
   Object.defineProperty(CONFIG[MODULE_ID], "UniqueEffect", {
@@ -243,3 +351,26 @@ function transitionTokenMaximumCoverFlags() {
   });
   canvas.scene.setFlag(MODULE_ID, FLAGS.VERSION, v);
 }
+
+/**
+ * Test if a token is dead. Usually, but not necessarily, the opposite of tokenIsDead.
+ * @param {Token} token
+ * @returns {boolean} True if dead.
+ */
+function tokenIsAlive(token) { return !tokenIsDead(token); }
+
+/**
+ * Test if a token is dead. Usually, but not necessarily, the opposite of tokenIsAlive.
+ * @param {Token} token
+ * @returns {boolean} True if dead.
+ */
+function tokenIsDead(token) {
+  const deadStatus = CONFIG.statusEffects.find(status => status.id === "dead");
+  if ( deadStatus && token.actor.statuses.has(deadStatus.id) ) return true;
+
+  const tokenHPAttribute = Settings.get(Settings.KEYS.TOKEN_HP_ATTRIBUTE)
+  const hp = getObjectProperty(token.actor, tokenHPAttribute);
+  if ( typeof hp !== "number" ) return false;
+  return hp <= 0;
+}
+
