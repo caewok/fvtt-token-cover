@@ -64,7 +64,7 @@ export function initializePatching() {
   PATCHER.registerGroup("TEMPLATES");
 
   // If ATV is not active, handle the LOS patches needed to run the calculator.
-  if ( !OTHER_MODULES.TOKEN_VISIBILITY ) PATCHER.registerGroup("LOS");
+  if ( !OTHER_MODULES.ATV ) PATCHER.registerGroup("LOS");
 
   //   If ( OTHER_MODULES.LEVELS ) PATCHER.registerGroup("LEVELS");
   //   else PATCHER.registerGroup("NO_LEVELS");
@@ -82,10 +82,6 @@ export function initializePatching() {
 
   if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) PATCHER.registerGroup("COVER_FLAGS");
 }
-
-export function registerDebug() { PATCHER.registerGroup("DEBUG"); }
-
-export function deregisterDebug() { PATCHER.deregisterGroup("DEBUG"); }
 
 export function registerTemplates() { PATCHER.registerGroup("TEMPLATES"); }
 

@@ -209,7 +209,7 @@ export class CoverEffectsController {
    */
   async importFromJSONDialog(coverEffect, app) {
     // See https://github.com/DFreds/dfreds-convenient-effects/blob/c2d5e81eb1d28d4db3cb0889c22a775c765c24e3/scripts/effects/custom-effects-handler.js#L156
-    const content = await renderTemplate("templates/apps/import-data.html", {
+    const content = await renderTemplate("templates/apps/import-data.hbs", {
       hint1: "You may import cover settings data from an exported JSON file.",
       hint2: "This operation will overwrite this cover effect."
     });

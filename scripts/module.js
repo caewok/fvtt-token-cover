@@ -9,13 +9,14 @@ ui
 */
 "use strict";
 
-import { MODULE_ID, FLAGS, COVER, TEMPLATES, setCoverIgnoreHandler, FA_ICONS } from "./const.js";
+import { MODULE_ID, FLAGS, COVER, TEMPLATES, setCoverIgnoreHandler, FA_ICONS, OTHER_MODULES } from "./const.js";
 import { log } from "./util.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
+import { getObjectProperty } from "./LOS/util.js";
 
 // Trackers
 import {
@@ -26,6 +27,13 @@ import {
 import { WallGeometryTracker } from "./LOS/placeable_tracking/WallGeometryTracker.js";
 import { TileGeometryTracker } from "./LOS/placeable_tracking/TileGeometryTracker.js";
 import { RegionGeometryTracker } from "./LOS/placeable_tracking/RegionGeometryTracker.js";
+
+// Calculators
+import { PercentVisibleCalculatorPoints, DebugVisibilityViewerPoints } from "./LOS/calculators/PointsCalculator.js";
+import { PercentVisibleCalculatorGeometric, DebugVisibilityViewerGeometric } from "./LOS/calculators/GeometricCalculator.js";
+import { PercentVisibleCalculatorPerPixel, DebugVisibilityViewerPerPixel } from "./LOS/calculators/PerPixelCalculator.js";
+import { PercentVisibleCalculatorWebGL2, DebugVisibilityViewerWebGL2 } from "./LOS/calculators/WebGL2Calculator.js";
+
 
 // Cover objects
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
@@ -76,7 +84,7 @@ Hooks.once("init", function() {
 
   // Must go at end?
   loadTemplates(Object.values(TEMPLATES)).then(_value => log("Templates loaded."));
-  loadTemplates(["templates/apps/import-data.html"]); // For settings dialog.
+  loadTemplates(["templates/apps/import-data.hbs"]); // For settings dialog.
 });
 
 Hooks.once("setup", function() {
@@ -95,12 +103,12 @@ Hooks.once("setup", function() {
  * A hook event that fires when the game is fully ready.
  */
 Hooks.once("ready", async function(_canvas) {
+  Settings.migrate(); // Cannot be set until world is ready.
+
   CONFIG[MODULE_ID].CoverEffect.initialize(); // Async. Must wait until ready hook to store Settings for UniqueEffectFlag
 
-  Settings.initializeDebugGraphics();
-
   // Only register geometry hooks if ATV is not present.
-  if ( !OTHER_MODULES.TOKEN_VISIBILITY ) {
+  if ( !OTHER_MODULES.ATV ) {
     WallGeometryTracker.registerPlaceableHooks();
     TileGeometryTracker.registerPlaceableHooks();
     TokenGeometryTracker.registerPlaceableHooks();
@@ -109,51 +117,42 @@ Hooks.once("ready", async function(_canvas) {
     BrightLitTokenGeometryTracker.registerPlaceableHooks();
     RegionGeometryTracker.registerPlaceableHooks();
   } else {
-    const getterFn = function() {
-      this.tokenvisibility ??= {};
-      return this.tokenvisibility;
-    }
-    const ATV = {};
-    ATV.GETTERS = { [MODULE_ID]: getterFn };
-    const PATCHES = {
-      "foundry.canvas.placeables.Token": ATV,
-      "foundry.canvas.placeables.Wall": ATV,
-      "foundry.canvas.placeables.Tile": ATV,
-      "foundry.canvas.placeables.Region": ATV,
-      "foundry.data.regionShapes.RegionCircleShape": ATV,
-      "foundry.data.regionShapes.RegionEllipseShape": ATV,
-      "foundry.data.regionShapes.RegionRectangleShape": ATV,
-      "foundry.data.regionShapes.RegionPolygonShape": ATV,
-    };
-    PATCHER.addPatchesFromRegistrationObject(PATCHES);
+//     const getterFn = function() {
+//       this.tokenvisibility ??= {};
+//       return this.tokenvisibility;
+//     };
+//     const ATV = {};
+//     ATV.GETTERS = { [MODULE_ID]: getterFn };
+//     const PATCHES = {
+//       "foundry.canvas.placeables.Token": ATV,
+//       "foundry.canvas.placeables.Wall": ATV,
+//       "foundry.canvas.placeables.Tile": ATV,
+//       "foundry.canvas.placeables.Region": ATV,
+//       "foundry.data.regionShapes.RegionCircleShape": ATV,
+//       "foundry.data.regionShapes.RegionEllipseShape": ATV,
+//       "foundry.data.regionShapes.RegionRectangleShape": ATV,
+//       "foundry.data.regionShapes.RegionPolygonShape": ATV,
+//     };
+//     PATCHER.addPatchesFromRegistrationObject(PATCHES);
   }
 
 });
-
-/**
- * New method: Token.tokencover
- * Class that handles various token cover functions and getters.
- */
-function tokencover() { return (this._tokencover ??= new TokenCover(this)); }
-
-/**
- * New getter: Token.prototype.coverCalculator
- * Retrieve a valid cover calculator or construct a new one.
- */
-function coverCalculator() { return this.tokencover.coverCalculator; }
-
-
-PATCHES.BASIC.GETTERS = {
-  tokencover,
-  coverCalculator
-};
-
 
 /**
  * A hook event that fires when the Canvas is ready.
  * @param {Canvas} canvas The Canvas which is now ready for use
  */
 Hooks.once("canvasReady", function() {
+  WallGeometryTracker.registerExistingPlaceables();
+  TileGeometryTracker.registerExistingPlaceables();
+  TokenGeometryTracker.registerExistingPlaceables();
+  SphericalTokenGeometryTracker.registerExistingPlaceables();
+  LitTokenGeometryTracker.registerExistingPlaceables();
+  BrightLitTokenGeometryTracker.registerExistingPlaceables();
+  RegionGeometryTracker.registerExistingPlaceables();
+
+  if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) Settings.toggleLOSDebugGraphics(true);
+
   transitionTokenMaximumCoverFlags();
   CONFIG[MODULE_ID].CoverEffect.transitionTokens(); // Async
 });
@@ -173,10 +172,11 @@ const COVER_EFFECTS_CONTROL = {
 
 // Render the cover effects book control if setting enabled.
 Hooks.on("getSceneControlButtons", controls => {
-  if ( !canvas.scene || !ui.controls.activeControl === "token" ) return;
-  const tokenTools = controls.find(c => c.name === "token");
+  if ( !canvas.scene || !ui.controls.activeControl === "token" || !game.user.isGM ) return;
   COVER_EFFECTS_CONTROL.visible = game.user.isGM && Settings.get(Settings.KEYS.DISPLAY_COVER_BOOK);
-  if ( game.user.isGM ) tokenTools.tools.push(COVER_EFFECTS_CONTROL);
+  COVER_EFFECTS_CONTROL.order = 0;
+  Object.values(controls.tokens.tools).forEach(tool => COVER_EFFECTS_CONTROL.order = Math.max(tool.order + 1, COVER_EFFECTS_CONTROL.order));
+  controls.tokens.tools[MODULE_ID] = COVER_EFFECTS_CONTROL;
 });
 
 
@@ -253,8 +253,8 @@ function initializeConfig() {
       points: PercentVisibleCalculatorPoints,
       geometric: PercentVisibleCalculatorGeometric,
       webgl2: PercentVisibleCalculatorWebGL2,
-      // webgpu: PercentVisibleCalculatorWebGPU,
-      // "webgpu-async": PercentVisibleCalculatorWebGPUAsync,
+      // Unused. webgpu: PercentVisibleCalculatorWebGPU,
+      // Unused. "webgpu-async": PercentVisibleCalculatorWebGPUAsync,
       "per-pixel": PercentVisibleCalculatorPerPixel,
     },
 
@@ -274,8 +274,8 @@ function initializeConfig() {
       points: DebugVisibilityViewerPoints,
       geometric: DebugVisibilityViewerGeometric,
       webgl2: DebugVisibilityViewerWebGL2,
-      // webgpu: DebugVisibilityViewerWebGPU,
-      // "webgpu-async": DebugVisibilityViewerWebGPUAsync,
+      // Unused. webgpu: DebugVisibilityViewerWebGPU,
+      // Unused. "webgpu-async": DebugVisibilityViewerWebGPUAsync,
       "per-pixel": DebugVisibilityViewerPerPixel,
     },
 
@@ -368,7 +368,7 @@ function tokenIsDead(token) {
   const deadStatus = CONFIG.statusEffects.find(status => status.id === "dead");
   if ( deadStatus && token.actor.statuses.has(deadStatus.id) ) return true;
 
-  const tokenHPAttribute = Settings.get(Settings.KEYS.TOKEN_HP_ATTRIBUTE)
+  const tokenHPAttribute = Settings.get(Settings.KEYS.TOKEN_HP_ATTRIBUTE);
   const hp = getObjectProperty(token.actor, tokenHPAttribute);
   if ( typeof hp !== "number" ) return false;
   return hp <= 0;

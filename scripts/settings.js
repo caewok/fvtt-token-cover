@@ -10,15 +10,17 @@ ui
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
 import { MODULE_ID, OTHER_MODULES, FLAGS } from "./const.js";
+import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
-import { registerArea3d, registerDebug, registerTemplates, deregisterTemplates } from "./patching.js";
+import { registerTemplates, deregisterTemplates } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
 import { renderTemplateSync } from "./util.js";
-import { ViewerLOS } from "./LOS/ViewerLOS.js";
-import { buildDebugViewer, currentDebugViewerClass, pointIndexForSet } from "./LOSCalculator.js";
+import { buildDebugViewer, currentDebugViewerClass } from "./CoverCalculator.js";
 
+// LOS folder
+import { ViewerLOS } from "./LOS/ViewerLOS.js";
+import { pointIndexForSet } from "./LOS/SmallBitSet.js";
 
 export const PATCHES_SidebarTab = {};
 export const PATCHES_ItemDirectory = {};
@@ -42,7 +44,7 @@ class exportSettingsButton extends foundry.applications.api.ApplicationV2 {
 class importSettingsDialog extends foundry.applications.api.DialogV2 {
   _initializeApplicationOptions(options) {
     const moduleName = game.i18n.localize(`${MODULE_ID}.name`);
-    const content = renderTemplateSync("templates/apps/import-data.html", {
+    const content = renderTemplateSync("templates/apps/import-data.hbs", {
       hint1: `Replace ${moduleName} settings with those in a JSON file.`,
       hint2: "This cannot be undone!"
     });
@@ -193,6 +195,10 @@ export const SETTINGS = {
   AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
   CHANGELOG: "changelog",
   ATV_SETTINGS_MESSAGE: "atv-settings-message",
+
+  MIGRATION: {
+    v0100: "migration-v0.10.0",
+  },
 };
 
 export class Settings extends ModuleSettingsAbstract {
@@ -405,22 +411,6 @@ export class Settings extends ModuleSettingsAbstract {
       onChange: value => this.losSettingChange(TARGET.ALGORITHM, value)
     });
 
-    register(TARGET.PERCENT, {
-      name: localize(`${TARGET.PERCENT}.Name`),
-      hint: localize(`${TARGET.PERCENT}.Hint`),
-      range: {
-        max: 1,
-        min: 0,
-        step: 0.05
-      },
-      scope: "world",
-      config: false, // () => getSetting(KEYS.LOS.ALGORITHM) !== LTYPES.POINTS,
-      default: 0,
-      type: Number,
-      tab: "losTarget",
-      onChange: value => this.losSettingChange(TARGET.PERCENT, value)
-    });
-
     register(TARGET.LARGE, {
       name: localize(`${TARGET.LARGE}.Name`),
       hint: localize(`${TARGET.LARGE}.Hint`),
@@ -545,7 +535,7 @@ export class Settings extends ModuleSettingsAbstract {
     }
 
     // ----- NOTE: Other cover settings tab ----- //
-    if ( !OTHER_MODULES.TOKEN_VISIBILITY ) {
+    if ( !OTHER_MODULES.ATV ) {
       register(KEYS.PRONE_MULTIPLIER, {
         name: localize(`${KEYS.PRONE_MULTIPLIER}.Name`),
         hint: localize(`${KEYS.PRONE_MULTIPLIER}.Hint`),
@@ -646,34 +636,45 @@ export class Settings extends ModuleSettingsAbstract {
       default: {}
     });
 
-    // ----- NOTE: Triggers based on starting settings ---- //
-    // Start debug
-    if ( this.get(this.KEYS.DEBUG) ) registerDebug();
-
-    // Register the Area3D methods on initial load.
-    if ( this.typesWebGL2.has(this.get(TARGET.ALGORITHM)) ) registerArea3d();
-
+    register(KEYS.MIGRATION.v0100, {
+      scope: "world",
+      config: false,
+      default: false,
+      type: Boolean
+    });
   }
 
-  static typesWebGL2 = new Set([
-    ENUMS.ALGORITHM_TYPES.AREA3D,
-    ENUMS.ALGORITHM_TYPES.AREA3D_WEBGL2,
-    ENUMS.ALGORITHM_TYPES.AREA3D_HYBRID]);
+  static migrate() {
+    if ( !this.get(this.KEYS.MIGRATION.v0100) ) {
+      let alg = this.get(this.KEYS.LOS.TARGET.ALGORITHM);
+      switch ( alg ) {
+        case "los-points": alg = "los-algorithm-points"; break;
+        case "los-area-3d":
+        case "los-area-3d-geometric": alg = "los-algorithm-geometric"; break;
+        case "los-area-3d-hybrid": alg = "los-algorithm-hybrid"; break;
+        case "los-webgl2": alg = "los-algorithm-webgl2"; break;
+        case "los-webgpu": alg = "los-algorithm-webgpu"; break;
+        case "los-webgpu-async": alg = "los-algorithm-webgpu-async"; break;
+      }
+      this.set(this.KEYS.LOS.TARGET.ALGORITHM, alg);
+      this.set(this.KEYS.MIGRATION.v0100, true);
+    }
+  }
 
- static losSettingChange(key, value) {
+  static losSettingChange(key, value) {
     this.cache.delete(key);
     const { TARGET, VIEWER } = SETTINGS.LOS;
 
     switch ( key ) {
       case TARGET.ALGORITHM: {
         // Set a new shared calculator for all tokens.
-//         const losCalc = buildLOSCalculator();
-//         canvas.tokens.placeables.forEach(token => {
-//           const handler = token[MODULE_ID]?.[TRACKER_IDS.VISIBILITY];
-//           if ( !handler ) return;
-//           if ( handler.losViewer.calculator ) handler.losViewer.calculator.destroy();
-//           handler.losViewer.calculator = losCalc;
-//         });
+        const losCalc = buildLOSCalculator();
+        canvas.tokens.placeables.forEach(token => {
+          const handler = token[MODULE_ID]?.[TRACKER_IDS.VISIBILITY];
+          if ( !handler ) return;
+          if ( handler.losViewer.calculator ) handler.losViewer.calculator.destroy();
+          handler.losViewer.calculator = losCalc;
+        });
 
         // Start up a new debug viewer.
         if ( this.get(this.KEYS.DEBUG.LOS) ) {
@@ -685,20 +686,20 @@ export class Settings extends ModuleSettingsAbstract {
       case VIEWER.POINTS: value = pointIndexForSet(value);
       case VIEWER.INSET: { /* eslint-disable-line no-fallthrough */
         // Tell the los viewer to update the viewpoints.
-//         canvas.tokens.placeables.forEach(token => {
-//           const handler = token[MODULE_ID]?.[TRACKER_IDS.VISIBILITY];
-//           if ( !handler ) return;
-//           handler.losViewer.dirty = true;
-//         });
+        canvas.tokens.placeables.forEach(token => {
+          const handler = token[MODULE_ID]?.[TRACKER_IDS.VISIBILITY];
+          if ( !handler ) return;
+          handler.losViewer.dirty = true;
+        });
       }
       case TARGET.PERCENT: {  /* eslint-disable-line no-fallthrough */
         // Update the viewpoints for all tokens.
         const config = { [configKeyForSetting[key]]: value };
-//         canvas.tokens.placeables.forEach(token => {
-//           const handler = token[MODULE_ID]?.[TRACKER_IDS.VISIBILITY];
-//           if ( !handler ) return;
-//           handler.losViewer.config = config;
-//         });
+        canvas.tokens.placeables.forEach(token => {
+          const handler = token[MODULE_ID]?.[TRACKER_IDS.VISIBILITY];
+          if ( !handler ) return;
+          handler.losViewer.config = config;
+        });
         break;
       }
 
@@ -706,15 +707,15 @@ export class Settings extends ModuleSettingsAbstract {
       case TARGET.POINT_OPTIONS.POINTS: value = pointIndexForSet(value);
       default: { /* eslint-disable-line no-fallthrough */
         const config = foundry.utils.expandObject({ [configKeyForSetting[key]]: value });
-//         const currCalc = currentCalculator();
-//         currCalc.config = config;
+        const currCalc = currentCalculator();
+        currCalc.config = config;
       }
     }
   }
 
   static setProneStatusId(value) {
     CONFIG.GeometryLib.proneStatusId = value;
-    if ( OTHER_MODULES.TOKEN_VISIBILITY) game.settings.set("tokenvisibility", SETTINGS.PRONE_STATUS_ID, value);
+    if ( OTHER_MODULES.ATV) game.settings.set("tokenvisibility", SETTINGS.PRONE_STATUS_ID, value);
   }
 }
 
@@ -729,5 +730,10 @@ const configKeyForSetting = {
   // Points viewpoints.
   [SETTINGS.LOS.TARGET.POINT_OPTIONS.POINTS]: "targetPointIndex",
   [SETTINGS.LOS.TARGET.POINT_OPTIONS.INSET]: "targetInset",
+
+  // Blocking (unused—set at cover effect level)
+  // [SETTINGS.LIVE_TOKENS_BLOCK]: "blocking.tokens.live",
+  // [SETTINGS.DEAD_TOKENS_BLOCK]: "blocking.tokens.dead",
+  // [SETTINGS.PRONE_TOKENS_BLOCK]: "blocking.tokens.prone",
 };
 

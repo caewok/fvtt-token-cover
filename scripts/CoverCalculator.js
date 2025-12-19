@@ -6,11 +6,12 @@ Token
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID, COVER_TYPES } from "./const.js";
+import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID, COVER_TYPES, TRACKER_IDS } from "./const.js";
 import { Settings } from "./settings.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 import { CoverDialog } from "./CoverDialog.js";
 import { ViewerLOS } from "./LOS/ViewerLOS.js";
+import { pointIndexForSet } from "./LOS/SmallBitSet.js";
 
 /* Testing
 Draw = CONFIG.GeometryLib.Draw
@@ -28,16 +29,15 @@ export class CoverCalculator {
   static ID = TRACKER_IDS.COVER;
 
   /** @type {Token} */
-  viewer;
+  get viewer() { return this.losViewer.viewer; }
+
+  set viewer(value) { this.losViewer = value; }
 
   /** @type {ViewerLOS} */
   losViewer;
 
   constructor(token) {
-    token[MODULE_ID] ??= {};
-    token[MODULE_ID][this.constructor.ID] = this;
     this.losViewer = buildLOSViewer(token);
-    this.viewer = token;
   }
 
   /** @type {PercentVisibleCalculator} */
@@ -145,7 +145,8 @@ export class CoverCalculator {
    *
    * @property {boolean} [includeWalls=true]      Should walls be considered blocking?
    * @property {boolean} [includeTokens=true]     Should tokens be considered blocking?
-   * @property {Token[]} [tokensToExclude=[]]     What tokens to not include in blocking objects. GM settings may further modify which tokens block.
+   * @property {Token[]} [tokensToExclude=[]]     What tokens to not include in blocking objects.
+   *                                              GM settings may further modify which tokens block.
    * @property {Token[]} [onlyTokens=[]]          Only include these tokens as potentially blocking.
    */
 
@@ -157,8 +158,8 @@ export class CoverCalculator {
    */
   percentCover(target, opts) {
     const { viewer, losCalc } = this;
-    if ( target ) calc.target = target;
-    calc._clearCache();
+    if ( target ) losCalc.target = target;
+    losCalc._clearCache();
 
     let percent = 1;
     let minViewerPoint;
@@ -166,9 +167,9 @@ export class CoverCalculator {
       pointAlgorithm: this.viewerNumPoints,
       inset: this.viewerInset
     };
-    const viewerPoints = calc.constructor.constructViewerPoints(viewer, viewerOpts);
+    const viewerPoints = losCalc.constructor.constructViewerPoints(viewer, viewerOpts);
     for ( const viewerPoint of viewerPoints ) {
-      calc.viewerPoint = viewerPoint;
+      losCalc.viewerPoint = viewerPoint;
       const percentFromViewpoint = this._percentCover(opts);
       if ( percentFromViewpoint < percent ) {
         percent = percentFromViewpoint;
@@ -178,7 +179,7 @@ export class CoverCalculator {
     }
 
     // For debugging multiple points, set the viewer point to the minimum point.
-    if ( minViewerPoint ) calc.viewerPoint = minViewerPoint;
+    if ( minViewerPoint ) losCalc.viewerPoint = minViewerPoint;
     return percent;
   }
 
@@ -367,3 +368,87 @@ export class CoverCalculator {
   static attackNameForType(type) { return game.i18n.localize(WEAPON_ATTACK_TYPES[type]); }
 
 }
+
+// ----- NOTE: Calculator configuration ----- //
+
+/**
+ * @returns {CalculatorConfig|PointsCalculatorConfig}  See PercentVisibleCalculator.js and PointsCalculator.js
+ */
+function CalculatorConfig() {
+  return {
+    blocking: { // BlockingConfig
+      tokens: { // TokenBlockingConfig
+        dead: true,
+        live: true,
+        prone: true,
+      },
+      walls: true,
+      tiles: true,
+      regions: true,
+    },
+    largeTarget: Settings.get(Settings.KEYS.LOS.TARGET.LARGE) ?? false,
+    debug: false,
+    testLighting: true,
+    senseType: "sight",
+    sourceType: "lighting",
+
+    // Points algorithm
+    targetInset: Settings.get(Settings.KEYS.LOS.TARGET.POINT_OPTIONS.INSET) ?? 0.75,
+    targetPointIndex: pointIndexForSet(Settings.get(Settings.KEYS.LOS.TARGET.POINT_OPTIONS.POINTS)),
+  };
+}
+
+/**
+ * @returns {ViewerLOSConfig} See ViewerLOS.js
+ */
+function LOSViewerConfig() {
+  return {
+    viewpointIndex: pointIndexForSet(Settings.get(Settings.KEYS.LOS.VIEWER.POINTS)),
+    viewpointInset: Settings.get(Settings.KEYS.LOS.VIEWER.INSET),
+    angle: true,
+  };
+}
+
+/**
+ * Build an LOS calculator that uses the current settings.
+ * @returns {PercentVisibleCalculatorAbstract}
+ */
+function buildLOSCalculator() {
+  const calcName = ViewerLOS.VIEWPOINT_ALGORITHM_SETTINGS[Settings.get(Settings.KEYS.LOS.TARGET.ALGORITHM)];
+  const calcs = CONFIG[MODULE_ID].losCalculators;
+  if ( !calcs[calcName] ) {
+    calcs[calcName] ??= new CONFIG[MODULE_ID].calculatorClasses[calcName](CalculatorConfig());
+    calcs[calcName].initialize(); // Async.
+  }
+  return calcs[calcName];
+}
+
+/**
+ * Build an LOS viewer for this viewer that uses the current settings.
+ * @param {Token} viewer
+ * @returns {ViewerLOS}
+ */
+export function buildLOSViewer(viewer) {
+  const calculator = buildLOSCalculator();
+  const viewerLOS = new ViewerLOS(viewer, calculator, LOSViewerConfig());
+  return viewerLOS;
+}
+
+/**
+ * Build a debug viewer using the current settings.
+ * @param {class} cl                    Class of the viewer
+ */
+export function buildDebugViewer(cl) {
+  const viewerLOSFn = viewer => viewer[MODULE_ID][TRACKER_IDS.COVER].losViewer;
+  return new cl(viewerLOSFn);
+}
+
+export function currentDebugViewerClass(type) {
+  const KEYS = Settings.KEYS;
+  const { TARGET } = KEYS.LOS;
+  const debugViewers = CONFIG[MODULE_ID].debugViewerClasses;
+  type ??= Settings.get(TARGET.ALGORITHM) ?? TARGET.TYPES.POINTS;
+  const calcName = ViewerLOS.VIEWPOINT_ALGORITHM_SETTINGS[type];
+  return debugViewers[calcName];
+}
+
