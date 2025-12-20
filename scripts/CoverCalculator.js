@@ -25,9 +25,6 @@ let [target] = game.user.targets;
 */
 
 export class CoverCalculator {
-  /** @type {string} */
-  static ID = TRACKER_IDS.COVER;
-
   /** @type {Token} */
   get viewer() { return this.losViewer.viewer; }
 
@@ -41,7 +38,7 @@ export class CoverCalculator {
   }
 
   /** @type {PercentVisibleCalculator} */
-  get losCalc() { return this.losViewer.losCalc; }
+  get losCalc() { return this.losViewer.calculator; }
 
 
   // ----- NOTE: Static methods ----- //
@@ -156,80 +153,74 @@ export class CoverCalculator {
    * @param {object} [PercentCoverOptions]      Options passed to _percentCover
    * @returns {number} Percent between 0 and 1.
    */
-  percentCover(target, opts) {
-    const { viewer, losCalc } = this;
-    if ( target ) losCalc.target = target;
-    losCalc._clearCache();
+  percentCover(target, { includeWalls = true, includeTokens = true, tokensToExclude = [], onlyTokens = [] } = {}) {
+    const { losViewer, losCalc } = this;
+    losViewer.initializeView({ target });
 
+    let oldConfig;
+    if ( !(includeWalls || includeTokens) ) {
+      oldConfig = losCalc.config;
+      losCalc.config = {
+        blocking: {
+          walls: includeWalls,
+          tokens: {
+            dead: oldConfig.blocking.tokens.dead && includeTokens,
+            live: oldConfig.blocking.tokens.live && includeTokens,
+          },
+        },
+      };
+    }
+
+
+    // TODO: Is a simple visibility test still workable here?
+
+    // Because of partially blocking tokens, cannot simply calculate for all viewpoints.
     let percent = 1;
-    let minViewerPoint;
-    const viewerOpts = {
-      pointAlgorithm: this.viewerNumPoints,
-      inset: this.viewerInset
-    };
-    const viewerPoints = losCalc.constructor.constructViewerPoints(viewer, viewerOpts);
-    for ( const viewerPoint of viewerPoints ) {
-      losCalc.viewerPoint = viewerPoint;
+    const opts = { tokensToExclude, onlyTokens };
+    for ( const viewpoint of losViewer.viewpoints ) {
+      losViewer.initializeView({ viewpoint });
+      losViewer._initializeCalculation(); // Set up the obstacles.
       const percentFromViewpoint = this._percentCover(opts);
       if ( percentFromViewpoint < percent ) {
         percent = percentFromViewpoint;
-        if ( percent < 0 || percent.almostEqual(0) ) return 0;
-        minViewerPoint = viewerPoint;
+        if ( percent < 0 || percent.almostEqual(0) ) break;
       }
     }
 
-    // For debugging multiple points, set the viewer point to the minimum point.
-    if ( minViewerPoint ) losCalc.viewerPoint = minViewerPoint;
+    if ( oldConfig ) losCalc.config = oldConfig;
     return percent;
   }
 
   /**
-   * Calculate the percentage cover for the current viewer point.
+   * Calculate the percentage cover for the current set viewer point.
    * @param {object} [PercentCoverOptions]                     Options to manipulate the LOS calculation
    * @returns {number} Percent between 0 and 1.
    */
-  _percentCover({ includeWalls = true, includeTokens = true, tokensToExclude = [], onlyTokens = [] } = {}) {
-    const calc = this.calc;
+  _percentCover({ tokensToExclude = [], onlyTokens = [] } = {}) {
+    const losCalc = this.losCalc;
+    const tokenObstacles = losCalc.occlusionTester.obstacles.tokens;
 
     // Instead of copying and restoring blocking objects, just change them and clear cache after.
-    let blockingObjectsChanged = false;
     let partialBlockingTokens = [];
 
-    if ( !includeWalls ) {
-      calc.blockingObjects.walls.clear();
-      calc.blockingObjects.terrainWalls.clear();
-      blockingObjectsChanged ||= true;
-    }
-
-    if ( includeTokens ) {
+    if ( losCalc.tokensBlock  ) {
       // Remove tokens flagged as not blocking.
       // Process tokens that have been flagged as partially blocking.
       const res = this._partiallyBlockingTokens();
       partialBlockingTokens = res.partialBlockingTokens;
-      if ( res.nonBlockingTokens.length ) {
-        res.nonBlockingTokens.forEach(t => calc.blockingObjects.tokens.delete(t));
-        blockingObjectsChanged ||= true;
-      }
+      res.nonBlockingTokens.forEach(t => tokenObstacles.delete(t));
 
       // Process tokens that are forcibly excluded or included.
-      if ( tokensToExclude.length ) {
-        tokensToExclude.forEach(t => calc.blockingObjects.tokens.delete(t));
-        blockingObjectsChanged ||= true;
-      }
+      tokensToExclude.forEach(t => tokenObstacles.delete(t));
       if ( onlyTokens.length ) {
-        calc.blockingObjects.tokens.clear();
-        onlyTokens.forEach(t => calc.blockingObjects.tokens.add(t));
-        blockingObjectsChanged ||= true;
+        occlusionTester.obstacles.tokens.clear();
+        onlyTokens.forEach(t => tokenObstacles.add(t));
       }
-
-    } else {
-      calc.blockingObjects.tokens.clear();
-      blockingObjectsChanged ||= true;
     }
 
     // Basic approach: simply calculate cover based on visibility of the target from the viewer point.
-    if ( blockingObjectsChanged ) calc._blockingObjectsChanged();
-    const percent = 1 - calc.percentVisible();
+    losCalc._calculate();
+    const percent = 1 - losCalc.percentVisible;
 
     // Handle partially blocking tokens separately.
     if ( partialBlockingTokens.length ) return this._calculatePartiallyBlockingCover(partialBlockingTokens, percent);
@@ -243,11 +234,11 @@ export class CoverCalculator {
    *   - @prop{Token[]} nonBlockingTokens        Any tokens that do not grant cover
    */
   _partiallyBlockingTokens() {
-    const calc = this.calc;
+    const obstacles = this.losCalc.occlusionTester.obstacles;
     const partialBlockingTokens = [];
     const nonBlockingTokens = [];
     const statusesGrantNoCover = CONFIG[MODULE_ID].statusesGrantNoCover;
-    for ( const token of calc.blockingObjects.tokens ) {
+    for ( const token of obstacles.tokens ) {
       let maxCover = Number(token.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? 1);
       if ( token.actor && token.actor.statuses.intersects(statusesGrantNoCover).size ) maxCover = 0;
       if ( maxCover >= 1 ) continue;
@@ -263,17 +254,35 @@ export class CoverCalculator {
    * @param {Set<Token>|Token[]} patiallyBlockingTokens
    */
   _calculatePartiallyBlockingCover(partialBlockingTokens, totalPercent) {
-    const calc = this.calc;
-    const blockingTokens = calc.blockingObjects.tokens;
+    const losCalc = this.losCalc;
+    const blockingTokens = losCalc.occlusionTester.obstacles.tokens;
+
+    // TODO: Use the result directly.
+    // Test each token in turn. Combine with all other obstacles to get total cover.
+    // Requires ability to modify the percent blocking by a percentage. E.g., token blocks 50% means every other pixel.
+    // Would be different for each algorithm.
+    //
+    /* Geometric is a problem. Could shrink geometric:
+    Area:  w * h = A.
+    To shrink area, w*x * h*x = A', where x is a percent increase/reduction for width and height.
+    x^2 * w * h = A'
+    x^2 = A' / w*h = A' / A
+    x = sqrt(A' / A)
+
+    E.g., A = 1000. A' = 500. x = sqrt(500/1000) = 1 / sqrt(2) ~ 0.707
+
+    But this only makes the obstacle token smaller. It would still allow 100% cover.
+    Need to instead put a bunch of holes in the token shape. This is likely performance intensive.
+    Could fall back on numerical approach used here.
+    */
 
     // Without partially blocking tokens.
     partialBlockingTokens.forEach(t => blockingTokens.delete(t));
-    calc._blockingObjectsChanged();
-    const percentNoTokens = 1 - calc.percentVisible();
+    const resultNoTokens = losCalc._calculate();
+    const percentNoTokens = 1 - resultNoTokens.percentVisible;
 
     // Add back the tokens.
     partialBlockingTokens.forEach(t => blockingTokens.add(t));
-    calc._blockingObjectsChanged();
 
     // Remove each token in turn.
     let tPercentage = [];
@@ -285,11 +294,11 @@ export class CoverCalculator {
       if ( t.actor && t.actor.statuses.intersects(statusesGrantNoCover).size ) maxCover = 0;
       tMaxCover.push(maxCover);
       blockingTokens.delete(t);
-      calc._blockingObjectsChanged();
-      const percentMinusOneToken = 1 - calc.percentVisible();
+      const resultMinusOneToken = losCalc._calculate();
+
+      const percentMinusOneToken = 1 - resultMinusOneToken.percentVisible;
       tPercentage.push(totalPercent - percentMinusOneToken);
       blockingTokens.add(t);
-      calc._blockingObjectsChanged();
     });
 
     // Prorate each token's percentage contribution to the total token contribution to
@@ -439,7 +448,7 @@ export function buildLOSViewer(viewer) {
  * @param {class} cl                    Class of the viewer
  */
 export function buildDebugViewer(cl) {
-  const viewerLOSFn = viewer => viewer[MODULE_ID][TRACKER_IDS.COVER].losViewer;
+  const viewerLOSFn = viewer => viewer[TRACKER_IDS.COVER].coverCalculator.losViewer;
   return new cl(viewerLOSFn);
 }
 

@@ -10,6 +10,7 @@ ui
 "use strict";
 
 import { MODULE_ID, FLAGS, COVER, TEMPLATES, setCoverIgnoreHandler, FA_ICONS, OTHER_MODULES } from "./const.js";
+import { LOS_CONFIG } from "./LOS/config.js";
 import { log } from "./util.js";
 
 // Hooks and method registration
@@ -194,25 +195,6 @@ function initializeConfig() {
     debug: false,
 
     /**
-     * The percent threshold under which a tile should be considered transparent at that pixel.
-     * @type {number}
-     */
-    alphaThreshold: 0.75,
-
-    /**
-     * Size of the render texture (width and height) used in the webGL LOS algorithms.
-     * @type {number}
-     */
-    renderTextureSize: 100,
-
-    /**
-     * Resolution of the render texture used in the webZGL LOS algorithm.
-     * Should be between (0, 1).
-     * @type {number}
-     */
-    renderTextureResolution: 1,
-
-    /**
      * What cover effect class to use for this system.
      * @type {AbstractUniqueEffect}
      */
@@ -231,18 +213,6 @@ function initializeConfig() {
      * Should be ids from `CONFIG.statusEffects`.
      */
     statusesGrantNoCover: new Set(),
-
-    /**
-     * Function to determine if a token is alive.
-     * @type {function}
-     */
-    tokenIsAlive,
-
-    /**
-     * Function to determine if a token is dead
-     * @type {function}
-     */
-    tokenIsDead,
 
     /**
      * Classes and associated calculators that can determine percent visibility.
@@ -278,6 +248,8 @@ function initializeConfig() {
       // Unused. "webgpu-async": DebugVisibilityViewerWebGPUAsync,
       "per-pixel": DebugVisibilityViewerPerPixel,
     },
+
+    ...LOS_CONFIG,
 
   };
 

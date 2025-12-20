@@ -184,7 +184,8 @@ export const SETTINGS = {
     },
   },
 
-  DEBUG: "debug-cover",
+
+
   PRONE_STATUS_ID: "prone-status-id",
   TOKEN_HP_ATTRIBUTE: "token-hp-attribute",
 
@@ -198,6 +199,10 @@ export const SETTINGS = {
 
   MIGRATION: {
     v0100: "migration-v0.10.0",
+  },
+
+  DEBUG: {
+    LOS: "debug-cover", // For compatibility with older versions, keep as "debug-cover".
   },
 };
 
@@ -338,9 +343,9 @@ export class Settings extends ModuleSettingsAbstract {
       requiresReload: true
     });
 
-    register(KEYS.DEBUG, {
-      name: localize(`${KEYS.DEBUG}.Name`),
-      hint: localize(`${KEYS.DEBUG}.Hint`),
+    register(KEYS.DEBUG.LOS, {
+      name: localize(`${KEYS.DEBUG.LOS}.Name`),
+      hint: localize(`${KEYS.DEBUG.LOS}.Hint`),
       scope: "world",
       config: true,
       type: Boolean,

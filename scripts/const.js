@@ -140,7 +140,6 @@ export const LABELS = {
   }
 };
 
-
 export const TEMPLATES = {
   TOKEN_CONFIG: `modules/${MODULE_ID}/templates/token-config.html`,
   SETTINGS_BUTTONS: `modules/${MODULE_ID}/templates/settings-buttons.html`,
@@ -253,3 +252,7 @@ export function setCoverIgnoreHandler(handler) {
   if ( !canvas.tokens?.placeables ) return;
   canvas.tokens.placeables.forEach(t => t.tokencover.ignoresCover = undefined);
 }
+
+export const TRACKER_IDS = {
+  COVER: MODULE_ID,
+};
