@@ -49,10 +49,21 @@ export function CoverMixin(Base) {
     /** @type {AlternativeLOSConfig} */
     get calcConfig() {
       return {
-        deadTokensBlock: this.deadTokensBlock,
-        liveTokensBlock: this.liveTokensBlock,
-        proneTokensBlock: this.proneTokensBlock,
-        wallsBlock: this.includeWalls
+        blocking: {
+          walls: this.includeWalls,
+          tiles: this.includeWalls,
+          regions: this.includeWalls,
+          tokens: {
+            dead: this.deadTokensBlock,
+            live: this.liveTokensBlock,
+            prone: this.proneTokensBlock,
+          },
+        },
+        // Others:
+        // tokenShapeType
+        // senseType
+        // largeTarget
+        // radius
       };
     }
 
@@ -67,8 +78,7 @@ export function CoverMixin(Base) {
     percentCover(attacker, targetToken) {
       const { includeWalls, includeTokens } = this;
       const calc = attacker.tokencover?.coverCalculator ?? new CoverCalculator(attacker);
-      calc.updateConfiguration(this.calcConfig);
-      return calc.percentCover(targetToken, { includeWalls, includeTokens });
+      return calc.percentCover(targetToken, this.calcConfig);
     }
 
     /**

@@ -25,11 +25,6 @@ let [target] = game.user.targets;
 */
 
 export class CoverCalculator {
-  /** @type {Token} */
-  get viewer() { return this.losViewer.viewer; }
-
-  set viewer(value) { this.losViewer = value; }
-
   /** @type {ViewerLOS} */
   losViewer;
 
@@ -37,9 +32,15 @@ export class CoverCalculator {
     this.losViewer = buildLOSViewer(token);
   }
 
+  // ----- NOTE: Viewer LOS passthrough ----- //
+
   /** @type {PercentVisibleCalculator} */
   get losCalc() { return this.losViewer.calculator; }
 
+  /** @type {Token} */
+  get viewer() { return this.losViewer.viewer; }
+
+  set viewer(value) { this.losViewer = value; }
 
   // ----- NOTE: Static methods ----- //
 
@@ -138,56 +139,31 @@ export class CoverCalculator {
   // ----- NOTE: Percent Cover ----- //
 
   /**
-   * @typedef {Object} PercentCoverOptions
-   *
-   * @property {boolean} [includeWalls=true]      Should walls be considered blocking?
-   * @property {boolean} [includeTokens=true]     Should tokens be considered blocking?
-   * @property {Token[]} [tokensToExclude=[]]     What tokens to not include in blocking objects.
-   *                                              GM settings may further modify which tokens block.
-   * @property {Token[]} [onlyTokens=[]]          Only include these tokens as potentially blocking.
-   */
-
-  /**
    * Calculate the percentage cover over all viewer points if more than one in settings.
    * @param {Token} target                      Target
-   * @param {object} [PercentCoverOptions]      Options passed to _percentCover
+   * @param {CalculatorConfig} [cfg]            Options passed to the los calculator
    * @returns {number} Percent between 0 and 1.
    */
-  percentCover(target, { includeWalls = true, includeTokens = true, tokensToExclude = [], onlyTokens = [] } = {}) {
+  percentCover(target, cfg) {
     const { losViewer, losCalc } = this;
     losViewer.initializeView({ target });
 
-    let oldConfig;
-    if ( !(includeWalls || includeTokens) ) {
-      oldConfig = losCalc.config;
-      losCalc.config = {
-        blocking: {
-          walls: includeWalls,
-          tokens: {
-            dead: oldConfig.blocking.tokens.dead && includeTokens,
-            live: oldConfig.blocking.tokens.live && includeTokens,
-          },
-        },
-      };
-    }
-
+    // Because we will not be using losCalc.calculate directly, must manually reset the config.
+    if ( cfg ) losCalc.config = cfg;
 
     // TODO: Is a simple visibility test still workable here?
 
     // Because of partially blocking tokens, cannot simply calculate for all viewpoints.
     let percent = 1;
-    const opts = { tokensToExclude, onlyTokens };
     for ( const viewpoint of losViewer.viewpoints ) {
       losViewer.initializeView({ viewpoint });
       losViewer._initializeCalculation(); // Set up the obstacles.
-      const percentFromViewpoint = this._percentCover(opts);
+      const percentFromViewpoint = this._percentCover();
       if ( percentFromViewpoint < percent ) {
         percent = percentFromViewpoint;
         if ( percent < 0 || percent.almostEqual(0) ) break;
       }
     }
-
-    if ( oldConfig ) losCalc.config = oldConfig;
     return percent;
   }
 
@@ -196,26 +172,18 @@ export class CoverCalculator {
    * @param {object} [PercentCoverOptions]                     Options to manipulate the LOS calculation
    * @returns {number} Percent between 0 and 1.
    */
-  _percentCover({ tokensToExclude = [], onlyTokens = [] } = {}) {
+  _percentCover() {
     const losCalc = this.losCalc;
     const tokenObstacles = losCalc.occlusionTester.obstacles.tokens;
 
     // Instead of copying and restoring blocking objects, just change them and clear cache after.
     let partialBlockingTokens = [];
-
-    if ( losCalc.tokensBlock  ) {
+    if ( losCalc.tokensBlock ) {
       // Remove tokens flagged as not blocking.
       // Process tokens that have been flagged as partially blocking.
       const res = this._partiallyBlockingTokens();
       partialBlockingTokens = res.partialBlockingTokens;
       res.nonBlockingTokens.forEach(t => tokenObstacles.delete(t));
-
-      // Process tokens that are forcibly excluded or included.
-      tokensToExclude.forEach(t => tokenObstacles.delete(t));
-      if ( onlyTokens.length ) {
-        occlusionTester.obstacles.tokens.clear();
-        onlyTokens.forEach(t => tokenObstacles.add(t));
-      }
     }
 
     // Basic approach: simply calculate cover based on visibility of the target from the viewer point.
