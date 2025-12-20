@@ -76,7 +76,6 @@ export function CoverMixin(Base) {
      * @returns {number}
      */
     percentCover(attacker, targetToken) {
-      const { includeWalls, includeTokens } = this;
       const calc = attacker.tokencover?.coverCalculator ?? new CoverCalculator(attacker);
       return calc.percentCover(targetToken, this.calcConfig);
     }

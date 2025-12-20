@@ -155,8 +155,8 @@ export class CoverCalculator {
 
     // Because of partially blocking tokens, cannot simply calculate for all viewpoints.
     let percent = 1;
-    for ( const viewpoint of losViewer.viewpoints ) {
-      losViewer.initializeView({ viewpoint });
+    for ( const vp of losViewer.viewpoints ) {
+      losViewer.initializeView({ viewpoint: vp.viewpoint });
       losViewer._initializeCalculation(); // Set up the obstacles.
       const percentFromViewpoint = this._percentCover();
       if ( percentFromViewpoint < percent ) {
@@ -187,12 +187,12 @@ export class CoverCalculator {
     }
 
     // Basic approach: simply calculate cover based on visibility of the target from the viewer point.
-    losCalc._calculate();
-    const percent = 1 - losCalc.percentVisible;
+    const resultBasic = losCalc._calculate();
+    const coverPercent = 1 - resultBasic.percentVisible;
 
     // Handle partially blocking tokens separately.
-    if ( partialBlockingTokens.length ) return this._calculatePartiallyBlockingCover(partialBlockingTokens, percent);
-    return percent;
+    if ( partialBlockingTokens.length ) return this._calculatePartiallyBlockingCover(partialBlockingTokens, coverPercent);
+    return coverPercent;
   }
 
   /**
