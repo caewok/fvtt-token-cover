@@ -59,7 +59,7 @@ export class CoverDND5E extends CoverActiveEffect {
   _couldApply(attacker, targetToken, opts = {}) {
     const actionType = opts.actionType ?? "all";
     let ignoresCover = false;
-    if ( attacker instanceof Token ) ignoresCover = attacker.tokencover.ignoresCover?.[actionType];
+    if ( attacker instanceof foundry.canvas.placeables.Token ) ignoresCover = attacker.tokencover.ignoresCover?.[actionType];
     if ( ignoresCover && ignoresCover >= this.document.percentThreshold ) return false;
     return super._couldApply(attacker, targetToken);
   }
@@ -130,7 +130,7 @@ export class CoverFlagsDND5E extends CoverFlagEffect {
   _couldApply(attacker, targetToken, opts = {}) {
     const actionType = opts.actionType ?? "all";
     let ignoresCover = false;
-    if ( attacker instanceof Token ) ignoresCover = attacker.tokencover.ignoresCover?.[actionType];
+    if ( attacker instanceof foundry.canvas.placeables.Token ) ignoresCover = attacker.tokencover.ignoresCover?.[actionType];
     if ( ignoresCover && ignoresCover >= this.document.percentThreshold ) return false;
     return super._couldApply(attacker, targetToken);
   }

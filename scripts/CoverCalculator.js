@@ -56,7 +56,7 @@ export class CoverCalculator {
       if ( viewer.length > 1 ) console.warn("You should pass a single token or vision source to CoverCalculator, not an array. Using the first object in the array.");
       viewer = viewer[0];
     }
-    if ( targets instanceof Token ) targets = [targets];
+    if ( targets instanceof foundry.canvas.placeables.Token ) targets = [targets];
 
     const coverCalc = viewer.tokencover?.coverCalculator ?? new CoverCalculator(viewer);
     calcs ??= new Map();
