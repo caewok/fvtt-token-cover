@@ -390,7 +390,7 @@ function LOSViewerConfig() {
  * Build an LOS calculator that uses the current settings.
  * @returns {PercentVisibleCalculatorAbstract}
  */
-function buildLOSCalculator() {
+export function buildLOSCalculator() {
   const calcName = ViewerLOS.VIEWPOINT_ALGORITHM_SETTINGS[Settings.get(Settings.KEYS.LOS.TARGET.ALGORITHM)];
   const calcs = CONFIG[MODULE_ID].losCalculators;
   if ( !calcs[calcName] ) {

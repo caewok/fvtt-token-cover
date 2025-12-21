@@ -10,13 +10,13 @@ ui
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, OTHER_MODULES, FLAGS } from "./const.js";
+import { MODULE_ID, OTHER_MODULES, FLAGS, TRACKER_IDS } from "./const.js";
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
-import { SettingsSubmenu } from "./SettingsSubmenu.js";
+import { ATCSettingsSubmenu } from "./ATCSettingsSubmenu.js";
 import { registerTemplates, deregisterTemplates } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
 import { renderTemplateSync } from "./util.js";
-import { buildDebugViewer, currentDebugViewerClass } from "./CoverCalculator.js";
+import { buildDebugViewer, currentDebugViewerClass, buildLOSCalculator } from "./CoverCalculator.js";
 
 // LOS folder
 import { ViewerLOS } from "./LOS/ViewerLOS.js";
@@ -236,6 +236,11 @@ export class Settings extends ModuleSettingsAbstract {
     else this.destroyDebugViewer();
   }
 
+  static get currentCalculator() {
+    const calcName = ViewerLOS.VIEWPOINT_ALGORITHM_SETTINGS[this.get(this.KEYS.LOS.TARGET.ALGORITHM)];
+    return CONFIG[MODULE_ID].losCalculators[calcName];
+  }
+
   /**
    * Register all settings
    */
@@ -273,25 +278,25 @@ export class Settings extends ModuleSettingsAbstract {
       name: localize(`${MENUS.SUBMENU}.Name`),
       label: localize(`${MENUS.SUBMENU}.Label`),
       icon: "fas fa-user-gear",
-      type: SettingsSubmenu,
+      type: ATCSettingsSubmenu,
       restricted: true
     });
 
-    registerMenu(MENUS.EXPORT_BUTTON, {
-      name: localize(`${MENUS.EXPORT_BUTTON}.Name`),
-      label: localize(`${MENUS.EXPORT_BUTTON}.Label`),
-      icon: "far fa-file-arrow-down",
-      type: exportSettingsButton,
-      restricted: true
-    });
-
-    registerMenu(MENUS.IMPORT_BUTTON, {
-      name: localize(`${MENUS.IMPORT_BUTTON}.Name`),
-      label: localize(`${MENUS.IMPORT_BUTTON}.Label`),
-      icon: "far fa-file-arrow-up",
-      type: importSettingsDialog,
-      restricted: true
-    });
+//     registerMenu(MENUS.EXPORT_BUTTON, {
+//       name: localize(`${MENUS.EXPORT_BUTTON}.Name`),
+//       label: localize(`${MENUS.EXPORT_BUTTON}.Label`),
+//       icon: "far fa-file-arrow-down",
+//       type: exportSettingsButton,
+//       restricted: true
+//     });
+//
+//     registerMenu(MENUS.IMPORT_BUTTON, {
+//       name: localize(`${MENUS.IMPORT_BUTTON}.Name`),
+//       label: localize(`${MENUS.IMPORT_BUTTON}.Label`),
+//       icon: "far fa-file-arrow-up",
+//       type: importSettingsDialog,
+//       restricted: true
+//     });
 
     register(KEYS.DISPLAY_COVER_BOOK, {
       name: localize(`${KEYS.DISPLAY_COVER_BOOK}.Name`),
@@ -675,7 +680,7 @@ export class Settings extends ModuleSettingsAbstract {
         // Set a new shared calculator for all tokens.
         const losCalc = buildLOSCalculator();
         canvas.tokens.placeables.forEach(token => {
-          const handler = token[MODULE_ID]?.[TRACKER_IDS.VISIBILITY];
+          const handler = token[MODULE_ID]?.[TRACKER_IDS.COVER];
           if ( !handler ) return;
           if ( handler.losViewer.calculator ) handler.losViewer.calculator.destroy();
           handler.losViewer.calculator = losCalc;
@@ -692,7 +697,7 @@ export class Settings extends ModuleSettingsAbstract {
       case VIEWER.INSET: { /* eslint-disable-line no-fallthrough */
         // Tell the los viewer to update the viewpoints.
         canvas.tokens.placeables.forEach(token => {
-          const handler = token[MODULE_ID]?.[TRACKER_IDS.VISIBILITY];
+          const handler = token[MODULE_ID]?.[TRACKER_IDS.COVER];
           if ( !handler ) return;
           handler.losViewer.dirty = true;
         });
@@ -701,7 +706,7 @@ export class Settings extends ModuleSettingsAbstract {
         // Update the viewpoints for all tokens.
         const config = { [configKeyForSetting[key]]: value };
         canvas.tokens.placeables.forEach(token => {
-          const handler = token[MODULE_ID]?.[TRACKER_IDS.VISIBILITY];
+          const handler = token[MODULE_ID]?.[TRACKER_IDS.COVER];
           if ( !handler ) return;
           handler.losViewer.config = config;
         });
@@ -712,8 +717,7 @@ export class Settings extends ModuleSettingsAbstract {
       case TARGET.POINT_OPTIONS.POINTS: value = pointIndexForSet(value);
       default: { /* eslint-disable-line no-fallthrough */
         const config = foundry.utils.expandObject({ [configKeyForSetting[key]]: value });
-        const currCalc = currentCalculator();
-        currCalc.config = config;
+        this.currentCalculator.config = config;
       }
     }
   }
