@@ -4,7 +4,6 @@ CONFIG,
 foundry,
 game,
 Hooks,
-loadTemplates,
 ui
 */
 "use strict";
@@ -84,8 +83,8 @@ Hooks.once("init", function() {
   CONFIG.RegionBehavior.typeIcons[`${MODULE_ID}.setCover`] = FA_ICONS.MODULE;
 
   // Must go at end?
-  loadTemplates(Object.values(TEMPLATES)).then(_value => log("Templates loaded."));
-  loadTemplates(["templates/apps/import-data.hbs"]); // For settings dialog.
+  foundry.applications.handlebars.loadTemplates(Object.values(TEMPLATES)).then(_value => log("Templates loaded."));
+  foundry.applications.handlebars.loadTemplates(["templates/apps/import-data.hbs"]); // For settings dialog.
 });
 
 Hooks.once("setup", function() {
