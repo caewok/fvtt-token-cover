@@ -69,22 +69,30 @@ class importSettingsDialog extends foundry.applications.api.DialogV2 {
 }
 
 /**
- * Remove the terrains item from sidebar so it does not display.
+ * Remove the cover item from sidebar so it does not display.
  * From https://github.com/DFreds/dfreds-convenient-effects/blob/main/scripts/ui/remove-custom-item-from-sidebar.js#L3
  * @param {ItemDirectory} dir
  */
 function removeCoverItemFromSidebar(dir) {
-  if ( !(dir instanceof ItemDirectory) ) return;
+  if ( !(dir instanceof foundry.applications.sidebar.tabs.ItemDirectory) ) return;
   if ( !game.items ) return;
   for ( const item of game.items ) {
     if ( !(item.name === "Unique Active Effects" || item.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID)) ) continue;
-    const li = dir.element.find(`li[data-document-id="${item.id}"]`);
-    li.remove();
+    const li = dir.element.querySelector(`[data-entry-id="${item.id}"]`)
+    if ( li ) li.remove();
   }
 }
 
-PATCHES_SidebarTab.BASIC.HOOKS = { changeSidebarTab: removeCoverItemFromSidebar };
-PATCHES_ItemDirectory.BASIC.HOOKS = { renderItemDirectory: removeCoverItemFromSidebar };
+/**
+ * Hooks for changeSidebarTab and renderItemDirectory to remove the terrains item from the directory.
+ */
+function removeCoverItemHook(directory) {
+  removeCoverItemFromSidebar(directory);
+}
+
+PATCHES_SidebarTab.BASIC.HOOKS = { changeSidebarTab: removeCoverItemHook };
+PATCHES_ItemDirectory.BASIC.HOOKS = { renderItemDirectory: removeCoverItemHook };
+
 
 const CONTROLS = {
   COVER_EFFECTS: "cover-effects-control"
