@@ -26,7 +26,7 @@ function closeActiveEffectConfig(_app, _html) {
  * @param {object} data                 The object of data used when rendering the application
  */
 function renderActiveEffectConfig(app, html, data) {
-  if ( app.object.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.TYPE) !== "Cover" ) return;
+  if ( app.document.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.TYPE) !== "Cover" ) return;
 
   // Insert the new configuration fields into the active effect config.
   const myHTML = renderTemplateSync(TEMPLATES.ACTIVE_EFFECT, data);
