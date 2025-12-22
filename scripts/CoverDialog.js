@@ -50,7 +50,7 @@ export class CoverDialog {
     if ( !attacker && game.user._lastSelected ) attacker = fromUuidSync(game.user._lastSelected)?.object;
     attacker ??= canvas.tokens.controlled[0];
     targets ??= game.user.targets;
-    if ( targets instanceof Token ) targets = [targets];
+    if ( targets instanceof foundry.canvas.placeables.Token ) targets = [targets];
 
     // Store the provided attacker, targets, options used for the cover calculation.
     this.attacker = attacker;
@@ -183,7 +183,7 @@ export class CoverDialog {
    * @param {Token[]} targets
    */
   _addTargets(targets) {
-    if ( targets instanceof Token ) targets = [targets];
+    if ( targets instanceof foundry.canvas.placeables.Token ) targets = [targets];
     let recalc = false;
     targets.forEach(t => {
       if ( !this.targets.has(t) ) {
@@ -466,7 +466,7 @@ ${html}
    *   - @prop {number} percentCover
    */
   _targetData() {
-    const attackerCenter = this.attacker instanceof Token ? Point3d.fromToken(this.attacker).top // Measure from attacker vision point.
+    const attackerCenter = this.attacker instanceof foundry.canvas.placeables.Token ? Point3d.fromToken(this.attacker).top // Measure from attacker vision point.
       : new Point3d(this.attacker.document.x, this.attacker.document.y, this.attacker.elevationZ);
     return [...this.targets].map(target => {
       const data = {

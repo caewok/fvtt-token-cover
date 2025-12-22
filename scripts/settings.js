@@ -3,20 +3,23 @@ canvas,
 CONFIG,
 foundry,
 game,
-ItemDirectory,
 readTextFromFile
 ui
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
+import { MODULE_ID, OTHER_MODULES, FLAGS, TRACKER_IDS } from "./const.js";
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
-import { MODULE_ID, MODULES_ACTIVE, FLAGS } from "./const.js";
-import { SettingsSubmenu } from "./SettingsSubmenu.js";
-import { registerArea3d, registerDebug, deregisterDebug, registerTemplates, deregisterTemplates } from "./patching.js";
+import { ATCSettingsSubmenu } from "./ATCSettingsSubmenu.js";
+import { registerTemplates, deregisterTemplates } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
-import { POINT_TYPES } from "./LOS/AlternativeLOS.js";
 import { renderTemplateSync } from "./util.js";
+import { buildDebugViewer, currentDebugViewerClass, buildLOSCalculator } from "./CoverCalculator.js";
+
+// LOS folder
+import { ViewerLOS } from "./LOS/ViewerLOS.js";
+import { pointIndexForSet } from "./LOS/SmallBitSet.js";
 
 export const PATCHES_SidebarTab = {};
 export const PATCHES_ItemDirectory = {};
@@ -40,7 +43,7 @@ class exportSettingsButton extends foundry.applications.api.ApplicationV2 {
 class importSettingsDialog extends foundry.applications.api.DialogV2 {
   _initializeApplicationOptions(options) {
     const moduleName = game.i18n.localize(`${MODULE_ID}.name`);
-    const content = renderTemplateSync("templates/apps/import-data.html", {
+    const content = renderTemplateSync("templates/apps/import-data.hbs", {
       hint1: `Replace ${moduleName} settings with those in a JSON file.`,
       hint2: "This cannot be undone!"
     });
@@ -65,22 +68,30 @@ class importSettingsDialog extends foundry.applications.api.DialogV2 {
 }
 
 /**
- * Remove the terrains item from sidebar so it does not display.
+ * Remove the cover item from sidebar so it does not display.
  * From https://github.com/DFreds/dfreds-convenient-effects/blob/main/scripts/ui/remove-custom-item-from-sidebar.js#L3
  * @param {ItemDirectory} dir
  */
 function removeCoverItemFromSidebar(dir) {
-  if ( !(dir instanceof ItemDirectory) ) return;
+  if ( !(dir instanceof foundry.applications.sidebar.tabs.ItemDirectory) ) return;
   if ( !game.items ) return;
   for ( const item of game.items ) {
-    if ( !(item.name === "Unique Active Effects" || item.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID)) ) continue;
-    const li = dir.element.find(`li[data-document-id="${item.id}"]`);
-    li.remove();
+    if ( !(item.name === "Unique Active Effects" || item.name === "ATV Cover Effects"|| item.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID)) ) continue;
+    const li = dir.element.querySelector(`[data-entry-id="${item.id}"]`);
+    if ( li ) li.remove();
   }
 }
 
-PATCHES_SidebarTab.BASIC.HOOKS = { changeSidebarTab: removeCoverItemFromSidebar };
-PATCHES_ItemDirectory.BASIC.HOOKS = { renderItemDirectory: removeCoverItemFromSidebar };
+/**
+ * Hooks for changeSidebarTab and renderItemDirectory to remove the terrains item from the directory.
+ */
+function removeCoverItemHook(directory) {
+  removeCoverItemFromSidebar(directory);
+}
+
+PATCHES_SidebarTab.BASIC.HOOKS = { changeSidebarTab: removeCoverItemHook };
+PATCHES_ItemDirectory.BASIC.HOOKS = { renderItemDirectory: removeCoverItemHook };
+
 
 const CONTROLS = {
   COVER_EFFECTS: "cover-effects-control"
@@ -106,21 +117,25 @@ const ENUMS = {
     GM: "cover-workflow-confirm-gm",
     AUTO: "cover-workflow-confirm-automatic"
   },
-  POINT_TYPES,
+  POINT_TYPES: {
+    CENTER: "points-center",
+    TWO: "points-two",
+    THREE: "points-three", //
+    FOUR: "points-four", // Five without center
+    FIVE: "points-five", // Corners + center
+    EIGHT: "points-eight", // Nine without center
+    NINE: "points-nine" // Corners, midpoints, center
+  },
   ALGORITHM_TYPES: {
-    POINTS: "los-points",
-    AREA2D: "los-area-2d",
-    AREA3D: "los-area-3d",
-    AREA3D_GEOMETRIC: "los-area-3d-geometric",
-    AREA3D_WEBGL1: "los-area-3d-webgl1",
-    AREA3D_WEBGL2: "los-area-3d-webgl2",
-    AREA3D_HYBRID: "los-area-3d-hybrid"
+    POINTS: "los-algorithm-points",
+    PER_PIXEL: "los-algorithm-per-pixel",
+    GEOMETRIC: "los-algorithm-geometric",
+    WEBGL2: "los-algorithm-webgl2",
   },
   POINT_OPTIONS: {
-    NUM_POINTS: "los-points-target",
+    POINTS: "los-points-options-target",
     INSET: "los-inset-target",
-    POINTS3D: "los-points-3d"
-  }
+  },
 };
 
 export const SETTINGS = {
@@ -151,35 +166,28 @@ export const SETTINGS = {
   },
 
   // Taken from Alt. Token Visibility
-  // POINT_TYPES,
-
   LOS: {
     VIEWER: {
-      NUM_POINTS: "los-points-viewer",
-      INSET: "los-inset-viewer"
+      POINTS: "los-points-options-viewer",
+      INSET: "los-inset-viewer",
     },
 
     TARGET: {
       ALGORITHM: "los-algorithm",
       LARGE: "los-large-target",
-//       TYPES: {
-//         POINTS: "los-points",
-//         AREA2D: "los-area-2d",
-//         AREA3D: "los-area-3d",
-//         AREA3D_GEOMETRIC: "los-area-3d-geometric",
-//         AREA3D_WEBGL1: "los-area-3d-webgl1",
-//         AREA3D_WEBGL2: "los-area-3d-webgl2",
-//         AREA3D_HYBRID: "los-area-3d-hybrid"
-//       },
-//       POINT_OPTIONS: {
-//         NUM_POINTS: "los-points-target",
-//         INSET: "los-inset-target",
-//         POINTS3D: "los-points-3d"
-//       }
-    }
+      TYPES: {
+        POINTS: "los-algorithm-points",
+        PER_PIXEL: "los-algorithm-per-pixel",
+        GEOMETRIC: "los-algorithm-geometric",
+        WEBGL2: "los-algorithm-webgl2",
+      },
+      POINT_OPTIONS: {
+        POINTS: "los-points-options-target",
+        INSET: "los-inset-target",
+      },
+    },
   },
 
-  DEBUG: "debug-cover",
   PRONE_STATUS_ID: "prone-status-id",
   TOKEN_HP_ATTRIBUTE: "token-hp-attribute",
 
@@ -190,6 +198,21 @@ export const SETTINGS = {
   AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
   CHANGELOG: "changelog",
   ATV_SETTINGS_MESSAGE: "atv-settings-message",
+
+  // Configuration of the application that controls the terrain listings.
+  CONTROL_APP: {
+    FAVORITES: "favorites", // Array of favorite terrains, by effect id.
+    EXPANDED_FOLDERS: "app_expanded_folders", // Array of folders that are expanded, by id
+    FOLDERS: "app_folders",
+  },
+
+  MIGRATION: {
+    v0100: "migration-v0.10.0",
+  },
+
+  DEBUG: {
+    LOS: "debug-cover", // For compatibility with older versions, keep as "debug-cover".
+  },
 };
 
 export class Settings extends ModuleSettingsAbstract {
@@ -203,14 +226,28 @@ export class Settings extends ModuleSettingsAbstract {
   /** @type {object} */
   static CONTROLS = CONTROLS;
 
-  static toggleDebugGraphics(enabled = false) {
-    if ( enabled ) registerDebug();
-    else {
-      if ( canvas.tokens?.placeables ) canvas.tokens.placeables
-        .filter(t => t._tokencover) // Don't create a new coverCalc here.
-        .forEach(t => t[MODULE_ID].coverCalculator.clearDebug());
-      deregisterDebug();
-    }
+  static debugViewer;
+
+  static initializeDebugViewer(type) {
+    type ??= this.get(this.KEYS.LOS.TARGET.ALGORITHM);
+    this.debugViewer ??= buildDebugViewer(currentDebugViewerClass(type));
+    this.debugViewer.render();
+  }
+
+  static destroyDebugViewer() {
+    if ( !this.debugViewer ) return;
+    this.debugViewer.destroy();
+    this.debugViewer = undefined;
+  }
+
+  static toggleLOSDebugGraphics(enabled = false) {
+    if ( enabled ) this.initializeDebugViewer();
+    else this.destroyDebugViewer();
+  }
+
+  static get currentCalculator() {
+    const calcName = ViewerLOS.VIEWPOINT_ALGORITHM_SETTINGS[this.get(this.KEYS.LOS.TARGET.ALGORITHM)];
+    return CONFIG[MODULE_ID].losCalculators[calcName];
   }
 
   /**
@@ -220,8 +257,9 @@ export class Settings extends ModuleSettingsAbstract {
     const { KEYS, ENUMS, register, registerMenu, localize } = this;
     const PT_TYPES = ENUMS.POINT_TYPES;
     const RTYPES = [PT_TYPES.CENTER, PT_TYPES.FIVE, PT_TYPES.NINE];
-    const PT_OPTS = ENUMS.POINT_OPTIONS;
-    const LTYPES = foundry.utils.filterObject(ENUMS.ALGORITHM_TYPES, { POINTS: 0, AREA2D: 0, AREA3D: 0 });
+    const PT_OPTS = KEYS.LOS.TARGET.POINT_OPTIONS;
+    const LTYPES = foundry.utils.filterObject(KEYS.LOS.TARGET.TYPES,
+      { POINTS: 0, PER_PIXEL: 0, GEOMETRIC: 0, WEBGL2: 0 });
     const losChoices = {};
     const ptChoices = {};
     const rangeChoices = {};
@@ -249,10 +287,11 @@ export class Settings extends ModuleSettingsAbstract {
       name: localize(`${MENUS.SUBMENU}.Name`),
       label: localize(`${MENUS.SUBMENU}.Label`),
       icon: "fas fa-user-gear",
-      type: SettingsSubmenu,
+      type: ATCSettingsSubmenu,
       restricted: true
     });
 
+    /* Currently unused:
     registerMenu(MENUS.EXPORT_BUTTON, {
       name: localize(`${MENUS.EXPORT_BUTTON}.Name`),
       label: localize(`${MENUS.EXPORT_BUTTON}.Label`),
@@ -268,6 +307,7 @@ export class Settings extends ModuleSettingsAbstract {
       type: importSettingsDialog,
       restricted: true
     });
+    */
 
     register(KEYS.DISPLAY_COVER_BOOK, {
       name: localize(`${KEYS.DISPLAY_COVER_BOOK}.Name`),
@@ -319,9 +359,9 @@ export class Settings extends ModuleSettingsAbstract {
       requiresReload: true
     });
 
-    register(KEYS.DEBUG, {
-      name: localize(`${KEYS.DEBUG}.Name`),
-      hint: localize(`${KEYS.DEBUG}.Hint`),
+    register(KEYS.DEBUG.LOS, {
+      name: localize(`${KEYS.DEBUG.LOS}.Name`),
+      hint: localize(`${KEYS.DEBUG.LOS}.Hint`),
       scope: "world",
       config: true,
       type: Boolean,
@@ -333,15 +373,32 @@ export class Settings extends ModuleSettingsAbstract {
 
     // ----- NOTE: Line-of-sight viewer tab ----- //
     const VIEWER = KEYS.LOS.VIEWER;
-    register(VIEWER.NUM_POINTS, {
-      name: localize(`${VIEWER.NUM_POINTS}.Name`),
-      hint: localize(`${VIEWER.NUM_POINTS}.Hint`),
+    const PI = ViewerLOS.POINT_INDICES;
+    register(VIEWER.POINTS, {
+      name: localize(`${VIEWER.POINTS}.Name`),
+      hint: localize(`${VIEWER.POINTS}.Hint`),
       scope: "world",
       config: false,
-      type: String,
-      choices: ptChoices,
-      default: PT_TYPES.CENTER,
-      tab: "losViewer"
+      tab: "losViewer",
+      default: [PI.CENTER],
+      type: new foundry.data.fields.SetField(new foundry.data.fields.StringField({
+        required: true,
+        blank: false,
+        initial: 0,
+        choices: {
+          [PI.CENTER]: "Center",
+          [PI.CORNERS.FACING]: "Front Corners",
+          [PI.CORNERS.MID]: "Mid Corners",
+          [PI.CORNERS.BACK]: "Back Corners",
+          [PI.SIDES.FACING]: "Facing Sides",
+          [PI.SIDES.MID]: "Mid Sides",
+          [PI.SIDES.BACK]: "Back Sides",
+          [PI.D3.TOP]: "Top Elevation",
+          [PI.D3.MID]: "Middle Elevation",
+          [PI.D3.BOTTOM]: "Bottom Elevation",
+        },
+      })),
+      onChange: value => this.losSettingChange(VIEWER.POINTS, value)
     });
 
     register(VIEWER.INSET, {
@@ -356,21 +413,12 @@ export class Settings extends ModuleSettingsAbstract {
       config: false,
       default: 0.75,
       type: Number,
-      tab: "losViewer"
+      tab: "losViewer",
+      onChange: value => this.losSettingChange(VIEWER.INSET, value)
     });
 
     // ----- NOTE: Line-of-sight target tab ----- //
     const TARGET = KEYS.LOS.TARGET;
-    register(TARGET.LARGE, {
-      name: localize(`${TARGET.LARGE}.Name`),
-      hint: localize(`${TARGET.LARGE}.Hint`),
-      scope: "world",
-      config: false,
-      type: Boolean,
-      default: true,
-      tab: "losTarget",
-      onChange: value => this.losSettingChange(TARGET.LARGE, value)
-    });
 
     register(TARGET.ALGORITHM, {
       name: localize(`${TARGET.ALGORITHM}.Name`),
@@ -381,19 +429,45 @@ export class Settings extends ModuleSettingsAbstract {
       choices: losChoices,
       default: LTYPES.POINTS,
       tab: "losTarget",
-      onChange: value => this.losAlgorithmChange(TARGET.ALGORITHM, value)
+      onChange: value => this.losSettingChange(TARGET.ALGORITHM, value)
     });
 
-    register(PT_OPTS.NUM_POINTS, {
-      name: localize(`${PT_OPTS.NUM_POINTS}.Name`),
-      hint: localize(`${PT_OPTS.NUM_POINTS}.Hint`),
+    register(TARGET.LARGE, {
+      name: localize(`${TARGET.LARGE}.Name`),
+      hint: localize(`${TARGET.LARGE}.Hint`),
       scope: "world",
       config: false,
-      type: String,
-      choices: ptChoices,
-      default: PT_TYPES.NINE,
+      type: Boolean,
+      default: false,
       tab: "losTarget",
-      onChange: value => this.losSettingChange(PT_OPTS.NUM_POINTS, value)
+      onChange: value => this.losSettingChange(TARGET.LARGE, value)
+    });
+
+    register(TARGET.POINT_OPTIONS.POINTS, {
+      name: localize(`${TARGET.POINT_OPTIONS.POINTS}.Name`),
+      hint: localize(`${TARGET.POINT_OPTIONS.POINTS}.Hint`),
+      scope: "world",
+      config: false,
+      tab: "losTarget",
+      default: [PI.CENTER],
+      type: new foundry.data.fields.SetField(new foundry.data.fields.StringField({
+        required: true,
+        blank: false,
+        initial: 0,
+        choices: {
+          [PI.CENTER]: "Center",
+          [PI.CORNERS.FACING]: "Front Corners",
+          [PI.CORNERS.MID]: "Mid Corners",
+          [PI.CORNERS.BACK]: "Back Corners",
+          [PI.SIDES.FACING]: "Facing Sides",
+          [PI.SIDES.MID]: "Mid Sides",
+          [PI.SIDES.BACK]: "Back Sides",
+          [PI.D3.TOP]: "Top Elevation",
+          [PI.D3.MID]: "Middle Elevation",
+          [PI.D3.BOTTOM]: "Bottom Elevation",
+        },
+      })),
+      onChange: value => this.losSettingChange(TARGET.POINT_OPTIONS.POINTS, value)
     });
 
     register(PT_OPTS.INSET, {
@@ -410,17 +484,6 @@ export class Settings extends ModuleSettingsAbstract {
       type: Number,
       tab: "losTarget",
       onChange: value => this.losSettingChange(PT_OPTS.INSET, value)
-    });
-
-    register(PT_OPTS.POINTS3D, {
-      name: localize(`${PT_OPTS.POINTS3D}.Name`),
-      hint: localize(`${PT_OPTS.POINTS3D}.Hint`),
-      scope: "world",
-      config: false,
-      type: Boolean,
-      default: true,
-      tab: "losTarget",
-      onChange: value => this.losSettingChange(PT_OPTS.POINTS3D, value)
     });
 
     // ----- NOTE: Workflow tab ----- //
@@ -493,7 +556,7 @@ export class Settings extends ModuleSettingsAbstract {
     }
 
     // ----- NOTE: Other cover settings tab ----- //
-    if ( !MODULES_ACTIVE.TOKEN_VISIBILITY ) {
+    if ( !OTHER_MODULES.ATV ) {
       register(KEYS.PRONE_MULTIPLIER, {
         name: localize(`${KEYS.PRONE_MULTIPLIER}.Name`),
         hint: localize(`${KEYS.PRONE_MULTIPLIER}.Hint`),
@@ -594,40 +657,103 @@ export class Settings extends ModuleSettingsAbstract {
       default: {}
     });
 
-    // ----- NOTE: Triggers based on starting settings ---- //
-    // Start debug
-    if ( this.get(this.KEYS.DEBUG) ) registerDebug();
-
-    // Register the Area3D methods on initial load.
-    if ( this.typesWebGL2.has(this.get(TARGET.ALGORITHM)) ) registerArea3d();
-
+    register(KEYS.MIGRATION.v0100, {
+      scope: "world",
+      config: false,
+      default: false,
+      type: Boolean
+    });
   }
 
-  static typesWebGL2 = new Set([
-    ENUMS.ALGORITHM_TYPES.AREA3D,
-    ENUMS.ALGORITHM_TYPES.AREA3D_WEBGL2,
-    ENUMS.ALGORITHM_TYPES.AREA3D_HYBRID]);
-
-  static losAlgorithmChange(key, value) {
-    this.cache.delete(key);
-    if ( this.typesWebGL2.has(value) ) registerArea3d();
-    canvas.tokens.placeables
-      .filter(t => t._tokencover) // Don't create a new coverCalc here.
-      .forEach(token => token[MODULE_ID].coverCalculator._updateAlgorithm());
+  static migrate() {
+    if ( !this.get(this.KEYS.MIGRATION.v0100) ) {
+      let alg = this.get(this.KEYS.LOS.TARGET.ALGORITHM);
+      switch ( alg ) {
+        case "los-points": alg = "los-algorithm-points"; break;
+        case "los-area-3d":
+        case "los-area-3d-geometric": alg = "los-algorithm-geometric"; break;
+        case "los-area-3d-hybrid": alg = "los-algorithm-hybrid"; break;
+        case "los-webgl2": alg = "los-algorithm-webgl2"; break;
+        case "los-webgpu": alg = "los-algorithm-webgpu"; break;
+        case "los-webgpu-async": alg = "los-algorithm-webgpu-async"; break;
+      }
+      this.set(this.KEYS.LOS.TARGET.ALGORITHM, alg);
+      this.set(this.KEYS.MIGRATION.v0100, true);
+    }
   }
 
-  static losSettingChange(key, _value) {
+  static losSettingChange(key, value) {
     this.cache.delete(key);
-    canvas.tokens.placeables
-      .filter(t => t._tokencover) // Don't create a new coverCalc here.
-      .forEach(token => token[MODULE_ID].coverCalculator._resetConfiguration());
+    const { TARGET, VIEWER } = SETTINGS.LOS;
+
+    switch ( key ) {
+      case TARGET.ALGORITHM: {
+        // Set a new shared calculator for all tokens.
+        const losCalc = buildLOSCalculator();
+        canvas.tokens.placeables.forEach(token => {
+          const handler = token[MODULE_ID]?.[TRACKER_IDS.COVER];
+          if ( !handler ) return;
+          if ( handler.losViewer.calculator ) handler.losViewer.calculator.destroy();
+          handler.losViewer.calculator = losCalc;
+        });
+
+        // Start up a new debug viewer.
+        if ( this.get(this.KEYS.DEBUG.LOS) ) {
+          this.destroyDebugViewer();
+          this.initializeDebugViewer(value);
+        }
+        break;
+      }
+      case VIEWER.POINTS: value = pointIndexForSet(value);
+      case VIEWER.INSET: { /* eslint-disable-line no-fallthrough */
+        // Tell the los viewer to update the viewpoints.
+        canvas.tokens.placeables.forEach(token => {
+          const handler = token[MODULE_ID]?.[TRACKER_IDS.COVER];
+          if ( !handler ) return;
+          handler.losViewer.dirty = true;
+        });
+      }
+      case TARGET.PERCENT: {  /* eslint-disable-line no-fallthrough */
+        // Update the viewpoints for all tokens.
+        const config = { [configKeyForSetting[key]]: value };
+        canvas.tokens.placeables.forEach(token => {
+          const handler = token[MODULE_ID]?.[TRACKER_IDS.COVER];
+          if ( !handler ) return;
+          handler.losViewer.config = config;
+        });
+        break;
+      }
+
+      // Changes to the calculator config.
+      case TARGET.POINT_OPTIONS.POINTS: value = pointIndexForSet(value);
+      default: { /* eslint-disable-line no-fallthrough */
+        const config = foundry.utils.expandObject({ [configKeyForSetting[key]]: value });
+        this.currentCalculator.config = config;
+      }
+    }
   }
 
   static setProneStatusId(value) {
     CONFIG.GeometryLib.proneStatusId = value;
-    if ( MODULES_ACTIVE.TOKEN_VISIBILITY) game.settings.set("tokenvisibility", SETTINGS.PRONE_STATUS_ID, value);
+    if ( OTHER_MODULES.ATV) game.settings.set("tokenvisibility", SETTINGS.PRONE_STATUS_ID, value);
   }
-
 }
 
+const configKeyForSetting = {
+  [SETTINGS.LOS.TARGET.LARGE]: "largeTarget",
+  [SETTINGS.LOS.TARGET.PERCENT]: "threshold",
+
+  // Viewpoints.
+  [SETTINGS.LOS.VIEWER.POINTS]: "viewpointIndex",
+  [SETTINGS.LOS.VIEWER.INSET]: "viewpointInset",
+
+  // Points viewpoints.
+  [SETTINGS.LOS.TARGET.POINT_OPTIONS.POINTS]: "targetPointIndex",
+  [SETTINGS.LOS.TARGET.POINT_OPTIONS.INSET]: "targetInset",
+
+  // Blocking (unused—set at cover effect level)
+  // [SETTINGS.LIVE_TOKENS_BLOCK]: "blocking.tokens.live",
+  // [SETTINGS.DEAD_TOKENS_BLOCK]: "blocking.tokens.dead",
+  // [SETTINGS.PRONE_TOKENS_BLOCK]: "blocking.tokens.prone",
+};
 

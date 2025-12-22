@@ -3,7 +3,7 @@
     "tokencover.nameAbbr": "ATC",
 
     "tokencover.coverbook.create-cover": "Create Cover",
-    "tokencover.coverbook.create-defaults": "Reset Default Cover",
+    "tokencover.coverbook.reset-defaults": "Reset Default Cover",
 
     "tokencover.cover-effect.percent-threshold.Name": "Percent threshold",
     "tokencover.cover-effect.can-overlap.Name": "Can overlap",
@@ -15,7 +15,7 @@
     "tokencover.cover-effect.dead-tokens-block.Name": "Dead tokens block",
     "tokencover.cover-effect.dead-tokens-block.Hint": "See module settings to configure the attribute to use for determining token HP.",
     "tokencover.cover-effect.prone-tokens-block.Name": "Prone tokens block",
-    "tokencover.cover-effect.prone-tokens-block.Hint": "If enabled, a prone token grants cover (based on their height as multiplied by the prone multiplier. If neither dead nor live tokens grant cover, this does nothing. See module settings for the prone multiplier.",
+    "tokencover.cover-effect.prone-tokens-block.Hint": "If enabled, a prone token grants cover (based on their height as multiplied by the prone multiplier). If neither dead nor live tokens grant cover, this does nothing. See module settings for the prone multiplier.",
 
     "tokencover.settings.never": "Never",
     "tokencover.settings.combat": "During Combat",
@@ -64,11 +64,11 @@
     "tokencover.settings.cover-workflow-confirm-no-cover.Name": "Confirm No Cover",
     "tokencover.settings.cover-workflow-confirm-no-cover.Hint": "When enabled, the confirmation will be presented when the cover calculation estimates the token has no cover.",
 
-    "tokencover.settings.points-center": "Token center only (1 point)",
+    "tokencover.settings.points-center": "Token center only (1 point) ⚀",
     "tokencover.settings.points-two": "Token front-facing corners (2 points)",
     "tokencover.settings.points-three": "Token front-facing and center (3 points)",
-    "tokencover.settings.points-four": "Token corners (4 points)",
-    "tokencover.settings.points-five": "Token corners and center (5 points)",
+    "tokencover.settings.points-four": "Token corners (4 points) ⚃",
+    "tokencover.settings.points-five": "Token corners and center (5 points) ⚄",
     "tokencover.settings.points-eight": "Token midpoints and corners (8 points)",
     "tokencover.settings.points-nine": "Token midpoints, corners, center (9 points)",
 
@@ -78,24 +78,24 @@
     "tokencover.settings.los-large-target.Name": "Large Token Subtargeting",
     "tokencover.settings.los-large-target.Hint": "If the target token is larger than the grid square, test each grid square under the token separately for cover. Least cover wins. Useful for large targets that should not have cover if the viewer has line-of-sight to a substantial portion of the target. When using the points algorithm, this generally follows the dnd5e DMG cover rule for grid squares.",
 
-    "tokencover.settings.los-points": "Points",
-    "tokencover.settings.los-area-2d": "Area 2d",
-    "tokencover.settings.los-area-3d": "Area 3d",
+    "tokencover.settings.los-algorithm-points": "Points",
+    "tokencover.settings.los-algorithm-geometric": "Geometric",
+    "tokencover.settings.los-algorithm-webgl2": "WebGL2",
+    "tokencover.settings.los-algorithm-webgpu": "WebGPU",
+    "tokencover.settings.los-algorithm-per-pixel": "Face Points Lattice",
+    "tokencover.settings.los-algorithm-sample-pixel": "Sample Pixel",
 
-    "tokencover.settings.los-points-viewer.Name": "Points",
-    "tokencover.settings.los-points-viewer.Hint": "How many points on the viewer to test for line-of-sight to the target. Each viewer point is considered independently; least cover wins. Beware that this can dramatically increase the number of tests needed to determine cover.",
+    "tokencover.settings.los-points-options-viewer.Name": "Point Options",
+    "tokencover.settings.los-points-options-viewer.Hint": "Points on the viewer to test for the viewer's line-of-sight. Each represents an 'eye' of the viewer.",
 
     "tokencover.settings.los-inset-viewer.Name": " Inset",
     "tokencover.settings.los-inset-viewer.Hint": "For viewer points other than the center, what percentage to inset the point from the token border towards the token center.",
 
-    "tokencover.settings.los-points-target.Name": "Points",
+    "tokencover.settings.los-points-options-target.Name": "Points",
     "tokencover.settings.los-points-target.Hint": "How many points on the target to test for cover from the viewer's line-of-sight.",
 
     "tokencover.settings.los-inset-target.Name": "Inset",
     "tokencover.settings.los-inset-target.Hint": "For target points other than the center, what percentage to inset the point from the token border towards the token center.",
-
-    "tokencover.settings.los-points-3d.Name": "3d points",
-    "tokencover.settings.los-points-3d.Hint": "Test the top and bottom of the target token in addition to the points in the middle of the token vertically.",
 
     "tokencover.settings.debug-cover.Name": "Debug Cover",
     "tokencover.settings.debug-cover.Hint": "If enabled, will draw representation on the canvas of the cover between viewer and target(s). If Area3d is enabled, you must target a single token to make the debug window appear.",
@@ -143,6 +143,11 @@
     "tokencover.settings.submenu.Name": "",
     "tokencover.settings.submenu.Label": "GM Cover Settings",
     "tokencover.settings.submenu.title": "Alternative Token Cover Settings",
+
+    "tokencover.settings-submenu.tabs.losTarget": "Target LOS",
+    "tokencover.settings-submenu.tabs.losViewer": "Viewer LOS",
+    "tokencover.settings-submenu.tabs.other": "Other",
+    "tokencover.settings-submenu.tabs.workflow": "Workflow",
 
     "tokencover.settings.exportButton.Name": "",
     "tokencover.settings.exportButton.Label": "Export Settings",
@@ -213,6 +218,7 @@
     "tokencover.behavior.types.set-cover.fields.appliesToAttackers.hint": "If enabled, defending tokens outside the region will gain cover from attacking tokens within the region. If not enabled, only defending tokens inside the region are affected.",
 
     "tokencover.phrases.coverRules": "Cover Rules",
+    "tokencover.phrases.coverEffects": "Cover Effects",
 
     "tokencover.phrases.xCoverEffect": "{cover} Cover Effect",
     "tokencover.phrases.xCoverType": "{cover} Cover Type",

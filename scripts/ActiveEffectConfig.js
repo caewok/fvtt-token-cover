@@ -20,17 +20,27 @@ function closeActiveEffectConfig(_app, _html) {
 }
 
 /**
- * On active effect render, add a dropdown to select the
- * @param {Application} application     The Application instance being rendered
- * @param {jQuery} html                 The inner HTML of the document that will be displayed and may be modified
- * @param {object} data                 The object of data used when rendering the application
+ * On active effect render, add the additional terrain settings.
+ * @category ApplicationV2
+ * @param {ApplicationV2} application          The Application instance being rendered
+ * @param {HTMLElement} element                The inner HTML of the document that will be displayed and may be modified
+ * @param {ApplicationRenderContext} context   The application rendering context data
+ * @param {ApplicationRenderOptions} options   The application rendering options
  */
-function renderActiveEffectConfig(app, html, data) {
-  if ( app.object.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.TYPE) !== "Cover" ) return;
+function renderActiveEffectConfig(app, element, context, options) {
+  // Avoid changing all active effects everywhere.
+  if ( context.document.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.TYPE) !== "Cover" ) return;
 
-  // Insert the new configuration fields into the active effect config.
-  const myHTML = renderTemplateSync(TEMPLATES.ACTIVE_EFFECT, data);
-  html.find('.tab[data-tab="details"').children().last().after(myHTML);
+  const myHTML = renderTemplateSync(TEMPLATES.ACTIVE_EFFECT, context);
+  if ( !myHTML ) return;
+
+  const div = document.createElement("div");
+  div.innerHTML = myHTML;
+
+  // Place in the tab at the end of the form groups.
+  const tab = element.querySelector('.tab[data-tab="details"]');
+  if ( !tab ) return;
+  tab.appendChild(div);
   app.setPosition(app.position);
 }
 

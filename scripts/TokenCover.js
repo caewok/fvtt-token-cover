@@ -482,7 +482,7 @@ class TokenCoverBase {
    * @param {Viewer} attacker
    */
   static attackerMoved(attacker) {
-    if ( attacker instanceof Token ) return this.tokenMoved();
+    if ( attacker instanceof foundry.canvas.placeables.Token ) return this.tokenMoved();
     if ( !this.attackers.has(attacker) ) return;
 
     // Clear cover calculations from tokens.
@@ -502,7 +502,7 @@ class TokenCoverBase {
    */
   static addAttacker(attacker, force = false, update = true) {
     if ( this.attackers.has(attacker) ) return false;
-    if ( !force && (attacker instanceof Token) && !attacker.tokencover.isAttacker() ) return false;
+    if ( !force && (attacker instanceof foundry.canvas.placeables.Token) && !attacker.tokencover.isAttacker() ) return false;
     this.attackers.add(attacker);
     log(`TokenCover#addAttacker|Adding attacker ${attacker.name}.`);
 
@@ -567,7 +567,6 @@ class TokenCoverBase {
    */
   static updateCoverFromToken(tokenToUpdate, attacker) {
     const cc = attacker.tokencover?.coverCalculator ?? new CoverCalculator(attacker);
-    cc.calc.config.wallsBlock = true; // Some cover effects will measure percent cover without walls.
     const percentCover = cc.percentCover(tokenToUpdate);
     const cover = cc.coverEffects(tokenToUpdate);
     log(`updateCoverFromToken|${attacker.name} ⚔️ ${tokenToUpdate.name}: ${percentCover} ${[...cover].map(c => c.name).join(", ")}
@@ -630,7 +629,7 @@ function applicableRegionBehaviors(attacker, defendingToken, defendingRegions) {
   defendingRegions ??= defendingToken[MODULE_ID].coverRegions;
   let attackingCenter;
   let attackingRegions;
-  if ( attacker instanceof Token ) {
+  if ( attacker instanceof foundry.canvas.placeables.Token ) {
     attackingCenter = attacker.center;
     attackingRegions = attacker[MODULE_ID].coverRegions;
   } else if ( attacker instanceof CONFIG.GeometryLib.threeD.Point3d ) {
