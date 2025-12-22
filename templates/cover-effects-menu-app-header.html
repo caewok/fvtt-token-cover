@@ -1,9 +1,6 @@
 <!-- Directory Header -->
 <header class='directory-header'>
 
-
-
-
   {{#if isGM}}
   <!-- Button: Create Cover Effect -->
   <div class="header-actions action-buttons flexrow">
@@ -29,28 +26,5 @@
   {{/if}}
 
   </div>
-
-
-
-  <!-- Search bar -->
-  <search>
-    <input
-      type="search"
-      name="search"
-      placeholder="{{ localize 'tokencover.coverbook.search' }}"
-      autocomplete='off'
-      aria-label="{{ localize 'tokencover.coverbook.search' }}"
-    />
-
-    <!-- Collapse All Folders -->
-    <button
-      type="button"
-      class="inline-control collapse-all icon fa-solid fa-folder-tree"
-      data-action="collapseFolders"
-      data-tooltip
-      aria-label="{{localize 'FOLDER.Collapse'}}"
-    ></button>
-
-  </search>
 
 </header>

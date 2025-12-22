@@ -62,7 +62,6 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
     ],
     filters: [
       {
-        inputSelector: 'input[name="search"]',
         contentSelector: ".directory-list"
       }
     ],
@@ -109,7 +108,7 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
   }
 
   /**
-   * Add search, drag-drop functionality, and folder expansion.
+   * Add drag-drop functionality, and folder expansion.
    *
    * ----
    * Actions performed after any render of the Application.
@@ -119,16 +118,6 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
    */
   async _onRender(context, options) {
     await super._onRender(context, options);
-
-    // Search.
-    if ( options.parts?.includes("header") ) {
-      new apps.ux.SearchFilter({
-        inputSelector: "search input",
-        contentSelector: ".directory-list",
-        callback: this._controller._onSearchFilter.bind(this._controller),
-        initial: (this.element.querySelector("search input")).value,
-      }).bind(this.element);
-    }
 
     // Drag-drop.
     if ( options.parts?.includes("directory") ) {
@@ -317,41 +306,6 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
       case "header": this._controller.headerData(context); break;
     }
     return context;
-  }
-
-  /**
-   * Keep search state synced.
-   *
-   * -----
-   * Prepare data used to synchronize the state of a template part.
-   * @param {string} partId                       The id of the part being rendered
-   * @param {HTMLElement} newElement              The new rendered HTML element for the part
-   * @param {HTMLElement} priorElement            The prior rendered HTML element for the part
-   * @param {object} state                        A state object which is used to synchronize after replacement
-   */
-  _preSyncPartState(partId, newElement, priorElement, state) {
-    super._preSyncPartState(partId, newElement, priorElement, state);
-    if ( partId === "header" ) {
-      const searchInput = priorElement.querySelector("search input");
-      if ( searchInput ) state.query = searchInput.value;
-    }
-  }
-
-  /**
-   * Keep search state synced.
-   *
-   * ----
-   * @param {string} partId                       The id of the part being rendered
-   * @param {HTMLElement} newElement              The new rendered HTML element for the part
-   * @param {HTMLElement} priorElement            The prior rendered HTML element for the part
-   * @param {object} state                        A state object which is used to synchronize after replacement
-   */
-  _syncPartState(partId, newElement, priorElement, state) {
-    super._syncPartState(partId, newElement, priorElement, state);
-    if ( partId === "header" && state.query ) {
-      const searchInput = newElement.querySelector("search input");
-      if ( searchInput ) searchInput.value = state.query;
-    }
   }
 
   async collapseAllFolders() {
