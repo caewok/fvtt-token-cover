@@ -55,6 +55,7 @@ export class CoverEffectsController {
    * @returns {Object} the data to pass to the template
    */
   headerData(context) {
+    context.isGM = game.user.isGM;
     context.hasDefaults = Boolean(CONFIG[MODULE_ID].CoverEffect._resetDefaultEffects);
     return context;
   }

@@ -2,32 +2,32 @@
 <header class='directory-header'>
 
 
-  <div class="header-actions action-buttons flexrow">
 
-    <!-- Button: Create Cover Effect -->
+
+  {{#if isGM}}
+  <!-- Button: Create Cover Effect -->
+  <div class="header-actions action-buttons flexrow">
     <div class='header-actions action-buttons flexrow'>
       <button type="button" class="create-effect" data-action="createEffect">
         <i class='fas fa-person-hiking'></i>
         <span>{{ localize "tokencover.coverbook.create-cover" }}</span>
       </button>
     </div>
+  </div>
 
-    <!-- Create Folder Button -->
+  {{#if hasDefaults}}
+  <!-- Button: Create Defaults -->
+  <div class="header-actions action-buttons flexrow">
     <div class='header-actions action-buttons flexrow'>
-      <button type="button" class="create-folder" data-action="createFolder">
-        <i class='fas fa-folder-plus'></i>
-        <span>{{ localize "tokencover.coverbook.create-folder" }}</span>
+      <button type="button" class="reset-defaults" data-action="resetDefaults">
+        <i class='fas fa-file-image'></i>
+        <span>{{ localize "tokencover.coverbook.reset-defaults" }}</span>
       </button>
     </div>
   </div>
+  {{/if}}
+  {{/if}}
 
-
-  <!-- Button: Create Defaults -->
-  <div class='header-actions action-buttons flexrow'>
-    <button type="button" class="reset-defaults" data-action="resetDefaults">
-      <i class='fas fa-file-image'></i>
-      <span>{{ localize "tokencover.coverbook.reset-defaults" }}</span>
-    </button>
   </div>
 
 
