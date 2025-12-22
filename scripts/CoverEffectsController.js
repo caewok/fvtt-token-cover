@@ -18,16 +18,11 @@ ui
 import { Settings } from "./settings.js";
 import { log } from "./util.js";
 import { MODULE_ID } from "./const.js";
-import { ATCFolderConfig } from "./ATCFolderConfig.js";
 
 /**
  * Controller class to handle app events and manipulate underlying Foundry data.
  */
 export class CoverEffectsController {
-
-  static ALL_COVERS_FOLDER = "all-covers";
-
-  static FAVORITE_COVERS_FOLDER = "favorite-covers";
 
   /** @type {CoverEffectsApp} */
   #viewMvc;
@@ -38,10 +33,6 @@ export class CoverEffectsController {
    */
   constructor(viewMvc) {
     this.#viewMvc = viewMvc;
-  }
-
-  static canModifyFolder(folderId) {
-    return !(folderId === this.ALL_COVERS_FOLDER && folderId === this.FAVORITE_COVERS_FOLDER);
   }
 
   /**
@@ -67,50 +58,12 @@ export class CoverEffectsController {
   directoryData(context) {
     const covers = [...CONFIG[MODULE_ID].CoverEffect._instances.values()];
     this._sortCovers(covers);
-    const folderData = [];
-
-    // Folder holding all covers.
-    folderData.push({
-      folder: {
-        name: game.i18n.localize(`${MODULE_ID}.coverbook.all-covers`),
-        id: this.constructor.ALL_COVERS_FOLDER,
-        color: "black",
-      },
-      effects: covers,
-    });
-
-    // Folder holding marked favorites
-    folderData.push({
-      folder: {
-        name: game.i18n.localize(`${MODULE_ID}.coverbook.favorites`),
-        id: this.constructor.FAVORITE_COVERS_FOLDER,
-        color: "green",
-      },
-      effects: this._fetchFavorites(covers),
-    });
-
-    // User-defined folders
-    CONFIG[MODULE_ID].CoverEffect.folders.forEach(folder => {
-      folderData.push({
-        folder,
-        effects: folder.effects.map(id => CONFIG[MODULE_ID].CoverEffect._instances.get(id)),
-      });
-    });
 
     Object.assign(context, {
-      folderData,
+      effects: covers,
       entryPartial: this.#viewMvc.constructor._entryPartial,
-      folderPartial: this.#viewMvc.constructor._folderPartial,
     });
   }
-
-
-  _fetchFavorites(covers) {
-    log("CoverEffectsController|_fetchFavorites");
-    const favorites = Settings.favorites;
-    return covers.filter(c => favorites.has(c.uniqueEffectId));
-  }
-
 
   _sortCovers(covers) {
     covers.sort((a, b) => {
@@ -129,14 +82,9 @@ export class CoverEffectsController {
    * Handles clicks on the create effect button
    * @param {MouseEvent} event
    */
-  async onCreateCover(folderId) {
-    log("CoverEffectsController|onCreateCover", { folderId });
+  async onCreateCover() {
+    log("CoverEffectsController|onCreateCover");
     const cover = await CONFIG[MODULE_ID].CoverEffect.create();
-    if ( folderId && this.constructor.canModifyFolder(folderId) ) await Settings.addFolder({
-      id: folderId,
-      effects: [cover.uniqueEffectId],
-    });
-    if ( folderId === this.constructor.FAVORITE_COVERS_FOLDER ) await Settings.addToFavorites(cover.uniqueEffectId);
     this.rerender();
     cover.document.sheet.render(true);
   }
@@ -158,26 +106,6 @@ export class CoverEffectsController {
     if ( !proceed ) return;
     log("CoverEffectsController|onCreateDefaultsClick yes");
     await CONFIG[MODULE_ID].CoverEffect._resetDefaultEffects();
-    this.rerender();
-  }
-
-  // ----- NOTE: Folder management ----- //
-
-
-  async onCreateFolder() {
-    const folderConfig = new ATCFolderConfig({ viewMvc: this.#viewMvc });
-    folderConfig.render({ force: true });
-  }
-
-  async onEditFolder(folderId) {
-    if ( !folderId ) return;
-    const folderConfig = new ATCFolderConfig({ folderId, viewMvc: this.#viewMvc } );
-    folderConfig.render({ force: true });
-  }
-
-  async onDeleteFolder(folderId) {
-    if ( !folderId ) return;
-    await CONFIG[MODULE_ID].CoverEffect.deleteFolder(folderId);
     this.rerender();
   }
 
@@ -212,37 +140,6 @@ export class CoverEffectsController {
     const cover = CONFIG[MODULE_ID].CoverEffect._instances.get(effectId);
     await cover.destroy(true);
     this.rerender();
-  }
-
-  /**
-   * Handle adding the effect to the favorites settings and to the favorites folder
-   * @param {jQuery} effectItem - jQuery element representing the effect list item
-   */
-  async onAddFavorite(effectId) {
-    log("CoverEffectsController|onAddFavorite", { effectId });
-    await Settings.addToFavorites(effectId);
-    this.rerender();
-  }
-
-  /**
-   * Handle removing the effect from the favorites settings and from the favorites folder
-   * @param {jQuery} effectItem - jQuery element representing the effect list item
-   */
-  async onRemoveFavorite(effectId) {
-    log("CoverEffectsController|onRemoveFavorite", { effectId });
-    await Settings.removeFromFavorites(effectId);
-    this.rerender();
-  }
-
-  /**
-   * Checks if the provided effect is favorited
-   * @param {jQuery} effectItem - jQuery element representing the effect list item
-   * @returns true if the effect is favorited
-   */
-  isFavorited(effectItem) {
-    log("CoverEffectsController|isFavorited");
-    const effectId = effectItem.dataset.effectId;
-    return Settings.isFavorite(effectId);
   }
 
   /**

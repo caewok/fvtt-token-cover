@@ -1,5 +1,5 @@
 <ol class="directory-list plain">
-  {{#each folderData}}
-    {{> (lookup @root "folderPartial") data=this }}
-  {{/each}}
+    {{~#each effects}}
+      {{> (lookup @root "entryPartial") effect=this }}
+    {{/each}}
 </ol>

@@ -67,17 +67,11 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
     ],
     actions: {
       createEffect: CoverEffectsApp.#onCreateEffect,
-      createEffectInFolder: CoverEffectsApp.#onCreateEffectInFolder,
-      createFolder: CoverEffectsApp.#onCreateFolder,
-      collapseFolders: CoverEffectsApp.#onCollapseFolders,
-      toggleFolder: CoverEffectsApp.#onToggleFolder,
       resetDefaults: CoverEffectsApp.#onResetDefaults,
     },
   };
 
   static _entryPartial = `modules/${MODULE_ID}/templates/cover-effects-menu-app-document-partial.html`;
-
-  static _folderPartial = `modules/${MODULE_ID}/templates/cover-effects-menu-app-folder-partial.html`;
 
   static PARTS = {
     header: {
@@ -86,7 +80,6 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
     directory: {
       template: `modules/${MODULE_ID}/templates/cover-effects-menu-app-directory.html`,
       templates: [
-        this._folderPartial,
         this._entryPartial,
       ],
       scrollable: [""],
@@ -108,7 +101,7 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
   }
 
   /**
-   * Add drag-drop functionality, and folder expansion.
+   * Add drag-drop functionality.
    *
    * ----
    * Actions performed after any render of the Application.
@@ -135,24 +128,9 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
         },
       }).bind(this.element);
     }
-
-    // Expand folders.
-    if ( options.parts?.includes("directory") ) {
-      Settings.expandedFolders.forEach(folderId => {
-        const folderHTML = this.element.querySelector(`[data-folder-id='${folderId}']`);
-        if ( folderHTML ) folderHTML.classList.add("expanded");
-      });
-    }
   }
 
   _createContextMenus() {
-    this._createContextMenu(
-      this._getFolderContextOptions,
-      ".folder .folder-header",
-      {
-        fixed: true,
-      },
-    );
     this._createContextMenu(
       this._getCoverEntryContextOptions,
       ".directory-item[data-entry-id]",
@@ -160,38 +138,6 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
         fixed: true,
       },
     );
-  }
-
-  /**
-   * Context menu (right-click) options for folders.
-   */
-  _getFolderContextOptions() {
-    return [
-      {
-        name: "FOLDER.Edit",
-        icon: '<i class="fa-solid fa-pen-to-square"></i>',
-        condition: header => {
-          const folderId = this.#folderIdFromElement(header);
-          return CoverEffectsController.canModifyFolder(folderId);
-        },
-        callback: async li => {
-          const folderId = this.#folderIdFromElement(li);
-          return this._controller.onEditFolder(folderId);
-        },
-      },
-      {
-        name: "FOLDER.Remove",
-        icon: '<i class="fa-solid fa-dumpster"></i>',
-        condition: header => {
-          const folderId = this.#folderIdFromElement(header);
-          return CoverEffectsController.canModifyFolder(folderId);
-        },
-        callback: async li => {
-          const folderId = this.#folderIdFromElement(li);
-          return this._controller.onDeleteFolder(folderId);
-        },
-      },
-    ];
   }
 
   /**
@@ -216,28 +162,6 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
           const effectId = this.#effectIdFromElement(li);
           return this._controller.onDuplicateCover(effectId);
         }
-      },
-      {
-        name: `${MODULE_ID}.coverbook.add-favorite`,
-        icon: '<i class="fas fa-star fa-fw"></i>',
-        condition: effectItem => {
-          return !this._controller.isFavorited(effectItem);
-        },
-        callback: async li => {
-          const effectId = this.#effectIdFromElement(li);
-          return this._controller.onAddFavorite(effectId);
-        },
-      },
-      {
-        name: `${MODULE_ID}.coverbook.remove-favorite`,
-        icon: '<i class="far fa-star fa-fw"></i>',
-        condition: effectItem => {
-          return this._controller.isFavorited(effectItem);
-        },
-        callback: async li => {
-          const effectId = this.#effectIdFromElement(li);
-          return this._controller.onRemoveFavorite(effectId);
-        },
       },
       {
         name: `${MODULE_ID}.coverbook.import-terrain`,
@@ -308,53 +232,13 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
     return context;
   }
 
-  async collapseAllFolders() {
-    for (const el of this.element.querySelectorAll(".directory-item.folder")) el.classList.remove("expanded");
-    await Settings.clearExpandedFolders();
-  }
-
-  /**
-   * @param {string} folderId
-   */
-  async toggleFolder(folderId) {
-    if ( Settings.isFolderExpanded(folderId) ) await Settings.removeExpandedFolder(folderId);
-    else await Settings.addExpandedFolder(folderId);
-    if ( this.isPopout ) this.setPosition();
-  }
-
   static async #onCreateEffect(event, _target) {
     event.stopPropagation();
     return this._controller.onCreateTerrain();
-  }
-
-  static async #onCreateEffectInFolder(event, target) {
-    event.stopPropagation();
-    const folderId = this.#folderIdFromElement(target);
-    return this._controller.onCreateTerrain(folderId);
-  }
-
-  static async #onCreateFolder(event, _target) {
-    event.stopPropagation();
-    return this._controller.onCreateFolder();
-  }
-
-  static async #onCollapseFolders(event, _target) {
-    event.stopPropagation();
-    return this.collapseAllFolders();
-  }
-
-  static async #onToggleFolder(event, target) {
-    event.stopPropagation();
-    const folderHTML = target.closest(".directory-item.folder");
-    folderHTML.classList.toggle("expanded");
-    const folderId = folderHTML.dataset.folderId;
-    if ( !folderId ) return;
-    return this.toggleFolder(folderId);
   }
 
   static async #onResetDefaults(event, _target) {
     event.stopPropagation();
     return this._controller.onCreateDefaults();
   }
-
 }
