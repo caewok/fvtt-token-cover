@@ -15,7 +15,7 @@
     "tokencover.cover-effect.dead-tokens-block.Name": "Dead tokens block",
     "tokencover.cover-effect.dead-tokens-block.Hint": "See module settings to configure the attribute to use for determining token HP.",
     "tokencover.cover-effect.prone-tokens-block.Name": "Prone tokens block",
-    "tokencover.cover-effect.prone-tokens-block.Hint": "If enabled, a prone token grants cover (based on their height as multiplied by the prone multiplier. If neither dead nor live tokens grant cover, this does nothing. See module settings for the prone multiplier.",
+    "tokencover.cover-effect.prone-tokens-block.Hint": "If enabled, a prone token grants cover (based on their height as multiplied by the prone multiplier). If neither dead nor live tokens grant cover, this does nothing. See module settings for the prone multiplier.",
 
     "tokencover.settings.never": "Never",
     "tokencover.settings.combat": "During Combat",
