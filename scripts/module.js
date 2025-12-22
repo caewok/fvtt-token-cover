@@ -160,25 +160,30 @@ Hooks.once("canvasReady", function() {
 
 // ----- NOTE: Token Controls ----- //
 
-// Add pathfinding button to token controls.
+// Add cover book button to token controls
 const COVER_EFFECTS_CONTROL = {
   name: Settings.CONTROLS.COVER_EFFECTS,
   title: `${MODULE_ID}.controls.${Settings.CONTROLS.COVER_EFFECTS}.name`,
   icon: FA_ICONS.MODULE,
+  toggle: false,
   button: true,
   onClick: () => { new CoverEffectsApp().render(true); },
-  visible: false
+  visible: false,
+  order: 0,
 };
 
 // Render the cover effects book control if setting enabled.
-Hooks.on("getSceneControlButtons", controls => {
+/**
+ * Hook getSceneControlButtons
+ * Render the cover effects book control if setting enabled.
+ */
+Hooks.on("getSceneControlButtons", (controls, _html, _data) => {
   if ( !canvas.scene || !ui.controls.activeControl === "token" || !game.user.isGM ) return;
   COVER_EFFECTS_CONTROL.visible = game.user.isGM && Settings.get(Settings.KEYS.DISPLAY_COVER_BOOK);
   COVER_EFFECTS_CONTROL.order = 0;
   Object.values(controls.tokens.tools).forEach(tool => COVER_EFFECTS_CONTROL.order = Math.max(tool.order + 1, COVER_EFFECTS_CONTROL.order));
-  controls.tokens.tools[MODULE_ID] = COVER_EFFECTS_CONTROL;
+  controls.tokens.tools[COVER_EFFECTS_CONTROL.name] = COVER_EFFECTS_CONTROL;
 });
-
 
 // ----- NOTE: Helper Functions ----- //
 

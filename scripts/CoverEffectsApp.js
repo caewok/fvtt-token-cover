@@ -1,17 +1,35 @@
 /* globals
-Application,
-ContextMenu,
 foundry,
 game,
-ui
+ui,
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, FA_ICONS } from "./const.js";
 import { CoverEffectsController } from "./CoverEffectsController.js";
+import { Settings } from "./settings.js";
 
-export class CoverEffectsApp extends Application {
+// See
+// https://github.com/DFreds/dfreds-convenient-effects/blob/main/src/ts/ui/ce-app/convenient-effects-v2.ts
+
+/**
+ * Application class for handling the UI of the terrain effects.
+ * Based on AbstractSidebarTab.
+ */
+const apps = foundry.applications;
+export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.sidebar.AbstractSidebarTab) {
+
+  /**
+   * Re-render if the app is open.
+   * Needed when terrain effects are updated in the effects app.
+   * See https://github.com/DFreds/dfreds-convenient-effects/blob/c2d5e81eb1d28d4db3cb0889c22a775c765c24e3/scripts/foundry-helpers.js#L51
+   */
+  static rerender() {
+    const app = ui.sidebar.popouts[MODULE_ID];
+    if ( app ) app.render(true);
+  }
+
   /**
    * Initializes the application and its dependencies
    */
@@ -20,131 +38,369 @@ export class CoverEffectsApp extends Application {
     this._controller = new CoverEffectsController(this);
   }
 
-  /**
-   * Re-render if the app is open.
-   * Needed when terrain effects are updated in the effects app.
-   * See https://github.com/DFreds/dfreds-convenient-effects/blob/c2d5e81eb1d28d4db3cb0889c22a775c765c24e3/scripts/foundry-helpers.js#L51
-   */
-  static rerender() {
-    const openApps = Object.values(ui.windows);
-    const app = openApps.find(app => app instanceof CoverEffectsApp);
-    if ( app ) app.render(true);
-  }
+  static tabName = MODULE_ID;
 
-  /**
-   * Set the options for how the application is displayed.
-   */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
+  static DEFAULT_OPTIONS = {
+    classes: ["directory", "flexcol"],
+    window: {
+      title: `${MODULE_ID}.phrases.covers`,
+      icon: FA_ICONS.MODULE,
+      frame: true, // If true, will be popout.
+      positioned: true,
+    },
+    resizable: true,
+    position: {
+      top: 60,
+      left: 100,
       width: 300,
       height: 600,
-      top: 100,
-      left: 200,
-      popOut: true,
-      minimizable: true,
-      resizable: true,
-      id: "tokencover",
-      classes: ["sidebar-popout"],
-      dragDrop: [
-        {
-          dragSelector: ".tokencover"
-        }
-      ],
-      filters: [
-        {
-          inputSelector: 'input[name="search"]',
-          contentSelector: ".directory-list"
-        }
-      ],
-      title: "Cover Effects",
-      template:
-        `modules/${MODULE_ID}/templates/cover-effects-menu-app.html`,
-      scrollY: ["ol.directory-list"]
-    });
-  }
-
-  /** @override */
-  getData() { return this._controller.data; }
-
-  /** @override */
-  activateListeners(html) {
-    this._rootView = html;
-    this._initClickListeners();
-    this._initContextMenus();
-  }
-
-  /** @override */
-  _onDragStart(event) { this._controller.onEffectDragStart(event); }
-
-  /** @override */
-  _canDragStart(_selector) { return this._controller.canDragStart(); }
-
-  /** @override */
-  async _onDrop(event) { return this._controller.onEffectDrop(event); }
-
-  /**
-   * Listeners for buttons in the menu
-   */
-  _initClickListeners() {
-    this._createEffectButton.on("click", this._controller.onCreateEffect.bind(this._controller));
-    this._createDefaultsButton.on("click", this._controller.onCreateDefaults.bind(this._controller));
-    this._effectListItems.on("click", this._controller.onEffectClick.bind(this._controller));
-  }
-
-  /**
-   * Menu items when right-clicking on an active effect.
-   */
-  _initContextMenus() {
-    new ContextMenu(this._rootView, ".tokencover-effect", [
+    },
+    dragDrop: [
       {
-        name: "Edit Cover Rules",
+        dragSelector: ".tokencover"
+      }
+    ],
+    filters: [
+      {
+        inputSelector: 'input[name="search"]',
+        contentSelector: ".directory-list"
+      }
+    ],
+    actions: {
+      createEffect: CoverEffectsApp.#onCreateEffect,
+      createEffectInFolder: CoverEffectsApp.#onCreateEffectInFolder,
+      createFolder: CoverEffectsApp.#onCreateFolder,
+      collapseFolders: CoverEffectsApp.#onCollapseFolders,
+      toggleFolder: CoverEffectsApp.#onToggleFolder,
+      resetDefaults: CoverEffectsApp.#onResetDefaults,
+    },
+  };
+
+  static _entryPartial = `modules/${MODULE_ID}/templates/cover-effects-menu-app-document-partial.html`;
+
+  static _folderPartial = `modules/${MODULE_ID}/templates/cover-effects-menu-app-folder-partial.html`;
+
+  static PARTS = {
+    header: {
+      template: `modules/${MODULE_ID}/templates/cover-effects-menu-app-header.html`,
+    },
+    directory: {
+      template: `modules/${MODULE_ID}/templates/cover-effects-menu-app-directory.html`,
+      templates: [
+        this._folderPartial,
+        this._entryPartial,
+      ],
+      scrollable: [""],
+    },
+  };
+
+  /**
+   * Add context menus at first render.
+   *
+   * -----
+   * Actions performed after a first render of the Application.
+   * @param {ApplicationRenderContext} context      Prepared context data
+   * @param {RenderOptions} options                 Provided render options
+   * @returns {Promise<void>}
+   */
+  async _onFirstRender(context, options) {
+    await super._onFirstRender(context, options);
+    this._createContextMenus();
+  }
+
+  /**
+   * Add search, drag-drop functionality, and folder expansion.
+   *
+   * ----
+   * Actions performed after any render of the Application.
+   * @param {ApplicationRenderContext} context      Prepared context data
+   * @param {RenderOptions} options                 Provided render options
+   * @returns {Promise<void>}
+   */
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+
+    // Search.
+    if ( options.parts?.includes("header") ) {
+      new apps.ux.SearchFilter({
+        inputSelector: "search input",
+        contentSelector: ".directory-list",
+        callback: this._controller._onSearchFilter.bind(this._controller),
+        initial: (this.element.querySelector("search input")).value,
+      }).bind(this.element);
+    }
+
+    // Drag-drop.
+    if ( options.parts?.includes("directory") ) {
+      new apps.ux.DragDrop.implementation({
+        dragSelector: ".directory-item",
+        dropSelector: ".directory-list",
+        permissions: {
+          dragstart: this._controller.canDragStart,
+          drop: this._controller.canDragDrop,
+        },
+        callbacks: {
+          dragstart: this._controller.onDragStart,
+          dragover: this._controller.onDragOver,
+          drop: this._controller.onEffectDrop,
+        },
+      }).bind(this.element);
+    }
+
+    // Expand folders.
+    if ( options.parts?.includes("directory") ) {
+      Settings.expandedFolders.forEach(folderId => {
+        const folderHTML = this.element.querySelector(`[data-folder-id='${folderId}']`);
+        if ( folderHTML ) folderHTML.classList.add("expanded");
+      });
+    }
+  }
+
+  _createContextMenus() {
+    this._createContextMenu(
+      this._getFolderContextOptions,
+      ".folder .folder-header",
+      {
+        fixed: true,
+      },
+    );
+    this._createContextMenu(
+      this._getCoverEntryContextOptions,
+      ".directory-item[data-entry-id]",
+      {
+        fixed: true,
+      },
+    );
+  }
+
+  /**
+   * Context menu (right-click) options for folders.
+   */
+  _getFolderContextOptions() {
+    return [
+      {
+        name: "FOLDER.Edit",
+        icon: '<i class="fa-solid fa-pen-to-square"></i>',
+        condition: header => {
+          const folderId = this.#folderIdFromElement(header);
+          return CoverEffectsController.canModifyFolder(folderId);
+        },
+        callback: async li => {
+          const folderId = this.#folderIdFromElement(li);
+          return this._controller.onEditFolder(folderId);
+        },
+      },
+      {
+        name: "FOLDER.Remove",
+        icon: '<i class="fa-solid fa-dumpster"></i>',
+        condition: header => {
+          const folderId = this.#folderIdFromElement(header);
+          return CoverEffectsController.canModifyFolder(folderId);
+        },
+        callback: async li => {
+          const folderId = this.#folderIdFromElement(li);
+          return this._controller.onDeleteFolder(folderId);
+        },
+      },
+    ];
+  }
+
+  /**
+   * Context menu (right-click) options for terrain entries.
+   */
+  _getCoverEntryContextOptions() {
+    return [
+      {
+        name: `${MODULE_ID}.coverbook.edit-terrain`,
         icon: '<i class="fas fa-edit fa-fw"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onEdit.bind(this._controller)
+        callback: async li => {
+          const effectId = this.#effectIdFromElement(li);
+          return this._controller.onEditCover(effectId);
+        }
       },
-
       {
-        name: "Duplicate",
+        name: "SIDEBAR.Duplicate",
         icon: '<i class="far fa-copy fa-fw"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onDuplicate.bind(this._controller)
+        callback: async li => {
+          const effectId = this.#effectIdFromElement(li);
+          return this._controller.onDuplicateCover(effectId);
+        }
       },
-
       {
-        name: "Import Cover Effect",
+        name: `${MODULE_ID}.coverbook.add-favorite`,
+        icon: '<i class="fas fa-star fa-fw"></i>',
+        condition: effectItem => {
+          return !this._controller.isFavorited(effectItem);
+        },
+        callback: async li => {
+          const effectId = this.#effectIdFromElement(li);
+          return this._controller.onAddFavorite(effectId);
+        },
+      },
+      {
+        name: `${MODULE_ID}.coverbook.remove-favorite`,
+        icon: '<i class="far fa-star fa-fw"></i>',
+        condition: effectItem => {
+          return this._controller.isFavorited(effectItem);
+        },
+        callback: async li => {
+          const effectId = this.#effectIdFromElement(li);
+          return this._controller.onRemoveFavorite(effectId);
+        },
+      },
+      {
+        name: `${MODULE_ID}.coverbook.import-terrain`,
         icon: '<i class="far fa-file-arrow-up"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onImport.bind(this._controller)
+        callback: async li => {
+          const effectId = this.#effectIdFromElement(li);
+          return this._controller.onImportCover(effectId);
+        },
       },
-
       {
-        name: "Export Cover Effect",
+        name: `${MODULE_ID}.coverbook.export-terrain`,
         icon: '<i class="far fa-file-arrow-down"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onExport.bind(this._controller)
+        callback: async li => {
+          const effectId = this.#effectIdFromElement(li);
+          return this._controller.onExportCover(effectId);
+        },
       },
-
       {
-        name: "Delete Cover Effect",
+        name: `${MODULE_ID}.coverbook.delete-terrain`,
         icon: '<i class="fas fa-trash fa-fw"></i>',
         condition: () => game.user.isGM,
-        callback: this._controller.onDelete.bind(this._controller)
+        callback: async li => {
+          const effectId = this.#effectIdFromElement(li);
+          return this._controller.onDeleteCover(effectId);
+        },
       }
-    ]);
+    ];
+  }
+
+  #folderIdFromElement(li) {
+    const folderHTML = li.closest(".directory-item.folder");
+    return folderHTML.dataset.folderId;
+  }
+
+  #effectIdFromElement(li) {
+    const effectHTML = li.closest("[data-entry-id]");
+    return effectHTML.dataset.entryId;
   }
 
   /**
-   * The button used to create a new active effect.
+   * Data for the terrain sidebar.
+   *
+   * -----
+   * Prepare application rendering context data for a given render request. If exactly one tab group is configured for
+   * this application, it will be prepared automatically.
+   * @param {RenderOptions} options                 Options which configure application rendering behavior
+   * @returns {Promise<ApplicationRenderContext>}   Context data for the render operation
    */
-  get _createEffectButton() { return this._rootView.find(".create-effect"); }
+  // async _prepareContext(options)
 
   /**
-   * The button used to reset effects to default for the system.
+   * Prepare context specific to the header and the folder directory parts.
+   *
+   * -----
+   * @param {string} partId                         The part being rendered
+   * @param {ApplicationRenderContext} context      Shared context provided by _prepareContext
+   * @param {HandlebarsRenderOptions} options       Options which configure application rendering behavior
+   * @returns {Promise<ApplicationRenderContext>}   Context data for a specific part
    */
-  get _createDefaultsButton() { return this._rootView.find(".create-defaults"); }
+  async _preparePartContext(partId, context, options) {
+    context = await super._preparePartContext(partId, context, options);
+    switch ( partId ) {
+      case "directory": this._controller.directoryData(context); break;
+      case "header": this._controller.headerData(context); break;
+    }
+    return context;
+  }
 
   /**
-   * The listed active effect target.
+   * Keep search state synced.
+   *
+   * -----
+   * Prepare data used to synchronize the state of a template part.
+   * @param {string} partId                       The id of the part being rendered
+   * @param {HTMLElement} newElement              The new rendered HTML element for the part
+   * @param {HTMLElement} priorElement            The prior rendered HTML element for the part
+   * @param {object} state                        A state object which is used to synchronize after replacement
    */
-  get _effectListItems() { return this._rootView.find(".tokencover-effect"); }
+  _preSyncPartState(partId, newElement, priorElement, state) {
+    super._preSyncPartState(partId, newElement, priorElement, state);
+    if ( partId === "header" ) {
+      const searchInput = priorElement.querySelector("search input");
+      if ( searchInput ) state.query = searchInput.value;
+    }
+  }
+
+  /**
+   * Keep search state synced.
+   *
+   * ----
+   * @param {string} partId                       The id of the part being rendered
+   * @param {HTMLElement} newElement              The new rendered HTML element for the part
+   * @param {HTMLElement} priorElement            The prior rendered HTML element for the part
+   * @param {object} state                        A state object which is used to synchronize after replacement
+   */
+  _syncPartState(partId, newElement, priorElement, state) {
+    super._syncPartState(partId, newElement, priorElement, state);
+    if ( partId === "header" && state.query ) {
+      const searchInput = newElement.querySelector("search input");
+      if ( searchInput ) searchInput.value = state.query;
+    }
+  }
+
+  async collapseAllFolders() {
+    for (const el of this.element.querySelectorAll(".directory-item.folder")) el.classList.remove("expanded");
+    await Settings.clearExpandedFolders();
+  }
+
+  /**
+   * @param {string} folderId
+   */
+  async toggleFolder(folderId) {
+    if ( Settings.isFolderExpanded(folderId) ) await Settings.removeExpandedFolder(folderId);
+    else await Settings.addExpandedFolder(folderId);
+    if ( this.isPopout ) this.setPosition();
+  }
+
+  static async #onCreateEffect(event, _target) {
+    event.stopPropagation();
+    return this._controller.onCreateTerrain();
+  }
+
+  static async #onCreateEffectInFolder(event, target) {
+    event.stopPropagation();
+    const folderId = this.#folderIdFromElement(target);
+    return this._controller.onCreateTerrain(folderId);
+  }
+
+  static async #onCreateFolder(event, _target) {
+    event.stopPropagation();
+    return this._controller.onCreateFolder();
+  }
+
+  static async #onCollapseFolders(event, _target) {
+    event.stopPropagation();
+    return this.collapseAllFolders();
+  }
+
+  static async #onToggleFolder(event, target) {
+    event.stopPropagation();
+    const folderHTML = target.closest(".directory-item.folder");
+    folderHTML.classList.toggle("expanded");
+    const folderId = folderHTML.dataset.folderId;
+    if ( !folderId ) return;
+    return this.toggleFolder(folderId);
+  }
+
+  static async #onResetDefaults(event, _target) {
+    event.stopPropagation();
+    return this._controller.onCreateDefaults();
+  }
+
 }

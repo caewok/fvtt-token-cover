@@ -121,6 +121,11 @@ export const FLAGS = {
     }
   },
 
+  COVER_BOOK: {
+    FOLDER_COLOR: "folderColor",
+    FOLDERS: "folders",
+  },
+
   /**
    * For updating flag data to new versions of the module.
    * @type {string} Version of the module that saved this data.

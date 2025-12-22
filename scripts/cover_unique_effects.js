@@ -18,7 +18,7 @@ export class CoverActiveEffect extends CoverMixin(UniqueActiveEffect) {
   /** @type {object} */
   static get _storageMapData() {
     return {
-      name: "Cover Effects",
+      name: "ATV Cover Effects",
       img: ICONS.MODULE,
       type: "base",
     };
@@ -32,7 +32,7 @@ export class CoverFlagEffect extends CoverMixin(UniqueFlagEffect) {
   /** @type {object} */
   static get _storageMapData() {
     return {
-      name: "Cover Effects",
+      name: "ATV Cover Effects",
       img: ICONS.MODULE,
       type: "base",
     };

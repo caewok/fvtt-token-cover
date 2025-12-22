@@ -77,7 +77,7 @@ function removeCoverItemFromSidebar(dir) {
   if ( !(dir instanceof foundry.applications.sidebar.tabs.ItemDirectory) ) return;
   if ( !game.items ) return;
   for ( const item of game.items ) {
-    if ( !(item.name === "Unique Active Effects" || item.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID)) ) continue;
+    if ( !(item.name === "Unique Active Effects" || item.name === "ATV Cover Effects"|| item.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID)) ) continue;
     const li = dir.element.querySelector(`[data-entry-id="${item.id}"]`)
     if ( li ) li.remove();
   }
@@ -192,8 +192,6 @@ export const SETTINGS = {
     },
   },
 
-
-
   PRONE_STATUS_ID: "prone-status-id",
   TOKEN_HP_ATTRIBUTE: "token-hp-attribute",
 
@@ -204,6 +202,13 @@ export const SETTINGS = {
   AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
   CHANGELOG: "changelog",
   ATV_SETTINGS_MESSAGE: "atv-settings-message",
+
+  // Configuration of the application that controls the terrain listings.
+  CONTROL_APP: {
+    FAVORITES: "favorites", // Array of favorite terrains, by effect id.
+    EXPANDED_FOLDERS: "app_expanded_folders", // Array of folders that are expanded, by id
+    FOLDERS: "app_folders",
+  },
 
   MIGRATION: {
     v0100: "migration-v0.10.0",
@@ -660,7 +665,102 @@ export class Settings extends ModuleSettingsAbstract {
       default: false,
       type: Boolean
     });
+
+    this.register(KEYS.CONTROL_APP.FAVORITES, {
+      name: "Favorites",
+      scope: "client",
+      config: false,
+      default: [],
+      type: Array,
+    });
+
+    this.register(KEYS.CONTROL_APP.EXPANDED_FOLDERS, {
+      name: "Expanded Folders",
+      scope: "client",
+      config: false,
+      default: [],
+      type: Array,
+    });
+
+    this.register(KEYS.CONTROL_APP.FOLDERS, {
+      name: "Folders",
+      scope: "client",
+      config: false,
+      default: [],
+      type: Array,
+    });
   }
+
+  /** @type {string[]} */
+  static get expandedFolders() { return this.get(this.KEYS.CONTROL_APP.EXPANDED_FOLDERS); }
+
+  /**
+   * Add a given folder id to the saved expanded folders.
+   * @param {string} folderId
+   * @returns {Promise} A promise that resolves when the setting update completes.
+   */
+  static async addExpandedFolder(folderId) {
+    let folderArr = this.expandedFolders;
+    folderArr.push(folderId);
+    folderArr = [...new Set(folderArr)]; // Remove duplicates.
+    this.set(this.KEYS.CONTROL_APP.EXPANDED_FOLDERS, folderArr);
+  }
+
+  /**
+   * Remove a given folder name from the expanded folders array.
+   * @param {string} id   Id of the folder to remove from the saved expanded folders list.
+   * @returns {Promise} A promise that resolves when the setting update completes.
+   */
+  static async removeExpandedFolder(id) {
+    const expandedFolderArray = this.expandedFolders.filter(expandedFolder => expandedFolder !== id);
+    return this.set(this.KEYS.CONTROL_APP.EXPANDED_FOLDERS, expandedFolderArray);
+  }
+
+  /**
+   * Remove all saved expanded folders.
+   * @returns {Promise} Promise that resolves when the settings update complete.
+   */
+  static async clearExpandedFolders() { this.set(this.KEYS.CONTROL_APP.EXPANDED_FOLDERS, []); }
+
+  /**
+   * Check if given folder nae is expanded.
+   * @param {string} id   Folder id for which to search
+   * @returns {boolean} True if the folder is in the saved expanded list.
+   */
+  static isFolderExpanded(id) { return this.expandedFolders.includes(id); }
+
+  static get favorites() { return new Set(this.get(this.KEYS.CONTROL_APP.FAVORITES)); }
+
+  /**
+   * Check if a given effect id is in the favorites set.
+   * @param {string} id     Active effect id
+   * @returns {boolean}
+   */
+  static isFavorite(id) { return this.favorites.has(id); }
+
+  /**
+   * Add effect id to favorites.
+   * @param {string} id     Active effect id
+   */
+  static async addToFavorites(id) {
+    const key = this.KEYS.CONTROL_APP.FAVORITES;
+    const favorites = this.favorites;
+    favorites.add(id); // Avoids duplicates.
+    await this.set(key, [...favorites]);
+  }
+
+  /**
+   * Remove effect id from favorites.
+   * @param {string} id
+   */
+  static async removeFromFavorites(id) {
+    const key = this.KEYS.CONTROL_APP.FAVORITES;
+    const favorites = this.favorites;
+    favorites.delete(id); // Avoids duplicates.
+    await this.set(key, [...favorites]);
+  }
+
+
 
   static migrate() {
     if ( !this.get(this.KEYS.MIGRATION.v0100) ) {

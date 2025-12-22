@@ -3,7 +3,7 @@
     "tokencover.nameAbbr": "ATC",
 
     "tokencover.coverbook.create-cover": "Create Cover",
-    "tokencover.coverbook.create-defaults": "Reset Default Cover",
+    "tokencover.coverbook.reset-defaults": "Reset Default Cover",
 
     "tokencover.cover-effect.percent-threshold.Name": "Percent threshold",
     "tokencover.cover-effect.can-overlap.Name": "Can overlap",
@@ -92,7 +92,7 @@
     "tokencover.settings.los-inset-viewer.Hint": "For viewer points other than the center, what percentage to inset the point from the token border towards the token center.",
 
     "tokencover.settings.los-points-options-target.Name": "Points",
-    "tokencover.settings.los-points-options-target.Hint": "How many points on the target to test for cover from the viewer's line-of-sight.",
+    "tokencover.settings.los-points-target.Hint": "How many points on the target to test for cover from the viewer's line-of-sight.",
 
     "tokencover.settings.los-inset-target.Name": "Inset",
     "tokencover.settings.los-inset-target.Hint": "For target points other than the center, what percentage to inset the point from the token border towards the token center.",
@@ -218,6 +218,7 @@
     "tokencover.behavior.types.set-cover.fields.appliesToAttackers.hint": "If enabled, defending tokens outside the region will gain cover from attacking tokens within the region. If not enabled, only defending tokens inside the region are affected.",
 
     "tokencover.phrases.coverRules": "Cover Rules",
+    "tokencover.phrases.coverEffects": "Cover Effects",
 
     "tokencover.phrases.xCoverEffect": "{cover} Cover Effect",
     "tokencover.phrases.xCoverType": "{cover} Cover Type",
