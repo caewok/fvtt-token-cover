@@ -43,7 +43,7 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
   static DEFAULT_OPTIONS = {
     classes: ["directory", "flexcol"],
     window: {
-      title: `${MODULE_ID}.phrases.covers`,
+      title: `${MODULE_ID}.phrases.coverEffects`,
       icon: FA_ICONS.MODULE,
       frame: true, // If true, will be popout.
       positioned: true,
@@ -146,7 +146,7 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
   _getCoverEntryContextOptions() {
     return [
       {
-        name: `${MODULE_ID}.coverbook.edit-terrain`,
+        name: `${MODULE_ID}.coverbook.edit-cover`,
         icon: '<i class="fas fa-edit fa-fw"></i>',
         condition: () => game.user.isGM,
         callback: async li => {
@@ -164,7 +164,7 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
         }
       },
       {
-        name: `${MODULE_ID}.coverbook.import-terrain`,
+        name: `${MODULE_ID}.coverbook.import-cover`,
         icon: '<i class="far fa-file-arrow-up"></i>',
         condition: () => game.user.isGM,
         callback: async li => {
@@ -173,7 +173,7 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
         },
       },
       {
-        name: `${MODULE_ID}.coverbook.export-terrain`,
+        name: `${MODULE_ID}.coverbook.export-cover`,
         icon: '<i class="far fa-file-arrow-down"></i>',
         condition: () => game.user.isGM,
         callback: async li => {
@@ -182,7 +182,7 @@ export class CoverEffectsApp extends apps.api.HandlebarsApplicationMixin(apps.si
         },
       },
       {
-        name: `${MODULE_ID}.coverbook.delete-terrain`,
+        name: `${MODULE_ID}.coverbook.delete-cover`,
         icon: '<i class="fas fa-trash fa-fw"></i>',
         condition: () => game.user.isGM,
         callback: async li => {

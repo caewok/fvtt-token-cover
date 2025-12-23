@@ -12,7 +12,7 @@ PATCHES.BASIC = {};
 
 // ----- NOTE: Hooks ----- //
 
-// Hook iniit to update the PARTS of the light config.
+// Hook init to update the PARTS of the light config.
 Hooks.once("init", function() {
   const AEConfig = foundry.applications.sheets.ActiveEffectConfig;
   const { footer, ...other } = AEConfig.PARTS;
@@ -39,29 +39,4 @@ function closeActiveEffectConfig(_app, _html) {
   CoverEffectsApp.rerender();
 }
 
-/**
- * On active effect render, add the additional terrain settings.
- * @category ApplicationV2
- * @param {ApplicationV2} application          The Application instance being rendered
- * @param {HTMLElement} element                The inner HTML of the document that will be displayed and may be modified
- * @param {ApplicationRenderContext} context   The application rendering context data
- * @param {ApplicationRenderOptions} options   The application rendering options
- */
-function renderActiveEffectConfig(app, element, context, options) {
-  // Avoid changing all active effects everywhere.
-//   if ( context.document.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.TYPE) !== "Cover" ) return;
-//
-//   const myHTML = renderTemplateSync(TEMPLATES.ACTIVE_EFFECT, context);
-//   if ( !myHTML ) return;
-//
-//   const div = document.createElement("div");
-//   div.innerHTML = myHTML;
-//
-//   // Place in the tab at the end of the form groups.
-//   const tab = element.querySelector('.tab[data-tab="details"]');
-//   if ( !tab ) return;
-//   tab.appendChild(div);
-//   app.setPosition(app.position);
-}
-
-PATCHES.BASIC.HOOKS = { closeActiveEffectConfig, renderActiveEffectConfig };
+PATCHES.BASIC.HOOKS = { closeActiveEffectConfig };

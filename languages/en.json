@@ -4,6 +4,14 @@
 
     "tokencover.coverbook.create-cover": "Create Cover",
     "tokencover.coverbook.reset-defaults": "Reset Default Cover",
+    "tokencover.coverbook.edit-cover": "Edit Cover",
+    "tokencover.coverbook.import-cover": "Import Cover",
+    "tokencover.coverbook.import-cover-description": "Replace this cover with the settings stored in a JSON file.",
+    "tokencover.coverbook.export-cover": "Export Cover",
+    "tokencover.coverbook.import-cover-description": "Replace this cover with the settings stored in a JSON file.",
+    "tokencover.coverbook.delete-cover": "Delete Cover",
+    "tokencover.coverbook.are-you-sure": "Are you sure?",
+    "tokencover.coverbook.remove-cover-description": "This will delete the selected cover and cannot be undone.",
 
     "tokencover.cover-effect.percent-threshold.Name": "Percent threshold",
     "tokencover.cover-effect.can-overlap.Name": "Can overlap",
