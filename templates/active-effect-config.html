@@ -1,9 +1,6 @@
-<!-- https://www.sitelint.com/blog/how-to-implement-multiple-selection-with-check-boxes-in-an-html-without-external-libraries -->
+<section class="tab standard-form scrollable {{tabs.tokencover.cssClass}}"
+         data-tab="tokencover" data-group="{{tabs.tokencover.group}}">
 
-<fieldset>
-<legend>{{ localize "tokencover.name" }}</legend>
+{{> "modules/tokencover/templates/cover-rules-partial.html"}}
 
-{{>"modules/tokencover/templates/cover-rules-partial.html"}}
-
-</legend>
-</fieldset>
+</section>
