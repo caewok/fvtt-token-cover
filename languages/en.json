@@ -12,6 +12,7 @@
     "tokencover.coverbook.delete-cover": "Delete Cover",
     "tokencover.coverbook.are-you-sure": "Are you sure?",
     "tokencover.coverbook.remove-cover-description": "This will delete the selected cover and cannot be undone.",
+    "tokencover.coverbook.create-defaults-description": "This will overwrite default covers with the original settings.",
 
     "tokencover.cover-effect.percent-threshold.Name": "Percent threshold",
     "tokencover.cover-effect.can-overlap.Name": "Can overlap",
@@ -93,7 +94,7 @@
     "tokencover.settings.los-algorithm-per-pixel": "Face Points Lattice",
     "tokencover.settings.los-algorithm-sample-pixel": "Sample Pixel",
 
-    "tokencover.settings.los-points-options-viewer.Name": "Point Options",
+    "tokencover.settings.los-points-options-viewer.Name": "Viewpoint Arrangement",
     "tokencover.settings.los-points-options-viewer.Hint": "Points on the viewer to test for the viewer's line-of-sight. Each represents an 'eye' of the viewer.",
 
     "tokencover.settings.los-inset-viewer.Name": " Inset",
