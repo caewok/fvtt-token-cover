@@ -1,5 +1,4 @@
 /* globals
-ActiveEffect,
 CONFIG,
 CONST,
 foundry,
@@ -141,7 +140,7 @@ export class UniqueActiveEffect extends AbstractUniqueEffect {
   static async _processEffectDrop(data) {
     if ( !data.uuid ) return;
     const effect = await fromUuid(data.uuid);
-    if ( !(effect instanceof ActiveEffect) ) return;
+    if ( !(effect instanceof foundry.documents.ActiveEffect) ) return;
     const effectData = effect.toObject()
     const uniqueEffectId = effect.getFlag("dfreds-convenient-effects", "ceEffectId") ?? this.uniqueEffectId();
     // foundry.utils.setProperty(data, `flags.${MODULE_ID}.${FLAGS.UNIQUE_EFFECT.ID}`, uniqueEffectId);

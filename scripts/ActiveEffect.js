@@ -1,5 +1,5 @@
 /* globals
-Actor
+foundry
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -20,7 +20,7 @@ PATCHES.BASIC = {};
  */
 function createActiveEffect(document, _options, _userId) {
   const actor = document.parent;
-  if ( !actor || !(actor instanceof Actor) ) return;
+  if ( !actor || !(actor instanceof foundry.documents.Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
   if ( !(modFlags[FLAGS.UNIQUE_EFFECT.ID] && !modFlags[FLAGS.UNIQUE_EFFECT.LOCAL]) ) return;
@@ -37,7 +37,7 @@ function createActiveEffect(document, _options, _userId) {
  */
 function deleteActiveEffect(document, _options, _userId) {
   const actor = document.parent;
-  if ( !actor || !(actor instanceof Actor) ) return;
+  if ( !actor || !(actor instanceof foundry.documents.Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
   if ( !(modFlags[FLAGS.UNIQUE_EFFECT.ID] && !modFlags[FLAGS.UNIQUE_EFFECT.LOCAL]) ) return;

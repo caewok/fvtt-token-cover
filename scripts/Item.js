@@ -1,7 +1,7 @@
 /* globals
-Actor,
 canvas,
 ChatMessage,
+foundry,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -13,9 +13,6 @@ import { MODULE_ID, FLAGS } from "./const.js";
 export const PATCHES = {};
 PATCHES.BASIC = {};
 
-// ----- NOTE: MIXES ----- //
-
-
 /**
  * When adding an active effect, check for overriding effect.
  * @param {Document} document                       The new Document instance which has been created
@@ -24,7 +21,7 @@ PATCHES.BASIC = {};
  */
 function createItem(document, _options, _userId) {
   const actor = document.parent;
-  if ( !actor || !(actor instanceof Actor) ) return;
+  if ( !actor || !(actor instanceof foundry.documents.Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
   if ( !(modFlags[FLAGS.UNIQUE_EFFECT.ID] && !modFlags[FLAGS.UNIQUE_EFFECT.LOCAL]) ) return;
@@ -42,7 +39,7 @@ function createItem(document, _options, _userId) {
  */
 function deleteItem(document, _options, _userId) {
   const actor = document.parent;
-  if ( !actor || !(actor instanceof Actor) ) return;
+  if ( !actor || !(actor instanceof foundry.documents.Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
   if ( !(modFlags[FLAGS.UNIQUE_EFFECT.ID] && !modFlags[FLAGS.UNIQUE_EFFECT.LOCAL]) ) return;
