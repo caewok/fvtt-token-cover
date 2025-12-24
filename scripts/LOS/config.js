@@ -5,6 +5,7 @@ Hooks
 "use strict";
 
 import { MODULE_ID } from "../const.js";
+import { getObjectProperty } from "./util.js";
 
 export const LOS_CONFIG = {
 
@@ -160,7 +161,7 @@ function tokenIsDead(token) {
   const deadStatus = CONFIG.statusEffects.find(status => status.id === "dead");
   if ( deadStatus && token.actor.statuses.has(deadStatus.id) ) return true;
 
-  const tokenHPAttribute = Settings.get(Settings.KEYS.TOKEN_HP_ATTRIBUTE)
+  const tokenHPAttribute = CONFIG.GeometryLib.tokenHPId;
   const hp = getObjectProperty(token.actor, tokenHPAttribute);
   if ( typeof hp !== "number" ) return false;
   return hp <= 0;

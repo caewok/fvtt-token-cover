@@ -85,9 +85,11 @@ export class UniqueActiveEffect extends AbstractUniqueEffect {
       const doc = effect.document.toObject();
       doc.flags[MODULE_ID][FLAGS.UNIQUE_EFFECT.IS_LOCAL] = true;
       foundry.utils.mergeObject(doc, data);
-      // Force display of the status icon
+
+      // Force display of the status icon if no statuses available.
       doc.statuses ??= [];
-      if ( token.document.disposition !== CONST.TOKEN_DISPOSITIONS.SECRET
+      if ( !doc.statuses.length
+        && token.document.disposition !== CONST.TOKEN_DISPOSITIONS.SECRET
         && effect.img
         && effect.displayStatusIcon ) doc.statuses.push(effect.img);
 

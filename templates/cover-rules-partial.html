@@ -56,3 +56,14 @@
   </div>
   <p class="hint">{{localize "tokencover.cover-effect.prone-tokens-block.Hint"}} </p>
 </div>
+
+<!-- Link to status effects -->
+<div class="form-group">
+  <label>{{localize "tokencover.cover-effect.linked-status.Name"}}</label>
+  <div class="form-fields">
+    <select name="flags.tokencover.linkedStatus">
+      {{selectOptions tokencover.linkStatusChoices selected=source.flags.tokencover.linkedStatus blank="None" }}
+    </select>
+  </div>
+  <p class="hint">{{localize "tokencover.cover-effect.linked-status.Hint"}} </p>
+</div>
