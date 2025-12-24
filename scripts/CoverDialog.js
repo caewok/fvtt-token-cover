@@ -236,9 +236,6 @@ export class CoverDialog {
           }
         ],
       });
-
-//       const { html, buttonKey } =  await dialogPromise(dialogData);
-//       if ( "Close" === buttonKey ) return false;
       if ( proceed ) this.constructor._getDialogCoverSelections(html);
     }
   }
@@ -291,7 +288,7 @@ export class CoverDialog {
       case choices.AUTO: return this.coverCalculations;
       case choices.USER_CANCEL: {
         const dialogRes = await this.showCoverResults();
-        if ( "Close" === dialogRes ) return false;
+        if ( !dialogRes ) return false;
         return this.coverCalculations;
       }
       case choices.GM: askGM = true;
@@ -334,29 +331,20 @@ export class CoverDialog {
    * @param {object} opts     Options passed to htmlCoverTable.
    */
   async showCoverResults(opts) {
-    const coverAlgorithm = Settings.get(Settings.KEYS.LOS.TARGET.ALGORITHM);
-    const algorithmDescription = game.i18n.localize(`${MODULE_ID}.settings.${coverAlgorithm}`);
     const html = this._htmlShowCover(opts);
     const content =
 `
 ${html}
-<em>Cover algorithm: ${algorithmDescription}</em>
 <br>
 <br>
 `;
     const dialogData = {
       title: game.i18n.localize(`${MODULE_ID}.phrases.CoverByTarget`),
       content,
-      buttons: {
-        one: {
-          icon: '<i class="fas fa-times"></i>',
-          label: game.i18n.localize(`${MODULE_ID}.phrases.Done`)
-        }
-      },
       default: game.i18n.localize(`${MODULE_ID}.phrases.Done`),
       height: "100%"
     };
-    return dialogPromise(dialogData);
+    return foundry.applications.api.DialogV2.prompt(dialogData);
   }
 
   /**
