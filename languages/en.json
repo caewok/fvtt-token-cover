@@ -4,6 +4,15 @@
 
     "tokencover.coverbook.create-cover": "Create Cover",
     "tokencover.coverbook.reset-defaults": "Reset Default Cover",
+    "tokencover.coverbook.edit-cover": "Edit Cover",
+    "tokencover.coverbook.import-cover": "Import Cover",
+    "tokencover.coverbook.import-cover-description": "Replace this cover with the settings stored in a JSON file.",
+    "tokencover.coverbook.export-cover": "Export Cover",
+    "tokencover.coverbook.import-cover-description": "Replace this cover with the settings stored in a JSON file.",
+    "tokencover.coverbook.delete-cover": "Delete Cover",
+    "tokencover.coverbook.are-you-sure": "Are you sure?",
+    "tokencover.coverbook.remove-cover-description": "This will delete the selected cover and cannot be undone.",
+    "tokencover.coverbook.create-defaults-description": "This will overwrite default covers with the original settings.",
 
     "tokencover.cover-effect.percent-threshold.Name": "Percent threshold",
     "tokencover.cover-effect.can-overlap.Name": "Can overlap",
@@ -16,6 +25,8 @@
     "tokencover.cover-effect.dead-tokens-block.Hint": "See module settings to configure the attribute to use for determining token HP.",
     "tokencover.cover-effect.prone-tokens-block.Name": "Prone tokens block",
     "tokencover.cover-effect.prone-tokens-block.Hint": "If enabled, a prone token grants cover (based on their height as multiplied by the prone multiplier). If neither dead nor live tokens grant cover, this does nothing. See module settings for the prone multiplier.",
+    "tokencover.cover-effect.linked-status.Name": "Linked Status",
+    "tokencover.cover-effect.linked-status.Hint": "When the selected status in the token HUD is chosen, this cover effect will be used instead.",
 
     "tokencover.settings.never": "Never",
     "tokencover.settings.combat": "During Combat",
@@ -85,7 +96,7 @@
     "tokencover.settings.los-algorithm-per-pixel": "Face Points Lattice",
     "tokencover.settings.los-algorithm-sample-pixel": "Sample Pixel",
 
-    "tokencover.settings.los-points-options-viewer.Name": "Point Options",
+    "tokencover.settings.los-points-options-viewer.Name": "Viewpoint Arrangement",
     "tokencover.settings.los-points-options-viewer.Hint": "Points on the viewer to test for the viewer's line-of-sight. Each represents an 'eye' of the viewer.",
 
     "tokencover.settings.los-inset-viewer.Name": " Inset",

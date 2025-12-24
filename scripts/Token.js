@@ -2,9 +2,9 @@
 canvas,
 CONFIG,
 CONST,
+foundry,
 game,
 KeyboardManager,
-MeasuredTemplate
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
@@ -128,7 +128,7 @@ function controlToken(controlledToken, controlled) {
 
   // Remove all template attackers.
   [...TokenCover.attackers].forEach(attacker => {
-    if ( attacker instanceof MeasuredTemplate ) TokenCover.removeAttacker(attacker, false);
+    if ( attacker instanceof foundry.canvas.placeables.MeasuredTemplate ) TokenCover.removeAttacker(attacker, false);
   });
 
   if ( controlled ) TokenCover.addAttacker(controlledToken);

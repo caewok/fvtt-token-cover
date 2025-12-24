@@ -366,7 +366,7 @@ export class Settings extends ModuleSettingsAbstract {
       config: true,
       type: Boolean,
       default: false,
-      onChange: value => this.toggleDebugGraphics(value)
+      onChange: value => this.toggleLOSDebugGraphics(value)
     });
 
     // ----- NOTE: Submenu ---- //

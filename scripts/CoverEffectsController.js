@@ -161,7 +161,7 @@ export class CoverEffectsController {
    */
   onExportCover(effectId) {
     log("CoverEffectsController|onExportCover", { effectId });
-    const cover = CONFIG[MODULE_ID].Cover._instances.get(effectId);
+    const cover = CONFIG[MODULE_ID].CoverEffect._instances.get(effectId);
     const data = cover.toJSON();
 
     data.flags.exportSource = {

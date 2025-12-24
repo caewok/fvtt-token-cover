@@ -69,6 +69,12 @@ export const FLAGS = {
      */
     LOCAL: "coverEffectLocal",
 
+    /**
+     * Cover effect should be applied whenever this status is triggered.
+     * Will replace the status with application of this cover effect.
+     */
+    LINKED_STATUS: "linkedStatus",
+
     // Rules that define how cover is applied.
     RULES: {
 
@@ -117,7 +123,6 @@ export const FLAGS = {
        * @type {boolean}
        */
       PRONE_TOKENS_BLOCK: "proneTokensBlock"
-
     }
   },
 

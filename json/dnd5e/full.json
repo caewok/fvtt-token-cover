@@ -12,14 +12,8 @@
       "includeWalls": true,
       "liveTokensBlock": false,
       "deadTokensBlock": false,
-      "proneTokensBlock": false
-    },
-    "exportSource": {
-      "world": "test-dnd5e",
-      "system": "dnd5e",
-      "coreVersion": "12.331",
-      "systemVersion": "4.1.2",
-      "terrainMapperVersion": "0.9.6"
+      "proneTokensBlock": false,
+      "linkedStatus": "coverTotal"
     }
   },
   "transfer": false,
@@ -45,15 +39,5 @@
   "statuses": [
     "coverTotal"
   ],
-  "sort": 0,
-  "_stats": {
-    "compendiumSource": null,
-    "duplicateSource": null,
-    "coreVersion": "12.331",
-    "systemId": "dnd5e",
-    "systemVersion": "3.3.1",
-    "createdTime": 1726065048984,
-    "modifiedTime": 1734715645733,
-    "lastModifiedBy": "nx29hoGineoQv9Bs"
-  }
+  "sort": 0
 }

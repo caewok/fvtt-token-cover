@@ -1,5 +1,5 @@
 /* globals
-Actor
+foundry
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -20,7 +20,7 @@ PATCHES.BASIC = {};
  */
 function createActiveEffect(document, _options, _userId) {
   const actor = document.parent;
-  if ( !actor || !(actor instanceof Actor) ) return;
+  if ( !actor || !(actor instanceof foundry.documents.Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
   if ( !(modFlags[FLAGS.UNIQUE_EFFECT.ID] && !modFlags[FLAGS.UNIQUE_EFFECT.LOCAL]) ) return;
@@ -37,7 +37,7 @@ function createActiveEffect(document, _options, _userId) {
  */
 function deleteActiveEffect(document, _options, _userId) {
   const actor = document.parent;
-  if ( !actor || !(actor instanceof Actor) ) return;
+  if ( !actor || !(actor instanceof foundry.documents.Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
   if ( !(modFlags[FLAGS.UNIQUE_EFFECT.ID] && !modFlags[FLAGS.UNIQUE_EFFECT.LOCAL]) ) return;
@@ -47,3 +47,24 @@ function deleteActiveEffect(document, _options, _userId) {
 }
 
 PATCHES.BASIC.HOOKS = { createActiveEffect, deleteActiveEffect };
+
+/**
+ * Create an ActiveEffect instance from status effect data.
+ * Called by {@link ActiveEffect.fromStatusEffect}.
+ * @param {string} statusId                          The status effect ID.
+ * @param {ActiveEffectData} effectData              The status effect data.
+ * @param {DocumentConstructionContext} [options]    Additional options to pass to the ActiveEffect constructor.
+ * @returns {Promise<ActiveEffect>}                  The created ActiveEffect instance.
+ * @protected
+ */
+async function _fromStatusEffect(wrapped, statusId, effectData, options) {
+  for ( const ce of CONFIG[MODULE_ID].CoverEffect._instances.values() ) {
+    if ( ce.document.getFlag(MODULE_ID, FLAGS.COVER_EFFECT.LINKED_STATUS) === statusId ) {
+      effectData = foundry.utils.mergeObject(effectData, ce.toJSON(), { inplace: false, overwrite: false });
+      break;
+    }
+  }
+  return wrapped(statusId, effectData, options);
+}
+
+PATCHES.BASIC.STATIC_WRAPS = { _fromStatusEffect };
