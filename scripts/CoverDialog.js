@@ -16,7 +16,7 @@ import { MODULE_ID, COVER, SOCKETS, FA_ICONS } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Settings } from "./settings.js";
-import { dialogPromise, NULL_SET } from "./util.js";
+import { NULL_SET } from "./util.js";
 
 // ----- NOTE: Set up sockets so GM can create or modify items ----- //
 Hooks.once("socketlib.ready", () => {
