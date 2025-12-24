@@ -208,7 +208,7 @@ export class CoverDialog {
       ui.notifications.info("Checking cover with GM...");
       return await SOCKETS.socket.executeAsGM("confirmCoverDialog", this.toJSON());
     } else {
-      const proceed = await foundry.applications.api.DialogV2.confirm({
+      return await foundry.applications.api.DialogV2.confirm({
         title: game.i18n.localize(`${MODULE_ID}.phrases.ConfirmCover`),
         content: html,
         rejectClose: false,
@@ -236,7 +236,6 @@ export class CoverDialog {
           }
         ],
       });
-      if ( proceed ) this.constructor._getDialogCoverSelections(html);
     }
   }
 
