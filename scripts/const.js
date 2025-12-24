@@ -187,7 +187,11 @@ export const ICONS = {
 };
 
 export const FA_ICONS = {
-  MODULE: "fa-solid fa-shield-halved"
+  MODULE: "fa-solid fa-shield-halved",
+  COVER_DIALOG: {
+    YES: "fa-solid fa-check",
+    NO: "fa-solid fa-xmark",
+  },
 };
 
 export const COVER = {};

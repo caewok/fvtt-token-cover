@@ -7,13 +7,12 @@ fromUuidSync,
 game,
 Hooks,
 socketlib,
-Token,
 ui
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, COVER, SOCKETS } from "./const.js";
+import { MODULE_ID, COVER, SOCKETS, FA_ICONS } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Settings } from "./settings.js";
@@ -209,9 +208,38 @@ export class CoverDialog {
       ui.notifications.info("Checking cover with GM...");
       return await SOCKETS.socket.executeAsGM("confirmCoverDialog", this.toJSON());
     } else {
-      const { html, buttonKey } = await dialogPromise(dialogData);
-      if ( "Close" === buttonKey ) return false;
-      return this.constructor._getDialogCoverSelections(html);
+      const proceed = await foundry.applications.api.DialogV2.confirm({
+        title: game.i18n.localize(`${MODULE_ID}.phrases.ConfirmCover`),
+        content: html,
+        rejectClose: false,
+        modal: true,
+        position: { width: 500 },
+        buttons: [
+          {
+            action: "yes",
+            label: `${MODULE_ID}.cover-dialog.yes`,
+            icon: FA_ICONS.COVER_DIALOG.YES,
+            callback: (_event, _target, _app) => CoverDialog._getDialogCoverSelections(),
+            default: true,
+          },
+
+          {
+            action: "no",
+            label: `${MODULE_ID}.cover-dialog.no`,
+            icon: FA_ICONS.COVER_DIALOG.NO,
+            callback: (_event, _target, _app) => {
+              // Return the ids but mark cover as none for each.
+              const out = CoverDialog._getDialogCoverSelections();
+              Object.keys(out).forEach(key => out[key] = ["NONE"]);
+              return out;
+            }
+          }
+        ],
+      });
+
+//       const { html, buttonKey } =  await dialogPromise(dialogData);
+//       if ( "Close" === buttonKey ) return false;
+      if ( proceed ) this.constructor._getDialogCoverSelections(html);
     }
   }
 
@@ -220,16 +248,16 @@ export class CoverDialog {
    * @param {object} html    JQuery object returned from Dialog.
    * @returns {object}  id: coverSelection[]. Returned as object so it works with sockets.
    */
-  static _getDialogCoverSelections(html) {
+  static _getDialogCoverSelections() {
     const out = {};
-    const coverPrioritySelections = html.find("[class=CoverPrioritySelect]");
+    const coverPrioritySelections = document.getElementsByClassName("CoverPrioritySelect"); // html.find("[class=CoverPrioritySelect]");
     for ( const selection of coverPrioritySelections ) {
       const id = selection.id.replace("CoverPrioritySelect.", "");
       out[id] = [selection.value];
     }
 
     // Overlapping may have multiple
-    const coverOverlappingSelections = html.find("[class=CoverOverlappingSelect]");
+    const coverOverlappingSelections = document.getElementsByClassName("CoverOverlappingSelect");// html.find("[class=CoverOverlappingSelect]");
     for ( const selection of coverOverlappingSelections ) {
       const id = selection.id.replace("CoverOverlappingSelect.", "");
       const nSelections = selection.length;
