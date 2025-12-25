@@ -1,3 +1,9 @@
+## 0.10.0
+Updated to Foundry v13.
+Uses Alternative Token Visibility line-of-sight algorithms as updated for Foundry v13.
+Add option to link status effect in the Token HUD to a specific cover type.
+Update libGeometry to v0.4.7.
+
 ## 0.9.10
 Fix for not loading in dnd5e v3.
 Update libGeometry to v0.3.19.
