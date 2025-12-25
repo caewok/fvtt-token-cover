@@ -13,13 +13,6 @@
       "liveTokensBlock": true,
       "deadTokensBlock": false,
       "proneTokensBlock": true
-    },
-    "exportSource": {
-      "world": "test-dnd5e",
-      "system": "dnd5e",
-      "coreVersion": "12.331",
-      "systemVersion": "4.1.2",
-      "terrainMapperVersion": "0.9.6"
     }
   },
   "transfer": false,
@@ -45,15 +38,5 @@
   "statuses": [
     "coverHalf"
   ],
-  "sort": 0,
-  "_stats": {
-    "compendiumSource": null,
-    "duplicateSource": null,
-    "coreVersion": "12.331",
-    "systemId": "dnd5e",
-    "systemVersion": "3.3.1",
-    "createdTime": 1726065048967,
-    "modifiedTime": 1734715603168,
-    "lastModifiedBy": "nx29hoGineoQv9Bs"
-  }
+  "sort": 0
 }

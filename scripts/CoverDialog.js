@@ -7,17 +7,16 @@ fromUuidSync,
 game,
 Hooks,
 socketlib,
-Token,
 ui
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, COVER, SOCKETS } from "./const.js";
+import { MODULE_ID, COVER, SOCKETS, FA_ICONS } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Settings } from "./settings.js";
-import { dialogPromise, NULL_SET } from "./util.js";
+import { NULL_SET } from "./util.js";
 
 // ----- NOTE: Set up sockets so GM can create or modify items ----- //
 Hooks.once("socketlib.ready", () => {
@@ -50,7 +49,7 @@ export class CoverDialog {
     if ( !attacker && game.user._lastSelected ) attacker = fromUuidSync(game.user._lastSelected)?.object;
     attacker ??= canvas.tokens.controlled[0];
     targets ??= game.user.targets;
-    if ( targets instanceof Token ) targets = [targets];
+    if ( targets instanceof foundry.canvas.placeables.Token ) targets = [targets];
 
     // Store the provided attacker, targets, options used for the cover calculation.
     this.attacker = attacker;
@@ -183,7 +182,7 @@ export class CoverDialog {
    * @param {Token[]} targets
    */
   _addTargets(targets) {
-    if ( targets instanceof Token ) targets = [targets];
+    if ( targets instanceof foundry.canvas.placeables.Token ) targets = [targets];
     let recalc = false;
     targets.forEach(t => {
       if ( !this.targets.has(t) ) {
@@ -209,9 +208,34 @@ export class CoverDialog {
       ui.notifications.info("Checking cover with GM...");
       return await SOCKETS.socket.executeAsGM("confirmCoverDialog", this.toJSON());
     } else {
-      const { html, buttonKey } = await dialogPromise(dialogData);
-      if ( "Close" === buttonKey ) return false;
-      return this.constructor._getDialogCoverSelections(html);
+      return await foundry.applications.api.DialogV2.confirm({
+        title: game.i18n.localize(`${MODULE_ID}.phrases.ConfirmCover`),
+        content: html,
+        rejectClose: false,
+        modal: true,
+        position: { width: 500 },
+        buttons: [
+          {
+            action: "yes",
+            label: `${MODULE_ID}.cover-dialog.yes`,
+            icon: FA_ICONS.COVER_DIALOG.YES,
+            callback: (_event, _target, _app) => CoverDialog._getDialogCoverSelections(),
+            default: true,
+          },
+
+          {
+            action: "no",
+            label: `${MODULE_ID}.cover-dialog.no`,
+            icon: FA_ICONS.COVER_DIALOG.NO,
+            callback: (_event, _target, _app) => {
+              // Return the ids but mark cover as none for each.
+              const out = CoverDialog._getDialogCoverSelections();
+              Object.keys(out).forEach(key => out[key] = ["NONE"]);
+              return out;
+            }
+          }
+        ],
+      });
     }
   }
 
@@ -220,16 +244,16 @@ export class CoverDialog {
    * @param {object} html    JQuery object returned from Dialog.
    * @returns {object}  id: coverSelection[]. Returned as object so it works with sockets.
    */
-  static _getDialogCoverSelections(html) {
+  static _getDialogCoverSelections() {
     const out = {};
-    const coverPrioritySelections = html.find("[class=CoverPrioritySelect]");
+    const coverPrioritySelections = document.getElementsByClassName("CoverPrioritySelect"); // html.find("[class=CoverPrioritySelect]");
     for ( const selection of coverPrioritySelections ) {
       const id = selection.id.replace("CoverPrioritySelect.", "");
       out[id] = [selection.value];
     }
 
     // Overlapping may have multiple
-    const coverOverlappingSelections = html.find("[class=CoverOverlappingSelect]");
+    const coverOverlappingSelections = document.getElementsByClassName("CoverOverlappingSelect");// html.find("[class=CoverOverlappingSelect]");
     for ( const selection of coverOverlappingSelections ) {
       const id = selection.id.replace("CoverOverlappingSelect.", "");
       const nSelections = selection.length;
@@ -263,7 +287,7 @@ export class CoverDialog {
       case choices.AUTO: return this.coverCalculations;
       case choices.USER_CANCEL: {
         const dialogRes = await this.showCoverResults();
-        if ( "Close" === dialogRes ) return false;
+        if ( !dialogRes ) return false;
         return this.coverCalculations;
       }
       case choices.GM: askGM = true;
@@ -306,29 +330,20 @@ export class CoverDialog {
    * @param {object} opts     Options passed to htmlCoverTable.
    */
   async showCoverResults(opts) {
-    const coverAlgorithm = Settings.get(Settings.KEYS.LOS.TARGET.ALGORITHM);
-    const algorithmDescription = game.i18n.localize(`${MODULE_ID}.settings.${coverAlgorithm}`);
     const html = this._htmlShowCover(opts);
     const content =
 `
 ${html}
-<em>Cover algorithm: ${algorithmDescription}</em>
 <br>
 <br>
 `;
     const dialogData = {
       title: game.i18n.localize(`${MODULE_ID}.phrases.CoverByTarget`),
       content,
-      buttons: {
-        one: {
-          icon: '<i class="fas fa-times"></i>',
-          label: game.i18n.localize(`${MODULE_ID}.phrases.Done`)
-        }
-      },
       default: game.i18n.localize(`${MODULE_ID}.phrases.Done`),
       height: "100%"
     };
-    return dialogPromise(dialogData);
+    return foundry.applications.api.DialogV2.prompt(dialogData);
   }
 
   /**
@@ -466,7 +481,7 @@ ${html}
    *   - @prop {number} percentCover
    */
   _targetData() {
-    const attackerCenter = this.attacker instanceof Token ? Point3d.fromToken(this.attacker).top // Measure from attacker vision point.
+    const attackerCenter = this.attacker instanceof foundry.canvas.placeables.Token ? Point3d.fromToken(this.attacker).top // Measure from attacker vision point.
       : new Point3d(this.attacker.document.x, this.attacker.document.y, this.attacker.elevationZ);
     return [...this.targets].map(target => {
       const data = {

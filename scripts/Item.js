@@ -1,27 +1,17 @@
 /* globals
-Actor,
 canvas,
 ChatMessage,
+foundry,
 game
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { rollAttack_v3 } from "./dnd5e.js";
 import { MODULE_ID, FLAGS } from "./const.js";
 
 // Patches for the dnd5e Item class
 export const PATCHES = {};
 PATCHES.BASIC = {};
-PATCHES.DND5E_v3 = {}; // Only if midiqol is not active.
-PATCHES.DND5E_v4 = {};
-
-// ----- NOTE: MIXES ----- //
-
-/**
- * Mixed wrap Item5e.prototype.rollAttack
- */
-PATCHES.DND5E_v3.MIXES = { rollAttack: rollAttack_v3 };
 
 /**
  * When adding an active effect, check for overriding effect.
@@ -31,7 +21,7 @@ PATCHES.DND5E_v3.MIXES = { rollAttack: rollAttack_v3 };
  */
 function createItem(document, _options, _userId) {
   const actor = document.parent;
-  if ( !actor || !(actor instanceof Actor) ) return;
+  if ( !actor || !(actor instanceof foundry.documents.Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
   if ( !(modFlags[FLAGS.UNIQUE_EFFECT.ID] && !modFlags[FLAGS.UNIQUE_EFFECT.LOCAL]) ) return;
@@ -49,7 +39,7 @@ function createItem(document, _options, _userId) {
  */
 function deleteItem(document, _options, _userId) {
   const actor = document.parent;
-  if ( !actor || !(actor instanceof Actor) ) return;
+  if ( !actor || !(actor instanceof foundry.documents.Actor) ) return;
   const modFlags = document.flags[MODULE_ID];
   if ( !modFlags ) return;
   if ( !(modFlags[FLAGS.UNIQUE_EFFECT.ID] && !modFlags[FLAGS.UNIQUE_EFFECT.LOCAL]) ) return;

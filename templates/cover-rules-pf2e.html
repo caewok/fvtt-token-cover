@@ -5,7 +5,7 @@
 <div class="form-group">
   <label>{{localize "tokencover.cover-effect.percent-threshold.Name"}}</label>
   <div class="form-fields">
-    {{rangePicker name="flags.tokencover.percentThreshold" value=document.flags.tokencover.percentThreshold min="0" step="0.01" max="1" placeholder="0.5"}}
+    <range-picker name="flags.tokencover.percentThreshold" value={{source.flags.tokencover.percentThreshold}} min="0" max="1" step="0.01" placeholder="0.5"></range-picker>
   </div>
 </div>
 
@@ -13,7 +13,7 @@
 <div class="form-group">
   <label>{{localize "tokencover.cover-effect.priority.Name"}}</label>
   <div class="form-fields">
-    <input type="number" name="flags.tokencover.priority" step="1" placeholder="0" value="{{ document.flags.tokencover.priority }}">
+    <input type="number" name="flags.tokencover.priority" step="1" placeholder="0" value="{{ source.flags.tokencover.priority }}">
   </div>
   <p class="hint">{{localize "tokencover.cover-effect.priority.Hint"}} </p>
 </div>
@@ -22,7 +22,7 @@
 <div class="form-group">
   <label>{{localize "tokencover.cover-effect.can-overlap.Name"}}</label>
   <div class="form-fields">
-    <input type="checkbox" name="flags.tokencover.canOverlap" {{ checked document.flags.tokencover.canOverlap }}>
+    <input type="checkbox" name="flags.tokencover.canOverlap" {{ checked source.flags.tokencover.canOverlap }}>
   </div>
 </div>
 
@@ -30,7 +30,7 @@
 <div class="form-group">
   <label>{{localize "tokencover.cover-effect.include-walls.Name"}}</label>
   <div class="form-fields">
-    <input type="checkbox" name="flags.tokencover.includeWalls" {{ checked document.flags.tokencover.includeWalls }}>
+    <input type="checkbox" name="flags.tokencover.includeWalls" {{ checked source.flags.tokencover.includeWalls }}>
   </div>
 </div>
 
@@ -38,7 +38,7 @@
 <div class="form-group">
   <label>{{localize "tokencover.cover-effect.live-tokens-block.Name"}}</label>
   <div class="form-fields">
-    <input type="checkbox" name="flags.tokencover.liveTokensBlock" {{ checked document.flags.tokencover.liveTokensBlock }}>
+    <input type="checkbox" name="flags.tokencover.liveTokensBlock" {{ checked source.flags.tokencover.liveTokensBlock }}>
   </div>
 </div>
 
@@ -46,7 +46,7 @@
 <div class="form-group">
   <label>{{localize "tokencover.cover-effect.dead-tokens-block.Name"}}</label>
   <div class="form-fields">
-    <input type="checkbox" name="flags.tokencover.deadTokensBlock" {{ checked document.flags.tokencover.deadTokensBlock }}>
+    <input type="checkbox" name="flags.tokencover.deadTokensBlock" {{ checked source.flags.tokencover.deadTokensBlock }}>
   </div>
   <p class="hint">{{localize "tokencover.cover-effect.dead-tokens-block.Hint"}} </p>
 </div>
@@ -55,7 +55,7 @@
 <div class="form-group">
   <label>{{localize "tokencover.cover-effect.prone-tokens-block.Name"}}</label>
   <div class="form-fields">
-    <input type="checkbox" name="flags.tokencover.proneTokensBlock" {{ checked document.flags.tokencover.proneTokensBlock }}>
+    <input type="checkbox" name="flags.tokencover.proneTokensBlock" {{ checked source.flags.tokencover.proneTokensBlock }}>
   </div>
   <p class="hint">{{localize "tokencover.cover-effect.prone-tokens-block.Hint"}} </p>
 </div>

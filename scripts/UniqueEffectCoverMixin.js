@@ -17,6 +17,34 @@ import { CoverCalculator } from "./CoverCalculator.js";
 export function CoverMixin(Base) {
   return class Cover extends Base {
 
+    /**
+     * Initialize an item to store flags related to terrains and the Terrain Book.
+     * May be the same item used to store active effect terrains.
+     */
+    static async _initializeStorageMap() {
+      await super._initializeStorageMap();
+      await this._initializeFlagStorage();
+    }
+
+    static _flagStorageDocument;
+
+    static async _initializeFlagStorage() {
+      if ( this._storageMap.model instanceof foundry.documents.Item ) this._flagStorageDocument = this._storageMap.model;
+      else {
+        const data = {
+          name: "Unique Active Effects",
+          img: "icons/svg/ruins.svg",
+          type: "base",
+        };
+        let item = game.items.find(item => item.name === data.name);
+        if ( !item ) {
+          const uuid = await createDocument("CONFIG.Item.documentClass", undefined, data);
+          if ( uuid ) item = await fromUuid(uuid);
+        }
+        this._flagStorageDocument = item;
+      }
+    }
+
     /** @type {number} */
     get percentThreshold() {
       return this.document.flags?.[MODULE_ID]?.[FLAGS.COVER_EFFECT.RULES.PERCENT_THRESHOLD] || 0;
@@ -49,10 +77,21 @@ export function CoverMixin(Base) {
     /** @type {AlternativeLOSConfig} */
     get calcConfig() {
       return {
-        deadTokensBlock: this.deadTokensBlock,
-        liveTokensBlock: this.liveTokensBlock,
-        proneTokensBlock: this.proneTokensBlock,
-        wallsBlock: this.includeWalls
+        blocking: {
+          walls: this.includeWalls,
+          tiles: this.includeWalls,
+          regions: this.includeWalls,
+          tokens: {
+            dead: this.deadTokensBlock,
+            live: this.liveTokensBlock,
+            prone: this.proneTokensBlock,
+          },
+        },
+        // Others:
+        // tokenShapeType
+        // senseType
+        // largeTarget
+        // radius
       };
     }
 
@@ -65,10 +104,8 @@ export function CoverMixin(Base) {
      * @returns {number}
      */
     percentCover(attacker, targetToken) {
-      const { includeWalls, includeTokens } = this;
       const calc = attacker.tokencover?.coverCalculator ?? new CoverCalculator(attacker);
-      calc.updateConfiguration(this.calcConfig);
-      return calc.percentCover(targetToken, { includeWalls, includeTokens });
+      return calc.percentCover(targetToken, this.calcConfig);
     }
 
     /**

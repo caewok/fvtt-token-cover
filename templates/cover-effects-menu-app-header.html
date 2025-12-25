@@ -1,0 +1,30 @@
+<!-- Directory Header -->
+<header class='directory-header'>
+
+  {{#if isGM}}
+  <!-- Button: Create Cover Effect -->
+  <div class="header-actions action-buttons flexrow">
+    <div class='header-actions action-buttons flexrow'>
+      <button type="button" class="create-effect" data-action="createEffect">
+        <i class='fas fa-person-hiking'></i>
+        <span>{{ localize "tokencover.coverbook.create-cover" }}</span>
+      </button>
+    </div>
+  </div>
+
+  {{#if hasDefaults}}
+  <!-- Button: Create Defaults -->
+  <div class="header-actions action-buttons flexrow">
+    <div class='header-actions action-buttons flexrow'>
+      <button type="button" class="reset-defaults" data-action="resetDefaults">
+        <i class='fas fa-file-image'></i>
+        <span>{{ localize "tokencover.coverbook.reset-defaults" }}</span>
+      </button>
+    </div>
+  </div>
+  {{/if}}
+  {{/if}}
+
+  </div>
+
+</header>

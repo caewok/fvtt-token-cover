@@ -4,18 +4,36 @@ CONFIG,
 foundry,
 game,
 Hooks,
-loadTemplates,
 ui
 */
 "use strict";
 
-import { MODULE_ID, FLAGS, COVER, TEMPLATES, setCoverIgnoreHandler, FA_ICONS } from "./const.js";
+import { MODULE_ID, FLAGS, COVER, TEMPLATES, setCoverIgnoreHandler, FA_ICONS, OTHER_MODULES } from "./const.js";
+import { LOS_CONFIG } from "./LOS/config.js";
 import { log } from "./util.js";
 
 // Hooks and method registration
 import { registerGeometry } from "./geometry/registration.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
+import { getObjectProperty } from "./LOS/util.js";
+
+// Trackers
+import {
+  TokenGeometryTracker,
+  LitTokenGeometryTracker,
+  BrightLitTokenGeometryTracker,
+  SphericalTokenGeometryTracker, } from "./LOS/placeable_tracking/TokenGeometryTracker.js";
+import { WallGeometryTracker } from "./LOS/placeable_tracking/WallGeometryTracker.js";
+import { TileGeometryTracker } from "./LOS/placeable_tracking/TileGeometryTracker.js";
+import { RegionGeometryTracker } from "./LOS/placeable_tracking/RegionGeometryTracker.js";
+
+// Calculators
+import { PercentVisibleCalculatorPoints, DebugVisibilityViewerPoints } from "./LOS/calculators/PointsCalculator.js";
+import { PercentVisibleCalculatorGeometric, DebugVisibilityViewerGeometric } from "./LOS/calculators/GeometricCalculator.js";
+import { PercentVisibleCalculatorPerPixel, DebugVisibilityViewerPerPixel } from "./LOS/calculators/PerPixelCalculator.js";
+import { PercentVisibleCalculatorWebGL2, DebugVisibilityViewerWebGL2 } from "./LOS/calculators/WebGL2Calculator.js";
+
 
 // Cover objects
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
@@ -34,17 +52,7 @@ import {
 import { SetCoverRegionBehaviorType } from "./SetCoverRegionBehaviorType.js";
 
 // For API
-import { AlternativeLOS } from "./LOS/AlternativeLOS.js";
-import { PointsLOS } from "./LOS/PointsLOS.js";
-import { Area2dLOS } from "./LOS/Area2dLOS.js";
-import { Area3dLOSGeometric } from "./LOS/Area3dLOSGeometric.js";
-import { Area3dLOSWebGL } from "./LOS/Area3dLOSWebGL1.js";
-import { Area3dLOSWebGL2 } from "./LOS/Area3dLOSWebGL2.js";
-import { Area3dLOSHybrid } from "./LOS/Area3dLOSHybrid.js";
 import { OPEN_POPOUTS } from "./LOS/Area3dPopout.js";
-import { Token3dGeometry, Wall3dGeometry, DirectionalWall3dGeometry, ConstrainedToken3dGeometry } from "./LOS/Placeable3dGeometry.js";
-import { Placeable3dShader, Tile3dShader, Placeable3dDebugShader, Tile3dDebugShader } from "./LOS/Placeable3dShader.js";
-
 import { CoverCalculator } from "./CoverCalculator.js";
 import { CoverDialog } from "./CoverDialog.js";
 
@@ -75,8 +83,8 @@ Hooks.once("init", function() {
   CONFIG.RegionBehavior.typeIcons[`${MODULE_ID}.setCover`] = FA_ICONS.MODULE;
 
   // Must go at end?
-  loadTemplates(Object.values(TEMPLATES)).then(_value => log("Templates loaded."));
-  loadTemplates(["templates/apps/import-data.html"]); // For settings dialog.
+  foundry.applications.handlebars.loadTemplates(Object.values(TEMPLATES)).then(_value => log("Templates loaded."));
+  foundry.applications.handlebars.loadTemplates(["templates/apps/import-data.hbs"]); // For settings dialog.
 });
 
 Hooks.once("setup", function() {
@@ -94,16 +102,57 @@ Hooks.once("setup", function() {
 /**
  * A hook event that fires when the game is fully ready.
  */
-Hooks.on("ready", async function(_canvas) {
-  CONFIG[MODULE_ID].CoverEffect.initialize(); // Async. Must wait until ready hook to store Settings for UniqueEffectFlag
-});
+Hooks.once("ready", async function(_canvas) {
+  Settings.migrate(); // Cannot be set until world is ready.
 
+  CONFIG[MODULE_ID].CoverEffect.initialize(); // Async. Must wait until ready hook to store Settings for UniqueEffectFlag
+
+  // Only register geometry hooks if ATV is not present.
+  if ( !OTHER_MODULES.ATV ) {
+    WallGeometryTracker.registerPlaceableHooks();
+    TileGeometryTracker.registerPlaceableHooks();
+    TokenGeometryTracker.registerPlaceableHooks();
+    SphericalTokenGeometryTracker.registerPlaceableHooks();
+    LitTokenGeometryTracker.registerPlaceableHooks();
+    BrightLitTokenGeometryTracker.registerPlaceableHooks();
+    RegionGeometryTracker.registerPlaceableHooks();
+  } else {
+//     const getterFn = function() {
+//       this.tokenvisibility ??= {};
+//       return this.tokenvisibility;
+//     };
+//     const ATV = {};
+//     ATV.GETTERS = { [MODULE_ID]: getterFn };
+//     const PATCHES = {
+//       "foundry.canvas.placeables.Token": ATV,
+//       "foundry.canvas.placeables.Wall": ATV,
+//       "foundry.canvas.placeables.Tile": ATV,
+//       "foundry.canvas.placeables.Region": ATV,
+//       "foundry.data.regionShapes.RegionCircleShape": ATV,
+//       "foundry.data.regionShapes.RegionEllipseShape": ATV,
+//       "foundry.data.regionShapes.RegionRectangleShape": ATV,
+//       "foundry.data.regionShapes.RegionPolygonShape": ATV,
+//     };
+//     PATCHER.addPatchesFromRegistrationObject(PATCHES);
+  }
+
+});
 
 /**
  * A hook event that fires when the Canvas is ready.
  * @param {Canvas} canvas The Canvas which is now ready for use
  */
 Hooks.once("canvasReady", function() {
+  WallGeometryTracker.registerExistingPlaceables();
+  TileGeometryTracker.registerExistingPlaceables();
+  TokenGeometryTracker.registerExistingPlaceables();
+  SphericalTokenGeometryTracker.registerExistingPlaceables();
+  LitTokenGeometryTracker.registerExistingPlaceables();
+  BrightLitTokenGeometryTracker.registerExistingPlaceables();
+  RegionGeometryTracker.registerExistingPlaceables();
+
+  if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) Settings.toggleLOSDebugGraphics(true);
+
   transitionTokenMaximumCoverFlags();
   CONFIG[MODULE_ID].CoverEffect.transitionTokens(); // Async
 });
@@ -111,24 +160,30 @@ Hooks.once("canvasReady", function() {
 
 // ----- NOTE: Token Controls ----- //
 
-// Add pathfinding button to token controls.
+// Add cover book button to token controls
 const COVER_EFFECTS_CONTROL = {
   name: Settings.CONTROLS.COVER_EFFECTS,
   title: `${MODULE_ID}.controls.${Settings.CONTROLS.COVER_EFFECTS}.name`,
   icon: FA_ICONS.MODULE,
+  toggle: false,
   button: true,
   onClick: () => { new CoverEffectsApp().render(true); },
-  visible: false
+  visible: false,
+  order: 0,
 };
 
 // Render the cover effects book control if setting enabled.
-Hooks.on("getSceneControlButtons", controls => {
-  if ( !canvas.scene || !ui.controls.activeControl === "token" ) return;
-  const tokenTools = controls.find(c => c.name === "token");
+/**
+ * Hook getSceneControlButtons
+ * Render the cover effects book control if setting enabled.
+ */
+Hooks.on("getSceneControlButtons", (controls, _html, _data) => {
+  if ( !canvas.scene || !ui.controls.activeControl === "token" || !game.user.isGM ) return;
   COVER_EFFECTS_CONTROL.visible = game.user.isGM && Settings.get(Settings.KEYS.DISPLAY_COVER_BOOK);
-  if ( game.user.isGM ) tokenTools.tools.push(COVER_EFFECTS_CONTROL);
+  COVER_EFFECTS_CONTROL.order = 0;
+  Object.values(controls.tokens.tools).forEach(tool => COVER_EFFECTS_CONTROL.order = Math.max(tool.order + 1, COVER_EFFECTS_CONTROL.order));
+  controls.tokens.tools[COVER_EFFECTS_CONTROL.name] = COVER_EFFECTS_CONTROL;
 });
-
 
 // ----- NOTE: Helper Functions ----- //
 
@@ -142,25 +197,6 @@ function initializeConfig() {
      * Turn on debug logging.
      */
     debug: false,
-
-    /**
-     * The percent threshold under which a tile should be considered transparent at that pixel.
-     * @type {number}
-     */
-    alphaThreshold: 0.75,
-
-    /**
-     * Size of the render texture (width and height) used in the webGL LOS algorithms.
-     * @type {number}
-     */
-    renderTextureSize: 100,
-
-    /**
-     * Resolution of the render texture used in the webZGL LOS algorithm.
-     * Should be between (0, 1).
-     * @type {number}
-     */
-    renderTextureResolution: 1,
 
     /**
      * What cover effect class to use for this system.
@@ -180,7 +216,45 @@ function initializeConfig() {
      * Effectively overrides the "Maximum Cover" setting in the token config.
      * Should be ids from `CONFIG.statusEffects`.
      */
-    statusesGrantNoCover: new Set()
+    statusesGrantNoCover: new Set(),
+
+    /**
+     * Classes and associated calculators that can determine percent visibility.
+     * Created and initialized at canvasReady hook
+     * Each calculator can calculate visibility based on viewer, target, and optional viewer/target locations.
+     */
+    calculatorClasses: {
+      points: PercentVisibleCalculatorPoints,
+      geometric: PercentVisibleCalculatorGeometric,
+      webgl2: PercentVisibleCalculatorWebGL2,
+      // Unused. webgpu: PercentVisibleCalculatorWebGPU,
+      // Unused. "webgpu-async": PercentVisibleCalculatorWebGPUAsync,
+      "per-pixel": PercentVisibleCalculatorPerPixel,
+    },
+
+    losCalculators: {
+      points: null,
+      geometric: null,
+      webgl2: null,
+      // webgpu: null,
+      // "webgpu-async": null,
+      "per-pixel": null,
+    },
+
+    /**
+     * Classes used to view the debugger for different algorithms.
+     */
+    debugViewerClasses: {
+      points: DebugVisibilityViewerPoints,
+      geometric: DebugVisibilityViewerGeometric,
+      webgl2: DebugVisibilityViewerWebGL2,
+      // Unused. webgpu: DebugVisibilityViewerWebGPU,
+      // Unused. "webgpu-async": DebugVisibilityViewerWebGPUAsync,
+      "per-pixel": DebugVisibilityViewerPerPixel,
+    },
+
+    ...LOS_CONFIG,
+
   };
 
   Object.defineProperty(CONFIG[MODULE_ID], "UniqueEffect", {
@@ -201,23 +275,7 @@ function initializeConfig() {
  */
 function initializeAPI() {
   game.modules.get(MODULE_ID).api = {
-    losCalcMethods: {
-      AlternativeLOS,
-      PointsLOS,
-      Area2dLOS,
-      Area3dLOSGeometric,
-      Area3dLOSWebGL,
-      Area3dLOSWebGL2,
-      Area3dLOSHybrid
-    },
-
     OPEN_POPOUTS,
-
-    webgl: {
-      Token3dGeometry, Wall3dGeometry, DirectionalWall3dGeometry, ConstrainedToken3dGeometry,
-      Placeable3dShader, Tile3dShader,
-      Placeable3dDebugShader, Tile3dDebugShader
-    },
 
     CoverCalculator,
     CoverDialog,
@@ -240,7 +298,7 @@ function initializeAPI() {
       IgnoresCoverSimbuls
     },
 
-    PATCHER
+    PATCHER,
   };
 }
 
@@ -269,3 +327,26 @@ function transitionTokenMaximumCoverFlags() {
   });
   canvas.scene.setFlag(MODULE_ID, FLAGS.VERSION, v);
 }
+
+/**
+ * Test if a token is dead. Usually, but not necessarily, the opposite of tokenIsDead.
+ * @param {Token} token
+ * @returns {boolean} True if dead.
+ */
+function tokenIsAlive(token) { return !tokenIsDead(token); }
+
+/**
+ * Test if a token is dead. Usually, but not necessarily, the opposite of tokenIsAlive.
+ * @param {Token} token
+ * @returns {boolean} True if dead.
+ */
+function tokenIsDead(token) {
+  const deadStatus = CONFIG.statusEffects.find(status => status.id === "dead");
+  if ( deadStatus && token.actor.statuses.has(deadStatus.id) ) return true;
+
+  const tokenHPAttribute = Settings.get(Settings.KEYS.TOKEN_HP_ATTRIBUTE);
+  const hp = getObjectProperty(token.actor, tokenHPAttribute);
+  if ( typeof hp !== "number" ) return false;
+  return hp <= 0;
+}
+

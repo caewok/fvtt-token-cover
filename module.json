@@ -2,11 +2,11 @@
   "id": "tokencover",
   "title": "Alternative Token Cover",
   "version": "#{VERSION}#",
-  "library": "false",
-  "socket": "true",
+  "library": false,
+  "socket": true,
   "compatibility": {
-    "minimum": "12",
-    "verified": "12.331"
+    "minimum": "13",
+    "verified": "13.351"
   },
   "authors": [
     {
@@ -22,7 +22,7 @@
         "type": "module",
         "manifest": "https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/master/module.json",
         "compatibility": {
-          "verified": "1.12.8"
+          "verified": "1.13.3.0"
         }
       },
 
@@ -31,18 +31,13 @@
         "type": "module",
         "manifest": "https://raw.githubusercontent.com/manuelVo/foundryvtt-socketlib/master/module.json",
         "compatibility": {
-          "verified": "1.0.12"
+          "verified": "1.1.3"
         }
       }
     ]
   },
   "esmodules": [
     "scripts/module.js"
-  ],
-
-  "scripts": [
-    "scripts/LOS/pixi_projection/pixi-projection.js",
-    "scripts/LOS/gl_matrix/gl-matrix.js "
   ],
 
   "packs": [

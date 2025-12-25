@@ -69,6 +69,12 @@ export const FLAGS = {
      */
     LOCAL: "coverEffectLocal",
 
+    /**
+     * Cover effect should be applied whenever this status is triggered.
+     * Will replace the status with application of this cover effect.
+     */
+    LINKED_STATUS: "linkedStatus",
+
     // Rules that define how cover is applied.
     RULES: {
 
@@ -117,8 +123,12 @@ export const FLAGS = {
        * @type {boolean}
        */
       PRONE_TOKENS_BLOCK: "proneTokensBlock"
-
     }
+  },
+
+  COVER_BOOK: {
+    FOLDER_COLOR: "folderColor",
+    FOLDERS: "folders",
   },
 
   /**
@@ -139,7 +149,6 @@ export const LABELS = {
     }
   }
 };
-
 
 export const TEMPLATES = {
   TOKEN_CONFIG: `modules/${MODULE_ID}/templates/token-config.html`,
@@ -178,7 +187,11 @@ export const ICONS = {
 };
 
 export const FA_ICONS = {
-  MODULE: "fa-solid fa-shield-halved"
+  MODULE: "fa-solid fa-shield-halved",
+  COVER_DIALOG: {
+    YES: "fa-solid fa-check",
+    NO: "fa-solid fa-xmark",
+  },
 };
 
 export const COVER = {};
@@ -211,23 +224,31 @@ export const WEAPON_ATTACK_TYPES = {
   util: "DND5E.ActionUtil"
 };
 
-export const MODULES_ACTIVE = { API: {} };
+// Track certain modules that complement features of this module.
+export const OTHER_MODULES = {
+  LEVELS: {
+    KEY: "levels",
+    FLAGS: {
+      ALLOW_SIGHT: "noCollision",
+    },
+  },
+  ATV: { KEY: "token_visibility" },
+  SIMBULS_CC: { KEY: "simbuls-cover-calculator" },
+  MIDI_QOL: { KEY: "midi-qol" },
+};
 
 // Hook init b/c game.modules is not initialized at start.
 Hooks.once("init", function() {
-  MODULES_ACTIVE.WALL_HEIGHT = game.modules.get("wall-height")?.active;
-  MODULES_ACTIVE.TOKEN_VISIBILITY = game.modules.get("tokenvisibility")?.active;
-  MODULES_ACTIVE.LEVELS = game.modules.get("levels")?.active;
-  MODULES_ACTIVE.DFREDS_CE = game.modules.get("dfreds-convenient-effects")?.active;
-  MODULES_ACTIVE.SIMBULS_CC = game.modules.get("simbuls-cover-calculator")?.active;
-  MODULES_ACTIVE.MIDI_QOL = game.modules.get("midi-qol")?.active;
-  MODULES_ACTIVE.ELEVATED_VISION = game.modules.get("elevatedvision")?.active;
-  MODULES_ACTIVE.RIDEABLE = game.modules.get("Rideable")?.active;
+  for ( const [key, obj] of Object.entries(OTHER_MODULES) ) {
+    if ( !game.modules.get(obj.KEY)?.active ) delete OTHER_MODULES[key];
+  }
 });
 
 // API not necessarily available until ready hook. (Likely added at init.)
 Hooks.once("ready", function() {
-  if ( MODULES_ACTIVE.RIDEABLE ) MODULES_ACTIVE.API.RIDEABLE = game.modules.get("Rideable").api;
+  const { TERRAIN_MAPPER, RIDEABLE } = OTHER_MODULES;
+  if ( TERRAIN_MAPPER ) TERRAIN_MAPPER.API = game.modules.get(TERRAIN_MAPPER.KEY).api;
+  if ( RIDEABLE ) RIDEABLE.API = game.modules.get(RIDEABLE.KEY).api;
 });
 
 /**
@@ -245,3 +266,7 @@ export function setCoverIgnoreHandler(handler) {
   if ( !canvas.tokens?.placeables ) return;
   canvas.tokens.placeables.forEach(t => t.tokencover.ignoresCover = undefined);
 }
+
+export const TRACKER_IDS = {
+  COVER: MODULE_ID,
+};

@@ -6,12 +6,12 @@ Token
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID, COVER_TYPES } from "./const.js";
+import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID, COVER_TYPES, TRACKER_IDS } from "./const.js";
 import { Settings } from "./settings.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 import { CoverDialog } from "./CoverDialog.js";
-import { AbstractCalculator } from "./LOS/AbstractCalculator.js";
-
+import { ViewerLOS } from "./LOS/ViewerLOS.js";
+import { pointIndexForSet } from "./LOS/SmallBitSet.js";
 
 /* Testing
 Draw = CONFIG.GeometryLib.Draw
@@ -24,40 +24,23 @@ let [viewer] = canvas.tokens.controlled;
 let [target] = game.user.targets;
 */
 
-export class CoverCalculator extends AbstractCalculator {
-  constructor(viewer, target, config = {}) {
-    config.algorithm ??= Settings.get(Settings.KEYS.LOS.TARGET.ALGORITHM);
-    super(viewer, target, config);
+export class CoverCalculator {
+  /** @type {ViewerLOS} */
+  losViewer;
+
+  constructor(token) {
+    this.losViewer = buildLOSViewer(token);
   }
 
-  /** @type {POINT_TYPES} */
-  get viewerNumPoints() {
-    if ( this.viewer instanceof Token ) return Settings.get(Settings.KEYS.LOS.VIEWER.NUM_POINTS);
-    return 1;
-  }
+  // ----- NOTE: Viewer LOS passthrough ----- //
 
-  /** @type {number} */
-  get viewerInset() {
-    if ( this.viewer instanceof Token ) return Settings.get(Settings.KEYS.LOS.VIEWER.INSET);
-    return 0;
-  }
+  /** @type {PercentVisibleCalculator} */
+  get losCalc() { return this.losViewer.calculator; }
 
-  static initialConfiguration(cfg = {}) {
-    // Move type b/c cover relates to physical obstacles.
-    // Must set before the call to super.
-    cfg.type ??= "move";
-    cfg = super.initialConfiguration(cfg);
+  /** @type {Token} */
+  get viewer() { return this.losViewer.viewer; }
 
-    // Target settings
-    const TARGET = Settings.KEYS.LOS.TARGET;
-    const ENUMS = Settings.ENUMS;
-    cfg.largeTarget = Settings.get(TARGET.LARGE);
-    cfg.numTargetPoints = Settings.get(ENUMS.POINT_OPTIONS.NUM_POINTS);
-    cfg.targetInset = Settings.get(ENUMS.POINT_OPTIONS.INSET);
-    cfg.points3d = Settings.get(ENUMS.POINT_OPTIONS.POINTS3D);
-
-    return cfg;
-  }
+  set viewer(value) { this.losViewer = value; }
 
   // ----- NOTE: Static methods ----- //
 
@@ -73,7 +56,7 @@ export class CoverCalculator extends AbstractCalculator {
       if ( viewer.length > 1 ) console.warn("You should pass a single token or vision source to CoverCalculator, not an array. Using the first object in the array.");
       viewer = viewer[0];
     }
-    if ( targets instanceof Token ) targets = [targets];
+    if ( targets instanceof foundry.canvas.placeables.Token ) targets = [targets];
 
     const coverCalc = viewer.tokencover?.coverCalculator ?? new CoverCalculator(viewer);
     calcs ??= new Map();
@@ -157,93 +140,59 @@ export class CoverCalculator extends AbstractCalculator {
 
   /**
    * Calculate the percentage cover over all viewer points if more than one in settings.
-   * @param {Token} [target]    Optional target if not already set
-   * @param {object} [opts]     Options passed to _percentCover
+   * @param {Token} target                      Target
+   * @param {CalculatorConfig} [cfg]            Options passed to the los calculator
    * @returns {number} Percent between 0 and 1.
    */
-  percentCover(target, opts) {
-    const { viewer, calc } = this;
-    if ( target ) calc.target = target;
-    calc._clearCache();
+  percentCover(target, cfg) {
+    const { losViewer, losCalc } = this;
+    losViewer.initializeView({ target });
 
+    // Because we will not be using losCalc.calculate directly, must manually reset the config.
+    if ( cfg ) losCalc.config = cfg;
+
+    // TODO: Is a simple visibility test still workable here?
+
+    // Because of partially blocking tokens, cannot simply calculate for all viewpoints.
     let percent = 1;
-    let minViewerPoint;
-    const viewerOpts = {
-      pointAlgorithm: this.viewerNumPoints,
-      inset: this.viewerInset
-    };
-    const viewerPoints = calc.constructor.constructViewerPoints(viewer, viewerOpts);
-    for ( const viewerPoint of viewerPoints ) {
-      calc.viewerPoint = viewerPoint;
-      const percentFromViewpoint = this._percentCover(opts);
+    for ( const vp of losViewer.viewpoints ) {
+      losViewer.initializeView({ viewpoint: vp.viewpoint });
+      losViewer._initializeCalculation(); // Set up the obstacles.
+      const percentFromViewpoint = this._percentCover();
       if ( percentFromViewpoint < percent ) {
         percent = percentFromViewpoint;
-        if ( percent < 0 || percent.almostEqual(0) ) return 0;
-        minViewerPoint = viewerPoint;
+        if ( percent < 0 || percent.almostEqual(0) ) break;
       }
     }
-
-    // For debugging multiple points, set the viewer point to the minimum point.
-    if ( minViewerPoint ) calc.viewerPoint = minViewerPoint;
     return percent;
   }
 
   /**
-   * Calculate the percentage cover for the current viewer point.
-   * @param {object} [opts]                     Options to manipulate the LOS calculation
-   * @param {boolean} [opts.includeWalls=true]    Should walls be considered blocking?
-   * @param {boolean} [opts.includeTokens=true]   Should tokens be considered blocking?
-   *                                            GM settings may further modify which tokens block
-   * @param {Token[]} [opts.tokensToExclude=[]] What tokens to not include in blocking objects
-   * @param {Token[]} [opts.onlyTokens=[]]      Only include these tokens as potentially blocking
+   * Calculate the percentage cover for the current set viewer point.
+   * @param {object} [PercentCoverOptions]                     Options to manipulate the LOS calculation
    * @returns {number} Percent between 0 and 1.
    */
-  _percentCover({ includeWalls = true, includeTokens = true, tokensToExclude = [], onlyTokens = [] } = {}) {
-    const calc = this.calc;
+  _percentCover() {
+    const losCalc = this.losCalc;
+    const tokenObstacles = losCalc.occlusionTester.obstacles.tokens;
 
     // Instead of copying and restoring blocking objects, just change them and clear cache after.
-    let blockingObjectsChanged = false;
     let partialBlockingTokens = [];
-
-    if ( !includeWalls ) {
-      calc.blockingObjects.walls.clear();
-      calc.blockingObjects.terrainWalls.clear();
-      blockingObjectsChanged ||= true;
-    }
-
-    if ( includeTokens ) {
+    if ( losCalc.tokensBlock ) {
       // Remove tokens flagged as not blocking.
       // Process tokens that have been flagged as partially blocking.
       const res = this._partiallyBlockingTokens();
       partialBlockingTokens = res.partialBlockingTokens;
-      if ( res.nonBlockingTokens.length ) {
-        res.nonBlockingTokens.forEach(t => calc.blockingObjects.tokens.delete(t));
-        blockingObjectsChanged ||= true;
-      }
-
-      // Process tokens that are forcibly excluded or included.
-      if ( tokensToExclude.length ) {
-        tokensToExclude.forEach(t => calc.blockingObjects.tokens.delete(t));
-        blockingObjectsChanged ||= true;
-      }
-      if ( onlyTokens.length ) {
-        calc.blockingObjects.tokens.clear();
-        onlyTokens.forEach(t => calc.blockingObjects.tokens.add(t));
-        blockingObjectsChanged ||= true;
-      }
-
-    } else {
-      calc.blockingObjects.tokens.clear();
-      blockingObjectsChanged ||= true;
+      res.nonBlockingTokens.forEach(t => tokenObstacles.delete(t));
     }
 
     // Basic approach: simply calculate cover based on visibility of the target from the viewer point.
-    if ( blockingObjectsChanged ) calc._blockingObjectsChanged();
-    const percent = 1 - calc.percentVisible();
+    const resultBasic = losCalc._calculate();
+    const coverPercent = 1 - resultBasic.percentVisible;
 
     // Handle partially blocking tokens separately.
-    if ( partialBlockingTokens.length ) return this._calculatePartiallyBlockingCover(partialBlockingTokens, percent);
-    return percent;
+    if ( partialBlockingTokens.length ) return this._calculatePartiallyBlockingCover(partialBlockingTokens, coverPercent);
+    return coverPercent;
   }
 
   /**
@@ -253,11 +202,11 @@ export class CoverCalculator extends AbstractCalculator {
    *   - @prop{Token[]} nonBlockingTokens        Any tokens that do not grant cover
    */
   _partiallyBlockingTokens() {
-    const calc = this.calc;
+    const obstacles = this.losCalc.occlusionTester.obstacles;
     const partialBlockingTokens = [];
     const nonBlockingTokens = [];
     const statusesGrantNoCover = CONFIG[MODULE_ID].statusesGrantNoCover;
-    for ( const token of calc.blockingObjects.tokens ) {
+    for ( const token of obstacles.tokens ) {
       let maxCover = Number(token.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? 1);
       if ( token.actor && token.actor.statuses.intersects(statusesGrantNoCover).size ) maxCover = 0;
       if ( maxCover >= 1 ) continue;
@@ -273,17 +222,35 @@ export class CoverCalculator extends AbstractCalculator {
    * @param {Set<Token>|Token[]} patiallyBlockingTokens
    */
   _calculatePartiallyBlockingCover(partialBlockingTokens, totalPercent) {
-    const calc = this.calc;
-    const blockingTokens = calc.blockingObjects.tokens;
+    const losCalc = this.losCalc;
+    const blockingTokens = losCalc.occlusionTester.obstacles.tokens;
+
+    // TODO: Use the result directly.
+    // Test each token in turn. Combine with all other obstacles to get total cover.
+    // Requires ability to modify the percent blocking by a percentage. E.g., token blocks 50% means every other pixel.
+    // Would be different for each algorithm.
+    //
+    /* Geometric is a problem. Could shrink geometric:
+    Area:  w * h = A.
+    To shrink area, w*x * h*x = A', where x is a percent increase/reduction for width and height.
+    x^2 * w * h = A'
+    x^2 = A' / w*h = A' / A
+    x = sqrt(A' / A)
+
+    E.g., A = 1000. A' = 500. x = sqrt(500/1000) = 1 / sqrt(2) ~ 0.707
+
+    But this only makes the obstacle token smaller. It would still allow 100% cover.
+    Need to instead put a bunch of holes in the token shape. This is likely performance intensive.
+    Could fall back on numerical approach used here.
+    */
 
     // Without partially blocking tokens.
     partialBlockingTokens.forEach(t => blockingTokens.delete(t));
-    calc._blockingObjectsChanged();
-    const percentNoTokens = 1 - calc.percentVisible();
+    const resultNoTokens = losCalc._calculate();
+    const percentNoTokens = 1 - resultNoTokens.percentVisible;
 
     // Add back the tokens.
     partialBlockingTokens.forEach(t => blockingTokens.add(t));
-    calc._blockingObjectsChanged();
 
     // Remove each token in turn.
     let tPercentage = [];
@@ -295,11 +262,11 @@ export class CoverCalculator extends AbstractCalculator {
       if ( t.actor && t.actor.statuses.intersects(statusesGrantNoCover).size ) maxCover = 0;
       tMaxCover.push(maxCover);
       blockingTokens.delete(t);
-      calc._blockingObjectsChanged();
-      const percentMinusOneToken = 1 - calc.percentVisible();
+      const resultMinusOneToken = losCalc._calculate();
+
+      const percentMinusOneToken = 1 - resultMinusOneToken.percentVisible;
       tPercentage.push(totalPercent - percentMinusOneToken);
       blockingTokens.add(t);
-      calc._blockingObjectsChanged();
     });
 
     // Prorate each token's percentage contribution to the total token contribution to
@@ -378,3 +345,87 @@ export class CoverCalculator extends AbstractCalculator {
   static attackNameForType(type) { return game.i18n.localize(WEAPON_ATTACK_TYPES[type]); }
 
 }
+
+// ----- NOTE: Calculator configuration ----- //
+
+/**
+ * @returns {CalculatorConfig|PointsCalculatorConfig}  See PercentVisibleCalculator.js and PointsCalculator.js
+ */
+function CalculatorConfig() {
+  return {
+    blocking: { // BlockingConfig
+      tokens: { // TokenBlockingConfig
+        dead: true,
+        live: true,
+        prone: true,
+      },
+      walls: true,
+      tiles: true,
+      regions: true,
+    },
+    largeTarget: Settings.get(Settings.KEYS.LOS.TARGET.LARGE) ?? false,
+    debug: false,
+    testLighting: true,
+    senseType: "sight",
+    sourceType: "lighting",
+
+    // Points algorithm
+    targetInset: Settings.get(Settings.KEYS.LOS.TARGET.POINT_OPTIONS.INSET) ?? 0.75,
+    targetPointIndex: pointIndexForSet(Settings.get(Settings.KEYS.LOS.TARGET.POINT_OPTIONS.POINTS)),
+  };
+}
+
+/**
+ * @returns {ViewerLOSConfig} See ViewerLOS.js
+ */
+function LOSViewerConfig() {
+  return {
+    viewpointIndex: pointIndexForSet(Settings.get(Settings.KEYS.LOS.VIEWER.POINTS)),
+    viewpointInset: Settings.get(Settings.KEYS.LOS.VIEWER.INSET),
+    angle: true,
+  };
+}
+
+/**
+ * Build an LOS calculator that uses the current settings.
+ * @returns {PercentVisibleCalculatorAbstract}
+ */
+export function buildLOSCalculator() {
+  const calcName = ViewerLOS.VIEWPOINT_ALGORITHM_SETTINGS[Settings.get(Settings.KEYS.LOS.TARGET.ALGORITHM)];
+  const calcs = CONFIG[MODULE_ID].losCalculators;
+  if ( !calcs[calcName] ) {
+    calcs[calcName] ??= new CONFIG[MODULE_ID].calculatorClasses[calcName](CalculatorConfig());
+    calcs[calcName].initialize(); // Async.
+  }
+  return calcs[calcName];
+}
+
+/**
+ * Build an LOS viewer for this viewer that uses the current settings.
+ * @param {Token} viewer
+ * @returns {ViewerLOS}
+ */
+export function buildLOSViewer(viewer) {
+  const calculator = buildLOSCalculator();
+  const viewerLOS = new ViewerLOS(viewer, calculator, LOSViewerConfig());
+  return viewerLOS;
+}
+
+/**
+ * Build a debug viewer using the current settings.
+ * @param {class} cl                    Class of the viewer
+ */
+export function buildDebugViewer(cl) {
+  const viewerLOSFn = viewer => viewer[TRACKER_IDS.COVER].coverCalculator.losViewer;
+  return new cl(viewerLOSFn);
+}
+
+export function currentDebugViewerClass(type) {
+  const KEYS = Settings.KEYS;
+  const { TARGET } = KEYS.LOS;
+  const debugViewers = CONFIG[MODULE_ID].debugViewerClasses;
+  type ??= Settings.get(TARGET.ALGORITHM) ?? TARGET.TYPES.POINTS;
+  const calcName = ViewerLOS.VIEWPOINT_ALGORITHM_SETTINGS[type];
+  return debugViewers[calcName];
+}
+

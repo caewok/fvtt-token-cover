@@ -4,14 +4,14 @@ game
 */
 "use strict";
 
-import { MODULE_ID, FLAGS, MODULES_ACTIVE } from "./const.js";
+import { MODULE_ID, FLAGS, OTHER_MODULES } from "./const.js";
 
 /**
  * For DND5e, add the cover to the Token Config
  */
 export function addDND5eCoverFeatFlags() {
   // Leave this to Simbul's if active.
-  if ( game.system.id !== "dnd5e" || MODULES_ACTIVE.SIMBULS_CC ) return;
+  if ( game.system.id !== "dnd5e" || OTHER_MODULES.SIMBULS_CC ) return;
 
   CONFIG.DND5E.characterFlags.helpersIgnoreCover = {
     name: game.i18n.localize(`${MODULE_ID}.dnd5e.feats.cover.Name`),
@@ -195,7 +195,7 @@ export class IgnoresCoverDND5e extends IgnoresCover {
  */
 export class IgnoresCoverSimbuls extends IgnoresCoverDND5e {
   constructor(token) {
-    if ( !MODULES_ACTIVE.SIMBULS_CC ) {
+    if ( !OTHER_MODULES.SIMBULS_CC ) {
       console.warn("IgnoresCoverSimbuls instantiated but Simbul's Cover Calculator is not active.");
     }
 
