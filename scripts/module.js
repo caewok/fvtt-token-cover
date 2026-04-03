@@ -13,27 +13,15 @@ import { LOS_CONFIG } from "./LOS/config.js";
 import { log } from "./util.js";
 
 // Hooks and method registration
-import { registerGeometry } from "./geometry/registration.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
 import { getObjectProperty } from "./LOS/util.js";
-
-// Trackers
-import {
-  TokenGeometryTracker,
-  LitTokenGeometryTracker,
-  BrightLitTokenGeometryTracker,
-  SphericalTokenGeometryTracker, } from "./LOS/placeable_tracking/TokenGeometryTracker.js";
-import { WallGeometryTracker } from "./LOS/placeable_tracking/WallGeometryTracker.js";
-import { TileGeometryTracker } from "./LOS/placeable_tracking/TileGeometryTracker.js";
-import { RegionGeometryTracker } from "./LOS/placeable_tracking/RegionGeometryTracker.js";
 
 // Calculators
 import { PercentVisibleCalculatorPoints, DebugVisibilityViewerPoints } from "./LOS/calculators/PointsCalculator.js";
 import { PercentVisibleCalculatorGeometric, DebugVisibilityViewerGeometric } from "./LOS/calculators/GeometricCalculator.js";
 import { PercentVisibleCalculatorPerPixel, DebugVisibilityViewerPerPixel } from "./LOS/calculators/PerPixelCalculator.js";
 import { PercentVisibleCalculatorWebGL2, DebugVisibilityViewerWebGL2 } from "./LOS/calculators/WebGL2Calculator.js";
-
 
 // Cover objects
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
@@ -63,11 +51,13 @@ import {
   IgnoresCoverDND5e,
   addDND5eCoverFeatFlags } from "./IgnoresCover.js";
 
+// Load the geometry library.
+import "./geometry/registration.js";
+
 // Other self-executing hooks
 import "./changelog.js";
 
 Hooks.once("init", function() {
-  registerGeometry();
   initializeConfig();
   initializeAPI();
   addDND5eCoverFeatFlags();
@@ -107,35 +97,6 @@ Hooks.once("ready", async function(_canvas) {
 
   CONFIG[MODULE_ID].CoverEffect.initialize(); // Async. Must wait until ready hook to store Settings for UniqueEffectFlag
 
-  // Only register geometry hooks if ATV is not present.
-  if ( !OTHER_MODULES.ATV ) {
-    WallGeometryTracker.registerPlaceableHooks();
-    TileGeometryTracker.registerPlaceableHooks();
-    TokenGeometryTracker.registerPlaceableHooks();
-    SphericalTokenGeometryTracker.registerPlaceableHooks();
-    LitTokenGeometryTracker.registerPlaceableHooks();
-    BrightLitTokenGeometryTracker.registerPlaceableHooks();
-    RegionGeometryTracker.registerPlaceableHooks();
-  } else {
-//     const getterFn = function() {
-//       this.tokenvisibility ??= {};
-//       return this.tokenvisibility;
-//     };
-//     const ATV = {};
-//     ATV.GETTERS = { [MODULE_ID]: getterFn };
-//     const PATCHES = {
-//       "foundry.canvas.placeables.Token": ATV,
-//       "foundry.canvas.placeables.Wall": ATV,
-//       "foundry.canvas.placeables.Tile": ATV,
-//       "foundry.canvas.placeables.Region": ATV,
-//       "foundry.data.regionShapes.RegionCircleShape": ATV,
-//       "foundry.data.regionShapes.RegionEllipseShape": ATV,
-//       "foundry.data.regionShapes.RegionRectangleShape": ATV,
-//       "foundry.data.regionShapes.RegionPolygonShape": ATV,
-//     };
-//     PATCHER.addPatchesFromRegistrationObject(PATCHES);
-  }
-
 });
 
 /**
@@ -143,14 +104,6 @@ Hooks.once("ready", async function(_canvas) {
  * @param {Canvas} canvas The Canvas which is now ready for use
  */
 Hooks.once("canvasReady", function() {
-  WallGeometryTracker.registerExistingPlaceables();
-  TileGeometryTracker.registerExistingPlaceables();
-  TokenGeometryTracker.registerExistingPlaceables();
-  SphericalTokenGeometryTracker.registerExistingPlaceables();
-  LitTokenGeometryTracker.registerExistingPlaceables();
-  BrightLitTokenGeometryTracker.registerExistingPlaceables();
-  RegionGeometryTracker.registerExistingPlaceables();
-
   if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) Settings.toggleLOSDebugGraphics(true);
 
   transitionTokenMaximumCoverFlags();
@@ -181,7 +134,8 @@ Hooks.on("getSceneControlButtons", (controls, _html, _data) => {
   if ( !canvas.scene || !ui.controls.activeControl === "token" || !game.user.isGM ) return;
   COVER_EFFECTS_CONTROL.visible = game.user.isGM && Settings.get(Settings.KEYS.DISPLAY_COVER_BOOK);
   COVER_EFFECTS_CONTROL.order = 0;
-  Object.values(controls.tokens.tools).forEach(tool => COVER_EFFECTS_CONTROL.order = Math.max(tool.order + 1, COVER_EFFECTS_CONTROL.order));
+  Object.values(controls.tokens.tools).forEach(tool =>
+    COVER_EFFECTS_CONTROL.order = Math.max(tool.order + 1, COVER_EFFECTS_CONTROL.order));
   controls.tokens.tools[COVER_EFFECTS_CONTROL.name] = COVER_EFFECTS_CONTROL;
 });
 
@@ -327,26 +281,3 @@ function transitionTokenMaximumCoverFlags() {
   });
   canvas.scene.setFlag(MODULE_ID, FLAGS.VERSION, v);
 }
-
-/**
- * Test if a token is dead. Usually, but not necessarily, the opposite of tokenIsDead.
- * @param {Token} token
- * @returns {boolean} True if dead.
- */
-function tokenIsAlive(token) { return !tokenIsDead(token); }
-
-/**
- * Test if a token is dead. Usually, but not necessarily, the opposite of tokenIsAlive.
- * @param {Token} token
- * @returns {boolean} True if dead.
- */
-function tokenIsDead(token) {
-  const deadStatus = CONFIG.statusEffects.find(status => status.id === "dead");
-  if ( deadStatus && token.actor.statuses.has(deadStatus.id) ) return true;
-
-  const tokenHPAttribute = Settings.get(Settings.KEYS.TOKEN_HP_ATTRIBUTE);
-  const hp = getObjectProperty(token.actor, tokenHPAttribute);
-  if ( typeof hp !== "number" ) return false;
-  return hp <= 0;
-}
-

@@ -12,6 +12,7 @@ import { Draw } from "./geometry/Draw.js"; // For debugging
 import { CoverDialog } from "./CoverDialog.js";
 import { ViewerLOS } from "./LOS/ViewerLOS.js";
 import { pointIndexForSet } from "./LOS/SmallBitSet.js";
+import { NULL_SET } from "./geometry/util.js";
 
 /* Testing
 Draw = CONFIG.GeometryLib.Draw
@@ -157,7 +158,6 @@ export class CoverCalculator {
     let percent = 1;
     for ( const vp of losViewer.viewpoints ) {
       losViewer.initializeView({ viewpoint: vp.viewpoint });
-      losViewer._initializeCalculation(); // Set up the obstacles.
       const percentFromViewpoint = this._percentCover();
       if ( percentFromViewpoint < percent ) {
         percent = percentFromViewpoint;
@@ -349,24 +349,35 @@ export class CoverCalculator {
 // ----- NOTE: Calculator configuration ----- //
 
 /**
+ * @returns {TokenBlockingConfig}  See PercentVisibleCalculator.js
+ */
+function TokenBlockingConfig() {
+  return {
+    dead: true,
+    live: true,
+    prone: true,
+
+    // No settings enabled for now.
+    enemies: true,
+    allies: true,
+    excludedStatuses: NULL_SET,
+  };
+}
+
+/**
  * @returns {CalculatorConfig|PointsCalculatorConfig}  See PercentVisibleCalculator.js and PointsCalculator.js
  */
 function CalculatorConfig() {
   return {
-    blocking: { // BlockingConfig
-      tokens: { // TokenBlockingConfig
-        dead: true,
-        live: true,
-        prone: true,
-      },
-      walls: true,
-      tiles: true,
-      regions: true,
-    },
+    senseType: "sight",
+    tokens: TokenBlockingConfig(),
+    walls: true,
+    tiles: true,
+    regions: true,
+
     largeTarget: Settings.get(Settings.KEYS.LOS.TARGET.LARGE) ?? false,
     debug: false,
     testLighting: true,
-    senseType: "sight",
     sourceType: "lighting",
 
     // Points algorithm

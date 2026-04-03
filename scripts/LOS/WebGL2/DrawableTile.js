@@ -1,14 +1,12 @@
 /* globals
+canvas
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { DrawableObjectsInstancingWebGL2Abstract } from "./DrawableObjects.js";
-import { ObstacleOcclusionTest } from "../ObstacleOcclusionTest.js";
-import { GeometryTile } from "../geometry/GeometryTile.js";
-import {
-  TileGeometryTracker,
-} from "../placeable_tracking/TileGeometryTracker.js";
+import { DrawableObjectsInstancingWebGL2 } from "./DrawableObjects.js";
+import { TileInstancedVertices } from "../../geometry/placeable_vertices/TileVertices.js";
+import { TileGeometry } from "../../geometry/placeable_geometry/TileGeometry.js";
 
 import * as twgl from "./twgl.js";
 
@@ -16,12 +14,15 @@ import * as twgl from "./twgl.js";
 // Not guaranteed to have any specific value.
 const TMP_SET = new Set();
 
-export class DrawableTileWebGL2 extends DrawableObjectsInstancingWebGL2Abstract {
-  /** @type {class} */
-  static trackerClass = TileGeometryTracker;
+export class DrawableTileWebGL2 extends DrawableObjectsInstancingWebGL2 {
 
   /** @type {class} */
-  static geomClass = GeometryTile;
+  static vertexClass = TileInstancedVertices;
+
+  /** @type {class} */
+  static geomClass = TileGeometry;
+
+  static addUVs = true;
 
   get placeables() { return canvas.tiles.placeables; }
 
@@ -42,31 +43,6 @@ export class DrawableTileWebGL2 extends DrawableObjectsInstancingWebGL2Abstract 
 
   /** @type {Map<string, WebGLTexture>} */
   textures = new Map();
-
-  _initializeGeoms(opts = {}) {
-    opts.addUVs = true;
-    super._initializeGeoms(opts);
-  }
-
-  _defineAttributeProperties() {
-    const vertexProps = super._defineAttributeProperties();
-    const debugViewNormals = this.debugViewNormals;
-
-    // coords (3), normal (3), uv (2)
-    let stride = Float32Array.BYTES_PER_ELEMENT * 5;
-    if ( debugViewNormals ) {
-      stride = Float32Array.BYTES_PER_ELEMENT * 8;
-      vertexProps.aNorm.stride = stride;
-    }
-    vertexProps.aPos.stride = stride;
-    vertexProps.aUV = {
-      numComponents: 2,
-      buffer: vertexProps.aPos.buffer,
-      stride,
-      offset: Float32Array.BYTES_PER_ELEMENT * (debugViewNormals ? 6 : 3),
-    }
-    return vertexProps;
-  }
 
   // ----- NOTE: Tile texture ----- //
 
@@ -118,18 +94,3 @@ export class DrawableTileWebGL2 extends DrawableObjectsInstancingWebGL2Abstract 
     super._drawFilteredInstances(instanceSet);
   }
 }
-
-/**
- * From http://webgpufundamentals.org/webgpu/lessons/webgpu-importing-textures.html
- * Load an image bitmap from a url.
- * @param {string} url
- * @param {object} [opts]       Options passed to createImageBitmap
- * @returns {ImageBitmap}
- */
-async function loadImageBitmap(url, opts = {}) {
-  const res = await fetch(url);
-  const blob = await res.blob();
-  return await createImageBitmap(blob, opts);
-}
-
-

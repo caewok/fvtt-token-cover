@@ -77,15 +77,13 @@ export function CoverMixin(Base) {
     /** @type {AlternativeLOSConfig} */
     get calcConfig() {
       return {
-        blocking: {
-          walls: this.includeWalls,
-          tiles: this.includeWalls,
-          regions: this.includeWalls,
-          tokens: {
-            dead: this.deadTokensBlock,
-            live: this.liveTokensBlock,
-            prone: this.proneTokensBlock,
-          },
+        walls: this.includeWalls,
+        tiles: this.includeWalls,
+        regions: this.includeWalls,
+        tokens: {
+          dead: this.deadTokensBlock,
+          live: this.liveTokensBlock,
+          prone: this.proneTokensBlock,
         },
         // Others:
         // tokenShapeType
