@@ -131,7 +131,7 @@ const COVER_EFFECTS_CONTROL = {
  * Render the cover effects book control if setting enabled.
  */
 Hooks.on("getSceneControlButtons", (controls, _html, _data) => {
-  if ( !canvas.scene || !ui.controls.activeControl === "token" || !game.user.isGM ) return;
+  if ( !canvas.scene || !ui.controls.control.name === "token" || !game.user.isGM ) return;
   COVER_EFFECTS_CONTROL.visible = game.user.isGM && Settings.get(Settings.KEYS.DISPLAY_COVER_BOOK);
   COVER_EFFECTS_CONTROL.order = 0;
   Object.values(controls.tokens.tools).forEach(tool =>
