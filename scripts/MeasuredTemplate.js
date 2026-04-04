@@ -2,7 +2,6 @@
 canvas,
 CONST,
 game,
-KeyboardManager
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
@@ -50,7 +49,7 @@ function refreshMeasuredTemplate(template, flags) {
 
   log(`refreshTemplate hook|Template ${template.id} ${template.document.x},${template.document.y}`, {...flags});
   const snap = !(canvas.grid.type === CONST.GRID_TYPES.GRIDLESS
-  || game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT));
+  || game.keyboard.isModifierActive(foundry.helpers.interaction.KeyboardManager.MODIFIER_KEYS.SHIFT));
 
   if ( template._original ) {
     // Template is a clone in a drag operation.
