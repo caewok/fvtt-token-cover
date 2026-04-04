@@ -36,7 +36,7 @@ import { PATCHES as PATCHES_dnd5e } from "./dnd5e.js";
 
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
-  ActiveEffectConfig: PATCHES_ActiveEffectConfig,
+  "foundry.applications.sheets.ActiveEffectConfig": PATCHES_ActiveEffectConfig,
   "CONFIG.DND5E.activityTypes.attack.documentClass": PATCHES_AttackActivity,
   "foundry.helpers.ClientSettings": PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
@@ -45,7 +45,7 @@ const PATCHES = {
   ItemSheet: PATCHES_ItemSheet,
   MeasuredTemplate: PATCHES_MeasuredTemplate,
   SidebarTab: PATCHES_SidebarTab,
-  Token: PATCHES_Token,
+  "foundry.canvas.placeables.Token": PATCHES_Token,
   TokenConfig: PATCHES_TokenConfig,
 
   // Only works b/c these are all hooks. Otherwise, would need class breakdown.

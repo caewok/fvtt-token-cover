@@ -728,7 +728,8 @@ export class Settings extends ModuleSettingsAbstract {
       case TARGET.POINT_OPTIONS.POINTS: value = pointIndexForSet(value);
       default: { /* eslint-disable-line no-fallthrough */
         const config = foundry.utils.expandObject({ [configKeyForSetting[key]]: value });
-        this.currentCalculator.config = config;
+        const currCalc = currentCalculator();
+        currCalc.permanentConfig = config;
       }
     }
   }

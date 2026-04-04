@@ -4,7 +4,6 @@ CONFIG,
 CONST,
 foundry,
 game,
-KeyboardManager,
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
@@ -60,7 +59,7 @@ function refreshToken(token, flags) {
   if ( token._original ) {
     // This token is a clone in a drag operation.
     const snap = !(canvas.grid.type === CONST.GRID_TYPES.GRIDLESS
-      || game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT));
+      || game.keyboard.isModifierActive(foundry.helpers.interaction.KeyboardManager.MODIFIER_KEYS.SHIFT));
     log(`refreshToken hook|Token ${token.name} is being dragged. ${snap ? "Snap." : "No snapping."}`);
 
     if ( snap ) {

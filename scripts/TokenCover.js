@@ -159,7 +159,7 @@ class TokenCoverBase {
    * Destroy this object, clearing its subobjects from memory.
    */
   destroy() {
-    this.coverCalculator.destroy();
+    // this.coverCalculator.destroy();
     this.iconMap.clear();
     delete this.token.tokencover;
   }
