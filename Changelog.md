@@ -1,3 +1,7 @@
+## 0.10.1
+Align with ATV fixes.
+Update libGeometry to v0.5.
+
 ## 0.10.0
 Updated to Foundry v13.
 Uses Alternative Token Visibility line-of-sight algorithms as updated for Foundry v13.
