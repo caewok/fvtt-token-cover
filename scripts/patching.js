@@ -37,7 +37,6 @@ import { PATCHES as PATCHES_dnd5e } from "./dnd5e.js";
 const PATCHES = {
   ActiveEffect: PATCHES_ActiveEffect,
   "foundry.applications.sheets.ActiveEffectConfig": PATCHES_ActiveEffectConfig,
-  "CONFIG.DND5E.activityTypes.attack.documentClass": PATCHES_AttackActivity,
   "foundry.helpers.ClientSettings": PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
   Item: PATCHES_Item,
@@ -48,10 +47,16 @@ const PATCHES = {
   "foundry.canvas.placeables.Token": PATCHES_Token,
   TokenConfig: PATCHES_TokenConfig,
 
+
+};
+
+const PATCHES_DND5E = {
+  "CONFIG.DND5E.activityTypes.attack.documentClass": PATCHES_AttackActivity,
+
   // Only works b/c these are all hooks. Otherwise, would need class breakdown.
   Midiqol: PATCHES_Midiqol,
   dnd5e: PATCHES_dnd5e
-};
+}
 
 export const PATCHER = new Patcher();
 
@@ -70,6 +75,7 @@ export function initializePatching() {
   //   else PATCHER.registerGroup("NO_LEVELS");
 
   if ( game.system.id === "dnd5e" ) {
+    PATCHER.addPatchesFromRegistrationObject(PATCHES_DND5E);
     if ( OTHER_MODULES.MIDI_QOL ) PATCHER.registerGroup("DND5E_MIDI");
     else PATCHER.registerGroup("DND5E");
   }
