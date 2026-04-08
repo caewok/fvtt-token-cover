@@ -1,3 +1,6 @@
+## 0.10.2
+Update to libGeometry v0.5.3.
+
 ## 0.10.1
 Align with ATV fixes.
 Update libGeometry to v0.5.
