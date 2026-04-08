@@ -225,7 +225,7 @@ export class Patcher {
         if ( typeof cl === "function" ) return returnPathString ? className : cl;
       } catch(error) { /* empty */ } /* eslint-disable-line no-unused-vars */
     }
-    console.error(`lookupByClassName|${className} not found`);
+    console.warn(`lookupByClassName|${className} not found`);
     return null;
   }
 
@@ -379,7 +379,7 @@ export class MethodPatch extends AbstractPatch {
     if ( typeof value !== "string" ) value = value.name; // Can pass the class or the class name as string.
     cfg.className = value;
     this.#cl = Patcher.lookupByClassName(cfg.className);
-    if ( !this.#cl ) console.error(`Patcher|${cfg.className} not found!`);
+    if ( !this.#cl ) console.warn(`Patcher|${cfg.className} not found!`);
     if ( !cfg.isStatic ) this.#cl = this.#cl.prototype;
   }
 
@@ -452,7 +452,7 @@ export class LibWrapperPatch extends AbstractPatch {
     if ( typeof value !== "string" ) value = value.name; // Can pass the class or the class name as string.
     cfg.className = value;
     this.#className = Patcher.lookupByClassName(value, { returnPathString: true });
-    if ( !this.#className ) console.error(`Patcher|${cfg.className} not found!`);
+    if ( !this.#className ) console.warn(`Patcher|${cfg.className} not found!`);
     if ( !cfg.isStatic ) this.#className = `${this.#className}.prototype`;
   }
 
