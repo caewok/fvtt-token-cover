@@ -194,7 +194,9 @@ export class Patcher {
       descriptor.writable = true;
       descriptor.value = fn;
     }
-    Object.defineProperty(cl, name, descriptor);
+
+    const descr = Object.getOwnPropertyDescriptor(cl, name);
+    if ( !descr || descr.configurable ) Object.defineProperty(cl, name, descriptor);
 
     const prototypeName = cl.constructor?.name;
     const id = `${prototypeName ?? cl.name}.${prototypeName ? "prototype." : ""}${name}`;
@@ -223,9 +225,9 @@ export class Patcher {
       try {
         const cl = eval?.(`"use strict";(${className})`);
         if ( typeof cl === "function" ) return returnPathString ? className : cl;
-      } catch(error) { /* empty */ } /* eslint-disable-line no-unused-vars */
+      } catch(error) { /* Empty */ } /* eslint-disable-line no-unused-vars */
     }
-    console.warn(`lookupByClassName|${className} not found`);
+    console.error(`lookupByClassName|${className} not found`);
     return null;
   }
 
@@ -379,7 +381,7 @@ export class MethodPatch extends AbstractPatch {
     if ( typeof value !== "string" ) value = value.name; // Can pass the class or the class name as string.
     cfg.className = value;
     this.#cl = Patcher.lookupByClassName(cfg.className);
-    if ( !this.#cl ) console.warn(`Patcher|${cfg.className} not found!`);
+    if ( !this.#cl ) console.error(`Patcher|${cfg.className} not found!`);
     if ( !cfg.isStatic ) this.#cl = this.#cl.prototype;
   }
 
@@ -452,7 +454,7 @@ export class LibWrapperPatch extends AbstractPatch {
     if ( typeof value !== "string" ) value = value.name; // Can pass the class or the class name as string.
     cfg.className = value;
     this.#className = Patcher.lookupByClassName(value, { returnPathString: true });
-    if ( !this.#className ) console.warn(`Patcher|${cfg.className} not found!`);
+    if ( !this.#className ) console.error(`Patcher|${cfg.className} not found!`);
     if ( !cfg.isStatic ) this.#className = `${this.#className}.prototype`;
   }
 
@@ -486,16 +488,14 @@ export class LibWrapperPatch extends AbstractPatch {
  * @returns {string} The directory path
  */
 function lookup(className) {
-   const res = lookupRecursive(className);
-   if ( res ) return `foundry.${res}`;
- }
+  const res = lookupRecursive(className);
+  if ( res ) return `foundry.${res}`;
+}
 
- function lookupRecursive(className, dir = foundry) {
+function lookupRecursive(className, dir = foundry) {
   for ( const [key, obj] of Object.entries(dir) ) {
     // Skip CONFIG and CONST directories
     if ( key === "CONFIG" || key === "CONST" ) continue;
-    // console.log(`${key}: ${typeof obj}`, obj);
-
     switch ( typeof obj ) {
       case "function": {
         if ( obj.name === className ) return key;
