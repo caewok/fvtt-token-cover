@@ -1,4 +1,5 @@
 /* globals
+FormApplication,
 foundry,
 fromUuid,
 game,
@@ -7,7 +8,7 @@ ui
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { Settings, DEFAULT_PRESET_RULES } from "./settings.js";
+import { Settings, DEFAULT_PRESET_DEFINITIONS } from "./settings.js";
 import { getBackend, EFFECT_BACKENDS } from "./effect_backends.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -17,16 +18,16 @@ const { DragDrop, TextEditor, FormDataExtended } = foundry.applications.ux;
  * Settings submenu: drop ActiveEffects/Items here, set a percent-cover threshold for each.
  * Edits a working copy; nothing is saved until Save is pressed.
  */
-export class CoverRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) {
+export class CoverDefinitionsConfig extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: `${MODULE_ID}-cover-rules`,
     tag: "form",
     window: { title: "Cover Effects", icon: "fa-solid fa-shield-halved", resizable: true },
     position: { width: 560, height: "auto" },
-    form: { handler: CoverRulesConfig.#onSubmit, closeOnSubmit: true },
+    form: { handler: CoverDefinitionsConfig.#onSubmit, closeOnSubmit: true },
     actions: {
-      removeRule: CoverRulesConfig.#onRemoveRule,
-      resetPresets: CoverRulesConfig.#onResetPresets
+      removeRule: CoverDefinitionsConfig.#onRemoveRule,
+      resetPresets: CoverDefinitionsConfig.#onResetPresets
     }
   };
 
@@ -35,7 +36,7 @@ export class CoverRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
   };
 
   /** @type {object[]} Working copy of every stored rule (presets and dropped ones alike). */
-  #rules = foundry.utils.deepClone(Settings.get(Settings.KEYS.COVER_RULES_SETTING) ?? []);
+  #rules = foundry.utils.deepClone(Settings.get(Settings.KEYS.COVER_DEFINITIONS) ?? []);
 
   #dragDrop = new DragDrop.implementation({
     dropSelector: ".cover-rules-drop",
@@ -78,7 +79,7 @@ export class CoverRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
     try { doc = await fromUuid(data.uuid); } catch( _err ) { doc = null; }
     if ( !doc ) return ui.notifications.error("Could not resolve the dropped document.");
 
-    this.#syncFromForm(); // keep unsaved edits to other rows
+    this.#syncFromForm(); // Keep unsaved edits to other rows.
     this.#rules.push({
       uuid: doc.uuid,
       statusId: null,
@@ -109,7 +110,7 @@ export class CoverRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#syncFromForm();
     // Display order doesn't matter at runtime (lookup is by threshold), but keep storage tidy.
     const rules = this.#rules.toSorted((a, b) => a.minPercent - b.minPercent);
-    await Settings.set(Settings.KEYS.COVER_RULES_SETTING, rules);
+    await Settings.set(Settings.KEYS.COVER_DEFINITIONS, rules);
   }
 
   static #onRemoveRule(_event, target) {
@@ -119,7 +120,7 @@ export class CoverRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static #onResetPresets() {
-    this.#rules = this.#rules.filter(r => !r.statusId).concat(foundry.utils.deepClone(DEFAULT_PRESET_RULES));
+    this.#rules = this.#rules.filter(r => !r.statusId).concat(foundry.utils.deepClone(DEFAULT_PRESET_DEFINITIONS));
     this.render();
   }
 }

@@ -16,7 +16,7 @@ import { registerTemplates, deregisterTemplates } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
 import { renderTemplateSync } from "./util.js";
 import { buildDebugViewer, currentDebugViewerClass, buildLOSCalculator } from "./CoverCalculator.js";
-import { CoverRulesConfig } from "./CoverRulesSettingsConfig.js";
+import { CoverDefinitionsConfig } from "./CoverDefinitionsConfig.js";
 
 // LOS folder
 import { ViewerLOS } from "./LOS/ViewerLOS.js";
@@ -78,7 +78,7 @@ const MENUS = {
   SUBMENU: "submenu",
   EXPORT_BUTTON: "exportButton",
   IMPORT_BUTTON: "importButton",
-  COVER_RULES: "coverRulesMenu",
+  COVER_DEFINITIONS: "coverDefinitionsMenu",
 };
 
 const ENUMS = {
@@ -137,7 +137,7 @@ const ruleField = new SchemaField({
   displayIcon: new BooleanField({ initial: true }),
 });
 
-export const DEFAULT_PRESET_RULES = [
+export const DEFAULT_PRESET_DEFINITIONS = [
   { statusId: "coverHalf", name: "Half Cover", minPercent: 50 },
   { statusId: "coverThreeQuarters", name: "Three-Quarters Cover", minPercent: 75 },
   { statusId: "coverTotal", name: "Total Cover", minPercent: 100 }
@@ -157,7 +157,7 @@ export const SETTINGS = {
    */
   BACKEND_MODE: "backend-mode",
 
-  COVER_RULES_SETTING: "cover-rules-setting",
+  COVER_DEFINITIONS: "cover-definitions",
 
   COVER_EFFECTS: {
     USE: "use-cover-effects",
@@ -301,26 +301,23 @@ export class Settings extends ModuleSettingsAbstract {
       restricted: true
     });
 
-    register(KEYS.COVER_RULES_SETTING, {
+    register(KEYS.COVER_DEFINITIONS, {
       scope: "world",
       config: false, // Edited only through the cover rules menu below.
       type: new ArrayField(ruleField),
-      default: DEFAULT_PRESET_RULES,
-      onChange: async () => {
-        this.coverRules.rebuildCache();
-        await onChange?.();
-      },
+      default: DEFAULT_PRESET_DEFINITIONS,
+      onChange: async () => this.coverDefinitions.rebuildCache(),
     });
 
-    registerMenu(MENUS.COVER_RULES, {
-      name: localize(`${MENUS.SUBMENU}.Name`),
-      label: localize(`${MENUS.SUBMENU}.Label`),
-      hint: localize(`${MENUS.SUBMENU}.Hint`),
-      icon: FA_ICONS.MENUS.COVER_RULES,
-      type: CoverRulesConfig,
+    registerMenu(MENUS.COVER_DEFINITIONS, {
+      name: localize(`${MENUS.COVER_DEFINITIONS}.Name`),
+      label: localize(`${MENUS.COVER_DEFINITIONS}.Label`),
+      hint: localize(`${MENUS.COVER_DEFINITIONS}.Hint`),
+      icon: FA_ICONS.MENUS.COVER_DEFINITIONS,
+      type: CoverDefinitionsConfig,
       restricted: true,
     });
-    this.coverRules.rebuildCache();
+    this.coverDefinitions.rebuildCache();
 
     /* Currently unused:
     registerMenu(MENUS.EXPORT_BUTTON, {
@@ -720,11 +717,11 @@ export class Settings extends ModuleSettingsAbstract {
   // ----- NOTE: Cover rules menu ----- //
 
   /** @type {object[]} Sorted high -> low, rebuilt whenever the setting changes. Hot-path cache. */
-  static _sortedRules = [];
+  static _sortedDefinitions = [];
 
-  static coverRules = {
+  static coverDefinitions = {
     /** @returns {object[]} All rules as stored. */
-    get all() { return Settings.get(Settings.KEYS.COVER_RULES_SETTING) ?? []; },
+    get all() { return Settings.get(Settings.KEYS.COVER_DEFINITIONS) ?? []; },
 
     /**
      * The single rule that applies at a given cover percent: the highest threshold met.
@@ -732,14 +729,14 @@ export class Settings extends ModuleSettingsAbstract {
      * @param {number} percent   0-100
      * @returns {object|undefined}
      */
-    forPercent(percent) { return Settings._sortedRules.find(r => percent >= r.minPercent); },
+    forPercent(percent) { return Settings._sortedDefinitions.find(d => percent >= d.minPercent); },
 
     /** Source id used by definitions: the uuid, or the status id for built-ins. */
-    sourceId(rule) { return rule.uuid ?? rule.statusId; },
+    sourceId(def) { return def.uuid ?? def.statusId; },
 
     rebuildCache() {
-      const rules = Settings.get(Settings.KEYS.COVER_RULES_SETTING) ?? [];
-      Settings._sortedRules = rules.map(r => ({ ...r })).sort((a, b) => b.minPercent - a.minPercent);
+      const defs = Settings.get(Settings.KEYS.COVER_DEFINITIONS) ?? [];
+      Settings._sortedDefinitions = defs.map(d => ({ ...d })).sort((a, b) => b.minPercent - a.minPercent);
     },
   };
 }

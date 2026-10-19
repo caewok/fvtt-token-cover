@@ -6,7 +6,7 @@ foundry
 
 import { MODULE_ID, FLAGS } from "./const.js";
 import { getBackend, EFFECT_BACKENDS } from "./effect_backends.js";
-import { UniqueEffect } from "./UniqueEffect.js";
+import { UniqueEffectDefinition } from "./UniqueEffectDefinition.js";
 
 /**
  * Everything to do with putting a UniqueEffectDefinition on (or off) a token.
@@ -73,18 +73,18 @@ export class TokenEffects {
   /**
    * All definitions currently applied to a token.
    * @param {Token} toen
-   * @returns {UniqueEffect}
+   * @returns {UniqueEffectDefinition}
    */
   static all(token) {
     return [...this._appliedMap(token).keys()]
-      .map(id => UniqueEffect.get(id))
+      .map(id => UniqueEffectDefinition.get(id))
       .filter(Boolean);
   }
 
   /**
    * Add 1+ definitions to a token, locally.
    * @param {token} token
-   * @param {UniqueEffect[]} definitions
+   * @param {UniqueEffectDefinition[]} definitions
    * @param {object} [opts]
    * @param {boolean} [opts.exclusive = false]  Remove other applied definitions that share a category first.
    * @param {object } [opts.data]               Extra data merged into each created document
@@ -127,7 +127,7 @@ export class TokenEffects {
   /**
    * Remove 1+ definitions from a token.
    * @param {Token} token
-   * @param {UniqueEffect[]} definitions
+   * @param {UniqueEffectDefinition[]} definitions
    * @returns {boolean} true if the token changed.
    */
   static remove(token, definitions) {

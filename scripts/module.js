@@ -27,7 +27,7 @@ import { PercentVisibleCalculatorWebGL2, DebugVisibilityViewerWebGL2 } from "./L
 import { defaultCover } from "./default_cover.js";
 import { getBackend, EFFECT_BACKENDS } from "./effect_backends.js";
 import { TokenEffects } from "./TokenEffects.js";
-import { UniqueEffect } from "./UniqueEffect.js";
+import { UniqueEffectDefinition } from "./UniqueEffectDefinition.js";
 
 // Regions
 import { SetCoverRegionBehaviorType } from "./SetCoverRegionBehaviorType.js";
@@ -177,8 +177,7 @@ function initializeAPI() {
     getBackend,
     EFFECT_BACKENDS,
     TokenEffects,
-    UniqueEffect,
-
+    UniqueEffectDefinition,
 
     setCoverIgnoreHandler,
     Settings,

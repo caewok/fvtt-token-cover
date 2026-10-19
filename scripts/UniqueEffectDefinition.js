@@ -7,7 +7,7 @@ game
 "use strict";
 
 import { MODULE_ID } from "./const.js";
-import { SETTINGS } from "./settings.js";
+import { Settings } from "./settings.js";
 import { log } from "./util.js";
 import { getBackend } from "./effect_backends.js";
 
@@ -26,7 +26,7 @@ import { getBackend } from "./effect_backends.js";
  * need for the old "hidden storage Item" that effects had to be embedded in to be addressable).
  */
 
-export class UniqueEffect {
+export class UniqueEffectDefinition {
 
   /** @type {Map<string, UniqueEffectDefinition>} */
   static _definitions = new Map();
@@ -91,30 +91,22 @@ export class UniqueEffect {
    */
   static get(id) { return this._definitions.get(id); }
 
-  // ----- Settings list management ----- //
-
-  /**
-   * Reference an existing ActiveEffect or Item as a definition.
-   * @param {string} uuid
-   * @param {"ActiveEffect"|"Item"} documentType
-   * @param {object} [meta]   category/allowsDuplicates/displayIcon overrides
-   */
-  static async addSource(uuid, documentType, meta = {}) {
-    const entries = foundry.utils.deepClone(game.settings.get(MODULE_ID, SETTINGS.EFFECT_SOURCES) ?? []);
-    if ( entries.some(e => e.uuid === uuid) ) return;
-    entries.push({ uuid, documentType, category: "cover", allowsDuplicates: false, displayIcon: true, ...meta });
-    await game.settings.set(MODULE_ID, SETTINGS.EFFECT_SOURCES, entries);
-    await this.initialize();
+  /** @returns {object} Data used when dragging this definition to an actor sheet or token. */
+  toDragData() {
+    const backend = getBackend(this.category);
+    return { type: backend.documentName, name: this.name, uuid: this.document?.uuid ?? this.id };
   }
 
   /**
-   * Stop referencing a definition added via addSource.
-   * @param {string} id
+   * The cover definition that applies at a given cover percent: the highest threshold met.
+   * Synchronous; safe on the per-frame path. Returns undefined below every threshold.
+   * (Sources are added/removed in the CoverRulesConfig menu, not through this class.)
+   * @param {number} percent   0-100
+   * @returns {UniqueEffectDefinition|undefined}
    */
-  static async removeSource(id) {
-    const entries = (game.settings.get(MODULE_ID, SETTINGS.EFFECT_SOURCES) ?? []).filter(e => e.uuid !== id);
-    await game.settings.set(MODULE_ID, SETTINGS.EFFECT_SOURCES, entries);
-    this._definitions.delete(id);
+  static forCoverPercent(percent) {
+    const def = Settings.coverDefinitions.forPercent(percent);
+    return def ? this._definitions.get(Settings.coverDefinitions.sourceId(def)) : undefined;
   }
 
   // ----- NOTE: Initialization ----- //

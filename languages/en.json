@@ -165,9 +165,9 @@
     "tokencover.settings-submenu.tabs.other": "Other",
     "tokencover.settings-submenu.tabs.workflow": "Workflow",
 
-    "tokencover.settings.coverRulesMenu.Name": "Cover Effects",
-    "tokencover.settings.coverRulesMenu.Label": "Configure Cover Effects",
-    "tokencover.settings.coverRulesMenu.Hint": "Drag Active Effects or Items from a compendium onto the window and set the percent cover at which each one applies",
+    "tokencover.settings.coverDefinitionsMenu.Name": "Cover Definitions",
+    "tokencover.settings.coverDefinitionsMenu.Label": "Define Cover Effects",
+    "tokencover.settings.coverDefinitionsMenu.Hint": "Drag Active Effects or Items from a compendium onto the window and set the percent cover at which each one applies",
 
     "tokencover.settings.exportButton.Name": "",
     "tokencover.settings.exportButton.Label": "Export Settings",
