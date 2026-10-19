@@ -1,10 +1,13 @@
 /* globals
 CONFIG,
+foundry,
 Hooks
 */
 "use strict";
 
 import { MODULE_ID } from "../const.js";
+import { GEOMETRY_LIB_ID } from "../geometry/const.js";
+import { TILE_THRESHOLD_SHAPE_OPTIONS } from "./const.js";
 
 import { WallGeometry } from "../geometry/placeable_geometry/WallGeometry.js";
 import { TokenGeometry } from "../geometry/placeable_geometry/TokenGeometry.js";
@@ -15,6 +18,12 @@ import { TileGeometry } from "../geometry/placeable_geometry/TileGeometry.js";
 import "../geometry/registration.js";
 
 export const LOS_CONFIG = {
+
+  /**
+   * Threshold for transparent pixels.
+   * @type {number}
+   */
+  alphaThreshold: 0.75,
 
   /**
    * WebGL2. Filter the various placeable instances in Javascript, as opposed to
@@ -62,12 +71,9 @@ export const LOS_CONFIG = {
 
   /**
    * What to use when testing tiles for visibility.
-   * "rectangle": Trims the rectangular transparent border without considering holes or irregular shapes. Fast.
-   * "alphaThresholdTriangles": Triangles representing opaque parts of the tile texture (using earcut and marching squares). Slow.
-   * "alphaThresholdPolygons": 1+ polygons representing opaque parts of the tile texture (using marching squares). Much faster than triangles.
    * @type {tileThresholdShapeOptions}
    */
-  tileThresholdShape: "alphaThresholdPolygons",
+  tileThresholdShape: TILE_THRESHOLD_SHAPE_OPTIONS.ALPHA_POLYGONS,
 
   /**
    * WebGL2. Whether to use a render texture to count pixels.
@@ -94,7 +100,8 @@ export const LOS_CONFIG = {
   // Handled at base level: debug
 }
 
-Hooks.once("canvasReady", function() {
+Hooks.on("canvasReady", function() {
+  /*
 
   // Register basic watchers for placeables.
   const updateFn = placeable => {
@@ -104,19 +111,22 @@ Hooks.once("canvasReady", function() {
   }
   const docKeys = {
     Wall: new Set([
-      ...WallGeometry.TRACKER_TYPES.position,
+      ...WallGeometry.TRACKER_TYPES.position2d,
+      ...WallGeometry.TRACKER_TYPES.elevation,
       ...WallGeometry.TRACKER_TYPES.direction,
       ...WallGeometry.TRACKER_TYPES.restriction,
       ...WallGeometry.TRACKER_TYPES.door,
       ...WallGeometry.TRACKER_TYPES.threshold,
     ]),
     Tile: new Set([
-      ...TileGeometry.TRACKER_TYPES.position,
+      ...TileGeometry.TRACKER_TYPES.position2d,
+      ...TileGeometry.TRACKER_TYPES.elevation,
       ...TileGeometry.TRACKER_TYPES.scale,
       ...TileGeometry.TRACKER_TYPES.rotation,
     ]),
     Token: new Set([
-      ...TokenGeometry.TRACKER_TYPES.position,
+      ...TokenGeometry.TRACKER_TYPES.position2d,
+      ...TokenGeometry.TRACKER_TYPES.elevation,
       ...TokenGeometry.TRACKER_TYPES.scale,
       ...TokenGeometry.TRACKER_TYPES.shape,
     ]),
@@ -133,19 +143,7 @@ Hooks.once("canvasReady", function() {
     watcher.register("update", id, updateFn, keys);
     watcher.activate();
   }
-
-  // Placeable Geometry for collision testing.
-  const geometryTypes = [
-    "Tile",
-    "Wall",
-    "Token",
-    "Region",
-  ];
-  for ( const type of geometryTypes ) {
-    const cl = geometryTracking[`${type}GeometryTracker`];
-    cl.registerHooks();
-    cl.registerExistingPlaceables();
-    cl.activate();
-  }
-
+  */
 });
+
+

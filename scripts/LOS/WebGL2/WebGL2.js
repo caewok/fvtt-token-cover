@@ -1,4 +1,5 @@
 /* globals
+CONFIG,
 foundry,
 PIXI,
 */
@@ -24,10 +25,26 @@ export class WebGL2 {
    * @param {WebGL2RenderingContext} gl
    */
   constructor(gl) {
+    if ( this.constructor.glContextMap.has(gl) ) throw Error("WebGL2|Use the static create method!");
+
     this.gl = gl;
     this.glState.viewport.width = gl.canvas.width;
     this.glState.viewport.height = gl.canvas.height;
     this.initializeGLState();
+  }
+
+  // In order to cache gl state, must use a static creator and only create one instance per gl.
+  static glContextMap = new Map();
+
+  /**
+   * @param {WebGL2RenderingContext} gl
+   * @returns {WebGL2}
+   */
+  static create(gl) {
+    if ( this.glContextMap.has(gl)) return this.glContextMap.get(gl);
+    const out = new this(gl);
+    this.glContextMap.set(gl, out);
+    return out;
   }
 
   // ----- NOTE: Cache program ----- //
@@ -39,9 +56,9 @@ export class WebGL2 {
   currentProgramInfo;
 
   useProgram(programInfo) {
-    if ( this.currentProgramInfo !== programInfo ) this.gl.useProgram(programInfo.program);
+    if ( this.currentProgramInfo !== programInfo ) this.gl.useProgram(programInfo?.program || null);
     this.currentProgramInfo = programInfo;
-    if ( this.currentProgramInfo.program !== this.gl.getParameter(this.gl.CURRENT_PROGRAM) ) console.error("Current program is incorrect.");
+    if ( programInfo && this.currentProgramInfo.program !== this.gl.getParameter(this.gl.CURRENT_PROGRAM) ) console.error("Current program is incorrect.");
     // else console.debug("Current program is correct.")
   }
 
@@ -93,6 +110,8 @@ export class WebGL2 {
     cullFace: "BACK",
     colorMask: this.constructor.noColorMask,
     clearColor: this.constructor.blackClearColor,
+    blendFuncSeparate: this.constructor.defaultBlendFuncSeparate,
+    depthMask: true,
   }
 
   /**
@@ -104,6 +123,7 @@ export class WebGL2 {
     gl.cullFace(gl[glState.cullFace]);
     gl.colorMask(...glState.colorMask);
     gl.clearColor(...glState.clearColor);
+    gl.depthMask(glState.depthMask);
     for ( const name of ["DEPTH_TEST", "STENCIL_TEST", "BLEND", "CULL_FACE"] ) {
       if ( glState[name] ) gl.enable(gl[name]);
       else gl.disable(gl[name]);
@@ -151,8 +171,8 @@ export class WebGL2 {
 //       || this.glState.viewport.height !== param[3] ) console.error(`Viewport is incorrect. Should be`, param);
     if ( this.glState.viewport.equals(rect) ) return;
     const { gl, glState } = this;
-    gl.viewport(glState.viewport.x, glState.viewport.y, glState.viewport.width, glState.viewport.height);
     glState.viewport.copyFrom(rect);
+    gl.viewport(glState.viewport.x, glState.viewport.y, glState.viewport.width, glState.viewport.height);
   }
 
   setCullFace(face = "BACK") {
@@ -179,6 +199,18 @@ export class WebGL2 {
     this.glState.clearColor = color;
   }
 
+  setBlendFuncSeparate(...args) {
+    if ( this.glState.blendFuncSeparate.equals(args) ) return;
+    this.gl.blendFuncSeparate(...args);
+    this.glState.blendFuncSeparate = args;
+  }
+
+  setDepthMask(enabled) {
+    if ( !(this.glState.depthMask ^ enabled) ) return;
+    this.gl.depthMask(enabled);
+    this.glState.depthMask = enabled;
+  }
+
   static blackClearColor = [0, 0, 0, 0];
 
   static redAlphaMask = [true, false, false, true];
@@ -188,6 +220,10 @@ export class WebGL2 {
   static greenAlphaMask = [false, true, false, true];
 
   static noColorMask = [true, true, true, true];
+
+  static disableColorMask = [false, false, false, false];
+
+  static defaultBlendFuncSeparate = [1, 0, 1, 0]; // [gl.ONE, gl.ZERO, gl.ONE, gl.ZERO]
 
 
   // ----- NOTE: Static methods ----- //
@@ -257,7 +293,7 @@ export class WebGL2 {
       min[idx % 4] = Math.min(px, min[idx % 4])
     });
     let redBlocked = 0;
-    const terrainThreshold = 255 * CONFIG[GEOMETRY_LIB_ID].CONFIG.alphaThreshold;
+    const terrainThreshold = 255 * CONFIG[MODULE_ID].alphaThreshold;
     for ( let i = 0, iMax = pixels.length; i < iMax; i += 4 ) {
       const r = pixels[i];
       const g = pixels[i + 1];
@@ -320,19 +356,79 @@ export class WebGL2 {
    * @param {number} positionLoc                    Position of the matrix attribute
    */
   static drawInstancedMatrixSet(gl, instanceSet, elementCount, instanceBufferInfo, positionLoc) {
-    const instanceSize = 16 * 4;
-    const { type, stride, normalize, buffer: mBuffer } = instanceBufferInfo;
+    const advanceMatrixInstance = this._advanceInstanceFn(gl, instanceBufferInfo, positionLoc);
     applyConsecutively(instanceSet, (firstInstance, instanceCount) => {
-      const offset = (firstInstance * instanceSize);
-      gl.bindBuffer(gl.ARRAY_BUFFER, mBuffer);
-      gl.vertexAttribPointer(positionLoc, 4, type, normalize, stride, offset);
-      gl.vertexAttribPointer(positionLoc+1, 4, type, normalize, stride, offset + 4*4);
-      gl.vertexAttribPointer(positionLoc+2, 4, type, normalize, stride, offset + 4*8);
-      gl.vertexAttribPointer(positionLoc+3, 4, type, normalize, stride, offset + 4*12);
-      // log({ size, stride, offset, instanceCount });
+      advanceMatrixInstance(firstInstance);
       this.drawInstanced(gl, elementCount, 0, instanceCount);
     });
   }
+
+  /**
+   * Draw instanced for only the specified instances.
+   * Cannot simply specify the instance start in webGL2, b/c that extension is barely supported.
+   * Instead, move the pointer in the buffer accordingly.
+   * This function assumes a single (model) matrix that must be instanced.
+   * @param {WebGL2Context} gl
+   * @param {Set<number>} instanceSet     Instances to draw
+   * @param {number} elementCount         Number of vertices to draw
+   * @param {twgl.AttribInfo} instanceBufferInfo    Info for the instance buffer
+   * @param {number} positionLoc                    Position of the matrix attribute
+   */
+
+  static drawInstancedSet(gl, instanceSet, elementCount, advanceInstanceFns = []) {
+    applyConsecutively(instanceSet, (firstInstance, instanceCount) => {
+      advanceInstanceFns.forEach(fn => fn(firstInstance));
+      this.drawInstanced(gl, elementCount, 0, instanceCount);
+    });
+  }
+
+  static _advanceInstanceFn(gl, instanceBufferInfo, positionLoc) {
+    const {
+      type = gl.FLOAT,
+      stride = 0,
+      normalize = false,
+      buffer,
+      numComponents,
+      offset: baseOffset = 0 } = instanceBufferInfo;
+
+    // Calculate effective stride. If stride is 0, assume tightly packed data (4 bytes for FLOAT/INT).
+    const effectiveStride = stride || (numComponents * 4);
+
+    switch ( numComponents ) {
+      case 16: return firstInstance => {
+        const offset = baseOffset + (firstInstance * effectiveStride); // Instance size is 16 x 4 for a 4x4 matrix of floats.
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.vertexAttribPointer(positionLoc, 4, type, normalize, effectiveStride, offset);
+        gl.vertexAttribPointer(positionLoc+1, 4, type, normalize, effectiveStride, offset + 16); // 4 elements * 4 bytes
+        gl.vertexAttribPointer(positionLoc+2, 4, type, normalize, effectiveStride, offset + 32); // 8 elements * 4 bytes
+        gl.vertexAttribPointer(positionLoc+3, 4, type, normalize, effectiveStride, offset + 48); // 12 elements * 4 bytes
+      };
+
+      case 1:
+      case 2:
+      case 3:
+      case 4: {
+        switch ( type ) {
+          case gl.FLOAT: return firstInstance => {
+            const offset = baseOffset + (firstInstance * effectiveStride);
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.vertexAttribPointer(positionLoc, numComponents, type, normalize, effectiveStride, offset);
+          }
+
+          case gl.INT: return firstInstance => {
+            const offset = baseOffset + (firstInstance * effectiveStride);
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.vertexAttribIPointer(positionLoc, numComponents, type, effectiveStride, offset); // Note the different signature from vertexAttribPointer.
+          }
+
+          default: throw Error(`_advanceInstanceFn ${type} type not yet implemented.`);
+        }
+      }
+
+      default: throw Error(`_advanceInstanceFn ${numComponents} components not yet implemented.`);
+    }
+  }
+
 }
 
 function sumArray(arr) { return arr.reduce((acc, curr) => acc + curr, 0); }
