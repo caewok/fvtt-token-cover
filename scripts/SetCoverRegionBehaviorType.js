@@ -39,7 +39,16 @@ export class SetCoverRegionBehaviorType extends foundry.data.regionBehaviors.Reg
         label: `${MODULE_ID}.behavior.types.set-cover.fields.exclusive.name`,
         hint: `${MODULE_ID}.behavior.types.set-cover.fields.exclusive.hint`,
         initial: false
-      })
+      }),
+
+      physicalCover: new foundry.data.fields.NumberField({
+        label: `${MODULE_ID}.behavior.types.set-cover.fields.distance.name`,
+        hint: `${MODULE_ID}.behavior.types.set-cover.fields.distance.hint`,
+        initial: 1,
+        min: 0,
+        max: 1,
+        step: 0.05,
+      }),
     };
   }
 
