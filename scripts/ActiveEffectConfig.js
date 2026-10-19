@@ -58,6 +58,7 @@ async function _preparePartContext(wrapper, partId, context, options) {
   };
 
   // Only allow status to be chosen if it is not already selected by another cover effect.
+  /*
   const existingStatuses = new Set();
   CONFIG[MODULE_ID].CoverEffect._instances.forEach(ce => {
     if ( ce.document === context.document ) return;
@@ -67,6 +68,7 @@ async function _preparePartContext(wrapper, partId, context, options) {
     if ( existingStatuses.has(status.id) ) return;
     context[MODULE_ID].linkStatusChoices[status.id] = status.name;
   });
+  */
   return context;
 }
 

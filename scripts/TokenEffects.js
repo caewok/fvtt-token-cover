@@ -4,7 +4,6 @@ foundry
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS } from "./const.js";
 import { getBackend, EFFECT_BACKENDS } from "./effect_backends.js";
 import { UniqueEffectDefinition } from "./UniqueEffectDefinition.js";
 
@@ -72,8 +71,8 @@ export class TokenEffects {
 
   /**
    * All definitions currently applied to a token.
-   * @param {Token} toen
-   * @returns {UniqueEffectDefinition}
+   * @param {Token} token
+   * @returns {UniqueEffectDefinition[]}
    */
   static all(token) {
     return [...this._appliedMap(token).keys()]
@@ -157,7 +156,7 @@ export class TokenEffects {
    * @param {EmbeddedCollection} collection
    * @param {Document[]} docs
    */
-  static _deleteDocs(collection, docs) {
+  static _deleteDocs(actor, docs) {
     for ( const doc of docs ) {
       const collection = doc.documentName === "Item" ? actor.items : actor.effects;
       collection.delete(doc.id);

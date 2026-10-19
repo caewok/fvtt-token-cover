@@ -14,6 +14,7 @@ import { CoverCalculator } from "./CoverCalculator.js";
 import { Settings } from "./settings.js";
 import { log } from "./util.js";
 import { TokenCover } from "./TokenCover.js";
+import { TokenEffects } from "./TokenEffects.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
@@ -108,7 +109,7 @@ function updateToken(tokenD, change, _options, _userId) {
   if ( !token ) return;
   if ( Object.hasOwn(change, "disposition") ) {
     token[MODULE_ID].updateCoverIconDisplay();
-    CONFIG[MODULE_ID].CoverEffect.refreshTokenDisplay(token);
+    TokenEffects.refreshTokenDisplay(token);
   }
   // Token movement, resize now handled by refresh.
 }

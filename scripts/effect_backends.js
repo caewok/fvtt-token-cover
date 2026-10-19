@@ -9,7 +9,7 @@ game
 "use strict";
 
 import { MODULE_ID, FLAGS } from "./const.js";
-import { SETTINGS } from "./settings.js";
+import { Settings, DEFAULT_PRESET_DEFINITIONS } from "./settings.js";
 
 /*
 A "backend" is the ONLY place that knows two things for a given game system:
@@ -27,18 +27,35 @@ operation this module does not need to reimplement.
 const SHOW_ICON = CONST.ACTIVE_EFFECT_SHOW_ICON;
 
 /**
+ * Resolve GM's dropped effects/items into definition descriptors.
+ * Runs at load and when the setting changes.
+ * @param {"ActiveEffect"|"Item"} documentType
+ */
+async function loadDocumentDefinitions(documentType) {
+  const defs = [];
+  for ( const def of Settings.coverDefinitions.all ) {
+    if ( !def.uuid || def.documentType !== documentType ) continue;
+    const doc = await fromUuid(def.uuid);
+    if ( !doc ) continue; // Source deleted or compendium missing.
+    defs.push({
+      id: def.uuid,
+      name: doc.name,
+      img: doc.img,
+      category: "cover",
+      allowsDuplicates: false,
+      displayIcon: def.displayIcon ?? true,
+      minPercent: def.minPercent,
+      document: doc,
+    });
+  }
+  return defs;
+}
+
+
+/**
  * @typedef {object} EffectBackend
  *
  * Properties and functions required to define token effects for a system.
- * @prop {string} documentName                                  Name of the defining Foundry document
- * @prop {Item|null} _storageItem                               Hidden item that houses all definitions
- * @prop {function} initializeStorage                           One-time setup of the hidden item
- * @prop {EmbeddedCollection|Map|undefined} storageCollection   Collection of effects
- * @prop {function} createDefinitionDocument                    Create effect document from data
- * @prop {function} updateDefinitionDocument                    Update a specific effect document from dat
- * @prop {function} deleteDefinitionDocument                    Delete effect document
- * @prop {function} tokenCollection                             Where local copies live on token's actor
- * @prop {function} buildTokenData                              Build source data for local (non-persisted) effect
  */
 
 // ----- NOTE: ActiveEffect-backed system (default) ----- //
@@ -54,24 +71,7 @@ const activeEffectBackend = {
    * Load definition descriptors (id, name, img, category).
    * @returns {Promise<object[]>}
    */
-  async loadDefinitions() {
-    const entries = game.settings.get(MODULE_ID, SETTINGS.EFFECT_SOURCES) ?? [];
-    const defs = [];
-    for ( const entry of entries.filter(e => e.documentType === "ActiveEffect") ) {
-      const doc = await fromUuid(entry.uuid);
-      if ( !doc ) continue;
-      defs.push({
-        id: doc.uuid,
-        name: doc.name,
-        img: doc.img,
-        category: entry.category ?? "cover",
-        allowsDuplicates: entry.allowsDuplicates ?? false,
-        displayIcon: entry.displayIcon ?? true,
-        document: doc,
-      });
-    }
-    return defs;
-  },
+  async loadDefinitions() { return loadDocumentDefinitions("ActiveEffect"); },
 
   /**
    * Where local copies live on a token's actor.
@@ -118,29 +118,12 @@ const activeEffectBackend = {
 const itemBackend = {
   documentName: "Item",
 
-  async loadDefinitions() {
-    const entries = game.settings.get(MODULE_ID, SETTINGS.EFFECT_SOURCES) ?? [];
-    const defs = [];
-    for ( const entry of entries.filter(e => e.documentType === "Item") ) {
-      const doc = await fromUuid(entry.uuid);
-      if ( !doc ) continue;
-      defs.push({
-        id: doc.uuid,
-        name: doc.name,
-        img: doc.img,
-        category: entry.category ?? "cover",
-        allowsDuplicates: entry.allowsDuplicates ?? false,
-        displayIcon: entry.displayIcon ?? true,
-        document: doc
-      });
-    }
-    return defs;
-  },
+  async loadDefinitions() { return loadDocumentDefinitions("Item"); },
 
   tokenCollection(actor) { return actor?.items; },
 
   /** Items have no `origin` field, so identity is our own flag instead. */
-  getAppliedId(doc) { return doc.getFlag(MODULE_ID, "sourceUuid") ?? undefined; },
+  getAppliedId(doc) { return doc.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID) ?? undefined; },
 
   buildTokenData(definition, token, data = {}) {
     const doc = definition.document.toObject();
@@ -168,17 +151,23 @@ const dnd5eStatusBackend = {
   documentName: "ActiveEffect",
 
   loadDefinitions() {
+    const stored = new Map(Settings.coverDefinitions.all.filter(d => d.statusId).map(d => [d.statusId, d]));
+    const defaults = new Map(DEFAULT_PRESET_DEFINITIONS.map(d => [d.statusId, d]));
     return [...DND5E_COVER_STATUS_IDS]
-      .map(id => ({ id, status: CONFIG.statusEffects[id] }))
-      .filter(({ status }) => Boolean(status))
-      .map(({ id, status }) => ({
-        id,
-        name: game.i18n.localize(status.name ?? status.label ?? id),
-        img: status.img ?? status.icon,
-        category: "cover",
-        allowsDuplicates: false,
-        displayIcon: true
-      }));
+      .filter(id => CONFIG.statusEffects[id])
+      .map(id => {
+        const status = CONFIG.statusEffects[id];
+        const def = stored.get(id) ?? defaults.get(id);
+        return {
+          id,
+          name: game.i18n.localize(status.name ?? status.label ?? id),
+          img: status.img ?? status.icon,
+          category: "cover",
+          allowsDuplicates: false,
+          displayIcon: def.displayIcon ?? true,
+          minPercent: def.minPercent,
+        };
+      });
   },
 
   tokenCollection(actor) { return actor?.effects; },
@@ -218,7 +207,7 @@ export const EFFECT_BACKENDS = {
  * @returns {object} The backend for the current game system
  */
 export function getBackend(category = "cover") {
-  const mode = game.settings.get(MODULE_ID, SETTINGS.BACKEND_MODE) || "auto"; // "auto" |"activeEffect"
+  const mode = Settings.get(Settings.KEYS.BACKEND_MODE) || "auto"; // "auto" |"activeEffect"
 
   if ( category === "cover" && game.system.id === "dnd5e" && mode !== "activeEffect" ) return EFFECT_BACKENDS.dnd5eStatus;
   if ( ITEM_BACKEND_SYSTEMS.has(game.system.id) ) return EFFECT_BACKENDS.item;

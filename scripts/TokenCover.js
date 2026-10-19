@@ -11,6 +11,7 @@ import { MODULE_ID, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { Settings } from "./settings.js";
 import { log, NULL_SET } from "./util.js";
+import { TokenEffects } from "./TokenEffects.js";
 
 // Class to use to handle added methods and getters for token
 // Encapsulated inside Token.prototype.tokencover
@@ -108,7 +109,7 @@ Triggers:
  * @prop {Color} [tint]                 Color to use for tint, if any
  */
 
-class TokenCoverBase {
+class TokenCover {
   /** @type {Token} */
   token;
 
@@ -131,11 +132,9 @@ class TokenCoverBase {
    * Should always be equal to the cover effects on the token.
    * It is an error to have the same cover effect applied twice on the token.
    * Not modifiable b/c it reflects actual effects on the actor.
-   * @type {Set<CoverEffect>}
+   * @type {UniqueEffectDefinition[]}
    */
-  get _currentCoverEffects() {
-    return CONFIG[MODULE_ID].CoverEffect.allOnToken(this.token);
-  }
+  get _currentCoverEffects() { return TokenEffects.all(this.token); }
 
   constructor(token) {
     this.token = token;
@@ -275,14 +274,7 @@ class TokenCoverBase {
    * Update the cover icon display for this token.
    */
   updateCoverIconDisplay() {
-    const coverEffects = CONFIG[MODULE_ID].CoverEffect.allOnToken(this.token);
-    if ( !coverEffects.size ) return;
-    const displayIcon = this.canDisplayCoverIcon;
-    coverEffects.forEach(ce => {
-      if ( displayIcon ) {
-        if ( !ce.document.statuses.includes(ce.img) ) ce.document.statuses.push(ce.img);
-      } else ce.document.statuses.findSplice(s => s === ce.img);
-    });
+    TokenEffects.refreshTokenDisplay(this.token);
   }
 
   /**
@@ -611,7 +603,6 @@ class TokenCoverBase {
   }
 }
 
-export class TokenCover extends TokenCoverBase {}
 
 // ----- NOTE: Helper functions ----- //
 
