@@ -6,8 +6,9 @@ game
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS } from "../const.js";
-import { log } from "../util.js";
+import { MODULE_ID } from "./const.js";
+import { SETTINGS } from "./settings.js";
+import { log } from "./util.js";
 import { getBackend } from "./effect_backends.js";
 
 /**
@@ -17,10 +18,12 @@ import { getBackend } from "./effect_backends.js";
  * UniqueFlagEffect tree). All system-specific behavior lives in the backend returned by
  * getBackend(); this class just calls it.
  *
- * There are only ever a handful of definitions (a dozen or two cover/terrain types), created
- * or edited rarely by a GM, so a simple Map registry here is fine - this is NOT the same thing
- * as tracking which tokens currently have an effect applied (see TokenEffects for that, which
- * is the part that has to be fast and DB-free).
+ * Definitions are no longer authored or stored by this module at all. For dnd5e's built-in
+ * cover statuses there is nothing to store - they already live in CONFIG.statusEffects. For
+ * everything else, a definition is just a GM-picked UUID pointing at an existing compendium or
+ * world ActiveEffect/Item; we never create, edit, or delete that document, only reference it
+ * (v14 lets any document be reached with `fromUuid` regardless of where it lives, so there's no
+ * need for the old "hidden storage Item" that effects had to be embedded in to be addressable).
  */
 
 export class UniqueEffect {
@@ -28,30 +31,56 @@ export class UniqueEffect {
   /** @type {Map<string, UniqueEffectDefinition>} */
   static _definitions = new Map();
 
-  /** @type {Document} The stored template document - an ActiveEffect or Item, per backend. */
-  document;
-
-  constructor(document) { this.document = document; }
+  /**
+   * @param {object} data
+   * @param {string} data.id
+   * @param {string} data.name
+   * @param {string} data.img
+   * @param {string} [data.category="UniqueEffect"]   Groups definitions for exclusive application.
+   * @param {boolean} [data.allowsDuplicates=false]
+   * @param {boolean} [data.displayIcon=true]
+   * @param {Document} [data.document]
+   */
+  constructor({
+    id,
+    name,
+    img,
+    category = "UniqueEffect",
+    allowsDuplicates = false,
+    displayIcon = true,
+    document = null
+  }) {
+    this.id = id;
+    this.name = name;
+    this.img = img;
+    this.category = category;
+    this.allowsDuplicates = allowsDuplicates;
+    this.displayIcon = displayIcon;
+    this.document = document;
+  }
 
   // ----- NOTE: Basic properties ----- //
 
   /** @type {string} */
-  get id() { return this.document.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID); }
+  id;
 
   /** @type {string} */
-  get name() { return this.document.name; }
+  name;
 
   /** @type {string} */
-  get img() { return this.document.img; }
+  img;
 
   /** @type {string} Used to group definitions for "exclusive" application (see TokenEffects.add). */
-  get category() { return this.document.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.TYPE) ?? "UniqueEffect"; }
+  category;
 
   /** @type {boolean} */
-  get allowsDuplicates() { return this.document.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.DUPLICATES_ALLOWED) ?? false; }
+  allowsDuplicates;
 
   /** @type {boolean} */
-  get displayIcon() { return this.document.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.DISPLAY_ICON) ?? true; }
+  displayIcon;
+
+  /** @type {Document|null} The source document, for compendium-reference definitions. */
+  document;
 
   /** @returns {UniqueEffectDefinition[]} */
   static get all() { return [...this._definitions.values()]; }
@@ -62,104 +91,48 @@ export class UniqueEffect {
    */
   static get(id) { return this._definitions.get(id); }
 
-  // ----- NOTE: Drag / import / export ----- //
-
-  /** @returns {object} Data used when dragging this definition to an actor sheet or token. */
-  toDragData() {
-    return { type: getBackend().documentName, name: this.name, uuid: this.document.uuid };
-  }
-
-  /** @returns {string} */
-  toJSON() { return this.document.toJSON(); }
-
-  /** @param {string} json */
-  async fromJSON(json) {
-    try { json = JSON.parse(json); }
-    catch ( err ) {
-      console.error(`${MODULE_ID}|UniqueEffectDefinition#fromJSON`, err);
-      return false;
-    }
-    return this.update(json);
-  }
-
-  // ----- NOTE: Persisted CRUD ----- //
-  // Rare: a GM configuring effect types. Fine to be async - this is not the per-token hot path.
+  // ----- Settings list management ----- //
 
   /**
-   * Create a brand-new definition and register it.
-   * @param {object} [data]   Additional data merged over the defaults (name, img, changes, etc.)
-   * @returns {UniqueEffectDefinition}
+   * Reference an existing ActiveEffect or Item as a definition.
+   * @param {string} uuid
+   * @param {"ActiveEffect"|"Item"} documentType
+   * @param {object} [meta]   category/allowsDuplicates/displayIcon overrides
    */
-  static async create(data = {}) {
-    const backend = getBackend();
-    const id = foundry.utils.randomID();
-    const merged = foundry.utils.mergeObject(this._defaultData(id), data, { inplace: false });
-    const doc = await backend.createDefinitionDocument(merged);
-    const definition = new this(doc);
-    this._definitions.set(id, definition);
-    return definition;
-  }
-
-  /** @param {object} data */
-  async update(data) {
-    await getBackend().updateDefinitionDocument(this.document, data);
-    return true;
-  }
-
-  /** Delete this definition entirely (not just remove it from tokens). */
-  async delete() {
-    await getBackend().deleteDefinitionDocument(this.document);
-    this.constructor._definitions.delete(this.id);
+  static async addSource(uuid, documentType, meta = {}) {
+    const entries = foundry.utils.deepClone(game.settings.get(MODULE_ID, SETTINGS.EFFECT_SOURCES) ?? []);
+    if ( entries.some(e => e.uuid === uuid) ) return;
+    entries.push({ uuid, documentType, category: "cover", allowsDuplicates: false, displayIcon: true, ...meta });
+    await game.settings.set(MODULE_ID, SETTINGS.EFFECT_SOURCES, entries);
+    await this.initialize();
   }
 
   /**
-   * Flag data every definition document must carry.
+   * Stop referencing a definition added via addSource.
    * @param {string} id
-   * @returns {object}
    */
-  static _defaultData(id) {
-    return {
-      name: "New Effect",
-      flags: {
-        [MODULE_ID]: {
-          [FLAGS.UNIQUE_EFFECT.ID]: id,
-          [FLAGS.UNIQUE_EFFECT.TYPE]: "UniqueEffect",
-          [FLAGS.UNIQUE_EFFECT.DUPLICATES_ALLOWED]: false,
-          [FLAGS.UNIQUE_EFFECT.DISPLAY_ICON]: true
-        }
-      }
-    };
+  static async removeSource(id) {
+    const entries = (game.settings.get(MODULE_ID, SETTINGS.EFFECT_SOURCES) ?? []).filter(e => e.uuid !== id);
+    await game.settings.set(MODULE_ID, SETTINGS.EFFECT_SOURCES, entries);
+    this._definitions.delete(id);
   }
 
   // ----- NOTE: Initialization ----- //
 
-  /** Load all persisted definitions into memory. Call once, e.g. at canvas.init/ready. */
+  /**
+   * Load every definition relevant to the current system/settings. Call once, e.g. at ready.
+   * Rare/async by nature (fromUuid may hit a compendium)-this is not the per-token hot path.
+   */
   static async initialize() {
-    const backend = getBackend();
-    await backend.initializeStorage();
-    const stored = backend.storageCollection();
     this._definitions.clear();
-    if ( !stored ) return;
-    for ( const doc of stored.values() ) {
-      const id = doc.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID);
-      if ( id ) this._definitions.set(id, new this(doc));
+    // "cover" and "terrain" may resolve to different backends (e.g. dnd5e cover as a built-in
+    // status, terrain as a regular Active Effect) - load whichever backend(s) are actually
+    // active, not every backend that exists.
+    const backends = new Set([getBackend("cover"), getBackend("terrain")]);
+    for ( const backend of backends ) {
+      const defs = await backend.loadDefinitions();
+      for ( const d of defs ) this._definitions.set(d.id, new this(d));
     }
     log(`UniqueEffectDefinition|Loaded ${this._definitions.size} definitions.`);
-  }
-
-  /**
-   * Create any shipped default definitions (e.g. standard cover/terrain types) that don't
-   * already exist. Safe to call every load - it skips ids that are already defined.
-   * @param {Object<string,string>} paths   id -> path to a JSON effect-data file
-   */
-  static async loadDefaults(paths) {
-    for ( const [id, path] of Object.entries(paths ?? {}) ) {
-      if ( this._definitions.has(id) ) continue;
-      const data = await foundry.utils.fetchJsonWithTimeout(path);
-      if ( !data ) continue;
-      data.name = game.i18n.localize(data.name);
-      foundry.utils.setProperty(data, `flags.${MODULE_ID}.${FLAGS.UNIQUE_EFFECT.ID}`, id);
-      await this.create(data);
-    }
   }
 }

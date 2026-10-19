@@ -5,18 +5,22 @@ foundry
 "use strict";
 
 import { MODULE_ID, FLAGS } from "../const.js";
-import { getBackend } from "./effectBackends.js";
+import { getBackend, EFFECT_BACKENDS } from "./effectBackends.js";
 import { UniqueEffect } from "./UniqueEffect.js";
 
 /**
  * Everything to do with putting a UniqueEffectDefinition on (or off) a token.
  *
- * Deliberately has exactly one mode of operation: local and synchronous. This is called every
- * time cover/terrain is recalculated for a token - potentially every animation frame while a
- * viewer token is dragged around a scene - so nothing here may `await` or touch the database.
- * (Compare to the old design's parallel "_addToToken" (DB) / "_addToTokenLocally" (local)
- * methods on every subclass: only the local half was ever safe to use for this feature, so
- * that's the only half that exists now.)
+ * Deliberately has exactly one mode of operation: local and synchronous. This runs every time
+ * cover/terrain is recalculated for a token - potentially every animation frame while a viewer
+ * token is dragged around a scene - so nothing here may `await` or touch the database.
+ *
+ * A single call can mix definitions from different categories (e.g. cover + terrain at once),
+ * and those categories may resolve to different backends/document types (dnd5e cover as a
+ * built-in status vs. terrain as a regular Active Effect) - so every doc-producing step below
+ * resolves its backend per-definition rather than once for the whole call. Removal, by
+ * contrast, just dispatches on the document's own type (ActiveEffect vs Item), which is enough
+ * to find the right collection regardless of which backend originally created it.
  *
  * A GM who wants a *persistent* manually-applied condition should drag the definition's
  * document onto the actor sheet the normal Foundry way; that's a distinct, infrequent, and
@@ -34,13 +38,28 @@ export class TokenEffects {
   static _appliedMap(token) {
     // A single pass over the token's effects/items collection.
     const map = new Map();
-    const collection = getBackend().tokenCollection(token.actor);
-    if ( !collection ) return map;
-    for ( const doc of collection ) {
-      const id = doc.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID);
+    const actor = token.actor;
+    if ( !actor ) return map;
+    for ( const doc of [...(actor.effects ?? []), ...(actor.items ?? [])] ) {
+      const id = this._resolveAppliedId(doc);
       if ( id ) map.set(id, doc);
     }
     return map;
+  }
+
+  /**
+   * Which (if any) known definition a document represents, trying each backend's identity
+   * check in turn. Cheap-only ever runs against the handful of docs already on one actor.
+   * @param {Document} doc
+   * @returns {string|undefined}
+   */
+  static _resolveAppliedId(doc) {
+    for ( const backend of new Set(Object.values(EFFECT_BACKENDS)) ) {
+      if ( backend.documentName !== doc.documentName ) continue;
+      const id = backend.getAppliedId(doc);
+      if ( id && UniqueEffectDefinition.get(id) ) return id;
+    }
+    return undefined;
   }
 
   /**
@@ -49,9 +68,7 @@ export class TokenEffects {
    * @param {UniqueEffectDefinition} definition
    * @returns {boolean}
    */
-  static has(token, definition) {
-    return this._appliedMap(token).has(definition.id);
-  }
+  static has(token, definition) { return this._appliedMap(token).has(definition.id); }
 
   /**
    * All definitions currently applied to a token.
@@ -60,7 +77,8 @@ export class TokenEffects {
    */
   static all(token) {
     return [...this._appliedMap(token).keys()]
-      .map(id => UniqueEffect.get(id));
+      .map(id => UniqueEffect.get(id))
+      .filter(Boolean);
   }
 
   /**
@@ -73,10 +91,8 @@ export class TokenEffects {
    * @returns {boolean} True if token changed.
    */
   static add(token, definitions, { exclusive = false, data } = {}) {
-    const backend = getBackend();
-    const actor = token.actor();
-    const collection = backend.tokenCollection(actor);
-    if ( !(actor && collection) ) return false;
+    const actor = token.actor;
+    if ( !actor ) return false;
 
     const applied = this._appliedMap(token);
     const toAdd = definitions.filter(d => !applied.has(d.id) || d.allowsDuplicates);
@@ -86,17 +102,19 @@ export class TokenEffects {
       const categories = new Set(toAdd.map(d => d.category));
       const addIds = new Set(toAdd.map(d => d.id));
       const toRemove = [...applied.entries()]
-        .filter(([id, doc]) => !addIds.has(id) && categories.has(doc.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.TYPE)))
+        .filter(([id]) => !addIds.has(id) && categories.has(UniqueEffectDefinition.get(id)?.category))
         .map(([, doc]) => doc);
-      this._deleteDocs(collection, toRemove);
+      this._deleteDocs(actor, toRemove);
     }
 
     for ( const definition of toAdd ) {
+      const backend = getBackend(definition.category);
+      const collection = backend.tokenCollection(actor);
+      if ( !collection ) continue;
       const docData = backend.buildTokenData(definition, token, data);
-
-      // Assign the id manually: collection.createDocument() does not do this for us.
-      // Field may be locked on a cloned template's data (see upstream PR #44 / issue #46).
-      docData.id = foundry.utils.randomID();
+      // Assign the id manually: collection.createDocument() does not do this for us, and the
+      // field may be locked on a cloned template's data (see upstream PR #44 / issue #46).
+      docData._id = foundry.utils.randomID();
       const doc = collection.createDocument(docData);
       collection.set(doc.id, doc);
     }
@@ -113,16 +131,15 @@ export class TokenEffects {
    * @returns {boolean} true if the token changed.
    */
   static remove(token, definitions) {
-    const backend = getBackend();
     const actor = token.actor;
-    const collection = backend.tokenCollection(actor);
-    if ( !(actor && collection) ) return false;
+    if ( !actor ) return false;
 
     const ids = new Set(definitions.map(d => d.id));
-    const toRemove = [...collection].filter(doc => ids.has(doc.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID)));
+    const applied = this._appliedMap(token);
+    const toRemove = [...applied.entries()].filter(([id]) => ids.has(id)).map(([, doc]) => doc);
     if ( !toRemove.length ) return false;
 
-    this._deleteDocs(collection, toRemove);
+    this._deleteDocs(actor, toRemove);
     actor.reset();
     this.refreshTokenDisplay(token);
     return true;
@@ -140,7 +157,12 @@ export class TokenEffects {
    * @param {EmbeddedCollection} collection
    * @param {Document[]} docs
    */
-  static _deleteDocs(collection, docs) { for ( const doc of docs ) collection.delete(doc.id); }
+  static _deleteDocs(collection, docs) {
+    for ( const doc of docs ) {
+      const collection = doc.documentName === "Item" ? actor.items : actor.effects;
+      collection.delete(doc.id);
+    }
+  }
 
   /**
    * Refresh the token's display (icons) after a local change.

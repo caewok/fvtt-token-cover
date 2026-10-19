@@ -1,4 +1,5 @@
 /* globals
+CONFIG,
 CONST,
 foundry,
 fromUuid,
@@ -7,33 +8,20 @@ game
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS } from "../const.js";
-import {
-  createDocument,
-  updateDocument,
-  deleteDocument,
-  createEmbeddedDocuments,
-  updateEmbeddedDocuments,
-  deleteEmbeddedDocuments } from "./documents.js";
+import { MODULE_ID, FLAGS } from "./const.js";
+import { SETTINGS } from "./effectSettings.js";
 
 /*
 A "backend" is the ONLY place that knows two things for a given game system:
   1. Where unique-effect *definitions* (templates: name, icon, changes, flags) are stored.
   2. What kind of Document gets manufactured on a token's actor when a definition is applied,
-     and how to build that document's data.
+     how to build that document's data, and how to recognize an applied copy later.
 
-Nothing outside this file branches on game.system.id. Everything else (dedupe, exclusivity,
-JSON import/export, drag data) is generic and lives in UniqueEffectDefinition / TokenEffects.
+Nothing outside this file branches on game.system.id or reads CONFIG.statusEffects directly.
 
-Definition storage is read/written rarely (a GM configuring cover/terrain types) and is fine
-to be async / hit the database, exactly like any other Foundry document CRUD.
-
-Token application (buildTokenData, and everything in TokenEffects.js) is called every time a
-viewer token's cover is recalculated - i.e. potentially every animation frame while a token is
-dragged. It is therefore ALWAYS local: it never calls createEmbeddedDocuments/updateDocument/
-deleteDocument/etc. against a token's actor. A GM who wants a *persistent* manually-applied
-condition should drag the definition's document onto the actor sheet the normal Foundry way;
-that's a distinct, infrequent, already-async-safe operation this module doesn't need to wrap.
+A GM who wants a *persistent* manually-applied condition should drag the definition's document
+onto the actor sheet the normal Foundry way; that's a distinct, infrequent, already-async-safe
+operation this module does not need to reimplement.
 */
 
 const SHOW_ICON = CONST.ACTIVE_EFFECT_SHOW_ICON;
@@ -53,57 +41,36 @@ const SHOW_ICON = CONST.ACTIVE_EFFECT_SHOW_ICON;
  * @prop {function} buildTokenData                              Build source data for local (non-persisted) effect
  */
 
-// ----- NOTE: ActiveEffect-backed system (default for dnd5e and most others) ----- //
+// ----- NOTE: ActiveEffect-backed system (default) ----- //
+// Definitions are arbitrary ActiveEffect documents—world or compendium—picked by the GM via
+// settings (see UniqueEffectDefinition.addSource). We never author or store our own copy of
+// them; v14 lets any document live wherever it likes and be reached with fromUuid, so a
+// definition is nothing more than a UUID plus a little of our own display metadata.
 
 const activeEffectBackend = {
   documentName: "ActiveEffect",
 
-  /** @type {Item|null} Hidden world item storing effect definitions */
-  _storageItem: null,
-
   /**
-   * One-time setup. Find or create the hidden item that houses all definitions.
+   * Load definition descriptors (id, name, img, category).
+   * @returns {Promise<object[]>}
    */
-  async initializeStorage() {
-    const name = "Unique Active Effects";
-    let item = game.items.find(i => i.name === name);
-    if ( !item ) {
-      const uuid = await createDocument("CONFIG.Item.documentClass", undefined,
-        { name, img: "icons/svg/ruins.svg", type: "base" });
-      item = uuid ? await fromUuid(uuid) : null;
+  async loadDefinitions() {
+    const entries = game.settings.get(MODULE_ID, SETTINGS.EFFECT_SOURCES) ?? [];
+    const defs = [];
+    for ( const entry of entries.filter(e => e.documentType === "ActiveEffect") ) {
+      const doc = await fromUuid(entry.uuid);
+      if ( !doc ) continue;
+      defs.push({
+        id: doc.uuid,
+        name: doc.name,
+        img: doc.img,
+        category: entry.category ?? "cover",
+        allowsDuplicates: entry.allowsDuplicates ?? false,
+        displayIcon: entry.displayIcon ?? true,
+        document: doc,
+      });
     }
-    this._storageItem = item;
-  },
-
-  /** @returns {EmbeddedCollection|undefined} */
-  storageCollection() { return this._storageItem?.effects; },
-
-  /**
-   * Create an active effect for given data.
-   * @param {object} data
-   * @returns {ActiveEffect}
-   */
-  async createDefinitionDocument(data) {
-    const res = await createEmbeddedDocuments(this._storageItem.uuid, "ActiveEffect", undefined, [data]);
-    return fromUuid(res[0]);
-  },
-
-  /**
-   * Update active effect definition.
-   * @param {ActiveEffect} doc
-   * @param {object} data
-   */
-  async updateDefinitionDocument(doc, data) {
-    data = { ...data, _id: doc.id };
-    await updateEmbeddedDocuments(this._storageItem.uuid, "ActiveEffect", [data]);
-  },
-
-  /**
-   * Remove an active effect definition.
-   * @param {ActiveEffect} doc
-   */
-  async deleteDefinitionDocument(doc) {
-    await deleteEmbeddedDocuments(this._storageItem.uuid, "ActiveEffect", [doc.id]);
+    return defs;
   },
 
   /**
@@ -111,6 +78,14 @@ const activeEffectBackend = {
    * @returns {EmbeddedCollection|undefined}
    */
   tokenCollection(actor) { return actor?.effects; },
+
+  /**
+   * Identity of a local copy, if it's one of ours: the uuid of the source definition it
+   * was cloned from, stashed int he core `origin` field.
+   * @param {ActiveEffect} doc
+   * @returns {string|undefined}
+   */
+  getAppliedId(doc) { return doc.origin ?? undefined; },
 
   /**
    * Build source data for a local (non-persisted) copy of a definition, for one token.
@@ -123,17 +98,14 @@ const activeEffectBackend = {
     const doc = definition.document.toObject();
     delete doc._id;
     doc.transfer = false;
-    doc.origin = definition.document.uuid;
+    doc.origin = definition.id;  // = definition.document.uuid
 
-    // Identity tag: Lets TokenEffects or other modules recognize this as definition X regardless of icon shown.
-    doc.statuses = Array.from(new Set([...(doc.statuses ??[]), definition.id]));
 
     // Icon visibility is *separate* from statuses/duration as of v14's `showIcon.`
     // Previously this was forced by modifying statuses; this is no longer necessary.
     const hideIcon = !definition.displayIcon || token.document.disposition === CONST.TOKEN_DISPOSITIONS.SECRET;
     doc.showIcon = hideIcon ? SHOW_ICON.NEVER : SHOW_ICON.ALWAYS;
 
-    foundry.utils.setProperty(doc, `flags.${MODULE_ID}.${FLAGS.UNIQUE_EFFECT.ID}`, definition.id);
     foundry.utils.setProperty(doc, `flags.${MODULE_ID}.${FLAGS.UNIQUE_EFFECT.IS_LOCAL}`, true);
     return foundry.utils.mergeObject(doc, data, { inplace: true });
   },
@@ -146,27 +118,29 @@ const activeEffectBackend = {
 const itemBackend = {
   documentName: "Item",
 
-  async initializeStorage() { /* Definitions ARE world items; nothing to set up */ },
-
-  /** @returns {Map<string, Item>} */
-  storageCollection() {
-    const map = new Map();
-    for ( const item of game.items ) {
-      if ( item.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID) ) map.set(item.id, item);
+  async loadDefinitions() {
+    const entries = game.settings.get(MODULE_ID, SETTINGS.EFFECT_SOURCES) ?? [];
+    const defs = [];
+    for ( const entry of entries.filter(e => e.documentType === "Item") ) {
+      const doc = await fromUuid(entry.uuid);
+      if ( !doc ) continue;
+      defs.push({
+        id: doc.uuid,
+        name: doc.name,
+        img: doc.img,
+        category: entry.category ?? "cover",
+        allowsDuplicates: entry.allowsDuplicates ?? false,
+        displayIcon: entry.displayIcon ?? true,
+        document: doc
+      });
     }
-    return map;
+    return defs;
   },
-
-  async createDefinitionDocument(data) {
-    const uuid = await createDocument("CONFIG.Item.documentClass", undefined, data);
-    return fromUuid(uuid);
-  },
-
-  async updateDefinitionDocument(doc, data) { await updateDocument(doc.uuid, data); },
-
-  async deleteDefinitionDocument(doc) { await deleteDocument(doc.uuid); },
 
   tokenCollection(actor) { return actor?.items; },
+
+  /** Items have no `origin` field, so identity is our own flag instead. */
+  getAppliedId(doc) { return doc.getFlag(MODULE_ID, "sourceUuid") ?? undefined; },
 
   buildTokenData(definition, token, data = {}) {
     const doc = definition.document.toObject();
@@ -180,15 +154,73 @@ const itemBackend = {
   }
 };
 
+// ----- NOTE: dnd5e built-in status backend ----- //
+// dnd5e ships CONFIG.statusEffects.coverHalf / coverThreeQuarters / coverTotal. Adding one of
+// those ids to an actor's `statuses` is all dnd5e needs to apply the matching AC/Dex-save
+// modifiers itself - there is nothing for this module to define, store, or configure. This
+// builds the same shape core's `ActiveEffect.fromStatusEffect` would, just inline and
+// synchronously instead of calling that (async) API, since this runs on the per-frame hot path
+
+const DND5E_COVER_STATUS_IDS = new Set(["coverHalf", "coverThreeQuarters", "coverTotal"]);
+
+const dnd5eStatusBackend = {
+
+  documentName: "ActiveEffect",
+
+  loadDefinitions() {
+    return [...DND5E_COVER_STATUS_IDS]
+      .map(id => ({ id, status: CONFIG.statusEffects[id] }))
+      .filter(({ status }) => Boolean(status))
+      .map(({ id, status }) => ({
+        id,
+        name: game.i18n.localize(status.name ?? status.label ?? id),
+        img: status.img ?? status.icon,
+        category: "cover",
+        allowsDuplicates: false,
+        displayIcon: true
+      }));
+  },
+
+  tokenCollection(actor) { return actor?.effects; },
+
+  /** Identity is core: is one of our known status ids present? */
+  getAppliedId(doc) { return doc.statuses?.find(id => DND5E_COVER_STATUS_IDS.has(id)); },
+
+  buildTokenData(definition, token, data = {}) {
+    const status = CONFIG.statusEffects[definition.id];
+    const { id, hud: _hud, ...effectData } = foundry.utils.deepClone(status);
+    effectData.name = game.i18n.localize(effectData.name ?? effectData.label ?? id);
+    effectData.statuses = Array.from(new Set([id, ...(effectData.statuses ?? [])]));
+
+    const hideIcon = !definition.displayIcon
+      || token.document.disposition === CONST.TOKEN_DISPOSITIONS.SECRET;
+    effectData.showIcon = hideIcon ? SHOW_ICON.NEVER : SHOW_ICON.ALWAYS;
+
+    foundry.utils.setProperty(effectData, `flags.${MODULE_ID}.isLocal`, true);
+    return foundry.utils.mergeObject(effectData, data, { inplace: true });
+  },
+};
+
 // ----- NOTE: Exports ----- //
+
+const ITEM_BACKEND_SYSTEMS = new Set(["pf2e", "sfrpg"]);
 
 export const EFFECT_BACKENDS = {
   default: activeEffectBackend,
-  pf2e: itemBackend,
-  sfrpg: itemBackend,
+  item: itemBackend,
+  dnd5eStatus: dnd5eStatusBackend,
 };
 
 /**
+ * Which backend applies for a given category of effect.
+ * Relies on current system/settings.
+ * @param {string} [category="cover"]
  * @returns {object} The backend for the current game system
  */
-export function getBackend() { return EFFECT_BACKENDS[game.system.id] ?? EFFECT_BACKENDS.default; }
+export function getBackend(category = "cover") {
+  const mode = game.settings.get(MODULE_ID, SETTINGS.BACKEND_MODE) || "auto"; // "auto" |"activeEffect"
+
+  if ( category === "cover" && game.system.id === "dnd5e" && mode !== "activeEffect" ) return EFFECT_BACKENDS.dnd5eStatus;
+  if ( ITEM_BACKEND_SYSTEMS.has(game.system.id) ) return EFFECT_BACKENDS.item;
+  return EFFECT_BACKENDS.default;
+}
