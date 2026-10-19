@@ -146,6 +146,11 @@
     "tokencover.settings.button-documentation.Label": "Open Documentation",
     "tokencover.settings.button-issue.Label": "Report Issue",
 
+    "tokencover.settings.backend-mode.Name": "Cover effect backend",
+    "tokencover.settings.backend-mode.Hint": "How cover is applied to tokens. \"Automatic\" uses the system's own built-in cover statuses when available (currently dnd5e); \"Active Effects / Items\" always uses the effects or items configured below instead.",
+    "tokencover.settings.backend-mode.auto": "Automatic",
+    "tokencover.settings.backend-mode.activeEffect": "Active Effects / Items",
+
     "tokencover.template.settings-config.tabs.los_viewer": "Viewer",
     "tokencover.template.settings-config.tabs.los_target": "Target",
     "tokencover.template.settings-config.tabs.workflow": "Cover Workflow",
@@ -159,6 +164,10 @@
     "tokencover.settings-submenu.tabs.losViewer": "Viewer LOS",
     "tokencover.settings-submenu.tabs.other": "Other",
     "tokencover.settings-submenu.tabs.workflow": "Workflow",
+
+    "tokencover.settings.coverRulesMenu.Name": "Cover Effects",
+    "tokencover.settings.coverRulesMenu.Label": "Configure Cover Effects",
+    "tokencover.settings.coverRulesMenu.Hint": "Drag Active Effects or Items from a compendium onto the window and set the percent cover at which each one applies",
 
     "tokencover.settings.exportButton.Name": "",
     "tokencover.settings.exportButton.Label": "Export Settings",

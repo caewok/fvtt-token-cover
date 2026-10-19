@@ -174,7 +174,8 @@ export const TEMPLATES = {
   COVER_RULES_PARTIAL: `modules/${MODULE_ID}/templates/cover-rules-partial.html`,
   ACTIVE_EFFECT: `modules/${MODULE_ID}/templates/active-effect-config.html`,
   COVER_RULES_PF2E: `modules/${MODULE_ID}/templates/cover-rules-pf2e.html`,
-  SPELL_CONFIG_DND5E: `modules/${MODULE_ID}/templates/dnd5e-spell-config.html`
+  SPELL_CONFIG_DND5E: `modules/${MODULE_ID}/templates/dnd5e-spell-config.html`,
+  SETTINGS_COVER_RULES: `modules/${MODULE_ID}/templates/cover-rules.hbs`,
 };
 
 export const ICONS = {
@@ -207,6 +208,12 @@ export const FA_ICONS = {
   COVER_DIALOG: {
     YES: "fa-solid fa-check",
     NO: "fa-solid fa-xmark",
+  },
+  MENUS: {
+    SUBMENU: "fa-solid fa-user-gear",
+    COVER_RULES: "fa-solid fas-shield-halved",
+    EXPORT_BUTTON: "far fa-file-arrow-down",
+    IMPORT_BUTTON: "far fa-file-arrow-up",
   },
 };
 

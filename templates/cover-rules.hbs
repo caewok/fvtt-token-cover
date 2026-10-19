@@ -1,0 +1,49 @@
+<form>
+<section class="cover-rules-drop">
+  {{#if canDrop}}
+    <p class="hint">Drag Active Effects or Items here from a compendium or the sidebar. Each applies when a
+      target's cover is <em>at least</em> its percent; the highest threshold met wins.</p>
+  {{else}}
+    <p class="hint">Using the system's built-in cover statuses. Adjust the percent at which each applies.</p>
+  {{/if}}
+
+  <table>
+    <thead>
+      <tr>
+        <th>Effect</th>
+        <th>Cover at least</th>
+        <th>Show icon</th>
+        {{#if canDrop}}<th></th>{{/if}}
+      </tr>
+    </thead>
+    <tbody>
+      {{#each rows}}
+        <tr>
+          <td><img src="{{img}}" width="24" height="24"> {{name}}</td>
+          <td>
+            <input type="number" name="rules.{{index}}.minPercent" value="{{minPercent}}"
+                   min="0" max="100" step="1"> %
+          </td>
+          <td><input type="checkbox" name="rules.{{index}}.displayIcon" {{checked displayIcon}}></td>
+          {{#if ../canDrop}}
+            <td>
+              <button type="button" data-action="removeRule" data-index="{{index}}" data-tooltip="Remove">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          {{/if}}
+        </tr>
+      {{else}}
+        <tr><td colspan="4"><em>Nothing yet. Drop an effect on this window.</em></td></tr>
+      {{/each}}
+    </tbody>
+  </table>
+</section>
+
+<footer class="form-footer">
+  {{#unless canDrop}}
+    <button type="button" data-action="resetPresets"><i class="fa-solid fa-rotate-left"></i> Reset thresholds</button>
+  {{/unless}}
+  <button type="submit"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+</footer>
+</form>

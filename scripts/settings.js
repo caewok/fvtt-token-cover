@@ -9,13 +9,14 @@ ui
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, OTHER_MODULES, TRACKER_IDS } from "./const.js";
+import { MODULE_ID, OTHER_MODULES, TRACKER_IDS, FA_ICONS } from "./const.js";
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
 import { ATCSettingsSubmenu } from "./ATCSettingsSubmenu.js";
 import { registerTemplates, deregisterTemplates } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
 import { renderTemplateSync } from "./util.js";
 import { buildDebugViewer, currentDebugViewerClass, buildLOSCalculator } from "./CoverCalculator.js";
+import { CoverRulesConfig } from "./CoverRulesSettingsConfig.js";
 
 // LOS folder
 import { ViewerLOS } from "./LOS/ViewerLOS.js";
@@ -24,6 +25,8 @@ export const PATCHES_SidebarTab = {};
 export const PATCHES_ItemDirectory = {};
 PATCHES_SidebarTab.BASIC = {};
 PATCHES_ItemDirectory.BASIC = {};
+
+const { ArrayField, SchemaField, StringField, NumberField, BooleanField } = foundry.data.fields;
 
 /**
  * A fake settings menu that acts as a button; downloading on render and displaying nothing.
@@ -74,7 +77,8 @@ const CONTROLS = {
 const MENUS = {
   SUBMENU: "submenu",
   EXPORT_BUTTON: "exportButton",
-  IMPORT_BUTTON: "importButton"
+  IMPORT_BUTTON: "importButton",
+  COVER_RULES: "coverRulesMenu",
 };
 
 const ENUMS = {
@@ -112,6 +116,33 @@ const ENUMS = {
   },
 };
 
+/**
+ * One row = one cover level.
+ * Source is either
+ * - uuid: An ActiveEffect or Item the GM dragged in from a compendium or world
+ * - statusId: A build-int system status (e.g., dnd5e's coverHalf)
+ * Only the cover characteristics live here (threshold, icon). Mechanics stay in the source doc.
+ */
+const ruleField = new SchemaField({
+  uuid: new StringField({ required: false, nullable: true, initial: null }),
+  statusId: new StringField({ required: false, nullable: true, initial: null }),
+  documentType: new StringField({ choices: ["ActiveEffect", "Item"], initial: "ActiveEffect" }),
+
+  // Cached for display so the config app doesn't have to resolve compendium uuids to render.
+  name: new StringField({ initial: "" }),
+  img: new StringField({ initial: "icons/svg/shield.svg" }),
+
+  // Characteristic: apply when cover is at least this percent (0-100).
+  minPercent: new NumberField({ required: true, nullable: false, integer: true, min: 0, max: 100, initial: 50 }),
+  displayIcon: new BooleanField({ initial: true }),
+});
+
+export const DEFAULT_PRESET_RULES = [
+  { statusId: "coverHalf", name: "Half Cover", minPercent: 50 },
+  { statusId: "coverThreeQuarters", name: "Three-Quarters Cover", minPercent: 75 },
+  { statusId: "coverTotal", name: "Total Cover", minPercent: 100 }
+];
+
 export const SETTINGS = {
   UNIQUE_EFFECTS_FLAGS_DATA: "uniqueEffectsFlagsData",
 
@@ -124,7 +155,9 @@ export const SETTINGS = {
    * - Auto: Uses the system's built-in cover mechanism, if any.
    * - ActiveEffect: Always use dropped effects/items
    */
-  BACKEND_MODE: "coverEffectBackendMode",
+  BACKEND_MODE: "backend-mode",
+
+  COVER_RULES_SETTING: "cover-rules-setting",
 
   COVER_EFFECTS: {
     USE: "use-cover-effects",
@@ -263,16 +296,37 @@ export class Settings extends ModuleSettingsAbstract {
     registerMenu(MENUS.SUBMENU, {
       name: localize(`${MENUS.SUBMENU}.Name`),
       label: localize(`${MENUS.SUBMENU}.Label`),
-      icon: "fas fa-user-gear",
+      icon: FA_ICONS.MENUS.SUBMENU,
       type: ATCSettingsSubmenu,
       restricted: true
     });
+
+    register(KEYS.COVER_RULES_SETTING, {
+      scope: "world",
+      config: false, // Edited only through the cover rules menu below.
+      type: new ArrayField(ruleField),
+      default: DEFAULT_PRESET_RULES,
+      onChange: async () => {
+        this.coverRules.rebuildCache();
+        await onChange?.();
+      },
+    });
+
+    registerMenu(MENUS.COVER_RULES, {
+      name: localize(`${MENUS.SUBMENU}.Name`),
+      label: localize(`${MENUS.SUBMENU}.Label`),
+      hint: localize(`${MENUS.SUBMENU}.Hint`),
+      icon: FA_ICONS.MENUS.COVER_RULES,
+      type: CoverRulesConfig,
+      restricted: true,
+    });
+    this.coverRules.rebuildCache();
 
     /* Currently unused:
     registerMenu(MENUS.EXPORT_BUTTON, {
       name: localize(`${MENUS.EXPORT_BUTTON}.Name`),
       label: localize(`${MENUS.EXPORT_BUTTON}.Label`),
-      icon: "far fa-file-arrow-down",
+      icon: FA_ICONS.MENUS.EXPORT_BUTTON,
       type: exportSettingsButton,
       restricted: true
     });
@@ -280,7 +334,7 @@ export class Settings extends ModuleSettingsAbstract {
     registerMenu(MENUS.IMPORT_BUTTON, {
       name: localize(`${MENUS.IMPORT_BUTTON}.Name`),
       label: localize(`${MENUS.IMPORT_BUTTON}.Label`),
-      icon: "far fa-file-arrow-up",
+      icon: FA_ICONS.MENUS.IMPORT_BUTTON,
       type: importSettingsDialog,
       restricted: true
     });
@@ -318,6 +372,21 @@ export class Settings extends ModuleSettingsAbstract {
       default: false,
       onChange: value => this.toggleLOSDebugGraphics(value)
     });
+
+    register(KEYS.BACKEND_MODE, {
+      name: localize(`${KEYS.BACKEND_MODE}.Name`),
+      hint: localize(`${KEYS.BACKEND_MODE}.Hint`),
+      scope: "world",
+      config: true,
+      type: String,
+      choices: {
+        auto: localize(`${KEYS.BACKEND_MODE}.auto`),
+        activeEffect: localize(`${KEYS.BACKEND_MODE}.activeEffect`),
+      },
+      default: "auto",
+      requiresReload: true,
+    });
+
 
     // ----- NOTE: Submenu ---- //
 
@@ -647,6 +716,32 @@ export class Settings extends ModuleSettingsAbstract {
       this.initializeDebugViewer(value);
     }
   }
+
+  // ----- NOTE: Cover rules menu ----- //
+
+  /** @type {object[]} Sorted high -> low, rebuilt whenever the setting changes. Hot-path cache. */
+  static _sortedRules = [];
+
+  static coverRules = {
+    /** @returns {object[]} All rules as stored. */
+    get all() { return Settings.get(Settings.KEYS.COVER_RULES_SETTING) ?? []; },
+
+    /**
+     * The single rule that applies at a given cover percent: the highest threshold met.
+     * Synchronous and allocation-free, so safe to call per token per frame.
+     * @param {number} percent   0-100
+     * @returns {object|undefined}
+     */
+    forPercent(percent) { return Settings._sortedRules.find(r => percent >= r.minPercent); },
+
+    /** Source id used by definitions: the uuid, or the status id for built-ins. */
+    sourceId(rule) { return rule.uuid ?? rule.statusId; },
+
+    rebuildCache() {
+      const rules = Settings.get(Settings.KEYS.COVER_RULES_SETTING) ?? [];
+      Settings._sortedRules = rules.map(r => ({ ...r })).sort((a, b) => b.minPercent - a.minPercent);
+    },
+  };
 }
 
 
