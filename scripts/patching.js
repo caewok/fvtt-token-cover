@@ -9,13 +9,13 @@ game,
 import { Patcher } from "./Patcher.js";
 import { OTHER_MODULES } from "./const.js";
 
-import { Settings, PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./settings.js";
-import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
-import { PATCHES as PATCHES_ActiveEffectConfig } from "./ActiveEffectConfig.js";
+import { Settings } from "./settings.js";
+// import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
+// import { PATCHES as PATCHES_ActiveEffectConfig } from "./ActiveEffectConfig.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
-import { PATCHES as PATCHES_Item } from "./Item.js";
+// import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
-import { PATCHES as PATCHES_ItemSheet } from "./ItemSheet.js";
+// import { PATCHES as PATCHES_ItemSheet } from "./ItemSheet.js";
 
 // Dnd5e
 import { PATCHES as PATCHES_AttackActivity } from "./AttackActivity.js";
@@ -35,19 +35,17 @@ import { TokenCover } from "./TokenCover.js";
 import { PATCHES as PATCHES_dnd5e } from "./dnd5e.js";
 
 const PATCHES = {
-  ActiveEffect: PATCHES_ActiveEffect,
-  "foundry.applications.sheets.ActiveEffectConfig": PATCHES_ActiveEffectConfig,
+ // ActiveEffect: PATCHES_ActiveEffect,
+ //  "foundry.applications.sheets.ActiveEffectConfig": PATCHES_ActiveEffectConfig,
   "foundry.helpers.ClientSettings": PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
-  Item: PATCHES_Item,
-  "foundry.applications.sidebar.tabs.ItemDirectory": PATCHES_ItemDirectory,
-  ItemSheet: PATCHES_ItemSheet,
+//  Item: PATCHES_Item,
+//  "foundry.applications.sidebar.tabs.ItemDirectory": PATCHES_ItemDirectory,
+//  ItemSheet: PATCHES_ItemSheet,
   MeasuredTemplate: PATCHES_MeasuredTemplate,
-  SidebarTab: PATCHES_SidebarTab,
+//  SidebarTab: PATCHES_SidebarTab,
   "foundry.canvas.placeables.Token": PATCHES_Token,
   TokenConfig: PATCHES_TokenConfig,
-
-
 };
 
 const PATCHES_DND5E = {
@@ -56,7 +54,7 @@ const PATCHES_DND5E = {
   // Only works b/c these are all hooks. Otherwise, would need class breakdown.
   Midiqol: PATCHES_Midiqol,
   dnd5e: PATCHES_dnd5e
-}
+};
 
 export const PATCHER = new Patcher();
 
@@ -85,8 +83,6 @@ export function initializePatching() {
   if ( game.system.id !== "pf2e" ) PATCHER.registerGroup("NO_PF2E");
 
   if ( game.system.id === "sfrpg" || game.system.id === "pf2e" ) PATCHER.registerGroup("COVER_ITEM");
-
-  if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) PATCHER.registerGroup("COVER_FLAGS");
 }
 
 export function registerTemplates() { PATCHER.registerGroup("TEMPLATES"); }

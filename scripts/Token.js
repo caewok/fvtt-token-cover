@@ -34,9 +34,6 @@ PATCHES.COVER_FLAGS = {};
 function refreshToken(token, flags) {
   if ( !canvas.ready ) return;
 
-  if ( flags.refreshEffects
-    && Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) token[MODULE_ID]._refreshIcons();
-
   if ( !(flags.refreshPosition
       || flags.refreshElevation
       || flags.refreshSize

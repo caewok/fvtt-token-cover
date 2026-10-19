@@ -9,7 +9,7 @@ ui
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, OTHER_MODULES, FLAGS, TRACKER_IDS } from "./const.js";
+import { MODULE_ID, OTHER_MODULES, TRACKER_IDS } from "./const.js";
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
 import { ATCSettingsSubmenu } from "./ATCSettingsSubmenu.js";
 import { registerTemplates, deregisterTemplates } from "./patching.js";
@@ -19,7 +19,6 @@ import { buildDebugViewer, currentDebugViewerClass, buildLOSCalculator } from ".
 
 // LOS folder
 import { ViewerLOS } from "./LOS/ViewerLOS.js";
-import { pointIndexForSet } from "./LOS/SmallBitSet.js";
 
 export const PATCHES_SidebarTab = {};
 export const PATCHES_ItemDirectory = {};
@@ -66,31 +65,6 @@ class importSettingsDialog extends foundry.applications.api.DialogV2 {
     return super._initializeApplicationOptions(options);
   }
 }
-
-/**
- * Remove the cover item from sidebar so it does not display.
- * From https://github.com/DFreds/dfreds-convenient-effects/blob/main/scripts/ui/remove-custom-item-from-sidebar.js#L3
- * @param {ItemDirectory} dir
- */
-function removeCoverItemFromSidebar(dir) {
-  if ( !(dir instanceof foundry.applications.sidebar.tabs.ItemDirectory) ) return;
-  if ( !game.items ) return;
-  for ( const item of game.items ) {
-    if ( !(item.name === "Unique Active Effects" || item.name === "ATV Cover Effects"|| item.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID)) ) continue;
-    const li = dir.element.querySelector(`[data-entry-id="${item.id}"]`);
-    if ( li ) li.remove();
-  }
-}
-
-/**
- * Hooks for changeSidebarTab and renderItemDirectory to remove the terrains item from the directory.
- */
-function removeCoverItemHook(directory) {
-  removeCoverItemFromSidebar(directory);
-}
-
-PATCHES_SidebarTab.BASIC.HOOKS = { changeSidebarTab: removeCoverItemHook };
-PATCHES_ItemDirectory.BASIC.HOOKS = { renderItemDirectory: removeCoverItemHook };
 
 
 const CONTROLS = {
@@ -141,13 +115,16 @@ const ENUMS = {
 export const SETTINGS = {
   UNIQUE_EFFECTS_FLAGS_DATA: "uniqueEffectsFlagsData",
 
-  DISPLAY_COVER_BOOK: "display-cover-book",
-
   DISPLAY_SECRET_COVER: "display-secret-cover",
 
   TEMPLATES_USE_COVER: "templates-use-cover",
 
-  ONLY_COVER_ICONS: "only-cover-icons", // Switches to CoverEffectFlags version that adds cover icons to tokens directly.
+  /**
+   * @type {"auto"|"activeEffect"}
+   * - Auto: Uses the system's built-in cover mechanism, if any.
+   * - ActiveEffect: Always use dropped effects/items
+   */
+  BACKEND_MODE: "coverEffectBackendMode",
 
   COVER_EFFECTS: {
     USE: "use-cover-effects",
@@ -309,23 +286,6 @@ export class Settings extends ModuleSettingsAbstract {
     });
     */
 
-    register(KEYS.DISPLAY_COVER_BOOK, {
-      name: localize(`${KEYS.DISPLAY_COVER_BOOK}.Name`),
-      hint: localize(`${KEYS.DISPLAY_COVER_BOOK}.Hint`),
-      scope: "world",
-      config: true,
-      type: Boolean,
-      default: true,
-      onChange: value => {
-        if ( !canvas.scene || !ui.controls.activeControl === "token" ) return;
-        const tokenTools = ui.controls.controls.find(c => c.name === "token");
-        const coverBook = tokenTools.tools.find(c => c.name === CONTROLS.COVER_EFFECTS);
-        if ( !coverBook ) return;
-        coverBook.visible = value;
-        ui.controls.render(true);
-      }
-    });
-
     register(KEYS.DISPLAY_SECRET_COVER, {
       name: localize(`${KEYS.DISPLAY_SECRET_COVER}.Name`),
       hint: localize(`${KEYS.DISPLAY_SECRET_COVER}.Hint`),
@@ -347,16 +307,6 @@ export class Settings extends ModuleSettingsAbstract {
       type: Boolean,
       default: true,
       onChange: value => value ? registerTemplates() : deregisterTemplates()
-    });
-
-    register(KEYS.ONLY_COVER_ICONS, {
-      name: localize(`${KEYS.ONLY_COVER_ICONS}.Name`),
-      hint: localize(`${KEYS.ONLY_COVER_ICONS}.Hint`),
-      scope: "world",
-      config: true,
-      type: Boolean,
-      default: false,
-      requiresReload: true
     });
 
     register(KEYS.DEBUG.LOS, {
@@ -398,7 +348,6 @@ export class Settings extends ModuleSettingsAbstract {
           [PI.D3.BOTTOM]: "Bottom Elevation",
         },
       })),
-      onChange: value => this.losSettingChange(VIEWER.POINTS, value)
     });
 
     register(VIEWER.INSET, {
@@ -414,7 +363,6 @@ export class Settings extends ModuleSettingsAbstract {
       default: 0.75,
       type: Number,
       tab: "losViewer",
-      onChange: value => this.losSettingChange(VIEWER.INSET, value)
     });
 
     // ----- NOTE: Line-of-sight target tab ----- //
@@ -429,7 +377,7 @@ export class Settings extends ModuleSettingsAbstract {
       choices: losChoices,
       default: LTYPES.POINTS,
       tab: "losTarget",
-      onChange: value => this.losSettingChange(TARGET.ALGORITHM, value)
+      onChange: value => this.algorithmChange(value)
     });
 
     register(TARGET.LARGE, {
@@ -440,7 +388,6 @@ export class Settings extends ModuleSettingsAbstract {
       type: Boolean,
       default: false,
       tab: "losTarget",
-      onChange: value => this.losSettingChange(TARGET.LARGE, value)
     });
 
     register(TARGET.POINT_OPTIONS.POINTS, {
@@ -467,7 +414,6 @@ export class Settings extends ModuleSettingsAbstract {
           [PI.D3.BOTTOM]: "Bottom Elevation",
         },
       })),
-      onChange: value => this.losSettingChange(TARGET.POINT_OPTIONS.POINTS, value)
     });
 
     register(PT_OPTS.INSET, {
@@ -483,7 +429,6 @@ export class Settings extends ModuleSettingsAbstract {
       default: 0.75,
       type: Number,
       tab: "losTarget",
-      onChange: value => this.losSettingChange(PT_OPTS.INSET, value)
     });
 
     // ----- NOTE: Workflow tab ----- //
@@ -682,79 +627,26 @@ export class Settings extends ModuleSettingsAbstract {
     }
   }
 
-  static losSettingChange(key, value) {
-    this.cache.delete(key);
-    const { TARGET, VIEWER } = SETTINGS.LOS;
+  static algorithmChange(value) {
+    // Update the shared calculator.
+    CONFIG[MODULE_ID].losCalculator.destroy();
+    CONFIG[MODULE_ID].losCalculator = null;
+    const calc = CONFIG[MODULE_ID].losCalculator = buildLOSCalculator();
+    CONFIG[MODULE_ID].losCalculator.initialize(); // Async.
 
-    switch ( key ) {
-      case TARGET.ALGORITHM: {
-        // Set a new shared calculator for all tokens.
-        const losCalc = buildLOSCalculator();
-        canvas.tokens.placeables.forEach(token => {
-          const handler = token[MODULE_ID]?.[TRACKER_IDS.COVER];
-          if ( !handler ) return;
-          if ( handler.losViewer.calculator ) handler.losViewer.calculator.destroy();
-          handler.losViewer.calculator = losCalc;
-        });
+    // Set the calculator for existing viewers.
+    canvas.tokens.placeables.forEach(token => {
+      const losViewer = token[MODULE_ID]?.[TRACKER_IDS.VISIBILITY].losViewer;
+      if ( !losViewer ) return;
+      losViewer.calculator = calc;
+    });
 
-        // Start up a new debug viewer.
-        if ( this.get(this.KEYS.DEBUG.LOS) ) {
-          this.destroyDebugViewer();
-          this.initializeDebugViewer(value);
-        }
-        break;
-      }
-      case VIEWER.POINTS: value = pointIndexForSet(value);
-      case VIEWER.INSET: { /* eslint-disable-line no-fallthrough */
-        // Tell the los viewer to update the viewpoints.
-        canvas.tokens.placeables.forEach(token => {
-          const handler = token[MODULE_ID]?.[TRACKER_IDS.COVER];
-          if ( !handler ) return;
-          handler.losViewer.dirty = true;
-        });
-      }
-      case TARGET.PERCENT: {  /* eslint-disable-line no-fallthrough */
-        // Update the viewpoints for all tokens.
-        const config = { [configKeyForSetting[key]]: value };
-        canvas.tokens.placeables.forEach(token => {
-          const handler = token[MODULE_ID]?.[TRACKER_IDS.COVER];
-          if ( !handler ) return;
-          handler.losViewer.config = config;
-        });
-        break;
-      }
-
-      // Changes to the calculator config.
-      case TARGET.POINT_OPTIONS.POINTS: value = pointIndexForSet(value);
-      default: { /* eslint-disable-line no-fallthrough */
-        const config = foundry.utils.expandObject({ [configKeyForSetting[key]]: value });
-        const currCalc = currentCalculator();
-        currCalc.permanentConfig = config;
-      }
+    // Start up a new debug viewer.
+    if ( this.get(this.KEYS.DEBUG.LOS) ) {
+      this.destroyDebugViewer();
+      this.initializeDebugViewer(value);
     }
-  }
-
-  static setProneStatusId(value) {
-    CONFIG.GeometryLib.proneStatusId = value;
-    if ( OTHER_MODULES.ATV) game.settings.set("tokenvisibility", SETTINGS.PRONE_STATUS_ID, value);
   }
 }
 
-const configKeyForSetting = {
-  [SETTINGS.LOS.TARGET.LARGE]: "largeTarget",
-  [SETTINGS.LOS.TARGET.PERCENT]: "threshold",
-
-  // Viewpoints.
-  [SETTINGS.LOS.VIEWER.POINTS]: "viewpointIndex",
-  [SETTINGS.LOS.VIEWER.INSET]: "viewpointInset",
-
-  // Points viewpoints.
-  [SETTINGS.LOS.TARGET.POINT_OPTIONS.POINTS]: "targetPointIndex",
-  [SETTINGS.LOS.TARGET.POINT_OPTIONS.INSET]: "targetInset",
-
-  // Blocking (unused—set at cover effect level)
-  // [SETTINGS.LIVE_TOKENS_BLOCK]: "blocking.tokens.live",
-  // [SETTINGS.DEAD_TOKENS_BLOCK]: "blocking.tokens.dead",
-  // [SETTINGS.PRONE_TOKENS_BLOCK]: "blocking.tokens.prone",
-};
 

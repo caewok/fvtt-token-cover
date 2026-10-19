@@ -9,7 +9,7 @@ game
 "use strict";
 
 import { MODULE_ID, FLAGS } from "./const.js";
-import { SETTINGS } from "./effectSettings.js";
+import { SETTINGS } from "./settings.js";
 
 /*
 A "backend" is the ONLY place that knows two things for a given game system:

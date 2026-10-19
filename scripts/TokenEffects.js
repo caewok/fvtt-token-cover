@@ -4,8 +4,8 @@ foundry
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS } from "../const.js";
-import { getBackend, EFFECT_BACKENDS } from "./effectBackends.js";
+import { MODULE_ID, FLAGS } from "./const.js";
+import { getBackend, EFFECT_BACKENDS } from "./effect_backends.js";
 import { UniqueEffect } from "./UniqueEffect.js";
 
 /**

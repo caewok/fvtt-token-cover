@@ -24,17 +24,10 @@ import { PercentVisibleCalculatorPerPixel, DebugVisibilityViewerPerPixel } from 
 import { PercentVisibleCalculatorWebGL2, DebugVisibilityViewerWebGL2 } from "./LOS/calculators/WebGL2Calculator.js";
 
 // Cover objects
-import { CoverEffectsApp } from "./CoverEffectsApp.js";
 import { defaultCover } from "./default_cover.js";
-import {
-  CoverActiveEffect,
-  CoverItemEffect,
-  CoverFlagEffect,
-  CoverDND5E,
-  CoverFlagsDND5E,
-  CoverFlagsPF2E,
-  CoverPF2E,
-  CoverSFRPG } from "./cover_unique_effects.js";
+import { getBackend, EFFECT_BACKENDS } from "./effect_backends.js";
+import { TokenEffects } from "./TokenEffects.js";
+import { UniqueEffect } from "./UniqueEffect.js";
 
 // Regions
 import { SetCoverRegionBehaviorType } from "./SetCoverRegionBehaviorType.js";
@@ -80,13 +73,6 @@ Hooks.once("init", function() {
 Hooks.once("setup", function() {
   Settings.registerAll();
   initializePatching();
-  if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) {
-    switch ( game.system.id ) {
-      case "dnd5e": CONFIG[MODULE_ID].CoverEffect = CoverFlagsDND5E; break;
-      case "pf2e": CONFIG[MODULE_ID].CoverEffect = CoverFlagsPF2E; break;
-      default: CONFIG[MODULE_ID].CoverEffect = CoverFlagEffect; break;
-    }
-  }
 });
 
 /**
@@ -94,8 +80,6 @@ Hooks.once("setup", function() {
  */
 Hooks.once("ready", async function(_canvas) {
   Settings.migrate(); // Cannot be set until world is ready.
-
-  CONFIG[MODULE_ID].CoverEffect.initialize(); // Async. Must wait until ready hook to store Settings for UniqueEffectFlag
 
 });
 
@@ -107,37 +91,8 @@ Hooks.once("canvasReady", function() {
   if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) Settings.toggleLOSDebugGraphics(true);
 
   transitionTokenMaximumCoverFlags();
-  CONFIG[MODULE_ID].CoverEffect.transitionTokens(); // Async
 });
 
-
-// ----- NOTE: Token Controls ----- //
-
-// Add cover book button to token controls
-const COVER_EFFECTS_CONTROL = {
-  name: Settings.CONTROLS.COVER_EFFECTS,
-  title: `${MODULE_ID}.controls.${Settings.CONTROLS.COVER_EFFECTS}.name`,
-  icon: FA_ICONS.MODULE,
-  toggle: false,
-  button: true,
-  onClick: () => { new CoverEffectsApp().render(true); },
-  visible: false,
-  order: 0,
-};
-
-// Render the cover effects book control if setting enabled.
-/**
- * Hook getSceneControlButtons
- * Render the cover effects book control if setting enabled.
- */
-Hooks.on("getSceneControlButtons", (controls, _html, _data) => {
-  if ( !canvas.scene || !ui.controls.control.name === "token" || !game.user.isGM ) return;
-  COVER_EFFECTS_CONTROL.visible = game.user.isGM && Settings.get(Settings.KEYS.DISPLAY_COVER_BOOK);
-  COVER_EFFECTS_CONTROL.order = 0;
-  Object.values(controls.tokens.tools).forEach(tool =>
-    COVER_EFFECTS_CONTROL.order = Math.max(tool.order + 1, COVER_EFFECTS_CONTROL.order));
-  controls.tokens.tools[COVER_EFFECTS_CONTROL.name] = COVER_EFFECTS_CONTROL;
-});
 
 // ----- NOTE: Helper Functions ----- //
 
@@ -151,18 +106,6 @@ function initializeConfig() {
      * Turn on debug logging.
      */
     debug: false,
-
-    /**
-     * What cover effect class to use for this system.
-     * @type {AbstractUniqueEffect}
-     */
-    CoverEffect: CoverActiveEffect,
-
-    /**
-     * Default terrain jsons
-     * @type {string} File path
-     */
-    defaultCoverJSONs: defaultCover(),
 
     /**
      * The following statuses will cause the token to be ignored for purposes of granting cover.
@@ -181,8 +124,6 @@ function initializeConfig() {
       points: PercentVisibleCalculatorPoints,
       geometric: PercentVisibleCalculatorGeometric,
       webgl2: PercentVisibleCalculatorWebGL2,
-      // Unused. webgpu: PercentVisibleCalculatorWebGPU,
-      // Unused. "webgpu-async": PercentVisibleCalculatorWebGPUAsync,
       "per-pixel": PercentVisibleCalculatorPerPixel,
     },
 
@@ -190,8 +131,6 @@ function initializeConfig() {
       points: null,
       geometric: null,
       webgl2: null,
-      // webgpu: null,
-      // "webgpu-async": null,
       "per-pixel": null,
     },
 
@@ -202,25 +141,24 @@ function initializeConfig() {
       points: DebugVisibilityViewerPoints,
       geometric: DebugVisibilityViewerGeometric,
       webgl2: DebugVisibilityViewerWebGL2,
-      // Unused. webgpu: DebugVisibilityViewerWebGPU,
-      // Unused. "webgpu-async": DebugVisibilityViewerWebGPUAsync,
       "per-pixel": DebugVisibilityViewerPerPixel,
     },
+
+    /**
+     * Current occlusion tester for the given settings.
+     * @type {ObstacleOcclusionTest}
+     */
+    occlusionTester: null,
+
+    /**
+     * Current calculator for the given settings.
+     * @type {PercentVisibleCalculatorAbstract}
+     */
+    losCalculator: null,
 
     ...LOS_CONFIG,
 
   };
-
-  Object.defineProperty(CONFIG[MODULE_ID], "UniqueEffect", {
-    get: function() { return this.CoverEffect; }
-  });
-
-  switch ( game.system.id ) {
-    case "sfrpg":
-      CONFIG[MODULE_ID].CoverEffect = CoverSFRPG; break;
-    case "pf2e":
-      CONFIG[MODULE_ID].CoverEffect = CoverPF2E; break;
-  }
 }
 
 /**
@@ -236,12 +174,11 @@ function initializeAPI() {
     COVER,
 
     // UniqueEffects
-    CoverActiveEffect,
-    CoverItemEffect,
-    CoverFlagEffect,
-    CoverDND5E,
-    CoverPF2E,
-    CoverSFRPG,
+    getBackend,
+    EFFECT_BACKENDS,
+    TokenEffects,
+    UniqueEffect,
+
 
     setCoverIgnoreHandler,
     Settings,
@@ -251,6 +188,14 @@ function initializeAPI() {
       IgnoresCoverDND5e,
       IgnoresCoverSimbuls
     },
+
+    calcs: {
+      points: PercentVisibleCalculatorPoints,
+      geometric: PercentVisibleCalculatorGeometric,
+      webGL2: PercentVisibleCalculatorWebGL2,
+      perPixel: PercentVisibleCalculatorPerPixel,
+    },
+
 
     PATCHER,
   };

@@ -14,6 +14,22 @@ export const DOCUMENTATION_URL = "https://github.com/caewok/fvtt-token-cover/blo
 export const ISSUE_URL = "https://github.com/caewok/fvtt-token-cover/issues";
 export const SOCKETS = { socket: null };
 
+/**
+ * Checks for libGeometery.
+ * @type {object}
+ */
+export const GEOMETRY_LIB_OPTS = {
+  // What geometries we need to track.
+  // All of these potentially provide cover.
+  placeableGeometries: [
+    "Tile",
+    "Token",
+    "Region",
+    "Wall",
+    "Level",
+  ],
+};
+
 export const FLAGS = {
   DND5E: {
     SPELL_CONFIG: {

@@ -2,8 +2,8 @@
 canvas,
 CONFIG,
 CONST,
+foundry,
 game,
-Token
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 
@@ -11,7 +11,6 @@ import { MODULE_ID, IGNORES_COVER_HANDLER } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { Settings } from "./settings.js";
 import { log, NULL_SET } from "./util.js";
-import { TokenIconMixin } from "./TokenIcon.js";
 
 // Class to use to handle added methods and getters for token
 // Encapsulated inside Token.prototype.tokencover
@@ -159,7 +158,6 @@ class TokenCoverBase {
    * Destroy this object, clearing its subobjects from memory.
    */
   destroy() {
-    // this.coverCalculator.destroy();
     this.iconMap.clear();
     delete this.token.tokencover;
   }
@@ -502,7 +500,9 @@ class TokenCoverBase {
    */
   static addAttacker(attacker, force = false, update = true) {
     if ( this.attackers.has(attacker) ) return false;
-    if ( !force && (attacker instanceof foundry.canvas.placeables.Token) && !attacker.tokencover.isAttacker() ) return false;
+    if ( !force
+      && (attacker instanceof foundry.canvas.placeables.Token)
+      && !attacker.tokencover.isAttacker() ) return false;
     this.attackers.add(attacker);
     log(`TokenCover#addAttacker|Adding attacker ${attacker.name}.`);
 
@@ -611,7 +611,7 @@ class TokenCoverBase {
   }
 }
 
-export class TokenCover extends TokenIconMixin(TokenCoverBase) {}
+export class TokenCover extends TokenCoverBase {}
 
 // ----- NOTE: Helper functions ----- //
 
@@ -636,7 +636,7 @@ function applicableRegionBehaviors(attacker, defendingToken, defendingRegions) {
     attackingCenter = attacker;
     attackingRegions = coverRegions(attacker, CONFIG.GeometryLib.utils.gridUnitsToPixels(attacker.z));
   } else {
-    if ( typeof attacker.document.elevation === "undefined" ) console.warn(`applicableRegionBehaviors|elevation is undefined`);
+    if ( typeof attacker.document.elevation === "undefined" ) console.warn("applicableRegionBehaviors|elevation is undefined");
     attackingCenter = attacker.document;
     attackingRegions = coverRegions(attacker.document, attacker.document?.elevation || 0 );
   }
