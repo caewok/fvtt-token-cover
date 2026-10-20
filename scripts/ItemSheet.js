@@ -7,7 +7,7 @@ game
 
 import { MODULE_ID, FLAGS, TEMPLATES } from "./const.js";
 import { CoverEffectsApp } from "./CoverEffectsApp.js";
-import { renderTemplateSync } from "./util.js";
+import { renderTemplateSync, fastFlag } from "./util.js";
 
 export const PATCHES = {};
 PATCHES.COVER_ITEM = {};
@@ -28,7 +28,7 @@ function closeItemSheet(_app, _html) {
  * @param {object} data                 The object of data used when rendering the application
  */
 function renderItemSheet(app, html, data) {
-  if ( app.document.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.TYPE) !== "Cover" ) return;
+  if ( fastFlag(app.document, FLAGS.UNIQUE_EFFECT.TYPE) !== "Cover" ) return;
 
   // Insert the new configuration fields into the item config.
   const insertFn = INSERT_FNS[game.system.id];

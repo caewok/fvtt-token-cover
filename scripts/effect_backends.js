@@ -10,6 +10,7 @@ game
 
 import { MODULE_ID, FLAGS } from "./const.js";
 import { Settings, DEFAULT_PRESET_DEFINITIONS } from "./settings.js";
+import { fastFlag } from "./util.js";
 
 /*
 A "backend" is the ONLY place that knows two things for a given game system:
@@ -123,7 +124,7 @@ const itemBackend = {
   tokenCollection(actor) { return actor?.items; },
 
   /** Items have no `origin` field, so identity is our own flag instead. */
-  getAppliedId(doc) { return doc.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID) ?? undefined; },
+  getAppliedId(doc) { return fastFlag(doc, FLAGS.UNIQUE_EFFECT.ID) ?? undefined; },
 
   buildTokenData(definition, token, data = {}) {
     const doc = definition.document.toObject();

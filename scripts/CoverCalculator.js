@@ -12,7 +12,7 @@ import { Draw } from "./geometry/Draw.js"; // For debugging
 import { CoverDialog } from "./CoverDialog.js";
 import { ViewerLOS } from "./LOS/ViewerLOS.js";
 import { pointIndexForSet } from "./LOS/SmallBitSet.js";
-import { NULL_SET } from "./geometry/util.js";
+import { NULL_SET, fastFlag } from "./geometry/util.js";
 
 /* Testing
 Draw = CONFIG.GeometryLib.Draw
@@ -207,7 +207,7 @@ export class CoverCalculator {
     const nonBlockingTokens = [];
     const statusesGrantNoCover = CONFIG[MODULE_ID].statusesGrantNoCover;
     for ( const token of obstacles.tokens ) {
-      let maxCover = Number(token.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? 1);
+      let maxCover = Number(fastFlag(token.document, FLAGS.COVER.MAX_GRANT) ?? 1);
       if ( token.actor && token.actor.statuses.intersects(statusesGrantNoCover).size ) maxCover = 0;
       if ( maxCover >= 1 ) continue;
       if ( !maxCover ) nonBlockingTokens.push(token);
@@ -258,7 +258,7 @@ export class CoverCalculator {
     // Avoid infinite loop here by using a copy of the blocking token set.
     const statusesGrantNoCover = CONFIG[MODULE_ID].statusesGrantNoCover;
     partialBlockingTokens.forEach(t => {
-      let maxCover = Number(t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT) ?? 1);
+      let maxCover = Number(fastFlag(t.document, FLAGS.COVER.MAX_GRANT) ?? 1);
       if ( t.actor && t.actor.statuses.intersects(statusesGrantNoCover).size ) maxCover = 0;
       tMaxCover.push(maxCover);
       blockingTokens.delete(t);

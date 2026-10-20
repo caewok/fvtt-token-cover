@@ -10,17 +10,15 @@ renderTemplate
 
 import { MODULE_ID } from "./const.js";
 
+
 /**
- * Define a null set class and null set which always contains 0 elements.
- * The class removes the add method.
+ * Faster version of PlaceableDocument#getFlag.
+ * Keyed to this module. Does not handle nested flag properties (use only the base flag property).
+ * @param {PlaceableDocument} placeableD
+ * @param {string} flag
+ * @returns {*} Flag at that position or undefined.
  */
-class NullSet extends Set {
-  add(value) {
-   console.error(`${MODULE_ID}|Attempted to add ${value} to a NullSet.`, value);
-   return this;
-  }
-}
-export const NULL_SET = new NullSet();
+export function fastFlag(placeableD, flag) { return placeableD.flags[MODULE_ID]?.[flag]; }
 
 /**
  * Remove in place multiple elements of an array that would meet a find test.

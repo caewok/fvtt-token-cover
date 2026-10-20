@@ -10,7 +10,7 @@ ui
 
 import { MODULE_ID, FLAGS, COVER, TEMPLATES, setCoverIgnoreHandler, FA_ICONS, OTHER_MODULES } from "./const.js";
 import { LOS_CONFIG } from "./LOS/config.js";
-import { log } from "./util.js";
+import { log, fastFlag } from "./util.js";
 
 // Hooks and method registration
 import { initializePatching, PATCHER } from "./patching.js";
@@ -208,11 +208,11 @@ function initializeAPI() {
  * Now will be a percentage blocked.
  */
 function transitionTokenMaximumCoverFlags() {
-  const sceneVersion = canvas.scene.getFlag(MODULE_ID, FLAGS.VERSION);
+  const sceneVersion = fastFlag(canvas.scene, FLAGS.VERSION);
   if ( sceneVersion && !foundry.utils.isNewerVersion("0.6.6", sceneVersion) ) return;
   const v = game.modules.get("tokencover").version;
   canvas.tokens.placeables.forEach(t => {
-    const currCoverMax = t.document.getFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT);
+    const currCoverMax = fastFlag(t.document, FLAGS.COVER.MAX_GRANT);
     if ( !currCoverMax ) return; // Either 0 or undefined; either is fine.
     let newMax = 1;
     switch ( currCoverMax ) {

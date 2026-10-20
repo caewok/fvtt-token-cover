@@ -9,7 +9,7 @@ renderTemplate
 */
 "use strict";
 
-import { log } from "./util.js";
+import { log, fastFlag } from "./util.js";
 import { MODULE_ID, FLAGS, LABELS, TEMPLATES } from "./const.js";
 import { coverAttackWorkflow } from "./CoverDialog.js";
 
@@ -36,7 +36,7 @@ async function render5eSpellTemplateConfig(app, html, data) {
   const CONFIG = FLAGS.DND5E.SPELL_CONFIG;
 
   // Add the default flag and localized selections.
-  if (typeof data.document.getFlag(MODULE_ID, CONFIG.USE_COVER) === "undefined") {
+  if (typeof fastFlag(data.document, CONFIG.USE_COVER) === "undefined") {
     data.document.setFlag(MODULE_ID, CONFIG.USE_COVER, CONFIG.CHOICES.NO);
   }
   data[MODULE_ID] ??= {};

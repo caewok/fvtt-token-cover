@@ -6,6 +6,7 @@ fromUuid
 
 import { coverAttackWorkflow } from "./CoverDialog.js";
 import { MODULE_ID, FLAGS } from "./const.js";
+import { fastFlag } from "./util.js";
 
 // Patches for midiqol
 export const PATCHES = {};
@@ -32,7 +33,7 @@ async function midiqolPrePreambleComplete(workflow) {
     img: `${item.img}`
   };
   const coverFlags = FLAGS.DND5E.SPELL_CONFIG;
-  if ( template && item.getFlag(MODULE_ID, coverFlags.USE_COVER) === coverFlags.CHOICES.TEMPLATE ) {
+  if ( template && fastFlag(item, coverFlags.USE_COVER) === coverFlags.CHOICES.TEMPLATE ) {
     const out = await coverAttackWorkflow(template, targets, { actionType, attacker });
     return Boolean(out);
   }

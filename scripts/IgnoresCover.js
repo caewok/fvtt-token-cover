@@ -5,6 +5,7 @@ game
 "use strict";
 
 import { MODULE_ID, FLAGS, OTHER_MODULES } from "./const.js";
+import { fastFlag } from "./util.js";
 
 /**
  * For DND5e, add the cover to the Token Config
@@ -71,7 +72,7 @@ export class IgnoresCover {
    * @returns {number}
    */
   _getCoverFlag(flag) {
-    return this.actor?.getFlag(MODULE_ID, flag) ?? 0;
+    return this.actor ? fastFlag(this.actor, flag) ?? 0;
   }
 
   /**

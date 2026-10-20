@@ -1,4 +1,4 @@
-/* globals
+get /* globals
 CONFIG,
 game
 */
@@ -7,6 +7,7 @@ game
 
 import { ICONS, MODULE_ID, FLAGS } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
+import { fastFlag } from "./util.js";
 
 /**
  * A mixin which extends the UniqueEffect with specialized terrain behaviors
@@ -220,7 +221,7 @@ export function CoverMixin(Base) {
      * Transition a single document stored in the storage object
      */
     static async _transitionDocument(doc) {
-      const coverEffectId = doc.getFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID);
+      const coverEffectId = fastFlag(doc, FLAGS.UNIQUE_EFFECT.ID);
       if ( coverEffectId ) await doc.setFlag(MODULE_ID, FLAGS.UNIQUE_EFFECT.ID, coverEffectId);
     }
   };
