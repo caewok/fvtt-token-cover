@@ -1,0 +1,51 @@
+Cover options in different systems
+
+dnd5e:
+Half: half target is obscured
+Three-Quarters: 3/4 target is obscured
+Total: Fully obscured
+
+pf2e:
+Lesser: intervening creatures
+Standard: 1/2 blocked
+Greater: "substantial" blocked
+Total: Complete concealment
+
+sf2e: Same as pf2e
+
+crucible:
+Partial/Favorable: Inside defensive terrain
+Total:
+
+cosmere:
+Standard: 5 feet of physical obstacle that blocks; uses brace
+Total: Completely blocked
+
+13th age:
+partial: behind an obstacle
+total: nearly total blocked
+
+shadowrun:
+cover I: 25%
+cover II: 50%
+cover III: 75%
+cover IV: 100%
+
+one ring:
+good cover: partially obscured
+excellent cover: heavily obscured
+
+tormenta20:
+light cover: around half
+total cover: nearly all
+
+So for all, percentage cover would work, with priority based only on percentages.
+Can use additive approach for multiple partial obstacles.
+
+e.g.
+
+-------------
+| 25%  | 50% |
+-------------- = .25 * .25 + .50 * .25 + .5 * .25 + 0 * .25 = 0.3125
+| 0%   | 50% |
+--------------
