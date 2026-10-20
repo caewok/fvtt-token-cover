@@ -70,14 +70,15 @@ export class TokenEffects {
   static has(token, definition) { return this._appliedMap(token).has(definition.id); }
 
   /**
-   * All definitions currently applied to a token.
+   * All definitions currently applied to a token of a given category.
    * @param {Token} token
    * @returns {UniqueEffectDefinition[]}
    */
-  static all(token) {
+  static all(token, category = "cover") {
     return [...this._appliedMap(token).keys()]
       .map(id => UniqueEffectDefinition.get(id))
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(def => def.category === category);
   }
 
   /**
