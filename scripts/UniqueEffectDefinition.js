@@ -1,13 +1,10 @@
 /* globals
-foundry,
-game
+
 */
 
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
-import { Settings } from "./settings.js";
 import { log } from "./util.js";
 import { getBackend } from "./effect_backends.js";
 
@@ -28,9 +25,6 @@ import { getBackend } from "./effect_backends.js";
 
 export class UniqueEffectDefinition {
 
-  /** @type {Map<string, UniqueEffectDefinition>} */
-  static _definitions = new Map();
-
   /**
    * @param {object} data
    * @param {string} data.id
@@ -45,42 +39,42 @@ export class UniqueEffectDefinition {
     id,
     name,
     img,
-    category = "UniqueEffect",
-    allowsDuplicates = false,
+    category = "cover",
     displayIcon = true,
-    document = null
+    document = null,
+    minPercent = 1,
   }) {
     this.id = id;
     this.name = name;
     this.img = img;
     this.category = category;
-    this.allowsDuplicates = allowsDuplicates;
     this.displayIcon = displayIcon;
     this.document = document;
+    this.minPercent = minPercent;
   }
 
   // ----- NOTE: Basic properties ----- //
 
   /** @type {string} */
-  id;
+  id = "";
 
   /** @type {string} */
-  name;
+  name = "";
 
   /** @type {string} */
-  img;
+  img = "";
 
-  /** @type {string} Used to group definitions for "exclusive" application (see TokenEffects.add). */
-  category;
+  /** @type {string} Used to group definitions; currently only "cover". */
+  category = "cover";
 
-  /** @type {boolean} */
-  allowsDuplicates;
-
-  /** @type {boolean} */
-  displayIcon;
+  /** @type {boolean} True if icon should be displayed */
+  displayIcon = true;
 
   /** @type {Document|null} The source document, for compendium-reference definitions. */
-  document;
+  document = null;
+
+  /** @type {number} */
+  minPercent = 1;
 
   /** @returns {UniqueEffectDefinition[]} */
   static get all() { return [...this._definitions.values()]; }
@@ -97,6 +91,8 @@ export class UniqueEffectDefinition {
     return { type: backend.documentName, name: this.name, uuid: this.document?.uuid ?? this.id };
   }
 
+  // ----- NOTE: Cover tests ----- //
+
   /**
    * The cover definition that applies at a given cover percent: the highest threshold met.
    * Synchronous; safe on the per-frame path. Returns undefined below every threshold.
@@ -105,11 +101,33 @@ export class UniqueEffectDefinition {
    * @returns {UniqueEffectDefinition|undefined}
    */
   static forCoverPercent(percent) {
-    const def = Settings.coverDefinitions.forPercent(percent);
-    return def ? this._definitions.get(Settings.coverDefinitions.sourceId(def)) : undefined;
+    return this._sortedDefinitions.find(d => percent >= d.minPercent);
   }
 
+  /**
+   * The best (highest min percent) cover out of a set of cover definitions.
+   * @param {UniqueEffectDefinition[]}
+   * @returns {UniqueEffectDefinition}
+   */
+  static bestCover(definitions) {
+    let best = definitions[0];
+    for ( let i = 0, n = definitions.length; i < n; i += 1 ) {
+      const def = definitions[i];
+      if ( best.minPercent < def.minPercent ) best = def;
+    }
+    return best;
+  }
+
+  /** Source id used by definitions: the uuid, or the status id for built-ins. */
+  static sourceId(def) { return def.uuid || def.statusId; }
+
   // ----- NOTE: Initialization ----- //
+
+  /** @type {Map<string, UniqueEffectDefinition>} */
+  static _definitions = new Map();
+
+  /** @type {object[]} Sorted high -> low, rebuilt whenever the setting changes. Hot-path cache. */
+  static _sortedDefinitions = [];
 
   /**
    * Load every definition relevant to the current system/settings. Call once, e.g. at ready.
@@ -125,6 +143,10 @@ export class UniqueEffectDefinition {
       const defs = await backend.loadDefinitions();
       for ( const d of defs ) this._definitions.set(d.id, new this(d));
     }
+
+    // Sort the definitions
+    this._sortedDefinitions = [...this._definitions.values()].sort((a, b) => b.minPercent - a.minPercent);
+
     log(`UniqueEffectDefinition|Loaded ${this._definitions.size} definitions.`);
   }
 }

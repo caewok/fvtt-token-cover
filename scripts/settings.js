@@ -17,6 +17,7 @@ import { TokenCover } from "./TokenCover.js";
 import { renderTemplateSync } from "./util.js";
 import { buildDebugViewer, currentDebugViewerClass, buildLOSCalculator } from "./CoverCalculator.js";
 import { CoverDefinitionsConfig } from "./CoverDefinitionsConfig.js";
+import { UniqueEffectDefinition } from "./UniqueEffectDefinition.js";
 
 // LOS folder
 import { ViewerLOS } from "./LOS/ViewerLOS.js";
@@ -164,7 +165,10 @@ export const SETTINGS = {
     // CHOICES: USE_CHOICES,
     DATA: "cover-effects-data",
     TARGETING: "cover-effects-targeting",
-    RULES: "cover-rules"
+    RULES: "cover-rules",
+    LIVE_TOKENS_BLOCK: "live-tokens-block",
+    DEAD_TOKENS_BLOCK: "dead-tokens-block",
+    PRONE_TOKENS_BLOCK: "prone-tokens-block",
   },
 
   COVER_WORKFLOW: {
@@ -306,7 +310,7 @@ export class Settings extends ModuleSettingsAbstract {
       config: false, // Edited only through the cover rules menu below.
       type: new ArrayField(ruleField),
       default: DEFAULT_PRESET_DEFINITIONS,
-      onChange: async () => this.coverDefinitions.rebuildCache(),
+      onChange: async () => UniqueEffectDefinition.initialize()
     });
 
     registerMenu(MENUS.COVER_DEFINITIONS, {
@@ -317,7 +321,6 @@ export class Settings extends ModuleSettingsAbstract {
       type: CoverDefinitionsConfig,
       restricted: true,
     });
-    this.coverDefinitions.rebuildCache();
 
     /* Currently unused:
     registerMenu(MENUS.EXPORT_BUTTON, {
@@ -567,6 +570,37 @@ export class Settings extends ModuleSettingsAbstract {
     }
 
     // ----- NOTE: Other cover settings tab ----- //
+
+    register(KEYS.COVER_EFFECTS.LIVE_TOKENS_BLOCK, {
+      name: localize(`${KEYS.COVER_EFFECTS.LIVE_TOKENS_BLOCK}.Name`),
+      hint: localize(`${KEYS.COVER_EFFECTS.LIVE_TOKENS_BLOCK}.Hint`),
+      scope: "world",
+      config: false,
+      type: Boolean,
+      default: false,
+      tab: "other",
+    });
+
+    register(KEYS.COVER_EFFECTS.DEAD_TOKENS_BLOCK, {
+      name: localize(`${KEYS.COVER_EFFECTS.DEAD_TOKENS_BLOCK}.Name`),
+      hint: localize(`${KEYS.COVER_EFFECTS.DEAD_TOKENS_BLOCK}.Hint`),
+      scope: "world",
+      config: false,
+      type: Boolean,
+      default: false,
+      tab: "other",
+    });
+
+    register(KEYS.COVER_EFFECTS.PRONE_TOKENS_BLOCK, {
+      name: localize(`${KEYS.COVER_EFFECTS.PRONE_TOKENS_BLOCK}.Name`),
+      hint: localize(`${KEYS.COVER_EFFECTS.PRONE_TOKENS_BLOCK}.Hint`),
+      scope: "world",
+      config: false,
+      type: Boolean,
+      default: false,
+      tab: "other",
+    });
+
     if ( !OTHER_MODULES.ATV ) {
       register(KEYS.PRONE_MULTIPLIER, {
         name: localize(`${KEYS.PRONE_MULTIPLIER}.Name`),
@@ -716,29 +750,9 @@ export class Settings extends ModuleSettingsAbstract {
 
   // ----- NOTE: Cover rules menu ----- //
 
-  /** @type {object[]} Sorted high -> low, rebuilt whenever the setting changes. Hot-path cache. */
-  static _sortedDefinitions = [];
+  /** @returns {UniqueEffectDefinition[]} All rules as stored. */
+  static get coverDefinitions() { return Settings.get(Settings.KEYS.COVER_DEFINITIONS) || []; }
 
-  static coverDefinitions = {
-    /** @returns {object[]} All rules as stored. */
-    get all() { return Settings.get(Settings.KEYS.COVER_DEFINITIONS) ?? []; },
-
-    /**
-     * The single rule that applies at a given cover percent: the highest threshold met.
-     * Synchronous and allocation-free, so safe to call per token per frame.
-     * @param {number} percent   0-100
-     * @returns {object|undefined}
-     */
-    forPercent(percent) { return Settings._sortedDefinitions.find(d => percent >= d.minPercent); },
-
-    /** Source id used by definitions: the uuid, or the status id for built-ins. */
-    sourceId(def) { return def.uuid ?? def.statusId; },
-
-    rebuildCache() {
-      const defs = Settings.get(Settings.KEYS.COVER_DEFINITIONS) ?? [];
-      Settings._sortedDefinitions = defs.map(d => ({ ...d })).sort((a, b) => b.minPercent - a.minPercent);
-    },
-  };
 }
 
 

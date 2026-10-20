@@ -72,6 +72,7 @@ Hooks.once("init", function() {
 
 Hooks.once("setup", function() {
   Settings.registerAll();
+  UniqueEffectDefinition.initialize(); // Async
   initializePatching();
 });
 

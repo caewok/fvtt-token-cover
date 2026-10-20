@@ -33,7 +33,7 @@ const SHOW_ICON = CONST.ACTIVE_EFFECT_SHOW_ICON;
  */
 async function loadDocumentDefinitions(documentType) {
   const defs = [];
-  for ( const def of Settings.coverDefinitions.all ) {
+  for ( const def of Settings.coverDefinitions ) {
     if ( !def.uuid || def.documentType !== documentType ) continue;
     const doc = await fromUuid(def.uuid);
     if ( !doc ) continue; // Source deleted or compendium missing.
@@ -151,7 +151,7 @@ const dnd5eStatusBackend = {
   documentName: "ActiveEffect",
 
   loadDefinitions() {
-    const stored = new Map(Settings.coverDefinitions.all.filter(d => d.statusId).map(d => [d.statusId, d]));
+    const stored = new Map(Settings.coverDefinitions.filter(d => d.statusId).map(d => [d.statusId, d]));
     const defaults = new Map(DEFAULT_PRESET_DEFINITIONS.map(d => [d.statusId, d]));
     return [...DND5E_COVER_STATUS_IDS]
       .filter(id => CONFIG.statusEffects[id])
@@ -163,7 +163,6 @@ const dnd5eStatusBackend = {
           name: game.i18n.localize(status.name ?? status.label ?? id),
           img: status.img ?? status.icon,
           category: "cover",
-          allowsDuplicates: false,
           displayIcon: def.displayIcon ?? true,
           minPercent: def.minPercent,
         };
