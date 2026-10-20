@@ -1,5 +1,4 @@
 /* globals
-CONFIG,
 CONST,
 foundry
 */
@@ -7,6 +6,7 @@ foundry
 "use strict";
 
 import { MODULE_ID } from "./const.js";
+import { UniqueEffectDefinition } from "./UniqueEffectDefinition.js";
 
 /**
  * Abstract Region behavior re terrains
@@ -42,9 +42,9 @@ export class SetCoverRegionBehaviorType extends foundry.data.regionBehaviors.Reg
       }),
 
       physicalCover: new foundry.data.fields.NumberField({
-        label: `${MODULE_ID}.behavior.types.set-cover.fields.distance.name`,
-        hint: `${MODULE_ID}.behavior.types.set-cover.fields.distance.hint`,
-        initial: 1,
+        label: `${MODULE_ID}.behavior.types.set-cover.fields.physicalCover.name`,
+        hint: `${MODULE_ID}.behavior.types.set-cover.fields.physicalCover.hint`,
+        initial: 0,
         min: 0,
         max: 1,
         step: 0.05,
@@ -71,7 +71,9 @@ export class SetCoverRegionBehaviorType extends foundry.data.regionBehaviors.Reg
   }
 
   static coverChoices() {
-    return CONFIG[MODULE_ID].CoverEffect._mapStoredEffectNames();
+    const choices = {};
+    UniqueEffectDefinition._definitions.values().forEach(def => choices[def.id] = def.name);
+    return choices;
   }
 }
 

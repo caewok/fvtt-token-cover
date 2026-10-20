@@ -175,6 +175,15 @@
     "tokencover.settings.importButton.Name": "",
     "tokencover.settings.importButton.Label": "Import Settings",
 
+    "tokencover.settings.live-tokens-block.Name": "Live Tokens Provide Cover",
+    "tokencover.settings.live-tokens-block.Hint": "",
+
+    "tokencover.settings.dead-tokens-block.Name": "Dead Tokens Provide Cover",
+    "tokencover.settings.dead-tokens-block.Hint": "",
+
+    "tokencover.settings.prone-tokens-block.Name": "Prone Tokens Provide Cover",
+    "tokencover.settings.prone-tokens-block.Hint": "",
+
     "tokencover.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
     "tokencover.DrawingConfiguration.isHole.Name": "Drawing is Hole",
     "tokencover.DrawingConfiguration.isHole.Hint": "For area algorithms, treat the space indicated by the drawing (including elevation) as a hole for tiles. Only applicable when Levels is active.",
@@ -236,6 +245,9 @@
 
     "tokencover.behavior.types.set-cover.fields.appliesToAttackers.name": "Applies to Attackers",
     "tokencover.behavior.types.set-cover.fields.appliesToAttackers.hint": "If enabled, defending tokens outside the region will gain cover from attacking tokens within the region. If not enabled, only defending tokens inside the region are affected.",
+
+    "tokencover.behavior.types.set-cover.fields.physicalCover.name": "Physical Cover",
+    "tokencover.behavior.types.set-cover.fields.physicalCover.hint": "Treat the region as a physical object that partially (0–1) or totally (1) blocks.",
 
     "tokencover.cover-dialog.yes": "Apply Cover",
     "tokencover.cover-dialog.no": "Ignore All Cover",
