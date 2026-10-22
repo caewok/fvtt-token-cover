@@ -7,7 +7,7 @@ ui
 */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
+import { MODULE_ID, TEMPLATES } from "./const.js";
 import { Settings, DEFAULT_PRESET_DEFINITIONS } from "./settings.js";
 import { getBackend, EFFECT_BACKENDS } from "./effect_backends.js";
 
@@ -39,7 +39,7 @@ export class CoverDefinitionsConfig extends HandlebarsApplicationMixin(Applicati
   };
 
   static PARTS = {
-    form: { template: `modules/${MODULE_ID}/templates/cover-rules.hbs` }
+    form: { template: TEMPLATES.SETTINGS_COVER_RULES }
   };
 
   /** @type {object[]} Working copy of every stored rule (presets and dropped ones alike). */

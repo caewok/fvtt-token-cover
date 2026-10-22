@@ -19,14 +19,30 @@
     <tbody>
       {{#each rows}}
         <tr>
-          <td><img src="{{img}}" width="24" height="24"> {{name}}</td>
+          <!-- Effect column: uses flex to keep image and name side-by-side -->
           <td>
-            <input type="number" name="rules.{{index}}.minPercent" value="{{multiply minPercent 100}}"
-                   min="0" max="100" step="1">%
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img src="{{img}}" width="24" height="24" style="flex-shrink: 0;">
+              <span>{{name}}</span>
+            </div>
           </td>
-          <td><input type="checkbox" name="rules.{{index}}.displayIcon" {{checked displayIcon}}></td>
+
+          <!-- Percent column: prevents wrapping of input and % symbol -->
+          <td>
+            <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap;">
+              <input type="number" name="rules.{{index}}.minPercent" value="{{multiply minPercent 100}}" min="0" max="100" step="1" style="width: 60px;">
+              <span>%</span>
+            </div>
+          </td>
+
+          <!-- Show icon column -->
+          <td style="text-align: center;">
+            <input type="checkbox" name="rules.{{index}}.displayIcon" {{checked displayIcon}}>
+          </td>
+
+          <!-- Remove button column -->
           {{#if ../canDrop}}
-            <td>
+            <td style="text-align: center;">
               <button type="button" data-action="removeRule" data-index="{{index}}" data-tooltip="Remove">
                 <i class="fa-solid fa-trash"></i>
               </button>

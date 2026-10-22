@@ -175,7 +175,7 @@ export const TEMPLATES = {
   ACTIVE_EFFECT: `modules/${MODULE_ID}/templates/active-effect-config.html`,
   COVER_RULES_PF2E: `modules/${MODULE_ID}/templates/cover-rules-pf2e.html`,
   SPELL_CONFIG_DND5E: `modules/${MODULE_ID}/templates/dnd5e-spell-config.html`,
-  SETTINGS_COVER_RULES: `modules/${MODULE_ID}/templates/cover-rules.hbs`,
+  SETTINGS_COVER_RULES: `modules/${MODULE_ID}/templates/settings-cover-rules.html`,
 };
 
 export const ICONS = {

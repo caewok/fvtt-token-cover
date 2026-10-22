@@ -304,7 +304,7 @@ export class Settings extends ModuleSettingsAbstract {
       scope: "world",
       config: false, // Edited only through the cover rules menu below.
       type: new ArrayField(ruleField),
-      default: [],
+      default: DEFAULT_PRESET_DEFINITIONS,
       onChange: async () => UniqueEffectDefinition.initialize()
     });
 
