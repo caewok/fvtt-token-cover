@@ -13,6 +13,7 @@ import { Settings } from "./settings.js";
 import { log } from "./util.js";
 import { TokenEffects } from "./TokenEffects.js";
 import { UniqueEffectDefinition } from "./UniqueEffectDefinition.js";
+import { ElevatedPoint } from "./geometry/3d/ElevatedPoint.js";
 
 // Class to use to handle added methods and getters for token
 // Encapsulated inside Token.prototype.tokencover
@@ -130,7 +131,6 @@ export class TokenCover {
    * Destroy this object, clearing its subobjects from memory.
    */
   destroy() {
-    this.iconMap.clear();
     delete this.token.tokencover;
   }
 
@@ -187,9 +187,10 @@ export class TokenCover {
    * Get all cover regions for this token
    */
   get coverRegions() {
-    const token = this.token;
-    return canvas.regions.placeables.filter(region => region.document.behaviors.some(behavior => behavior.type === `${MODULE_ID}.setCover`)
-      && region.testPoint(token.center, token.elevationE));
+    // Use bottom of the token for consistency with region tests.
+    const pt = ElevatedPoint.fromToken(this.token).bottom;
+    return canvas.regions.placeables.filter(region => region.document.behaviors
+      .some(behavior => behavior.type === `${MODULE_ID}.setCover`) && region.testPoint(pt));
   }
 
   // ----- NOTE: Attackers ----- //

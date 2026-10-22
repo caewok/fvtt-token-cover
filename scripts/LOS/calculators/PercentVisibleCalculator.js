@@ -127,10 +127,8 @@ export class PercentVisibleResult {
    * @type {number|null}
    */
   set percentVisible(value) {
-    this.#percentVisible = value == null ?? Math.clamp(value, 0, 1) : null;
+    this.#percentVisible = value == null ? null : Math.clamp(value, 0, 1);
   }
-
-
 
   /**
    * Blend this result with another result, taking the maximum values at each test location.

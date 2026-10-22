@@ -341,7 +341,7 @@ export class CoverCalculator {
     const losViewer = this.losViewer;
     losViewer.target = target;
     losViewer.calculate()
-    return losViewer.percentVisible;
+    return 1 - losViewer.percentVisible;
   }
 
 

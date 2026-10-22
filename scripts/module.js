@@ -76,11 +76,11 @@ Hooks.once("setup", function() {
   UniqueEffectDefinition.initialize(); // Async
   initializePatching();
 
-  // Transparency values for tokens, walls, regions for cover.
-  CONFIG[GEOMETRY_LIB_ID].CONFIG.transparency.register("move", {
-    Token: tokenTransparency,
-    Region: regionTransparency,
-    Wall: wallTransparency,
+  // Opacity values for tokens, walls, regions for cover.
+  CONFIG[GEOMETRY_LIB_ID].CONFIG.opacity.register("move", {
+    Token: tokenOpacity,
+    Region: regionOpacity,
+    Wall: wallOpacity,
   });
 });
 
@@ -116,9 +116,7 @@ Hooks.once("canvasReady", function() {
     if ( !losViewer ) return;
     losViewer.calculator = calc;
   });
-
 });
-
 
 // ----- NOTE: Helper Functions ----- //
 
@@ -127,11 +125,11 @@ Hooks.once("canvasReady", function() {
  * @param {TokenDocument} tokenD
  * @returns {number}
  */
-function tokenTransparency(tokenD) {
+function tokenOpacity(tokenD) {
   const statusesGrantNoCover = CONFIG[MODULE_ID].statusesGrantNoCover;
   const actor = tokenD.object?.actor;
-  if ( actor && actor.statuses.intersects(statusesGrantNoCover) ) return 1; // Fully transparent.
-  return Number(fastFlag(tokenD, FLAGS.COVER.MAX_GRANT) || 0);
+  if ( actor && actor.statuses.intersects(statusesGrantNoCover) ) return 0; // Fully transparent.
+  return Number(1 - (fastFlag(tokenD, FLAGS.COVER.MAX_GRANT) || 1));
 }
 
 /**
@@ -139,14 +137,14 @@ function tokenTransparency(tokenD) {
  * @param {WallDocument} wallD
  * @returns {number}
  */
-function wallTransparency(wallD) { return Number(fastFlag(wallD, FLAGS.COVER.MAX_GRANT) || 0); }
+function wallOpacity(wallD) { return Number(1 - (fastFlag(wallD, FLAGS.COVER.MAX_GRANT) || 0)); }
 
 /**
  * Transparency for cover obstacle regions.
  * @param {RegionDocument} regionD
  * @returns {number}
  */
-function regionTransparency(regionD) { return Number(fastFlag(regionD, FLAGS.COVER.MAX_GRANT) || 0); }
+function regionOpacity(regionD) { return Number(1 - (fastFlag(regionD, FLAGS.COVER.MAX_GRANT) || 0)); }
 
 /**
  * Initialize the CONFIG for this module, at CONFIG[MODULE_ID].
