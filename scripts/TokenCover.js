@@ -190,7 +190,7 @@ export class TokenCover {
     // Use bottom of the token for consistency with region tests.
     const pt = ElevatedPoint.fromToken(this.token).bottom;
     return canvas.regions.placeables.filter(region => region.document.behaviors
-      .some(behavior => behavior.type === `${MODULE_ID}.setCover`) && region.testPoint(pt));
+      .some(behavior => behavior.type === `${MODULE_ID}.setCover`) && region.document.testPoint(pt));
   }
 
   // ----- NOTE: Attackers ----- //
@@ -228,10 +228,10 @@ export class TokenCover {
 
 
     // If exclusive cover behaviors, these override any non-exclusive behaviors and attacker cover.
-    if ( exclusiveCoverBehaviors.length ) minCover = UniqueEffectDefinition.bestCover(exclusiveCoverBehaviors);
+    if ( exclusiveCoverBehaviors.length ) minCover = UniqueEffectDefinition.bestCover(exclusiveCoverBehaviors)?.minPercent || 0;
     else {
       // The region cover provides the floor.
-      const regionCover = UniqueEffectDefinition.bestCover(coverBehaviors);
+      const regionCover = UniqueEffectDefinition.bestCover(coverBehaviors)?.minPercent || 0;
 
       // Attacker covers may exceed it, if defender has greater cover from every attacker.
       const attackerCovers = Math.min(...attackers.map(attacker => this.percentCoverFromAttacker(attacker)));
@@ -290,8 +290,7 @@ export class TokenCover {
     if ( !this.attackers.has(attacker) ) return;
 
     // Clear cover calculations from tokens.
-    const id = attacker.id ?? attacker;
-    canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(id));
+    canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(attacker));
 
     // Tell all other tokens that their cover status may have changed.
     canvas.tokens.placeables.forEach(t => t.tokencover.attackerMoved());
@@ -456,8 +455,7 @@ export class TokenCover {
    */
   static tokenMoved(token) {
     // Clear cover calculations from other tokens.
-    const id = token.id;
-    canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(id));
+    canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.delete(token));
 
     // Update this token's cover data.
     token.tokencover.tokenMoved();
@@ -500,7 +498,7 @@ export class TokenCover {
    * Reset all cover maps.
    */
   static _resetAllCover() {
-    canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap.clear());
+    canvas.tokens.placeables.forEach(t => t.tokencover.coverFromMap = new WeakMap());
   }
 
   /**
@@ -582,5 +580,5 @@ function applicableRegionBehaviors(attacker, defendingToken, defendingRegions) {
  */
 function coverRegions(pt, elevation) {
   return canvas.regions.placeables.filter(region => region.document.behaviors.some(behavior => behavior.type === `${MODULE_ID}.setCover`)
-      && region.testPoint(pt, elevation));
+      && region.document.testPoint(pt, elevation));
 }

@@ -133,15 +133,15 @@ const ruleField = new SchemaField({
   name: new StringField({ initial: "" }),
   img: new StringField({ initial: "icons/svg/shield.svg" }),
 
-  // Characteristic: apply when cover is at least this percent (0-100).
-  minPercent: new NumberField({ required: true, nullable: false, integer: true, min: 0, max: 100, initial: 50 }),
+  // Characteristic: apply when cover is at least this percent (0-1).
+  minPercent: new NumberField({ required: true, nullable: false, integer: false, min: 0, max: 1, initial: 0.5 }),
   displayIcon: new BooleanField({ initial: true }),
 });
 
 export const DEFAULT_PRESET_DEFINITIONS = [
-  { statusId: "coverHalf", name: "Half Cover", minPercent: 50 },
-  { statusId: "coverThreeQuarters", name: "Three-Quarters Cover", minPercent: 75 },
-  { statusId: "coverTotal", name: "Total Cover", minPercent: 100 }
+  { statusId: "coverHalf", name: "Half Cover", minPercent: 0.5 },
+  { statusId: "coverThreeQuarters", name: "Three-Quarters Cover", minPercent: 0.75 },
+  { statusId: "coverTotal", name: "Total Cover", minPercent: 1 }
 ];
 
 export const SETTINGS = {
@@ -304,7 +304,7 @@ export class Settings extends ModuleSettingsAbstract {
       scope: "world",
       config: false, // Edited only through the cover rules menu below.
       type: new ArrayField(ruleField),
-      default: DEFAULT_PRESET_DEFINITIONS,
+      default: [],
       onChange: async () => UniqueEffectDefinition.initialize()
     });
 

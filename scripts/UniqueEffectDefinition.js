@@ -107,7 +107,7 @@ export class UniqueEffectDefinition {
   /**
    * The best (highest min percent) cover out of a set of cover definitions.
    * @param {UniqueEffectDefinition[]}
-   * @returns {UniqueEffectDefinition}
+   * @returns {UniqueEffectDefinition|undefined}
    */
   static bestCover(definitions) {
     let best = definitions[0];

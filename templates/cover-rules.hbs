@@ -21,8 +21,8 @@
         <tr>
           <td><img src="{{img}}" width="24" height="24"> {{name}}</td>
           <td>
-            <input type="number" name="rules.{{index}}.minPercent" value="{{minPercent}}"
-                   min="0" max="100" step="1"> %
+            <input type="number" name="rules.{{index}}.minPercent" value="{{multiply minPercent 100}}"
+                   min="0" max="100" step="1">%
           </td>
           <td><input type="checkbox" name="rules.{{index}}.displayIcon" {{checked displayIcon}}></td>
           {{#if ../canDrop}}

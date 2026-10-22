@@ -14,6 +14,13 @@ import { getBackend, EFFECT_BACKENDS } from "./effect_backends.js";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const { DragDrop, TextEditor, FormDataExtended } = foundry.applications.ux;
 
+
+Hooks.once("init", () => {
+  Handlebars.registerHelper("multiply", function(a, b) {
+    return Number(a) * Number(b);
+  });
+});
+
 /**
  * Settings submenu: drop ActiveEffects/Items here, set a percent-cover threshold for each.
  * Edits a working copy; nothing is saved until Save is pressed.
@@ -86,7 +93,7 @@ export class CoverDefinitionsConfig extends HandlebarsApplicationMixin(Applicati
       documentType: doc.documentName,
       name: doc.name,
       img: doc.img,
-      minPercent: 50,
+      minPercent: 0.5,
       displayIcon: true
     });
     this.render();
@@ -101,7 +108,7 @@ export class CoverDefinitionsConfig extends HandlebarsApplicationMixin(Applicati
     for ( const [i, vals] of Object.entries(expanded.rules ?? {}) ) {
       const rule = this.#rules[Number(i)];
       if ( !rule ) continue;
-      rule.minPercent = Number(vals.minPercent);
+      rule.minPercent = Math.clamp(Number(vals.minPercent) / 100, 0, 1);
       rule.displayIcon = Boolean(vals.displayIcon);
     }
   }
