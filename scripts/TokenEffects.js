@@ -164,9 +164,43 @@ export class TokenEffects {
     }
   }
 
+  // ----- NOTE: Refresh Token ----- //
+
+  /**
+   * Per-actor debounced sheet re-render functions. Tied to the actor.
+   * @type {WeakMap<Actor, function>}
+   */
+  static #sheetRefreshers = new WeakMap();
+
+  /** Minimum ms between sheet re-renders for one actor while effects are changing rapidly. */
+  static SHEET_REFRESH_MS = 100; // Between 100 and 250 is a good range.
+
   /**
    * Refresh the token's display (icons) after a local change.
    * @param {Token} token
    */
-  static refreshTokenDisplay(token) { token.renderFlags.set({ redrawEffects: true }); }
+  static refreshTokenDisplay(token) {
+    token.renderFlags.set({ redrawEffects: true });
+    if ( token.actor ) this.refreshActorSheets(token.actor);
+  }
+
+  /**
+   * Re-render open applications for the actor.
+   * This updates displayed values, e.g. dnd5e AC, to reflect the re-prepared data.
+   * `actor.reset()` updates the data but not the already-rendered HTML.
+   * (Tooltips and formulas are computed from live data on hover.)
+   *
+   * Cheap when nothing is open. Debounces when a sheet is open to avoid re-rendering every frame.
+   * @param {Actor} actor
+   */
+  static refreshActorSheets(actor) {
+    if ( foundry.utils.isEmpty(actor.apps) ) return;
+    let refresh = this.#sheetRefreshers.get(actor);
+    if ( !refresh ) {
+      // Uses render(false) to only re-render applications that are already rendered; never opens one.
+      refresh = foundry.utils.debounce(() => actor.render(false), this.SHEET_REFRESH_MS);
+      this.#sheetRefreshers.set(actor, refresh);
+    }
+    refresh();
+  }
 }
