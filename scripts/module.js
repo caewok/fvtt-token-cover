@@ -45,6 +45,7 @@ import {
   addDND5eCoverFeatFlags } from "./IgnoresCover.js";
 
 // Load the geometry library.
+import { GEOMETRY_LIB_ID } from "./geometry/const.js";
 import "./geometry/registration.js";
 
 // Other self-executing hooks
@@ -77,11 +78,9 @@ Hooks.once("setup", function() {
 
   // Transparency values for tokens, walls, regions for cover.
   CONFIG[GEOMETRY_LIB_ID].CONFIG.transparency.register("move", {
-    {
-      Token: tokenTransparency,
-      Region: regionTransparency,
-      Wall: wallTransparency,
-    }
+    Token: tokenTransparency,
+    Region: regionTransparency,
+    Wall: wallTransparency,
   });
 });
 

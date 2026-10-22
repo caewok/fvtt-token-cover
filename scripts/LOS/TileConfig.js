@@ -5,7 +5,7 @@
 "use strict";
 
 import { TEMPLATES, FLAGS } from "./const.js";
-import { renderTemplateSync, fastFlag } from "./util.js";
+import { renderTemplateSync } from "./util.js";
 
 
 // Add settings to tile config to treat it like a "floor".
@@ -34,7 +34,7 @@ function renderTileConfig(app, html, data) {
       calculated: `${MODULE_ID}.tile-config.options.calculated`,
       ignore: `${MODULE_ID}.tile-config.options.ignore`,
     },
-    selectedTileAlphaShape: fastFlag(data.document, FLAGS.TILE_ALPHA_SHAPE) || "calculated",
+    selectedTileAlphaShape: data.document.getFlag(MODULE_ID, FLAGS.TILE_ALPHA_SHAPE) || "calculated",
   };
 
   const myHTML = renderTemplateSync(TEMPLATES.TILE, data);

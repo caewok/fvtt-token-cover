@@ -66,7 +66,7 @@ export class PercentVisibleResult {
   makeFullyVisible() { this.visibility = this.constructor.VISIBILITY.FULL; return this; }
 
   clone() {
-    const out = new this();
+    const out = new this.constructor();
     out.config = structuredClone(this.config);
     Object.assign(out.data, structuredClone(this.data));
     out.visibility = this.visibility;
@@ -112,12 +112,25 @@ export class PercentVisibleResult {
    */
   get visibleArea() { return this.targetArea; }
 
+  #percentVisible = null;
+
   get percentVisible() {
     if ( ~this.visibility ) return this.visibility;
+    if ( Number.isNumeric(this.#percentVisible) ) return this.#percentVisible;
     const targetArea = this.targetArea;
     if ( targetArea.almostEqual(0) ) return 0;
     return approximateClamp(this.visibleArea / targetArea, 0, 1, 1e-02);
   }
+
+  /**
+   * Override percent visible value.
+   * @type {number|null}
+   */
+  set percentVisible(value) {
+    this.#percentVisible = value == null ?? Math.clamp(value, 0, 1) : null;
+  }
+
+
 
   /**
    * Blend this result with another result, taking the maximum values at each test location.
