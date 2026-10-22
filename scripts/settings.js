@@ -259,11 +259,6 @@ export class Settings extends ModuleSettingsAbstract {
     else this.destroyDebugViewer();
   }
 
-  static get currentCalculator() {
-    const calcName = ViewerLOS.VIEWPOINT_ALGORITHM_SETTINGS[this.get(this.KEYS.LOS.TARGET.ALGORITHM)];
-    return CONFIG[MODULE_ID].losCalculators[calcName];
-  }
-
   /**
    * Register all settings
    */

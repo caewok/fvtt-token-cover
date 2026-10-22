@@ -140,7 +140,7 @@ export class TokenCover {
    * Something about this token position was updated.
    */
   tokenMoved() {
-    this.coverFromMap.clear();
+    this.coverFromMap = new WeakMap();
     this.updateCover();
   }
 
@@ -154,19 +154,6 @@ export class TokenCover {
     }
   }
 
-  // ----- NOTE: Settings ----- //
-
-  /** @type {boolean} */
-  get liveTokensBlock() { return Boolean(Settings.get(Settings.KEYS.COVER_EFFECTS.LIVE_TOKENS_BLOCK)); }
-
-  /** @type {boolean} */
-  get deadTokensBlock() { return Boolean(Settings.get(Settings.KEYS.COVER_EFFECTS.DEAD_TOKENS_BLOCK)); }
-
-  /** @type {boolean} */
-  get proneTokensBlock() { return Boolean(Settings.get(Settings.KEYS.COVER_EFFECTS.PRONE_TOKENS_BLOCK)); }
-
-  /** @type {boolean} */
-  get includeTokens() { return this.liveTokensBlock || this.deadTokensBlock; }
 
   // ----- NOTE: Cover Effects ----- //
 
@@ -192,7 +179,7 @@ export class TokenCover {
    * @param {number} percent
    * @returns {UniqueEffectDefinition}
    */
-  static coverAtPercent(percent) { return UniqueEffectDefinition.forPercent(percent); }
+  static coverAtPercent(percent) { return UniqueEffectDefinition.forCoverPercent(percent); }
 
   // ----- NOTE: Cover Regions ----- //
 
@@ -434,12 +421,12 @@ export class TokenCover {
    * @returns {boolean} True if a change occurred
    */
   updateCover() {
-    let changed = false;
     if ( this.canApplyCover() ) {
-      const coverEffects = this.minimumCoverFromAttackers();
-      changed = this.replaceCover(coverEffects);
-    } else changed = this.clearCover();
-    return changed;
+      const percent = this.minimumPercentCoverFromAttackers();
+      const coverEffect = this.constructor.coverAtPercent(percent);
+      if ( coverEffect ) return this.replaceCover([coverEffect]);
+    }
+    return this.clearCover();
   }
 
   /**
@@ -480,7 +467,6 @@ export class TokenCover {
 
 
   // ----- NOTE: Static helper functions ----- //
-
 
   /**
    * Helper to update whether this token has cover from another token.

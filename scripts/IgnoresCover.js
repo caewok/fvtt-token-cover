@@ -72,7 +72,7 @@ export class IgnoresCover {
    * @returns {number}
    */
   _getCoverFlag(flag) {
-    return this.actor ? fastFlag(this.actor, flag) ?? 0;
+    return this.actor ? fastFlag(this.actor, flag) : 0;
   }
 
   /**

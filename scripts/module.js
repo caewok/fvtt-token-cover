@@ -34,7 +34,7 @@ import { SetCoverRegionBehaviorType } from "./SetCoverRegionBehaviorType.js";
 
 // For API
 import { OPEN_POPOUTS } from "./LOS/Area3dPopout.js";
-import { CoverCalculator } from "./CoverCalculator.js";
+import { CoverCalculator, buildOcclusionTester, buildLOSCalculator } from "./CoverCalculator.js";
 import { CoverDialog } from "./CoverDialog.js";
 
 // Ignores Cover
@@ -74,6 +74,15 @@ Hooks.once("setup", function() {
   Settings.registerAll();
   UniqueEffectDefinition.initialize(); // Async
   initializePatching();
+
+  // Transparency values for tokens, walls, regions for cover.
+  CONFIG[GEOMETRY_LIB_ID].CONFIG.transparency.register("move", {
+    {
+      Token: tokenTransparency,
+      Region: regionTransparency,
+      Wall: wallTransparency,
+    }
+  });
 });
 
 /**
@@ -81,7 +90,6 @@ Hooks.once("setup", function() {
  */
 Hooks.once("ready", async function(_canvas) {
   Settings.migrate(); // Cannot be set until world is ready.
-
 });
 
 /**
@@ -89,13 +97,57 @@ Hooks.once("ready", async function(_canvas) {
  * @param {Canvas} canvas The Canvas which is now ready for use
  */
 Hooks.once("canvasReady", function() {
-  if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) Settings.toggleLOSDebugGraphics(true);
-
   transitionTokenMaximumCoverFlags();
+
+  // Destroy any old calculator.
+  if ( CONFIG[MODULE_ID].coverCalculator ) {
+    CONFIG[MODULE_ID].coverCalculator.destroy();
+    CONFIG[MODULE_ID].coverCalculator = null;
+  }
+
+  // Create a shared occlusion tester.
+  CONFIG[MODULE_ID].occlusionTester = buildOcclusionTester();
+
+  // Create a shared los calculator.
+  const calc = CONFIG[MODULE_ID].losCalculator = buildLOSCalculator();
+
+  // Replace for any tokens already in the scene.
+  canvas.tokens.placeables.forEach(token => {
+    const losViewer = token[MODULE_ID]?.coverCalculator.losViewer;
+    if ( !losViewer ) return;
+    losViewer.calculator = calc;
+  });
+
 });
 
 
 // ----- NOTE: Helper Functions ----- //
+
+/**
+ * Transparency for cover obstacle tokens.
+ * @param {TokenDocument} tokenD
+ * @returns {number}
+ */
+function tokenTransparency(tokenD) {
+  const statusesGrantNoCover = CONFIG[MODULE_ID].statusesGrantNoCover;
+  const actor = tokenD.object?.actor;
+  if ( actor && actor.statuses.intersects(statusesGrantNoCover) ) return 1; // Fully transparent.
+  return Number(fastFlag(tokenD, FLAGS.COVER.MAX_GRANT) || 0);
+}
+
+/**
+ * Transparency for cover obstacle walls.
+ * @param {WallDocument} wallD
+ * @returns {number}
+ */
+function wallTransparency(wallD) { return Number(fastFlag(wallD, FLAGS.COVER.MAX_GRANT) || 0); }
+
+/**
+ * Transparency for cover obstacle regions.
+ * @param {RegionDocument} regionD
+ * @returns {number}
+ */
+function regionTransparency(regionD) { return Number(fastFlag(regionD, FLAGS.COVER.MAX_GRANT) || 0); }
 
 /**
  * Initialize the CONFIG for this module, at CONFIG[MODULE_ID].
@@ -126,13 +178,6 @@ function initializeConfig() {
       geometric: PercentVisibleCalculatorGeometric,
       webgl2: PercentVisibleCalculatorWebGL2,
       "per-pixel": PercentVisibleCalculatorPerPixel,
-    },
-
-    losCalculators: {
-      points: null,
-      geometric: null,
-      webgl2: null,
-      "per-pixel": null,
     },
 
     /**
