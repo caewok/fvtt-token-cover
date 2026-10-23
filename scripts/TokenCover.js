@@ -547,10 +547,15 @@ function applicableRegionBehaviors(attacker, defendingToken, defendingRegions) {
 
   // Accumulate all the potential behaviors.
   const behaviors = [];
-  for ( const defendingRegion of defendingRegions ) behaviors.push(...defendingRegion.document.behaviors);
+  for ( const defendingRegion of defendingRegions ) {
+    for ( const behavior of defendingRegion.document.behaviors ) {
+      if ( behavior.disabled || !behavior.type !== `${MODULE_ID}.setCover` ) continue;
+      behaviors.push(behavior);
+    }
+  }
   for ( const attackingRegion of attackingRegions ) {
     for ( const behavior of attackingRegion.document.behaviors ) {
-      if ( !behavior.system.appliesToAttackers ) continue;
+      if ( behavior.disabled || !behavior.type !== `${MODULE_ID}.setCover` || !behavior.system.appliesToAttackers ) continue;
       behaviors.push(behavior);
     }
   }
@@ -561,7 +566,6 @@ function applicableRegionBehaviors(attacker, defendingToken, defendingRegions) {
   const defenderCenter = defendingToken.center;
   let dist;
   for ( const behavior of behaviors ) {
-    if ( behavior.type !== `${MODULE_ID}.setCover` ) continue;
     if ( behavior.system.distance ) {
       // Cache the distance measurement
       dist ??= canvas.grid.measurePath([defenderCenter, attackingCenter]).distance;

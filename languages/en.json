@@ -249,8 +249,8 @@
     "tokencover.behavior.types.set-cover.fields.appliesToAttackers.name": "Applies to Attackers",
     "tokencover.behavior.types.set-cover.fields.appliesToAttackers.hint": "If enabled, defending tokens outside the region will gain cover from attacking tokens within the region. If not enabled, only defending tokens inside the region are affected.",
 
-    "tokencover.behavior.types.set-cover.fields.physicalCover.name": "Physical Cover",
-    "tokencover.behavior.types.set-cover.fields.physicalCover.hint": "Treat the region as a physical object that partially (0–1) or totally (1) blocks.",
+    "tokencover.behavior.types.set-cover.fields.opacity.name": "Opacity",
+    "tokencover.behavior.types.set-cover.fields.opacity.hint": "Is this region transparent (0) or opaque (1) for purposes of cover?" ,
 
     "tokencover.cover-dialog.yes": "Apply Cover",
     "tokencover.cover-dialog.no": "Ignore All Cover",

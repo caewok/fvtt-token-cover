@@ -95,7 +95,7 @@ Hooks.once("ready", async function(_canvas) {
 // ----- NOTE: Helper Functions ----- //
 
 /**
- * Transparency for cover obstacle tokens.
+ * Opacity for cover obstacle tokens.
  * @param {TokenDocument} tokenD
  * @returns {number}
  */
@@ -103,22 +103,29 @@ function tokenOpacity(tokenD) {
   const statusesGrantNoCover = CONFIG[MODULE_ID].statusesGrantNoCover;
   const actor = tokenD.object?.actor;
   if ( actor && actor.statuses.intersects(statusesGrantNoCover) ) return 0; // Fully transparent.
-  return Number(1 - (fastFlag(tokenD, FLAGS.OPACITY) ?? 1));
+  return Number(fastFlag(tokenD, FLAGS.OPACITY) ?? 1));
 }
 
 /**
- * Transparency for cover obstacle walls.
+ * Opacity for cover obstacle walls.
  * @param {WallDocument} wallD
  * @returns {number}
  */
-function wallOpacity(wallD) { return Number(1 - (fastFlag(wallD, FLAGS.OPACITY) ?? 1)); }
+function wallOpacity(wallD) { return Number(fastFlag(wallD, FLAGS.OPACITY) ?? 1); }
 
 /**
- * Transparency for cover obstacle regions.
+ * Opacity for cover obstacle regions.
  * @param {RegionDocument} regionD
  * @returns {number}
  */
-function regionOpacity(regionD) { return Number(1 - (fastFlag(regionD, FLAGS.OPACITY) ?? 1)); }
+function regionOpacity(regionD) {
+  for ( const b of regionD.behaviors ) {
+    if ( b.disabled || !b.type === `${MODULE_ID}.setCover` ) continue;
+    return Number(b.system.opacity ?? 0);
+  }
+
+  return Number(1 - (fastFlag(regionD, FLAGS.OPACITY) ?? 1));
+}
 
 /**
  * Initialize the CONFIG for this module, at CONFIG[MODULE_ID].
