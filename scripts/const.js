@@ -41,6 +41,7 @@ export const FLAGS = {
       }
     }
   },
+  OPACITY: "opacity",
 
   DRAWING: { IS_HOLE: "isHole" },
   COVER: {
@@ -55,7 +56,6 @@ export const FLAGS = {
     IGNORE_DND5E: "helpersIgnoreCover",
     SPELLSNIPER: "spellSniper",
     SHARPSHOOTER: "sharpShooter",
-    MAX_GRANT: "maximumCoverGrant"
   },
 
   UNIQUE_EFFECT: {
@@ -64,11 +64,6 @@ export const FLAGS = {
     DUPLICATES_ALLOWED: "duplicatesAllowed",
     IS_LOCAL: "isLocal",
     DISPLAY_ICON: "displayStatusIcon"
-  },
-
-  COVER_BOOK: {
-    FOLDER_COLOR: "folderColor",
-    FOLDERS: "folders",
   },
 
   /**

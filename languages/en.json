@@ -212,6 +212,9 @@
     "tokencover.template.settings-config.other": "Cover Options",
     "tokencover.template.settings-config.otherDescription": "Settings to adjust other cover rules and to set system-specific cover properties.",
 
+    "tokencover.tokenconfig.opacity.name": "Opacity",
+    "tokencover.tokenconfig.opacity.hint": "How opaque (100%) or transparent (0%) this token is for purposes of cover. Example: A swarm of bees might be 50%. A ghost might be 0%.",
+
     "tokencover.tokenconfig.maximum-cover.name": "Maximum Cover",
     "tokencover.tokenconfig.maximum-cover.hint": "Maximum cover provided by this token. Example: A swarm of bees might only provide half cover. A ghost may provide no cover. Does nothing if tokens do not grant cover (see module settings).",
 

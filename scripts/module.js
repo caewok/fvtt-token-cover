@@ -103,7 +103,7 @@ function tokenOpacity(tokenD) {
   const statusesGrantNoCover = CONFIG[MODULE_ID].statusesGrantNoCover;
   const actor = tokenD.object?.actor;
   if ( actor && actor.statuses.intersects(statusesGrantNoCover) ) return 0; // Fully transparent.
-  return Number(1 - (fastFlag(tokenD, FLAGS.COVER.MAX_GRANT) || 1));
+  return Number(1 - (fastFlag(tokenD, FLAGS.OPACITY) ?? 1));
 }
 
 /**
@@ -111,14 +111,14 @@ function tokenOpacity(tokenD) {
  * @param {WallDocument} wallD
  * @returns {number}
  */
-function wallOpacity(wallD) { return Number(1 - (fastFlag(wallD, FLAGS.COVER.MAX_GRANT) || 0)); }
+function wallOpacity(wallD) { return Number(1 - (fastFlag(wallD, FLAGS.OPACITY) ?? 1)); }
 
 /**
  * Transparency for cover obstacle regions.
  * @param {RegionDocument} regionD
  * @returns {number}
  */
-function regionOpacity(regionD) { return Number(1 - (fastFlag(regionD, FLAGS.COVER.MAX_GRANT) || 0)); }
+function regionOpacity(regionD) { return Number(1 - (fastFlag(regionD, FLAGS.OPACITY) ?? 1)); }
 
 /**
  * Initialize the CONFIG for this module, at CONFIG[MODULE_ID].

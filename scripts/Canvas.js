@@ -27,7 +27,6 @@ PATCHES.BASIC = {};
  */
 function canvasReady(_canvas) {
   log(`${MODULE_ID}|canvasReady`);
-  transitionTokenMaximumCoverFlags();
 
   // Destroy any old calculator.
   if ( CONFIG[MODULE_ID].losCalculator ) {
@@ -69,31 +68,6 @@ function canvasTearDown(_canvas) {
     CONFIG[MODULE_ID].losCalculator.destroy();
     CONFIG[MODULE_ID].losCalculator = null;
   }
-}
-
-/**
- * Transition token maximum cover flags.
- * Previously was stored by cover type (0 – 4).
- * Now will be a percentage blocked.
- */
-function transitionTokenMaximumCoverFlags() {
-  const sceneVersion = fastFlag(canvas.scene, FLAGS.VERSION);
-  if ( sceneVersion && !foundry.utils.isNewerVersion("0.6.6", sceneVersion) ) return;
-  const v = game.modules.get("tokencover").version;
-  canvas.tokens.placeables.forEach(t => {
-    const currCoverMax = fastFlag(t.document, FLAGS.COVER.MAX_GRANT);
-    if ( !currCoverMax ) return; // Either 0 or undefined; either is fine.
-    let newMax = 1;
-    switch ( currCoverMax ) {
-      case 1: newMax = 0.5; break;
-      case 2: newMax = 0.75; break;
-      case 3: newMax = 0.90; break;
-      case 4: newMax = 1; break;
-    }
-    t.document.setFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT, newMax);
-    t.document.setFlag(MODULE_ID, FLAGS.VERSION, v);
-  });
-  canvas.scene.setFlag(MODULE_ID, FLAGS.VERSION, v);
 }
 
 PATCHES.BASIC.HOOKS = { canvasReady, canvasTearDown };
