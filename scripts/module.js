@@ -89,6 +89,7 @@ Hooks.once("setup", function() {
  */
 Hooks.once("ready", async function(_canvas) {
   Settings.migrate(); // Cannot be set until world is ready.
+  Settings.initializeDebugGraphics();
 });
 
 /**
