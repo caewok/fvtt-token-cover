@@ -50,9 +50,6 @@ function canvasReady(_canvas) {
 
   // Render the debug viewer is debug is set.
   if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) Settings.toggleLOSDebugGraphics(true);
-
-  // Must be after the trackers are ready.
-  Settings.updateLightMonitor(Settings.get(Settings.KEYS.LIGHT_MONITOR.ALGORITHM));
 }
 
 /**
