@@ -89,35 +89,8 @@ Hooks.once("setup", function() {
  */
 Hooks.once("ready", async function(_canvas) {
   Settings.migrate(); // Cannot be set until world is ready.
-  Settings.initializeDebugGraphics();
 });
 
-/**
- * A hook event that fires when the Canvas is ready.
- * @param {Canvas} canvas The Canvas which is now ready for use
- */
-Hooks.once("canvasReady", function() {
-  transitionTokenMaximumCoverFlags();
-
-  // Destroy any old calculator.
-  if ( CONFIG[MODULE_ID].coverCalculator ) {
-    CONFIG[MODULE_ID].coverCalculator.destroy();
-    CONFIG[MODULE_ID].coverCalculator = null;
-  }
-
-  // Create a shared occlusion tester.
-  CONFIG[MODULE_ID].occlusionTester = buildOcclusionTester();
-
-  // Create a shared los calculator.
-  const calc = CONFIG[MODULE_ID].losCalculator = buildLOSCalculator();
-
-  // Replace for any tokens already in the scene.
-  canvas.tokens.placeables.forEach(token => {
-    const losViewer = token[MODULE_ID]?.coverCalculator.losViewer;
-    if ( !losViewer ) return;
-    losViewer.calculator = calc;
-  });
-});
 
 // ----- NOTE: Helper Functions ----- //
 
@@ -242,30 +215,4 @@ function initializeAPI() {
 
     PATCHER,
   };
-}
-
-
-/**
- * Transition token maximum cover flags.
- * Previously was stored by cover type (0 – 4).
- * Now will be a percentage blocked.
- */
-function transitionTokenMaximumCoverFlags() {
-  const sceneVersion = fastFlag(canvas.scene, FLAGS.VERSION);
-  if ( sceneVersion && !foundry.utils.isNewerVersion("0.6.6", sceneVersion) ) return;
-  const v = game.modules.get("tokencover").version;
-  canvas.tokens.placeables.forEach(t => {
-    const currCoverMax = fastFlag(t.document, FLAGS.COVER.MAX_GRANT);
-    if ( !currCoverMax ) return; // Either 0 or undefined; either is fine.
-    let newMax = 1;
-    switch ( currCoverMax ) {
-      case 1: newMax = 0.5; break;
-      case 2: newMax = 0.75; break;
-      case 3: newMax = 0.90; break;
-      case 4: newMax = 1; break;
-    }
-    t.document.setFlag(MODULE_ID, FLAGS.COVER.MAX_GRANT, newMax);
-    t.document.setFlag(MODULE_ID, FLAGS.VERSION, v);
-  });
-  canvas.scene.setFlag(MODULE_ID, FLAGS.VERSION, v);
 }

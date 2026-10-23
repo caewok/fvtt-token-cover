@@ -8,8 +8,9 @@ game,
 
 import { Patcher } from "./Patcher.js";
 import { OTHER_MODULES } from "./const.js";
-
 import { Settings } from "./settings.js";
+
+import { PATCHES as PATCHES_Canvas } from "./Canvas.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
 
@@ -30,6 +31,7 @@ import { TokenCover } from "./TokenCover.js";
 import { PATCHES as PATCHES_dnd5e } from "./dnd5e.js";
 
 const PATCHES = {
+  Canvas: PATCHES_Canvas,
   "foundry.helpers.ClientSettings": PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
   "foundry.canvas.placeables.Token": PATCHES_Token,
