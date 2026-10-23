@@ -66,82 +66,6 @@ export const FLAGS = {
     DISPLAY_ICON: "displayStatusIcon"
   },
 
-  COVER_EFFECT: {
-    /**
-     * Store an identifier that links an active effect to its stored data.
-     * @type {string}
-     */
-    ID: "coverEffectId",
-
-    /**
-     * Identify a specific item as one that holds cover effects.
-     * @type {boolean}
-     */
-    ITEM: "coverEffectItem",
-
-    /**
-     * Cover effect has been applied locally.
-     * @param {boolean}
-     */
-    LOCAL: "coverEffectLocal",
-
-    /**
-     * Cover effect should be applied whenever this status is triggered.
-     * Will replace the status with application of this cover effect.
-     */
-    LINKED_STATUS: "linkedStatus",
-
-    // Rules that define how cover is applied.
-    RULES: {
-
-      /**
-       * Cover effect applies when cover equals or exceeds this threshold.
-       * @type {number}
-       */
-      PERCENT_THRESHOLD: "percentThreshold",
-
-      /**
-       * Cover effect priority, when multiple covers apply.
-       * @type {number}
-       */
-      PRIORITY: "priority",
-
-      /**
-       * Cover effect can overlap with another.
-       * @type {boolean}
-       */
-      CAN_OVERLAP: "canOverlap",
-
-      /**
-       * Cover effect includes walls in the cover calculation.
-       * @type {boolean}
-       */
-      INCLUDE_WALLS: "includeWalls",
-
-      // Options for tokens in the cover calculations
-
-      /**
-       * Cover effect includes tokens in the cover calculation.
-       * @type {boolean}
-       */
-      LIVE_TOKENS_BLOCK: "liveTokensBlock",
-
-      /**
-       * Cover effect includes dead tokens in the cover calculation.
-       * @type {boolean}
-       */
-      DEAD_TOKENS_BLOCK: "deadTokensBlock",
-
-      /**
-       * Cover effect includes prone tokens
-       * Further limited to live/dead depending on those values. Does nothing if neither
-       * live nor dead tokens provide cover.
-       * @type {boolean}
-       */
-      PRONE_TOKENS_BLOCK: "proneTokensBlock"
-    }
-  },
-
   COVER_BOOK: {
     FOLDER_COLOR: "folderColor",
     FOLDERS: "folders",
@@ -171,9 +95,6 @@ export const TEMPLATES = {
   SETTINGS_BUTTONS: `modules/${MODULE_ID}/templates/settings-buttons.html`,
   SETTINGS_MENU_PARTIAL: `modules/${MODULE_ID}/templates/settings-menu-tab-partial.html`,
   SETTINGS_MENU: `modules/${MODULE_ID}/templates/settings-menu.html`,
-  COVER_RULES_PARTIAL: `modules/${MODULE_ID}/templates/cover-rules-partial.html`,
-  ACTIVE_EFFECT: `modules/${MODULE_ID}/templates/active-effect-config.html`,
-  COVER_RULES_PF2E: `modules/${MODULE_ID}/templates/cover-rules-pf2e.html`,
   SPELL_CONFIG_DND5E: `modules/${MODULE_ID}/templates/dnd5e-spell-config.html`,
   SETTINGS_COVER_RULES: `modules/${MODULE_ID}/templates/settings-cover-rules.html`,
 };

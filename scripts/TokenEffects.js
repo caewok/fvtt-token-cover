@@ -173,7 +173,7 @@ export class TokenEffects {
   static #sheetRefreshers = new WeakMap();
 
   /** Minimum ms between sheet re-renders for one actor while effects are changing rapidly. */
-  static SHEET_REFRESH_MS = 100; // Between 100 and 250 is a good range.
+  static SHEET_REFRESH_MS = 200; // Between 100 and 250 is a good range.
 
   /**
    * Refresh the token's display (icons) after a local change.

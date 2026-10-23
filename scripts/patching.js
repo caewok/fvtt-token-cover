@@ -10,12 +10,8 @@ import { Patcher } from "./Patcher.js";
 import { OTHER_MODULES } from "./const.js";
 
 import { Settings } from "./settings.js";
-// import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
-// import { PATCHES as PATCHES_ActiveEffectConfig } from "./ActiveEffectConfig.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
-// import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
-// import { PATCHES as PATCHES_ItemSheet } from "./ItemSheet.js";
 
 // Dnd5e
 import { PATCHES as PATCHES_AttackActivity } from "./AttackActivity.js";
@@ -35,15 +31,9 @@ import { TokenCover } from "./TokenCover.js";
 import { PATCHES as PATCHES_dnd5e } from "./dnd5e.js";
 
 const PATCHES = {
- // ActiveEffect: PATCHES_ActiveEffect,
- //  "foundry.applications.sheets.ActiveEffectConfig": PATCHES_ActiveEffectConfig,
   "foundry.helpers.ClientSettings": PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
-//  Item: PATCHES_Item,
-//  "foundry.applications.sidebar.tabs.ItemDirectory": PATCHES_ItemDirectory,
-//  ItemSheet: PATCHES_ItemSheet,
   MeasuredTemplate: PATCHES_MeasuredTemplate,
-//  SidebarTab: PATCHES_SidebarTab,
   "foundry.canvas.placeables.Token": PATCHES_Token,
   TokenConfig: PATCHES_TokenConfig,
 };
@@ -68,9 +58,6 @@ export function initializePatching() {
 
   // If ATV is not active, handle the LOS patches needed to run the calculator.
   if ( !OTHER_MODULES.ATV ) PATCHER.registerGroup("LOS");
-
-  //   If ( OTHER_MODULES.LEVELS ) PATCHER.registerGroup("LEVELS");
-  //   else PATCHER.registerGroup("NO_LEVELS");
 
   if ( game.system.id === "dnd5e" ) {
     PATCHER.addPatchesFromRegistrationObject(PATCHES_DND5E);
