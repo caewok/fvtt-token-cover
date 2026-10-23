@@ -26,14 +26,12 @@ import { PATCHES as PATCHES_ClientSettings } from "./ModuleSettingsAbstract.js";
 import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
 
 // Templates
-import { PATCHES as PATCHES_MeasuredTemplate } from "./MeasuredTemplate.js";
 import { TokenCover } from "./TokenCover.js";
 import { PATCHES as PATCHES_dnd5e } from "./dnd5e.js";
 
 const PATCHES = {
   "foundry.helpers.ClientSettings": PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
-  MeasuredTemplate: PATCHES_MeasuredTemplate,
   "foundry.canvas.placeables.Token": PATCHES_Token,
   TokenConfig: PATCHES_TokenConfig,
 };
