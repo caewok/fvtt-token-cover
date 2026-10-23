@@ -11,7 +11,7 @@ import { renderTemplateSync, fastFlag } from "./util.js";
 export const PATCHES = {};
 PATCHES.BASIC = {};
 
-function renderTokenConfigHook(app, html, data) {
+function renderTokenConfig(app, html, data) {
   const doc = app.document ?? app.token;
   const opacity = fastFlag(doc, FLAGS.OPACITY) ?? 1;
   const opacityPercent = Math.round(opacity * 100);
@@ -40,5 +40,5 @@ function renderTokenConfigHook(app, html, data) {
 }
 
 PATCHES.BASIC.HOOKS = {
-  renderTokenConfig: renderTokenConfigHook
+  renderTokenConfig
 };

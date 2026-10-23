@@ -103,7 +103,7 @@ function tokenOpacity(tokenD) {
   const statusesGrantNoCover = CONFIG[MODULE_ID].statusesGrantNoCover;
   const actor = tokenD.object?.actor;
   if ( actor && actor.statuses.intersects(statusesGrantNoCover) ) return 0; // Fully transparent.
-  return Number(fastFlag(tokenD, FLAGS.OPACITY) ?? 1));
+  return Number(fastFlag(tokenD, FLAGS.OPACITY) ?? 1);
 }
 
 /**

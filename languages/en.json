@@ -215,6 +215,9 @@
     "tokencover.tokenconfig.opacity.name": "Opacity",
     "tokencover.tokenconfig.opacity.hint": "How opaque (100%) or transparent (0%) this token is for purposes of cover. Example: A swarm of bees might be 50%. A ghost might be 0%.",
 
+    "tokencover.wallconfig.opacity.name": "Opacity",
+    "tokencover.wallconfig.opacity.hint": "How opaque (100%) or transparent (0%) this wall is for purposes of cover. Example: A wall representing jail cell bars might be 50%.",
+
     "tokencover.tokenconfig.maximum-cover.name": "Maximum Cover",
     "tokencover.tokenconfig.maximum-cover.hint": "Maximum cover provided by this token. Example: A swarm of bees might only provide half cover. A ghost may provide no cover. Does nothing if tokens do not grant cover (see module settings).",
 

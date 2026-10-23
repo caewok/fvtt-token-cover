@@ -23,8 +23,9 @@ import { PATCHES as PATCHES_Midiqol } from "./Midiqol.js";
 // Settings
 import { PATCHES as PATCHES_ClientSettings } from "./ModuleSettingsAbstract.js";
 
-// Token configuration
+// Configs
 import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
+import { PATCHES as PATCHES_WallConfig } from "./WallConfig.js";
 
 // Templates
 import { TokenCover } from "./TokenCover.js";
@@ -36,6 +37,7 @@ const PATCHES = {
   Combat: PATCHES_Combat,
   "foundry.canvas.placeables.Token": PATCHES_Token,
   TokenConfig: PATCHES_TokenConfig,
+  WallConfig: PATCHES_WallConfig,
 };
 
 const PATCHES_DND5E = {
