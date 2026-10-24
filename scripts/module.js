@@ -9,6 +9,7 @@ ui
 "use strict";
 
 import { MODULE_ID, FLAGS, COVER, TEMPLATES, setCoverIgnoreHandler, FA_ICONS, OTHER_MODULES } from "./const.js";
+import { TEMPLATES as LOS_TEMPLATES } from "./LOS/const.js";
 import { LOS_CONFIG } from "./LOS/config.js";
 import { log, fastFlag } from "./util.js";
 
@@ -67,8 +68,10 @@ Hooks.once("init", function() {
   CONFIG.RegionBehavior.typeIcons[`${MODULE_ID}.setCover`] = FA_ICONS.MODULE;
 
   // Must go at end?
-  foundry.applications.handlebars.loadTemplates(Object.values(TEMPLATES)).then(_value => log("Templates loaded."));
+  foundry.applications.handlebars.loadTemplates(Object.values(TEMPLATES)).then(_value => log("LOS Templates loaded."));
+  foundry.applications.handlebars.loadTemplates(Object.values(LOS_TEMPLATES)).then(_value => console.debug(`${MODULE_ID}|Templates loaded.`));
   foundry.applications.handlebars.loadTemplates(["templates/apps/import-data.hbs"]); // For settings dialog.
+
 });
 
 Hooks.once("setup", function() {

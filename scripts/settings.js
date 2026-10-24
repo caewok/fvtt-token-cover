@@ -14,7 +14,7 @@ import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
 import { ATCSettingsSubmenu } from "./ATCSettingsSubmenu.js";
 import { registerTemplates, deregisterTemplates } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
-import { renderTemplateSync } from "./util.js";
+import { renderTemplateSync } from "./geometry/util.js";
 import { buildDebugViewer, currentDebugViewerClass, buildLOSCalculator } from "./CoverCalculator.js";
 import { CoverDefinitionsConfig } from "./CoverDefinitionsConfig.js";
 import { UniqueEffectDefinition } from "./UniqueEffectDefinition.js";
@@ -608,9 +608,9 @@ export class Settings extends ModuleSettingsAbstract {
           min: 0,  // Prone equivalent to (almost) not being there at all. Will set to a single pixel.
           step: 0.1
         },
-        default: CONFIG.GeometryLib.proneMultiplier ?? 0.33, // Same as Wall Height
+        default: CONFIG.GeometryLib.CONFIG.proneMultiplier ?? 0.33, // Same as Wall Height
         tab: "other",
-        onChange: value => CONFIG.GeometryLib.proneMultiplier = value
+        onChange: value => CONFIG.GeometryLib.CONFIG.proneMultiplier = value
       });
 
       register(KEYS.VISION_HEIGHT_MULTIPLIER, {
@@ -624,9 +624,9 @@ export class Settings extends ModuleSettingsAbstract {
           min: 0,  // At token bottom.
           step: 0.1
         },
-        default: CONFIG.GeometryLib.visionHeightMultiplier ?? 0.9,
+        default: CONFIG.GeometryLib.CONFIG.visionHeightMultiplier ?? 0.9,
         tab: "other",
-        onChange: value => CONFIG.GeometryLib.visionHeightMultiplier = value
+        onChange: value => CONFIG.GeometryLib.CONFIG.visionHeightMultiplier = value
       });
 
       register(KEYS.PRONE_STATUS_ID, {
@@ -635,9 +635,9 @@ export class Settings extends ModuleSettingsAbstract {
         scope: "world",
         config: false,
         type: String,
-        default: CONFIG.GeometryLib.proneStatusId || "prone",
+        default: CONFIG.GeometryLib.CONFIG.proneStatusId || "prone",
         tab: "other",
-        onChange: value => CONFIG.GeometryLib.proneMultiplier = value
+        onChange: value => CONFIG.GeometryLib.CONFIG.proneMultiplier = value
       });
 
       register(KEYS.TOKEN_HP_ATTRIBUTE, {
@@ -648,15 +648,15 @@ export class Settings extends ModuleSettingsAbstract {
         type: String,
         default: "system.attributes.hp.value",
         tab: "other",
-        onChange: value => CONFIG.GeometryLib.tokenHPId = value
+        onChange: value => CONFIG.GeometryLib.CONFIG.tokenHPId = value
       });
 
 
       // Make sure these are linked at the start.
-      CONFIG.GeometryLib.proneMultiplier = this.get(KEYS.PRONE_MULTIPLIER);
-      CONFIG.GeometryLib.visionHeightMultiplier = this.get(KEYS.VISION_HEIGHT_MULTIPLIER);
-      CONFIG.GeometryLib.proneStatusId = this.get(KEYS.PRONE_STATUS_ID);
-      CONFIG.GeometryLib.tokenHPId = this.get(KEYS.TOKEN_HP_ATTRIBUTE);
+      CONFIG.GeometryLib.CONFIG.proneMultiplier = this.get(KEYS.PRONE_MULTIPLIER);
+      CONFIG.GeometryLib.CONFIG.visionHeightMultiplier = this.get(KEYS.VISION_HEIGHT_MULTIPLIER);
+      CONFIG.GeometryLib.CONFIG.proneStatusId = this.get(KEYS.PRONE_STATUS_ID);
+      CONFIG.GeometryLib.CONFIG.tokenHPId = this.get(KEYS.TOKEN_HP_ATTRIBUTE);
 
     } else {
       register(KEYS.ATV_SETTINGS_MESSAGE, {

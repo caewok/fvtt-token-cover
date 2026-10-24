@@ -6,7 +6,8 @@ document,
 // Patches for Token configuration rendering.
 
 import { MODULE_ID, TEMPLATES, FLAGS } from "./const.js";
-import { renderTemplateSync, fastFlag } from "./util.js";
+import { fastFlag } from "./util.js";
+import { renderTemplateSync } from "./geometry/util.js";
 
 export const PATCHES = {};
 PATCHES.BASIC = {};
