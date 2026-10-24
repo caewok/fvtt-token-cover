@@ -36,8 +36,8 @@ const PATCHES = {
   "foundry.helpers.ClientSettings": PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
   "foundry.canvas.placeables.Token": PATCHES_Token,
-  TokenConfig: PATCHES_TokenConfig,
-  WallConfig: PATCHES_WallConfig,
+  "foundry.applications.sheets.TokenConfig": PATCHES_TokenConfig,
+  "foundry.applications.sheets.WallConfig": PATCHES_WallConfig,
 };
 
 const PATCHES_DND5E = {

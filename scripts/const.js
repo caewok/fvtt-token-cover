@@ -28,6 +28,9 @@ export const GEOMETRY_LIB_OPTS = {
     "Wall",
     "Level",
   ],
+
+  wallHeightRequired: true,
+  tokenHeightRequired: true,
 };
 
 export const FLAGS = {
