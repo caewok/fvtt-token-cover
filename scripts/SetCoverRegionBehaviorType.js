@@ -41,7 +41,7 @@ export class SetCoverRegionBehaviorType extends foundry.data.regionBehaviors.Reg
         initial: false
       }),
 
-      physicalCover: new foundry.data.fields.NumberField({
+      opacity: new foundry.data.fields.NumberField({
         label: `${MODULE_ID}.behavior.types.set-cover.fields.opacity.name`,
         hint: `${MODULE_ID}.behavior.types.set-cover.fields.opacity.hint`,
         initial: 0,

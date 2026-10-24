@@ -60,7 +60,7 @@ function TokenBlockingConfig() {
 
 function regionBlocks(regionD) {
   const typeKey = `${MODULE_ID}.setCover`;
-  return regionD.behaviors.some(b => b.type === typeKey && b.system.physicalCover > 0);
+  return regionD.behaviors.some(b => b.type === typeKey && b.system.opacity > 0);
 }
 
 /**

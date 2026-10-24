@@ -123,8 +123,7 @@ function regionOpacity(regionD) {
     if ( b.disabled || !b.type === `${MODULE_ID}.setCover` ) continue;
     return Number(b.system.opacity ?? 0);
   }
-
-  return Number(1 - (fastFlag(regionD, FLAGS.OPACITY) ?? 1));
+  return 0;
 }
 
 /**
