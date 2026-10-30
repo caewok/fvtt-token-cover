@@ -146,6 +146,11 @@
     "tokencover.settings.button-documentation.Label": "Open Documentation",
     "tokencover.settings.button-issue.Label": "Report Issue",
 
+    "tokencover.settings.backend-mode.Name": "Cover effect backend",
+    "tokencover.settings.backend-mode.Hint": "How cover is applied to tokens. \"Automatic\" uses the system's own built-in cover statuses when available (currently dnd5e); \"Active Effects / Items\" always uses the effects or items configured below instead.",
+    "tokencover.settings.backend-mode.auto": "Automatic",
+    "tokencover.settings.backend-mode.activeEffect": "Active Effects / Items",
+
     "tokencover.template.settings-config.tabs.los_viewer": "Viewer",
     "tokencover.template.settings-config.tabs.los_target": "Target",
     "tokencover.template.settings-config.tabs.workflow": "Cover Workflow",
@@ -160,11 +165,24 @@
     "tokencover.settings-submenu.tabs.other": "Other",
     "tokencover.settings-submenu.tabs.workflow": "Workflow",
 
+    "tokencover.settings.coverDefinitionsMenu.Name": "Cover Definitions",
+    "tokencover.settings.coverDefinitionsMenu.Label": "Define Cover Effects",
+    "tokencover.settings.coverDefinitionsMenu.Hint": "Drag Active Effects or Items from a compendium onto the window and set the percent cover at which each one applies",
+
     "tokencover.settings.exportButton.Name": "",
     "tokencover.settings.exportButton.Label": "Export Settings",
 
     "tokencover.settings.importButton.Name": "",
     "tokencover.settings.importButton.Label": "Import Settings",
+
+    "tokencover.settings.live-tokens-block.Name": "Live Tokens Provide Cover",
+    "tokencover.settings.live-tokens-block.Hint": "",
+
+    "tokencover.settings.dead-tokens-block.Name": "Dead Tokens Provide Cover",
+    "tokencover.settings.dead-tokens-block.Hint": "",
+
+    "tokencover.settings.prone-tokens-block.Name": "Prone Tokens Provide Cover",
+    "tokencover.settings.prone-tokens-block.Hint": "",
 
     "tokencover.DrawingConfiguration.LegendTitle": "Alternative Token Visibility",
     "tokencover.DrawingConfiguration.isHole.Name": "Drawing is Hole",
@@ -193,6 +211,12 @@
 
     "tokencover.template.settings-config.other": "Cover Options",
     "tokencover.template.settings-config.otherDescription": "Settings to adjust other cover rules and to set system-specific cover properties.",
+
+    "tokencover.tokenconfig.opacity.name": "Opacity",
+    "tokencover.tokenconfig.opacity.hint": "How opaque (100%) or transparent (0%) this token is for purposes of cover. Example: A swarm of bees might be 50%. A ghost might be 0%.",
+
+    "tokencover.wallconfig.opacity.name": "Opacity",
+    "tokencover.wallconfig.opacity.hint": "How opaque (100%) or transparent (0%) this wall is for purposes of cover. Example: A wall representing jail cell bars might be 50%.",
 
     "tokencover.tokenconfig.maximum-cover.name": "Maximum Cover",
     "tokencover.tokenconfig.maximum-cover.hint": "Maximum cover provided by this token. Example: A swarm of bees might only provide half cover. A ghost may provide no cover. Does nothing if tokens do not grant cover (see module settings).",
@@ -227,6 +251,9 @@
 
     "tokencover.behavior.types.set-cover.fields.appliesToAttackers.name": "Applies to Attackers",
     "tokencover.behavior.types.set-cover.fields.appliesToAttackers.hint": "If enabled, defending tokens outside the region will gain cover from attacking tokens within the region. If not enabled, only defending tokens inside the region are affected.",
+
+    "tokencover.behavior.types.set-cover.fields.opacity.name": "Opacity",
+    "tokencover.behavior.types.set-cover.fields.opacity.hint": "Is this region transparent (0) or opaque (1) for purposes of cover?" ,
 
     "tokencover.cover-dialog.yes": "Apply Cover",
     "tokencover.cover-dialog.no": "Ignore All Cover",

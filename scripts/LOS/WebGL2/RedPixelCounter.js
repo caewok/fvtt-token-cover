@@ -6,7 +6,6 @@ CONFIG
 
 import * as twgl from "./twgl-full.js";
 import { MODULE_ID } from "../../const.js";
-import { GEOMETRY_LIB_ID } from "../../geometry/const.js";
 import { readPixelsAsync, getBufferSubDataAsync } from "./read_pixels_async.js";
 import { WebGL2 } from "./WebGL2.js";
 import { FastBitSet } from "../FastBitSet/FastBitSet.js";
@@ -24,11 +23,9 @@ export class RedPixelCounter {
   /** @type {WebGL2Context} */
   get gl() { return this.webGL2.gl; };
 
-  /** @type {number} */
-  #width = 0;
+  get width() { return this.gl.drawingBufferWidth; }
 
-  /** @type {number} */
-  #height = 0;
+  get height() { return this.gl.drawingBufferHeight; }
 
   /** @type {object<twgl.ProgramInfo>} */
   programInfos = {};
@@ -42,20 +39,21 @@ export class RedPixelCounter {
   /** @type {object<twgl.BufferInfo>} */
   bufferInfos = {};
 
-  constructor(webGL2, width, height) {
+  constructor(webGL2) {
     this.webGL2 = webGL2;
+
+    // Activate required extensions.
     const gl = this.gl;
-
-    gl.getExtension("EXT_float_blend");
-    gl.getExtension("EXT_color_buffer_float");
-
-    this.#width = width;
-    this.#height = height;
+    const blendExt = gl.getExtension("EXT_float_blend");
+    const colorExt = gl.getExtension("EXT_color_buffer_float");
+    if ( !blendExt ) console.error("RedPixelCounter|EXT_float_blend not supported.");
+    if ( !colorExt ) console.error("RedPixelCounter|EXT_color_buffer_float not supported.");
   }
 
-  initialize(width, height) {
-    if ( width ) this.#width = width;
-    if ( height ) this.#height = height;
+  #initialized = false;
+
+  initialize() {
+    if ( this.#initialized ) return;
 
     // Used by both loop count and reduction count.
     this.bufferInfos.quad = twgl.primitives.createXYQuadBufferInfo(this.gl);
@@ -72,6 +70,8 @@ export class RedPixelCounter {
     this._initializeReadPixelsCount2();
 
     this._initializeLoopTransformCount();
+
+    this.#initialized = true;
   }
 
   _initializeLoopCount() {
@@ -141,12 +141,12 @@ export class RedPixelCounter {
       internalFormat: gl.RGBA32F,
       minMag: gl.NEAREST,
       wrap: gl.CLAMP_TO_EDGE
-    }], 128, 128);
+    }], this.width, this.height);
     const fb1 = twgl.createFramebufferInfo(gl, [{
         internalFormat: gl.RGBA32F,
         minMag: gl.NEAREST,
         wrap: gl.CLAMP_TO_EDGE
-      }], 128, 128);
+      }], this.width, this.height);
     this.fbInfos.reductionCount = [fb0, fb1];
     const NUM_CHANNELS = 4;
     this.pixelBuffers.reductionCount = new Float32Array(NUM_CHANNELS); // Width, height of 1.
@@ -167,12 +167,12 @@ export class RedPixelCounter {
       internalFormat: gl.RG32F,
       minMag: gl.NEAREST,
       wrap: gl.CLAMP_TO_EDGE
-    }], 128, 128);
+    }], this.width, this.height);
     const fb1 = twgl.createFramebufferInfo(gl, [{
         internalFormat: gl.RG32F,
         minMag: gl.NEAREST,
         wrap: gl.CLAMP_TO_EDGE
-      }], 128, 128);
+      }], this.width, this.height);
     this.fbInfos.reductionCount2 = [fb0, fb1];
     const NUM_CHANNELS = 2;
     this.pixelBuffers.reductionCount2 = new Float32Array(NUM_CHANNELS); // Width, height of 1.
@@ -186,8 +186,8 @@ export class RedPixelCounter {
       type: gl.UNSIGNED_BYTE,
       minMag: gl.NEAREST,
       wrap: gl.CLAMP_TO_EDGE
-    }], this.#width, this.#height);
-    this.pixelBuffers.readPixelsCount = new Uint8Array(this.#width * this.#height * NUM_CHANNELS);
+    }], this.width, this.height);
+    this.pixelBuffers.readPixelsCount = new Uint8Array(this.width * this.height * NUM_CHANNELS);
   }
 
   _initializeReadPixelsCount2() {
@@ -266,7 +266,7 @@ export class RedPixelCounter {
     // Allocate enough space for RGBA pixels
     gl.bufferData(
         gl.PIXEL_PACK_BUFFER,
-        this.#width * this.#height * numChannels,
+        this.width * this.height * numChannels,
         gl.DYNAMIC_READ
     );
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
@@ -297,6 +297,8 @@ export class RedPixelCounter {
     webGL2.setBlending(blending);
   }
 
+
+
   #loopCount(tex, type = "loopCount1") {
     const { gl, fbInfos, programInfos, bufferInfos } = this;
     this.setBasicGLState();
@@ -310,24 +312,28 @@ export class RedPixelCounter {
   }
 
   loopCount(tex) {
+    if ( !tex ) return this.readPixelsCount();
     const type = "loopCount";
     this.#loopCount(tex, type);
     return this.#readSinglePixel(this.pixelBuffers[type], this.gl.RGBA, this.gl.FLOAT);
   }
 
   loopCount2(tex) {
+    if ( !tex ) return this.readPixelsCount();
     const type = "loopCount2";
     this.#loopCount(tex, type);
     return this.#readSinglePixel(this.pixelBuffers[type], this.gl.RG, this.gl.FLOAT);
   }
 
   async loopCountAsync(tex) {
+    if ( !tex ) return this.readPixelsCountAsync();
     const type = "loopCount";
     this.#loopCount(tex, type);
     return this.#readSinglePixelAsync(this.pixelBuffers[type], this.gl.RGBA, this.gl.FLOAT);
   }
 
   async loopCount2Async(tex) {
+    if ( !tex ) return this.readPixelsCountAsync();
     const type = "loopCount2";
     this.#loopCount(tex, type);
     return this.#readSinglePixelAsync(this.pixelBuffers[type], this.gl.RG, this.gl.FLOAT);
@@ -349,7 +355,7 @@ export class RedPixelCounter {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
 
     // No buffer data needed in WebGL2 as we can use gl_VertexID.
-    gl.drawArrays(gl.POINTS, 0, this.#width * this.#height);
+    gl.drawArrays(gl.POINTS, 0, this.width * this.height);
 
     // Reset
     // gl.flush();
@@ -357,24 +363,28 @@ export class RedPixelCounter {
   }
 
   blendCount(tex) {
+    if ( !tex ) return this.readPixelsCount();
     const type = "blendCount";
     this.#blendCount(tex, type);
     return this.#readSinglePixel(this.pixelBuffers[type], this.gl.RGBA, this.gl.FLOAT)
   }
 
   blendCount2(tex) {
+    if ( !tex ) return this.readPixelsCount();
     const type = "blendCount2";
     this.#blendCount(tex, type);
     return this.#readSinglePixel(this.pixelBuffers[type], this.gl.RG, this.gl.FLOAT)
   }
 
   async blendCountAsync(tex) {
+    if ( !tex ) return this.readPixelsCountAsync();
     const type = "blendCount";
     this.#blendCount(tex, type);
     return this.#readSinglePixelAsync(this.pixelBuffers[type], this.gl.RGBA, this.gl.FLOAT)
   }
 
   async blendCount2Async(tex) {
+    if ( !tex ) return this.readPixelsCountAsync();
     const type = "blendCount2";
     this.#blendCount(tex, type);
     return this.#readSinglePixelAsync(this.pixelBuffers[type], this.gl.RG, this.gl.FLOAT)
@@ -402,8 +412,8 @@ export class RedPixelCounter {
     // Ping-pong, reducing by x2 each time.
     let readFBO = 0;
     let writeFBO = 1;
-    let currentWidth = this.#width;
-    let currentHeight = this.#height;
+    let currentWidth = this.width;
+    let currentHeight = this.height;
     webGL2.useProgram(reducer);
     twgl.setBuffersAndAttributes(gl, reducer, bufferInfos.quad);
     while ( currentWidth > 1 || currentHeight > 1 ) {
@@ -425,24 +435,28 @@ export class RedPixelCounter {
   }
 
   reductionCount(tex) {
+    if ( !tex ) return this.readPixelsCount();
     const type = "reductionCount";
     this.#reductionCount(tex, type);
     return this.#readSinglePixel(this.pixelBuffers[type], this.gl.RGBA, this.gl.FLOAT);
   }
 
   reductionCount2(tex) {
+    if ( !tex ) return this.readPixelsCount();
     const type = "reductionCount2";
     this.#reductionCount(tex, type);
     return this.#readSinglePixel(this.pixelBuffers[type], this.gl.RG, this.gl.FLOAT);
   }
 
   async reductionCountAsync(tex) {
+    if ( !tex ) return this.readPixelsCountAsync();
     const type = "reductionCount";
     this.#reductionCount(tex, type);
     return this.#readSinglePixelAsync(this.pixelBuffers[type], this.gl.RGBA, this.gl.FLOAT);
   }
 
   async reductionCount2Async(tex) {
+    if ( !tex ) return this.readPixelsCountAsync();
     const type = "reductionCount2";
     this.#reductionCount(tex, type);
     return this.#readSinglePixelAsync(this.pixelBuffers[type], this.gl.RG, this.gl.FLOAT);
@@ -450,21 +464,35 @@ export class RedPixelCounter {
 
   mapPixels() {
     const pixels = this.pixelBuffers.readPixelsCount;
-    const nPixels = pixels.length;
     const red = new FastBitSet();
     const redBlocked = new FastBitSet();
-    const terrainThreshold = CONFIG[GEOMETRY_LIB_ID].CONFIG.alphaThreshold * 255;
-    for ( let i = 0; i < nPixels; i += 4 ) {
+    const transmittance = new Map();
+    const terrainThreshold = CONFIG[MODULE_ID].alphaThreshold * 255;
+    for ( let i = 0, iMax = pixels.length; i < iMax; i += 4 ) {
+      // i: red, i+1: green, i+2: blue, i+3: alpha
       const r = pixels[i];
-      // const g = pixels[i + 1];
-      const b = pixels[i + 2];
-      const hasR = r >> 7; // Threshold of 128 given Uint8Array.
-      const hasB = b >> 7;
-      const isBlocked = hasR * (hasB || pixels[i + 1] > terrainThreshold);
-      red.set(i, hasR);
-      redBlocked.set(i, isBlocked);
+      if ( !(r >> 7) ) continue; // Threshold of 128 given Uint8Array.
+      const idx = i / 4;
+      red.add(idx);
+
+      // Blocked if:
+      // - Red marked as blocked in the fragment shader (alpha 0).
+      // - Blue pixel is present (solid obstacle).
+      // - Green pixel surpasses the terrain threshold.
+      const a = pixels[i + 3];
+      if ( a === 0
+        || (pixels[i + 2] >> 7)
+        || pixels[i + 1] > terrainThreshold ) {
+
+        redBlocked.add(idx);
+        continue;
+      }
+
+      // Otherwise alpha is the transmittance through partially opaque obstacles.
+      const t = pixelTransmittance(r, a);
+      if ( t < 1 ) transmittance.set(idx, t);
     }
-    return { red, redBlocked };
+    return { red, redBlocked, transmittance };
   }
 
   mapRedPixels() {
@@ -474,7 +502,7 @@ export class RedPixelCounter {
     const red = new FastBitSet();
     for ( let i = 0; i < nPixels; i += 4 ) {
       const r = pixels[i];
-      red.set(i, r >> 7); // Threshold of 128 given Uint8Array.
+      if ( r >> 7 ) red.add(i / 4); // Threshold of 128 given Uint8Array.
     }
     return { red, redBlocked };
   }
@@ -485,13 +513,26 @@ export class RedPixelCounter {
     let redBlocked = 0;
     const terrainThreshold = CONFIG[MODULE_ID].alphaThreshold * 255;
     for ( let i = 0, iMax = pixels.length; i < iMax; i += 4 ) {
+      // i: red, i+1: green, i+2: blue, i+3: alpha
       const r = pixels[i];
-      // const g = pixels[i + 1];
-      const b = pixels[i + 2];
-      const hasR = r >> 7; // Threshold of 128 given Uint8Array.
-      const hasB = b >> 7;
-      red += hasR;
-      redBlocked += hasR * (hasB || pixels[i + 1] > terrainThreshold);
+      if ( !(r >> 7) ) continue; // Threshold of 128 given Uint8Array.
+      red += 1;
+
+      // Blocked if:
+      // - Red marked as blocked in the fragment shader (alpha 0).
+      // - Blue pixel is present (solid obstacle).
+      // - Green pixel surpasses the terrain threshold.
+      const a = pixels[i + 3];
+      if ( a === 0
+        || (pixels[i + 2] >> 7)
+        || pixels[i + 1] > terrainThreshold ) {
+
+        redBlocked += 1;
+        continue;
+      }
+
+      // Otherwise alpha is the transmittance through partially opaque obstacles.
+      redBlocked += 1 - pixelTransmittance(r, a);
     }
     return { red, redBlocked };
   }
@@ -515,7 +556,7 @@ export class RedPixelCounter {
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
     }
-    this.gl.readPixels(0, 0, this.#width, this.#height, gl.RGBA, gl.UNSIGNED_BYTE, this.pixelBuffers.readPixelsCount);
+    this.gl.readPixels(0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, this.pixelBuffers.readPixelsCount);
     return redOnly ? this.countRedPixels() : this.countPixels();
   }
 
@@ -526,7 +567,7 @@ export class RedPixelCounter {
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
     }
-    await readPixelsAsync (this.gl, 0, 0, this.#width, this.#height, gl.RGBA, gl.UNSIGNED_BYTE, this.pixelBuffers.readPixelsCount);
+    await readPixelsAsync (this.gl, 0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, this.pixelBuffers.readPixelsCount);
     return redOnly ? this.countRedPixels() : this.countPixels();
   }
 
@@ -541,7 +582,7 @@ export class RedPixelCounter {
     // Read pixels into PBO
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.pbo);
     // gl.readBuffer(gl.COLOR_ATTACHMENT0);
-    gl.readPixels(0, 0, this.#width, this.#height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+    gl.readPixels(0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
 
     // gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.pbo);
     gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.pixelBuffers.readPixelsCount);
@@ -560,7 +601,7 @@ export class RedPixelCounter {
     // Read pixels into PBO
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.pbo);
     // gl.readBuffer(gl.COLOR_ATTACHMENT0);
-    gl.readPixels(0, 0, this.#width, this.#height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+    gl.readPixels(0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
 
     // gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.pbo);
     await getBufferSubDataAsync(this.gl, gl.PIXEL_PACK_BUFFER, this.pbo, 0, this.pixelBuffers.readPixelsCount);
@@ -575,7 +616,7 @@ export class RedPixelCounter {
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
     }
-    this.gl.readPixels(0, 0, this.#width, this.#height, gl.RGBA, gl.UNSIGNED_BYTE, this.pixelBuffers.readPixelsCount);
+    this.gl.readPixels(0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, this.pixelBuffers.readPixelsCount);
     return redOnly ? this.mapRedPixels() : this.mapPixels();
   }
 
@@ -586,7 +627,7 @@ export class RedPixelCounter {
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
     }
-    await readPixelsAsync (this.gl, 0, 0, this.#width, this.#height, gl.RGBA, gl.UNSIGNED_BYTE, this.pixelBuffers.readPixelsCount);
+    await readPixelsAsync (this.gl, 0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, this.pixelBuffers.readPixelsCount);
     return redOnly ? this.mapRedPixels() : this.mapPixels();
   }
 
@@ -601,7 +642,7 @@ export class RedPixelCounter {
     // Read pixels into PBO
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.pbo);
     // gl.readBuffer(gl.COLOR_ATTACHMENT0);
-    gl.readPixels(0, 0, this.#width, this.#height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+    gl.readPixels(0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
 
     // gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.pbo);
     gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.pixelBuffers.readPixelsCount);
@@ -620,7 +661,7 @@ export class RedPixelCounter {
     // Read pixels into PBO
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.pbo);
     // gl.readBuffer(gl.COLOR_ATTACHMENT0);
-    gl.readPixels(0, 0, this.#width, this.#height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+    gl.readPixels(0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
 
     // gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.pbo);
     await getBufferSubDataAsync(this.gl, gl.PIXEL_PACK_BUFFER, this.pbo, 0, this.pixelBuffers.readPixelsCount);
@@ -697,7 +738,9 @@ out vec4 fragColor;
 
 const int mipLevel = 0;
 const float colorThreshold = 0.95;
-const float terrainThreshold = ${CONFIG[GEOMETRY_LIB_ID].CONFIG.alphaThreshold};
+const float terrainThreshold = ${CONFIG[MODULE_ID].alphaThreshold};
+
+${BLOCKED_WEIGHT_GLSL}
 
 void main() {
   vec4 sumColor = vec4(0.0);
@@ -710,7 +753,7 @@ void main() {
       vec4 texColor = texelFetch(uTexture, uv, mipLevel);
       float hasR = step(colorThreshold, texColor.r);
       sumColor.r += hasR;
-      sumColor.g += hasR * float(texColor.b > colorThreshold || texColor.g > terrainThreshold);
+      sumColor.g += hasR * blockedWeight(texColor);
     }
   }
   fragColor = sumColor;
@@ -756,13 +799,15 @@ in vec4 texColor;
 out vec4 fragColor;
 
 const float colorThreshold = 0.95;
-const float terrainThreshold = ${CONFIG[GEOMETRY_LIB_ID].CONFIG.alphaThreshold};
+const float terrainThreshold = ${CONFIG[MODULE_ID].alphaThreshold};
+
+${BLOCKED_WEIGHT_GLSL}
 
 void main() {
   float hasR = step(colorThreshold, texColor.r);
   fragColor = vec4(0.0);
   fragColor.r += hasR;
-  fragColor.g += hasR * float(texColor.b > colorThreshold || texColor.g > terrainThreshold);
+  fragColor.g += hasR * blockedWeight(texColor);
 }
 `};
   }
@@ -793,7 +838,9 @@ out vec4 fragColor;
 
 const int mipLevel = 0;
 const float colorThreshold = 0.95;
-const float terrainThreshold = ${CONFIG[GEOMETRY_LIB_ID].CONFIG.alphaThreshold};
+const float terrainThreshold = 0.75;
+
+${BLOCKED_WEIGHT_GLSL}
 
 void main() {
   ivec2 size = textureSize(uTexture, mipLevel);
@@ -804,7 +851,7 @@ void main() {
   fragColor = vec4(0.0);
   float hasR = step(colorThreshold, texColor.r);
   fragColor.r = hasR;
-  fragColor.g = hasR * float(texColor.b > colorThreshold || texColor.g > terrainThreshold);
+  fragColor.g = hasR * blockedWeight(texColor);
 }
 `,
 
@@ -872,7 +919,9 @@ uniform sampler2D uTexture;
 
 const int mipLevel = 0;
 const float colorThreshold = 0.95;
-const float terrainThreshold = ${CONFIG[GEOMETRY_LIB_ID].CONFIG.alphaThreshold};
+const float terrainThreshold = 0.75;
+
+${BLOCKED_WEIGHT_GLSL}
 
 out float red;
 out float redBlocked;
@@ -891,10 +940,27 @@ void main() {
       vec4 texColor = texelFetch(uTexture, uv, mipLevel);
       float hasR = step(colorThreshold, texColor.r);
       red += hasR;
-      redBlocked += hasR * float(texColor.b > colorThreshold || texColor.g > terrainThreshold);
+      redBlocked += hasR * blockedWeight(texColor);
     }
   }
 }
 `;
 }
 }
+
+/**
+ * Transmittance of a target pixel from its red and alpha bytes. Normalizing by red keeps antialiased
+ * edge pixels, where both are fractional, at 1. The tolerance absorbs 8-bit rounding.
+ */
+function pixelTransmittance(r, a) { return a >= r - 2 ? 1 : a / r; }
+
+
+const BLOCKED_WEIGHT_GLSL = `
+// Share of a red (target) pixel that is obscured: 1 blocked, 0 clear, between for partial obstacles.
+// Requires colorThreshold and terrainThreshold to be declared first.
+float blockedWeight(vec4 c) {
+  if ( c.b > colorThreshold || c.g > terrainThreshold || c.a == 0.0 ) return 1.0;
+  float t = c.a >= c.r - 0.01 ? 1.0 : c.a / c.r;
+  return 1.0 - t;
+}
+`;

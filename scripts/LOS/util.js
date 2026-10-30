@@ -1,6 +1,7 @@
 /* globals
 CONFIG,
 foundry,
+Handlebars,
 PIXI,
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
@@ -8,6 +9,7 @@ PIXI,
 
 import { EPSILON, MODULE_ID } from "../const.js";
 import { Point3d } from "../geometry/3d/Point3d.js";
+
 
 /**
  * Define a null set class and null set which always contains 0 elements.

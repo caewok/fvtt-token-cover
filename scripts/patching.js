@@ -8,14 +8,11 @@ game,
 
 import { Patcher } from "./Patcher.js";
 import { OTHER_MODULES } from "./const.js";
+import { Settings } from "./settings.js";
 
-import { Settings, PATCHES_SidebarTab, PATCHES_ItemDirectory } from "./settings.js";
-import { PATCHES as PATCHES_ActiveEffect } from "./ActiveEffect.js";
-import { PATCHES as PATCHES_ActiveEffectConfig } from "./ActiveEffectConfig.js";
+import { PATCHES as PATCHES_Canvas } from "./Canvas.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
-import { PATCHES as PATCHES_Item } from "./Item.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
-import { PATCHES as PATCHES_ItemSheet } from "./ItemSheet.js";
 
 // Dnd5e
 import { PATCHES as PATCHES_AttackActivity } from "./AttackActivity.js";
@@ -26,28 +23,21 @@ import { PATCHES as PATCHES_Midiqol } from "./Midiqol.js";
 // Settings
 import { PATCHES as PATCHES_ClientSettings } from "./ModuleSettingsAbstract.js";
 
-// Token configuration
+// Configs
 import { PATCHES as PATCHES_TokenConfig } from "./TokenConfig.js";
+import { PATCHES as PATCHES_WallConfig } from "./WallConfig.js";
 
 // Templates
-import { PATCHES as PATCHES_MeasuredTemplate } from "./MeasuredTemplate.js";
 import { TokenCover } from "./TokenCover.js";
 import { PATCHES as PATCHES_dnd5e } from "./dnd5e.js";
 
 const PATCHES = {
-  ActiveEffect: PATCHES_ActiveEffect,
-  "foundry.applications.sheets.ActiveEffectConfig": PATCHES_ActiveEffectConfig,
+  Canvas: PATCHES_Canvas,
   "foundry.helpers.ClientSettings": PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
-  Item: PATCHES_Item,
-  "foundry.applications.sidebar.tabs.ItemDirectory": PATCHES_ItemDirectory,
-  ItemSheet: PATCHES_ItemSheet,
-  MeasuredTemplate: PATCHES_MeasuredTemplate,
-  SidebarTab: PATCHES_SidebarTab,
   "foundry.canvas.placeables.Token": PATCHES_Token,
-  TokenConfig: PATCHES_TokenConfig,
-
-
+  "foundry.applications.sheets.TokenConfig": PATCHES_TokenConfig,
+  "foundry.applications.sheets.WallConfig": PATCHES_WallConfig,
 };
 
 const PATCHES_DND5E = {
@@ -56,7 +46,7 @@ const PATCHES_DND5E = {
   // Only works b/c these are all hooks. Otherwise, would need class breakdown.
   Midiqol: PATCHES_Midiqol,
   dnd5e: PATCHES_dnd5e
-}
+};
 
 export const PATCHER = new Patcher();
 
@@ -71,9 +61,6 @@ export function initializePatching() {
   // If ATV is not active, handle the LOS patches needed to run the calculator.
   if ( !OTHER_MODULES.ATV ) PATCHER.registerGroup("LOS");
 
-  //   If ( OTHER_MODULES.LEVELS ) PATCHER.registerGroup("LEVELS");
-  //   else PATCHER.registerGroup("NO_LEVELS");
-
   if ( game.system.id === "dnd5e" ) {
     PATCHER.addPatchesFromRegistrationObject(PATCHES_DND5E);
     if ( OTHER_MODULES.MIDI_QOL ) PATCHER.registerGroup("DND5E_MIDI");
@@ -85,8 +72,6 @@ export function initializePatching() {
   if ( game.system.id !== "pf2e" ) PATCHER.registerGroup("NO_PF2E");
 
   if ( game.system.id === "sfrpg" || game.system.id === "pf2e" ) PATCHER.registerGroup("COVER_ITEM");
-
-  if ( Settings.get(Settings.KEYS.ONLY_COVER_ICONS) ) PATCHER.registerGroup("COVER_FLAGS");
 }
 
 export function registerTemplates() { PATCHER.registerGroup("TEMPLATES"); }

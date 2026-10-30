@@ -1,0 +1,65 @@
+<div>
+<section class="cover-rules-drop">
+  {{#if canDrop}}
+    <p class="hint">Drag Active Effects or Items here from a compendium or the sidebar. Each applies when a
+      target's cover is <em>at least</em> its percent; the highest threshold met wins.</p>
+  {{else}}
+    <p class="hint">Using the system's built-in cover statuses. Adjust the percent at which each applies.</p>
+  {{/if}}
+
+  <table>
+    <thead>
+      <tr>
+        <th>Effect</th>
+        <th>Cover at least</th>
+        <th>Show icon</th>
+        {{#if canDrop}}<th></th>{{/if}}
+      </tr>
+    </thead>
+    <tbody>
+      {{#each rows}}
+        <tr>
+          <!-- Effect column: uses flex to keep image and name side-by-side -->
+          <td>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img src="{{img}}" width="24" height="24" style="flex-shrink: 0;">
+              <span>{{name}}</span>
+            </div>
+          </td>
+
+          <!-- Percent column: prevents wrapping of input and % symbol -->
+          <td>
+            <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap;">
+              <input type="number" name="rules.{{index}}.minPercent" value="{{multiply minPercent 100}}" min="0" max="100" step="1" style="width: 60px;">
+              <span>%</span>
+            </div>
+          </td>
+
+          <!-- Show icon column -->
+          <td style="text-align: center;">
+            <input type="checkbox" name="rules.{{index}}.displayIcon" {{checked displayIcon}}>
+          </td>
+
+          <!-- Remove button column -->
+          {{#if ../canDrop}}
+            <td style="text-align: center;">
+              <button type="button" data-action="removeRule" data-index="{{index}}" data-tooltip="Remove">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          {{/if}}
+        </tr>
+      {{else}}
+        <tr><td colspan="4"><em>Nothing yet. Drop an effect on this window.</em></td></tr>
+      {{/each}}
+    </tbody>
+  </table>
+</section>
+
+<footer class="form-footer">
+  {{#unless canDrop}}
+    <button type="button" data-action="resetPresets"><i class="fa-solid fa-rotate-left"></i> Reset thresholds</button>
+  {{/unless}}
+  <button type="submit"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+</footer>
+</div>
