@@ -6,7 +6,7 @@ game,
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID, COVER_TYPES } from "./const.js";
+import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID, COVER_TYPES, ENUMS } from "./const.js";
 import { Settings } from "./settings.js";
 import { Draw } from "./geometry/Draw.js"; // For debugging
 import { CoverDialog } from "./CoverDialog.js";
@@ -37,7 +37,7 @@ export function currentDebugViewerClass(type) {
   const KEYS = Settings.KEYS;
   const { TARGET } = KEYS.LOS;
   const debugViewers = CONFIG[MODULE_ID].debugViewerClasses;
-  type ??= Settings.get(TARGET.ALGORITHM) ?? TARGET.TYPES.POINTS;
+  type ??= Settings.get(TARGET.ALGORITHM) ?? ENUMS.ALGORITHM_TYPES.POINTS;
   const calcName = ViewerLOS.VIEWPOINT_ALGORITHM_SETTINGS[type];
   return debugViewers[calcName];
 }
@@ -112,7 +112,7 @@ export function LOSViewerConfig() {
   return new ConfigHandler({
     viewpointIndex: () => pointIndexForSet(Settings.get(Settings.KEYS.LOS.VIEWER.POINTS)),
     viewpointInset: () => Settings.get(Settings.KEYS.LOS.VIEWER.INSET),
-    threshold: () => Settings.get(Settings.KEYS.LOS.TARGET.PERCENT),
+    threshold: Number.NaN, // Handled by the cover type.
     angle: true,
   });
 }

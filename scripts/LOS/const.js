@@ -1,13 +1,15 @@
 /* globals
+foundry,
 game,
 Hooks
 */
 "use strict";
 
-import { MODULE_ID } from "../const.js";
+import { GeometricPrimitive } from "../geometry/placeable_geometry/GeometricPrimitive.js";
 
 export const TEMPLATES = {
-  TILE: `modules/${MODULE_ID}/scripts/LOS/templates/tile-config.html`,
+  // At: `modules/${MODULE_ID}/scripts/LOS/templates/tile-config.html`,
+  TILE: new URL("./templates/tile-config.html", import.meta.url).pathname.substring(1),
 };
 
 /** @type {enum<string>} */
@@ -39,22 +41,6 @@ export const FLAGS = {
   },
 };
 
-export const TRACKER_IDS = {
-  BASE: "GeometryLib",
-  GEOMETRY: {
-    PLACEABLE: "geometry",
-    // TOKEN: {
-      // NORMAL: "geometry",
-      // LIT: "litGeometry",
-      // BRIGHT: "brightLitGeometry",
-      // SPHERICAL: "sphericalGeometry",
-    // }
-  },
-  VISIBILITY: "visibility",
-  LIGHT_METER: "lightMeter",
-};
-
-
 // Track certain modules that complement features of this module.
 export const OTHER_MODULES = {
   TERRAIN_MAPPER: {
@@ -74,6 +60,56 @@ export const OTHER_MODULES = {
   ATV: { KEY: "token_visibility" },
   RIDEABLE: { KEY: "Rideable" },
 };
+
+/** @type {Object<CONST.WALL_RESTRICTION_TYPES|DetectionMode.DETECTION_TYPES>} */
+export const DETECTION_SENSE_TYPES = {
+  [foundry.canvas.perception.DetectionMode.DETECTION_TYPES.SIGHT]: "sight",
+  [foundry.canvas.perception.DetectionMode.DETECTION_TYPES.SOUND]: "sound",
+  [foundry.canvas.perception.DetectionMode.DETECTION_TYPES.MOVE]: "move",
+  [foundry.canvas.perception.DetectionMode.DETECTION_TYPES.OTHER]: "light",
+  sight: foundry.canvas.perception.DetectionMode.DETECTION_TYPES.SIGHT,
+  sound: foundry.canvas.perception.DetectionMode.DETECTION_TYPES.SOUND,
+  move: foundry.canvas.perception.DetectionMode.DETECTION_TYPES.MOVE,
+  light: foundry.canvas.perception.DetectionMode.DETECTION_TYPES.OTHER, // No "light" equivalent
+};
+
+/** @type {Object<"lighting"|"sounds"|DetectionMode.DETECTION_TYPES>} */
+export const DETECTION_SOURCE_TYPES = {
+  lighting: foundry.canvas.perception.DetectionMode.DETECTION_TYPES.SIGHT,
+  sounds: foundry.canvas.perception.DetectionMode.DETECTION_TYPES.SOUND,
+  [foundry.canvas.perception.DetectionMode.DETECTION_TYPES.SIGHT]: "lighting",
+  [foundry.canvas.perception.DetectionMode.DETECTION_TYPES.SOUND]: "sounds",
+  [foundry.canvas.perception.DetectionMode.DETECTION_TYPES.MOVE]: "lighting",
+  [foundry.canvas.perception.DetectionMode.DETECTION_TYPES.OTHER]: "lighting",
+};
+
+export const ENUMS = {
+  POINT_TYPES: {
+    CENTER: "points-center",
+    TWO: "points-two",
+    THREE: "points-three", //
+    FOUR: "points-four", // Five without center
+    FIVE: "points-five", // Corners + center
+    EIGHT: "points-eight", // Nine without center
+    NINE: "points-nine" // Corners, midpoints, center
+  },
+  ALGORITHM_TYPES: {
+    POINTS: "los-algorithm-points",
+    PER_PIXEL: "los-algorithm-per-pixel",
+    GEOMETRIC: "los-algorithm-geometric",
+    WEBGL2: "los-algorithm-webgl2",
+  },
+  POINT_INDICES: GeometricPrimitive.POINT_INDICES,
+};
+
+export function pointIndicesLabels(MODULE_ID) {
+  const indices = foundry.utils.flattenObject(GeometricPrimitive.POINT_INDICES);
+  const out = {};
+  for ( const [key, value] of Object.entries(indices) ) {
+    out[value] = game.i18n.localize(`${MODULE_ID}.point-indices.${key}`);
+  }
+  return out;
+}
 
 // Hook init b/c game.modules is not initialized at start.
 Hooks.once("init", function() {

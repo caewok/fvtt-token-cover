@@ -5,8 +5,7 @@ ui,
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID } from "./const.js";
-import { SETTINGS } from "./settings.js";
+import { MODULE_ID, SETTINGS, ENUMS } from "./const.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
 import { ViewerLOS } from "./LOS/ViewerLOS.js";
 
@@ -42,8 +41,7 @@ export class ATCSettingsSubmenu extends SettingsSubmenu {
     const LOS = SETTINGS.LOS;
     const opts = {
       losTarget: {
-        [LOS.TARGET.ALGORITHM]: LOS.TARGET.TYPES.POINTS,
-        [LOS.TARGET.PERCENT]: 0,
+        [LOS.TARGET.ALGORITHM]: ENUMS.ALGORITHM_TYPES.POINTS,
         [LOS.TARGET.LARGE]: true,
 
         [LOS.TARGET.POINT_OPTIONS.POINTS]: [PI.CENTER, PI.CORNERS.FACING, PI.CORNERS.BACK, PI.MID.FACING, PI.MID.BACK],
@@ -68,8 +66,7 @@ export class ATCSettingsSubmenu extends SettingsSubmenu {
     const LOS = SETTINGS.LOS;
     const opts = {
       losTarget: {
-        [LOS.TARGET.ALGORITHM]: LOS.TARGET.TYPES.POINTS,
-        [LOS.TARGET.PERCENT]: 0,
+        [LOS.TARGET.ALGORITHM]: ENUMS.ALGORITHM_TYPES.POINTS,
         [LOS.TARGET.LARGE]: true,
 
         [LOS.TARGET.POINT_OPTIONS.POINTS]: [PI.CORNERS.FACING, PI.CORNERS.BACK],
@@ -94,8 +91,7 @@ export class ATCSettingsSubmenu extends SettingsSubmenu {
     const { LOS, RANGE, POINT_TYPES } = SETTINGS;
     const opts = {
       losTarget: {
-        [LOS.TARGET.ALGORITHM]: LOS.TARGET.TYPES.WEBGL2,
-        [LOS.TARGET.PERCENT]: 0.2,
+        [LOS.TARGET.ALGORITHM]: ENUMS.ALGORITHM_TYPES.WEBGL2,
         [LOS.TARGET.LARGE]: false,
       },
       losViewer: {

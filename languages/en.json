@@ -255,6 +255,17 @@
     "tokencover.behavior.types.set-cover.fields.opacity.name": "Opacity",
     "tokencover.behavior.types.set-cover.fields.opacity.hint": "Is this region transparent (0) or opaque (1) for purposes of cover?" ,
 
+    "tokencover.point-indices.CENTER": "Center",
+    "tokencover.point-indices.CORNERS.FACING": "Front Corners",
+    "tokencover.point-indices.CORNERS.MID": "Mid Corners",
+    "tokencover.point-indices.CORNERS.BACK": "Back Corners",
+    "tokencover.point-indices.SIDES.FACING": "Facing Sides",
+    "tokencover.point-indices.SIDES.MID": "Mid Sides",
+    "tokencover.point-indices.SIDES.BACK": "Back Sides",
+    "tokencover.point-indices.D3.TOP": "Top Elevation",
+    "tokencover.point-indices.D3.MID": "Middle Elevation",
+    "tokencover.point-indices.D3.BOTTOM": "Bottom Elevation",
+
     "tokencover.cover-dialog.yes": "Apply Cover",
     "tokencover.cover-dialog.no": "Ignore All Cover",
 

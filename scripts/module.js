@@ -17,12 +17,19 @@ import { log, fastFlag } from "./util.js";
 import { initializePatching, PATCHER } from "./patching.js";
 import { Settings } from "./settings.js";
 import { getObjectProperty } from "./LOS/util.js";
+import { ATCLOSManager } from "./ATCLOSManager.js";
 
 // Calculators
-import { PercentVisibleCalculatorPoints, DebugVisibilityViewerPoints } from "./LOS/calculators/PointsCalculator.js";
-import { PercentVisibleCalculatorGeometric, DebugVisibilityViewerGeometric } from "./LOS/calculators/GeometricCalculator.js";
-import { PercentVisibleCalculatorPerPixel, DebugVisibilityViewerPerPixel } from "./LOS/calculators/PerPixelCalculator.js";
-import { PercentVisibleCalculatorWebGL2, DebugVisibilityViewerWebGL2 } from "./LOS/calculators/WebGL2Calculator.js";
+import { PercentVisibleCalculatorPoints } from "./LOS/calculators/PointsCalculator.js";
+import { PercentVisibleCalculatorGeometric } from "./LOS/calculators/GeometricCalculator.js";
+import { PercentVisibleCalculatorPerPixel } from "./LOS/calculators/PerPixelCalculator.js";
+import { PercentVisibleCalculatorWebGL2 } from "./LOS/calculators/WebGL2Calculator.js";
+import {
+  DebugVisibilityViewerPoints,
+  DebugVisibilityViewerGeometric,
+  DebugVisibilityViewerPerPixel,
+  DebugVisibilityViewerWebGL2,
+} from "./LOS/DebugVisibilityViewer.js";
 
 // Cover objects
 import { defaultCover } from "./default_cover.js";
@@ -64,14 +71,11 @@ Hooks.once("init", function() {
   Object.assign(CONFIG.RegionBehavior.dataModels, {
     [`${MODULE_ID}.setCover`]: SetCoverRegionBehaviorType
   });
-
   CONFIG.RegionBehavior.typeIcons[`${MODULE_ID}.setCover`] = FA_ICONS.MODULE;
 
-  // Must go at end?
   foundry.applications.handlebars.loadTemplates(Object.values(TEMPLATES)).then(_value => log("LOS Templates loaded."));
   foundry.applications.handlebars.loadTemplates(Object.values(LOS_TEMPLATES)).then(_value => console.debug(`${MODULE_ID}|Templates loaded.`));
   foundry.applications.handlebars.loadTemplates(["templates/apps/import-data.hbs"]); // For settings dialog.
-
 });
 
 Hooks.once("setup", function() {
@@ -85,6 +89,8 @@ Hooks.once("setup", function() {
     Region: regionOpacity,
     Wall: wallOpacity,
   });
+
+  ATCLOSManager.registerHooks();
 });
 
 /**
@@ -123,8 +129,8 @@ function wallOpacity(wallD) { return Number(fastFlag(wallD, FLAGS.OPACITY) ?? 1)
  */
 function regionOpacity(regionD) {
   for ( const b of regionD.behaviors ) {
-    if ( b.disabled || !b.type === `${MODULE_ID}.setCover` ) continue;
-    return Number(b.system.opacity ?? 0);
+    if ( b.disabled || b.type !== `${MODULE_ID}.setCover` ) continue;
+    return Number(b.system.opacity ?? 0); // Regions should default to 0 cover unless explicitly set.
   }
   return 0;
 }

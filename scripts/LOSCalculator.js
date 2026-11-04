@@ -4,7 +4,7 @@ foundry,
 */
 "use strict";
 
-import { MODULE_ID, TRACKER_IDS } from "./const.js";
+import { MODULE_ID, TRACKER_IDS, ENUMS } from "./const.js";
 import { Settings } from "./settings.js";
 import { ViewerLOS, CachedViewerLOS } from "./LOS/ViewerLOS.js";
 import { SmallBitSet } from "./LOS/SmallBitSet.js";
@@ -21,7 +21,7 @@ export function currentDebugViewerClass(type) {
   const KEYS = Settings.KEYS;
   const { TARGET } = KEYS.LOS;
   const debugViewers = CONFIG[MODULE_ID].debugViewerClasses;
-  type ??= Settings.get(TARGET.ALGORITHM) ?? TARGET.TYPES.POINTS;
+  type ??= Settings.get(TARGET.ALGORITHM) ?? ENUMS.ALGORITHM_TYPES.POINTS;
   const calcName = ViewerLOS.VIEWPOINT_ALGORITHM_SETTINGS[type];
   return debugViewers[calcName];
 }
@@ -80,7 +80,7 @@ export function LOSViewerConfig() {
   return {
     viewpointIndex: pointIndexForSet(Settings.get(Settings.KEYS.LOS.VIEWER.POINTS)),
     viewpointInset: Settings.get(Settings.KEYS.LOS.VIEWER.INSET),
-    threshold: Settings.get(Settings.KEYS.LOS.TARGET.PERCENT),
+    threshold: Number.NaN,
     angle: true,
   };
 }

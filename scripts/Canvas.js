@@ -1,16 +1,15 @@
 /* globals
 canvas,
 CONFIG,
-foundry,
-game,
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, FLAGS } from "./const.js";
+import { MODULE_ID } from "./const.js";
 import { Settings } from "./settings.js";
 import { buildOcclusionTester, buildLOSCalculator } from "./CoverCalculator.js";
-import { log, fastFlag } from "./util.js";
+import { log } from "./util.js";
+import { ATCLOSManager } from "./ATCLOSManager.js";
 
 // Patches for the Canvas class
 export const PATCHES = {};
@@ -48,7 +47,8 @@ function canvasReady(_canvas) {
   });
 
   // Render the debug viewer is debug is set.
-  if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) Settings.toggleLOSDebugGraphics(true);
+  ATCLOSManager.initializeDebugViewer();
+  if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) ATCLOSManager.toggleLOSDebugGraphics(true);
 }
 
 /**
@@ -60,8 +60,7 @@ function canvasReady(_canvas) {
  * @param {Canvas} canvas   The Canvas instance being deactivated
  */
 function canvasTearDown(_canvas) {
-  Settings.toggleLOSDebugGraphics(false);
-  Settings.updateLightMonitor(Settings.KEYS.LIGHT_MONITOR.TYPES.NONE);
+  ATCLOSManager.toggleLOSDebugGraphics(false);
 
   // Destroy any old calculator.
   if ( CONFIG[MODULE_ID].losCalculator ) {

@@ -5,8 +5,9 @@ canvas
 */
 "use strict";
 
-// Ignores Cover
+import { ENUMS as LOS_ENUMS, pointIndicesLabels } from "./LOS/const.js";
 import { IgnoresCover } from "./IgnoresCover.js";
+export { pointIndicesLabels } from "./LOS/const.js";
 
 export const MODULE_ID = "tokencover";
 export const EPSILON = 1e-08;
@@ -211,5 +212,113 @@ export function setCoverIgnoreHandler(handler) {
 }
 
 export const TRACKER_IDS = {
-  COVER: MODULE_ID,
+  COVER: "coverCalculator",
 };
+
+export const CONTROLS = {
+  COVER_EFFECTS: "cover-effects-control"
+};
+
+export const MENUS = {
+  SUBMENU: "submenu",
+  EXPORT_BUTTON: "exportButton",
+  IMPORT_BUTTON: "importButton",
+  COVER_DEFINITIONS: "coverDefinitionsMenu",
+};
+
+export const ENUMS = {
+  USE_CHOICES: {
+    NEVER: "never",
+    COMBAT: "combat",
+    COMBATANT: "combatant",
+    ATTACK: "attack",
+    ALWAYS: "always"
+  },
+  CONFIRM_CHOICES: {
+    USER: "cover-workflow-confirm-user",
+    USER_CANCEL: "cover-workflow-confirm-user-cancel",
+    GM: "cover-workflow-confirm-gm",
+    AUTO: "cover-workflow-confirm-automatic"
+  },
+
+  ...LOS_ENUMS,
+};
+
+export const SETTINGS = {
+  UNIQUE_EFFECTS_FLAGS_DATA: "uniqueEffectsFlagsData",
+
+  DISPLAY_SECRET_COVER: "display-secret-cover",
+
+  TEMPLATES_USE_COVER: "templates-use-cover",
+
+  /**
+   * @type {"auto"|"activeEffect"}
+   * - Auto: Uses the system's built-in cover mechanism, if any.
+   * - ActiveEffect: Always use dropped effects/items
+   */
+  BACKEND_MODE: "backend-mode",
+
+  COVER_DEFINITIONS: "cover-definitions",
+
+  COVER_EFFECTS: {
+    USE: "use-cover-effects",
+    // CHOICES: USE_CHOICES,
+    DATA: "cover-effects-data",
+    TARGETING: "cover-effects-targeting",
+    RULES: "cover-rules",
+    LIVE_TOKENS_BLOCK: "live-tokens-block",
+    DEAD_TOKENS_BLOCK: "dead-tokens-block",
+    PRONE_TOKENS_BLOCK: "prone-tokens-block",
+  },
+
+  COVER_WORKFLOW: {
+    CHAT: "cover-chat-message",
+    CONFIRM: "cover-workflow-confirm",
+    CONFIRM_CHANGE_ONLY: "cover-workflow-confirm-change-only",
+    CONFIRM_NO_COVER: "cover-workflow-confirm-no-cover",
+  },
+
+  // Taken from Alt. Token Visibility
+  LOS: {
+    VIEWER: {
+      POINTS: "los-points-options-viewer",
+      INSET: "los-inset-viewer",
+    },
+
+    TARGET: {
+      ALGORITHM: "los-algorithm",
+      LARGE: "los-large-target",
+      POINT_OPTIONS: {
+        POINTS: "los-points-options-target",
+        INSET: "los-inset-target",
+      },
+    },
+  },
+
+  PRONE_STATUS_ID: "prone-status-id",
+  TOKEN_HP_ATTRIBUTE: "token-hp-attribute",
+
+  PRONE_MULTIPLIER: "prone-multiplier",
+  VISION_HEIGHT_MULTIPLIER: "vision-height-multiplier",
+
+  // Hidden settings
+  AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
+  CHANGELOG: "changelog",
+  ATV_SETTINGS_MESSAGE: "atv-settings-message",
+
+  // Configuration of the application that controls the terrain listings.
+  CONTROL_APP: {
+    FAVORITES: "favorites", // Array of favorite terrains, by effect id.
+    EXPANDED_FOLDERS: "app_expanded_folders", // Array of folders that are expanded, by id
+    FOLDERS: "app_folders",
+  },
+
+  MIGRATION: {
+    v0100: "migration-v0.10.0",
+  },
+
+  DEBUG: {
+    LOS: "debug-cover", // For compatibility with older versions, keep as "debug-cover".
+  },
+};
+

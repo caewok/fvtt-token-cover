@@ -44,7 +44,7 @@ export const LOS_CONFIG = {
    * Larger spacing means fewer points and better performance, sacrificing resolution.
    * @type {number} In pixel units
    */
-  perPixelSpacing: 10,
+  perPixelSpacing: 25,
 
   /** @type {string} */
   /*
@@ -96,6 +96,16 @@ export const LOS_CONFIG = {
    * @type {boolean}
    */
   useStencil: false,
+
+  /**
+   * Should the line-of-sight calculator use the viewer height (as calculated in Wall Height)
+   * for any TOP viewpoint?
+   * @type {boolean}
+   */
+  useViewerHeight: true,
+
+  /** @type {boolean} Flag if webGL loses context. */
+  webGL2Unavailable: false,
 
   // Handled at base level: debug
 }

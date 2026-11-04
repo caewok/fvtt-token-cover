@@ -3,19 +3,19 @@ canvas,
 CONFIG,
 foundry,
 game,
+Hooks,
 readTextFromFile
 ui
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, OTHER_MODULES, TRACKER_IDS, FA_ICONS } from "./const.js";
+import { MODULE_ID, OTHER_MODULES, FA_ICONS, SETTINGS, CONTROLS, ENUMS, MENUS, pointIndicesLabels } from "./const.js";
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
 import { ATCSettingsSubmenu } from "./ATCSettingsSubmenu.js";
 import { registerTemplates, deregisterTemplates } from "./patching.js";
 import { TokenCover } from "./TokenCover.js";
 import { renderTemplateSync } from "./geometry/util.js";
-import { buildDebugViewer, currentDebugViewerClass, buildLOSCalculator } from "./CoverCalculator.js";
 import { CoverDefinitionsConfig } from "./CoverDefinitionsConfig.js";
 import { UniqueEffectDefinition } from "./UniqueEffectDefinition.js";
 
@@ -70,53 +70,6 @@ class importSettingsDialog extends foundry.applications.api.DialogV2 {
   }
 }
 
-
-const CONTROLS = {
-  COVER_EFFECTS: "cover-effects-control"
-};
-
-const MENUS = {
-  SUBMENU: "submenu",
-  EXPORT_BUTTON: "exportButton",
-  IMPORT_BUTTON: "importButton",
-  COVER_DEFINITIONS: "coverDefinitionsMenu",
-};
-
-const ENUMS = {
-  USE_CHOICES: {
-    NEVER: "never",
-    COMBAT: "combat",
-    COMBATANT: "combatant",
-    ATTACK: "attack",
-    ALWAYS: "always"
-  },
-  CONFIRM_CHOICES: {
-    USER: "cover-workflow-confirm-user",
-    USER_CANCEL: "cover-workflow-confirm-user-cancel",
-    GM: "cover-workflow-confirm-gm",
-    AUTO: "cover-workflow-confirm-automatic"
-  },
-  POINT_TYPES: {
-    CENTER: "points-center",
-    TWO: "points-two",
-    THREE: "points-three", //
-    FOUR: "points-four", // Five without center
-    FIVE: "points-five", // Corners + center
-    EIGHT: "points-eight", // Nine without center
-    NINE: "points-nine" // Corners, midpoints, center
-  },
-  ALGORITHM_TYPES: {
-    POINTS: "los-algorithm-points",
-    PER_PIXEL: "los-algorithm-per-pixel",
-    GEOMETRIC: "los-algorithm-geometric",
-    WEBGL2: "los-algorithm-webgl2",
-  },
-  POINT_OPTIONS: {
-    POINTS: "los-points-options-target",
-    INSET: "los-inset-target",
-  },
-};
-
 /**
  * One row = one cover level.
  * Source is either
@@ -144,90 +97,6 @@ export const DEFAULT_PRESET_DEFINITIONS = [
   { statusId: "coverTotal", name: "Total Cover", minPercent: 1 }
 ];
 
-export const SETTINGS = {
-  UNIQUE_EFFECTS_FLAGS_DATA: "uniqueEffectsFlagsData",
-
-  DISPLAY_SECRET_COVER: "display-secret-cover",
-
-  TEMPLATES_USE_COVER: "templates-use-cover",
-
-  /**
-   * @type {"auto"|"activeEffect"}
-   * - Auto: Uses the system's built-in cover mechanism, if any.
-   * - ActiveEffect: Always use dropped effects/items
-   */
-  BACKEND_MODE: "backend-mode",
-
-  COVER_DEFINITIONS: "cover-definitions",
-
-  COVER_EFFECTS: {
-    USE: "use-cover-effects",
-    // CHOICES: USE_CHOICES,
-    DATA: "cover-effects-data",
-    TARGETING: "cover-effects-targeting",
-    RULES: "cover-rules",
-    LIVE_TOKENS_BLOCK: "live-tokens-block",
-    DEAD_TOKENS_BLOCK: "dead-tokens-block",
-    PRONE_TOKENS_BLOCK: "prone-tokens-block",
-  },
-
-  COVER_WORKFLOW: {
-    CHAT: "cover-chat-message",
-    CONFIRM: "cover-workflow-confirm",
-    CONFIRM_CHANGE_ONLY: "cover-workflow-confirm-change-only",
-    CONFIRM_NO_COVER: "cover-workflow-confirm-no-cover",
-    // CONFIRM_CHOICES,
-  },
-
-  // Taken from Alt. Token Visibility
-  LOS: {
-    VIEWER: {
-      POINTS: "los-points-options-viewer",
-      INSET: "los-inset-viewer",
-    },
-
-    TARGET: {
-      ALGORITHM: "los-algorithm",
-      LARGE: "los-large-target",
-      TYPES: {
-        POINTS: "los-algorithm-points",
-        PER_PIXEL: "los-algorithm-per-pixel",
-        GEOMETRIC: "los-algorithm-geometric",
-        WEBGL2: "los-algorithm-webgl2",
-      },
-      POINT_OPTIONS: {
-        POINTS: "los-points-options-target",
-        INSET: "los-inset-target",
-      },
-    },
-  },
-
-  PRONE_STATUS_ID: "prone-status-id",
-  TOKEN_HP_ATTRIBUTE: "token-hp-attribute",
-
-  PRONE_MULTIPLIER: "prone-multiplier",
-  VISION_HEIGHT_MULTIPLIER: "vision-height-multiplier",
-
-  // Hidden settings
-  AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
-  CHANGELOG: "changelog",
-  ATV_SETTINGS_MESSAGE: "atv-settings-message",
-
-  // Configuration of the application that controls the terrain listings.
-  CONTROL_APP: {
-    FAVORITES: "favorites", // Array of favorite terrains, by effect id.
-    EXPANDED_FOLDERS: "app_expanded_folders", // Array of folders that are expanded, by id
-    FOLDERS: "app_folders",
-  },
-
-  MIGRATION: {
-    v0100: "migration-v0.10.0",
-  },
-
-  DEBUG: {
-    LOS: "debug-cover", // For compatibility with older versions, keep as "debug-cover".
-  },
-};
 
 export class Settings extends ModuleSettingsAbstract {
 
@@ -240,35 +109,15 @@ export class Settings extends ModuleSettingsAbstract {
   /** @type {object} */
   static CONTROLS = CONTROLS;
 
-  static debugViewer;
-
-  static initializeDebugViewer(type) {
-    type ??= this.get(this.KEYS.LOS.TARGET.ALGORITHM);
-    this.debugViewer ??= buildDebugViewer(currentDebugViewerClass(type));
-    this.debugViewer.render();
-  }
-
-  static destroyDebugViewer() {
-    if ( !this.debugViewer ) return;
-    this.debugViewer.destroy();
-    this.debugViewer = undefined;
-  }
-
-  static toggleLOSDebugGraphics(enabled = false) {
-    if ( enabled ) this.initializeDebugViewer();
-    else this.destroyDebugViewer();
-  }
-
   /**
    * Register all settings
    */
   static registerAll() {
-    const { KEYS, ENUMS, register, registerMenu, localize } = this;
+    const { KEYS, register, registerMenu, localize } = this;
     const PT_TYPES = ENUMS.POINT_TYPES;
     const RTYPES = [PT_TYPES.CENTER, PT_TYPES.FIVE, PT_TYPES.NINE];
     const PT_OPTS = KEYS.LOS.TARGET.POINT_OPTIONS;
-    const LTYPES = foundry.utils.filterObject(KEYS.LOS.TARGET.TYPES,
-      { POINTS: 0, PER_PIXEL: 0, GEOMETRIC: 0, WEBGL2: 0 });
+    const LTYPES = ENUMS.ALGORITHM_TYPES;
     const losChoices = {};
     const ptChoices = {};
     const rangeChoices = {};
@@ -365,7 +214,7 @@ export class Settings extends ModuleSettingsAbstract {
       config: true,
       type: Boolean,
       default: false,
-      onChange: value => this.toggleLOSDebugGraphics(value)
+      onChange: value => Hooks.callAll(`${MODULE_ID}.losDebugLOSChanged`, value),
     });
 
     register(KEYS.BACKEND_MODE, {
@@ -399,18 +248,7 @@ export class Settings extends ModuleSettingsAbstract {
         required: true,
         blank: false,
         initial: 0,
-        choices: {
-          [PI.CENTER]: "Center",
-          [PI.CORNERS.FACING]: "Front Corners",
-          [PI.CORNERS.MID]: "Mid Corners",
-          [PI.CORNERS.BACK]: "Back Corners",
-          [PI.SIDES.FACING]: "Facing Sides",
-          [PI.SIDES.MID]: "Mid Sides",
-          [PI.SIDES.BACK]: "Back Sides",
-          [PI.D3.TOP]: "Top Elevation",
-          [PI.D3.MID]: "Middle Elevation",
-          [PI.D3.BOTTOM]: "Bottom Elevation",
-        },
+        choices: pointIndicesLabels(MODULE_ID),
       })),
     });
 
@@ -441,7 +279,7 @@ export class Settings extends ModuleSettingsAbstract {
       choices: losChoices,
       default: LTYPES.POINTS,
       tab: "losTarget",
-      onChange: value => this.algorithmChange(value)
+      onChange: value => Hooks.callAll(`${MODULE_ID}.losAlgorithmChanged`, value),
     });
 
     register(TARGET.LARGE, {
@@ -454,9 +292,9 @@ export class Settings extends ModuleSettingsAbstract {
       tab: "losTarget",
     });
 
-    register(TARGET.POINT_OPTIONS.POINTS, {
-      name: localize(`${TARGET.POINT_OPTIONS.POINTS}.Name`),
-      hint: localize(`${TARGET.POINT_OPTIONS.POINTS}.Hint`),
+    register(PT_OPTS.POINTS, {
+      name: localize(`${PT_OPTS.POINTS}.Name`),
+      hint: localize(`${PT_OPTS.POINTS}.Hint`),
       scope: "world",
       config: false,
       tab: "losTarget",
@@ -465,18 +303,7 @@ export class Settings extends ModuleSettingsAbstract {
         required: true,
         blank: false,
         initial: 0,
-        choices: {
-          [PI.CENTER]: "Center",
-          [PI.CORNERS.FACING]: "Front Corners",
-          [PI.CORNERS.MID]: "Mid Corners",
-          [PI.CORNERS.BACK]: "Back Corners",
-          [PI.SIDES.FACING]: "Facing Sides",
-          [PI.SIDES.MID]: "Mid Sides",
-          [PI.SIDES.BACK]: "Back Sides",
-          [PI.D3.TOP]: "Top Elevation",
-          [PI.D3.MID]: "Middle Elevation",
-          [PI.D3.BOTTOM]: "Bottom Elevation",
-        },
+        choices: pointIndicesLabels(MODULE_ID),
       })),
     });
 
@@ -719,27 +546,6 @@ export class Settings extends ModuleSettingsAbstract {
       }
       this.set(this.KEYS.LOS.TARGET.ALGORITHM, alg);
       this.set(this.KEYS.MIGRATION.v0100, true);
-    }
-  }
-
-  static algorithmChange(value) {
-    // Update the shared calculator.
-    CONFIG[MODULE_ID].losCalculator.destroy();
-    CONFIG[MODULE_ID].losCalculator = null;
-    const calc = CONFIG[MODULE_ID].losCalculator = buildLOSCalculator();
-    CONFIG[MODULE_ID].losCalculator.initialize(); // Async.
-
-    // Set the calculator for existing viewers.
-    canvas.tokens.placeables.forEach(token => {
-      const losViewer = token[MODULE_ID]?.[TRACKER_IDS.VISIBILITY].losViewer;
-      if ( !losViewer ) return;
-      losViewer.calculator = calc;
-    });
-
-    // Start up a new debug viewer.
-    if ( this.get(this.KEYS.DEBUG.LOS) ) {
-      this.destroyDebugViewer();
-      this.initializeDebugViewer(value);
     }
   }
 
