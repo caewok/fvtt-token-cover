@@ -282,7 +282,11 @@ export const SETTINGS = {
   LOS: {
     VIEWER: {
       POINTS: "los-points-options-viewer",
-      INSET: "los-inset-viewer",
+      INSETS: {
+        SIDES: "los-inset-viewer-sides",
+        TOP: "los-inset-viewer-top",
+        BOTTOM: "los-inset-viewer-bottom",
+      },
     },
 
     TARGET: {

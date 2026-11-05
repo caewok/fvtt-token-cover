@@ -252,9 +252,9 @@ export class Settings extends ModuleSettingsAbstract {
       })),
     });
 
-    register(VIEWER.INSET, {
-      name: localize(`${VIEWER.INSET}.Name`),
-      hint: localize(`${VIEWER.INSET}.Hint`),
+    register(VIEWER.INSETS.TOP, {
+      name: localize(`${VIEWER.INSETS.TOP}.Name`),
+      hint: localize(`${VIEWER.INSETS.TOP}.Hint`),
       range: {
         max: 0.99,
         min: 0,
@@ -262,7 +262,37 @@ export class Settings extends ModuleSettingsAbstract {
       },
       scope: "world",
       config: false,
-      default: 0.75,
+      default: 0,
+      type: Number,
+      tab: "losViewer",
+    });
+
+    register(VIEWER.INSETS.BOTTOM, {
+      name: localize(`${VIEWER.INSETS.BOTTOM}.Name`),
+      hint: localize(`${VIEWER.INSETS.BOTTOM}.Hint`),
+      range: {
+        max: 0.99,
+        min: 0,
+        step: 0.01
+      },
+      scope: "world",
+      config: false,
+      default: 0,
+      type: Number,
+      tab: "losViewer",
+    });
+
+    register(VIEWER.INSETS.SIDES, {
+      name: localize(`${VIEWER.INSETS.SIDES}.Name`),
+      hint: localize(`${VIEWER.INSETS.SIDES}.Hint`),
+      range: {
+        max: 0.99,
+        min: 0,
+        step: 0.01
+      },
+      scope: "world",
+      config: false,
+      default: 0,
       type: Number,
       tab: "losViewer",
     });
@@ -440,22 +470,6 @@ export class Settings extends ModuleSettingsAbstract {
         onChange: value => CONFIG.GeometryLib.CONFIG.proneMultiplier = value
       });
 
-      register(KEYS.VISION_HEIGHT_MULTIPLIER, {
-        name: localize(`${KEYS.VISION_HEIGHT_MULTIPLIER}.Name`),
-        hint: localize(`${KEYS.VISION_HEIGHT_MULTIPLIER}.Hint`),
-        scope: "world",
-        config: false,
-        type: Number,
-        range: {
-          max: 1,  // At token top.
-          min: 0,  // At token bottom.
-          step: 0.1
-        },
-        default: CONFIG.GeometryLib.CONFIG.visionHeightMultiplier ?? 0.9,
-        tab: "other",
-        onChange: value => CONFIG.GeometryLib.CONFIG.visionHeightMultiplier = value
-      });
-
       register(KEYS.PRONE_STATUS_ID, {
         name: localize(`${KEYS.PRONE_STATUS_ID}.Name`),
         hint: localize(`${KEYS.PRONE_STATUS_ID}.Hint`),
@@ -481,7 +495,6 @@ export class Settings extends ModuleSettingsAbstract {
 
       // Make sure these are linked at the start.
       CONFIG.GeometryLib.CONFIG.proneMultiplier = this.get(KEYS.PRONE_MULTIPLIER);
-      CONFIG.GeometryLib.CONFIG.visionHeightMultiplier = this.get(KEYS.VISION_HEIGHT_MULTIPLIER);
       CONFIG.GeometryLib.CONFIG.proneStatusId = this.get(KEYS.PRONE_STATUS_ID);
       CONFIG.GeometryLib.CONFIG.tokenHPId = this.get(KEYS.TOKEN_HP_ATTRIBUTE);
 

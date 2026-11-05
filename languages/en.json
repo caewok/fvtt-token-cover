@@ -97,13 +97,19 @@
     "tokencover.settings.los-algorithm-sample-pixel": "Sample Pixel",
 
     "tokencover.settings.los-points-options-viewer.Name": "Viewpoint Arrangement",
-    "tokencover.settings.los-points-options-viewer.Hint": "Points on the viewer to test for the viewer's line-of-sight. Each represents an 'eye' of the viewer.",
+    "tokencover.settings.los-points-options-viewer.Hint": "One or more 'Eye' locations on the viewer. Foundry default is 'Center' (one point). If no elevations are chosen, 'mid' is assumed. If no x/y positions chosen, 'center' is assumed. If no such points exist for a given token shape, it will fall back to a center point.",
 
-    "tokencover.settings.los-inset-viewer.Name": " Inset",
-    "tokencover.settings.los-inset-viewer.Hint": "For viewer points other than the center, what percentage to inset the point from the token border towards the token center.",
+    "tokencover.settings.los-inset-viewer-top.Name": "Inset: Top",
+    "tokencover.settings.los-inset-viewer-top.Hint": "What percentage to inset each viewpoint from the top of the token border towards the token center.",
+
+    "tokencover.settings.los-inset-viewer-bottom.Name": "Inset: Bottom",
+    "tokencover.settings.los-inset-viewer-bottom.Hint": "What percentage to inset each viewpoint from the bottom of the token border towards the token center.",
+
+    "tokencover.settings.los-inset-viewer-sides.Name": "Inset: Sides",
+    "tokencover.settings.los-inset-viewer-sides.Hint": "What percentage to inset each viewpoint from the sides of the token border towards the token center.",
 
     "tokencover.settings.los-points-options-target.Name": "Points",
-    "tokencover.settings.los-points-target.Hint": "How many points on the target to test for cover from the viewer's line-of-sight.",
+    "tokencover.settings.los-points-options-target.Hint": "What points on the target to test for cover from the viewer's line-of-sight. If no elevations are chosen, 'mid' is assumed. If no x/y positions chosen, 'center' is assumed.",
 
     "tokencover.settings.los-inset-target.Name": "Inset",
     "tokencover.settings.los-inset-target.Hint": "For target points other than the center, what percentage to inset the point from the token border towards the token center.",
@@ -256,15 +262,15 @@
     "tokencover.behavior.types.set-cover.fields.opacity.hint": "Is this region transparent (0) or opaque (1) for purposes of cover?" ,
 
     "tokencover.point-indices.CENTER": "Center",
-    "tokencover.point-indices.CORNERS.FACING": "Front Corners",
-    "tokencover.point-indices.CORNERS.MID": "Mid Corners",
-    "tokencover.point-indices.CORNERS.BACK": "Back Corners",
-    "tokencover.point-indices.SIDES.FACING": "Facing Sides",
-    "tokencover.point-indices.SIDES.MID": "Mid Sides",
-    "tokencover.point-indices.SIDES.BACK": "Back Sides",
-    "tokencover.point-indices.D3.TOP": "Top Elevation",
-    "tokencover.point-indices.D3.MID": "Middle Elevation",
-    "tokencover.point-indices.D3.BOTTOM": "Bottom Elevation",
+    "tokencover.point-indices.CORNERS.FACING": "Corners: Front",
+    "tokencover.point-indices.CORNERS.MID": "Corners: Mid",
+    "tokencover.point-indices.CORNERS.BACK": "Corners: Back",
+    "tokencover.point-indices.SIDES.FACING": "Side: Facing",
+    "tokencover.point-indices.SIDES.MID": "Sides: Mid",
+    "tokencover.point-indices.SIDES.BACK": "Sides: Back",
+    "tokencover.point-indices.ELEVATION.TOP": "Elevation: Top",
+    "tokencover.point-indices.ELEVATION.MID": "Elevation: Mid",
+    "tokencover.point-indices.ELEVATION.BOTTOM": "Elevation: Back",
 
     "tokencover.cover-dialog.yes": "Apply Cover",
     "tokencover.cover-dialog.no": "Ignore All Cover",

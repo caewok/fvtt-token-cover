@@ -88,6 +88,16 @@ export function BlockingConfig() {
   });
 }
 
+/** @returns {ViewpointInsetsConfig} */
+export function ViewpointInsetsConfig() {
+  return new ConfigHandler({
+    top: () => Settings.get(Settings.KEYS.LOS.VIEWER.INSETS.TOP),
+    bottom: () => Settings.get(Settings.KEYS.LOS.VIEWER.INSETS.BOTTOM),
+    sides: () => Settings.get(Settings.KEYS.LOS.VIEWER.INSETS.SIDES),
+  });
+}
+
+
 /**
  * @returns {CalculatorConfig|PointsCalculatorConfig}  See PercentVisibleCalculator.js and PointsCalculator.js
  */
@@ -111,7 +121,7 @@ export function CalculatorConfig() {
 export function LOSViewerConfig() {
   return new ConfigHandler({
     viewpointIndex: () => pointIndexForSet(Settings.get(Settings.KEYS.LOS.VIEWER.POINTS)),
-    viewpointInset: () => Settings.get(Settings.KEYS.LOS.VIEWER.INSET),
+    insets: ViewpointInsetsConfig(),
     threshold: Number.NaN, // Handled by the cover type.
     angle: true,
   });
