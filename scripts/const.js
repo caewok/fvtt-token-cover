@@ -5,8 +5,10 @@ canvas
 */
 "use strict";
 
-import { ENUMS as LOS_ENUMS, pointIndicesLabels } from "./LOS/const.js";
+import { ENUMS as LOS_ENUMS, pointIndicesLabels, LOS_SETTINGS } from "./LOS/const.js";
 import { IgnoresCover } from "./IgnoresCover.js";
+
+
 export { pointIndicesLabels } from "./LOS/const.js";
 
 export const MODULE_ID = "tokencover";
@@ -176,7 +178,7 @@ export const OTHER_MODULES = {
       ALLOW_SIGHT: "noCollision",
     },
   },
-  ATV: { KEY: "token_visibility" },
+  ATV: { KEY: "tokenvisibility" },
   SIMBULS_CC: { KEY: "simbuls-cover-calculator" },
   MIDI_QOL: { KEY: "midi-qol" },
 };
@@ -244,7 +246,7 @@ export const ENUMS = {
   ...LOS_ENUMS,
 };
 
-export const SETTINGS = {
+export const SETTINGS = foundry.utils.mergeObject(foundry.utils.deepClone(LOS_SETTINGS), {
   UNIQUE_EFFECTS_FLAGS_DATA: "uniqueEffectsFlagsData",
 
   DISPLAY_SECRET_COVER: "display-secret-cover",
@@ -266,9 +268,6 @@ export const SETTINGS = {
     DATA: "cover-effects-data",
     TARGETING: "cover-effects-targeting",
     RULES: "cover-rules",
-    LIVE_TOKENS_BLOCK: "live-tokens-block",
-    DEAD_TOKENS_BLOCK: "dead-tokens-block",
-    PRONE_TOKENS_BLOCK: "prone-tokens-block",
   },
 
   COVER_WORKFLOW: {
@@ -278,35 +277,7 @@ export const SETTINGS = {
     CONFIRM_NO_COVER: "cover-workflow-confirm-no-cover",
   },
 
-  // Taken from Alt. Token Visibility
-  LOS: {
-    VIEWER: {
-      POINTS: "los-points-options-viewer",
-      INSETS: {
-        SIDES: "los-inset-viewer-sides",
-        TOP: "los-inset-viewer-top",
-        BOTTOM: "los-inset-viewer-bottom",
-      },
-    },
-
-    TARGET: {
-      ALGORITHM: "los-algorithm",
-      LARGE: "los-large-target",
-      POINT_OPTIONS: {
-        POINTS: "los-points-options-target",
-        INSET: "los-inset-target",
-      },
-    },
-  },
-
-  PRONE_STATUS_ID: "prone-status-id",
-  TOKEN_HP_ATTRIBUTE: "token-hp-attribute",
-
-  PRONE_MULTIPLIER: "prone-multiplier",
-  VISION_HEIGHT_MULTIPLIER: "vision-height-multiplier",
-
   // Hidden settings
-  AREA3D_USE_SHADOWS: "area3d-use-shadows", // For benchmarking and debugging for now.
   CHANGELOG: "changelog",
   ATV_SETTINGS_MESSAGE: "atv-settings-message",
 
@@ -320,9 +291,5 @@ export const SETTINGS = {
   MIGRATION: {
     v0100: "migration-v0.10.0",
   },
-
-  DEBUG: {
-    LOS: "debug-cover", // For compatibility with older versions, keep as "debug-cover".
-  },
-};
+});
 

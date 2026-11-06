@@ -47,9 +47,9 @@ export function currentDebugViewerClass(type) {
  */
 function TokenBlockingConfig() {
   return new ConfigHandler({
-    dead: () => Boolean(Settings.get(Settings.KEYS.COVER_EFFECTS.LIVE_TOKENS_BLOCK)),
-    live: () => Boolean(Settings.get(Settings.KEYS.COVER_EFFECTS.LIVE_TOKENS_BLOCK)),
-    prone: () => Boolean(Settings.get(Settings.KEYS.COVER_EFFECTS.PRONE_TOKENS_BLOCK)),
+    dead: () => Boolean(Settings.get(Settings.KEYS.LOS.BLOCKING.DEAD)),
+    live: () => Boolean(Settings.get(Settings.KEYS.LOS.BLOCKING.LIVE)),
+    prone: () => Boolean(Settings.get(Settings.KEYS.LOS.BLOCKING.PRONE)),
 
     // No settings enabled for now.
     enemies: true,
@@ -110,8 +110,8 @@ export function CalculatorConfig() {
     radius: Number.POSITIVE_INFINITY,
 
     // Points algorithm
-    targetInset: () => Settings.get(Settings.KEYS.LOS.TARGET.POINT_OPTIONS.INSET) ?? 0.75,
-    targetPointIndex: () => pointIndexForSet(Settings.get(Settings.KEYS.LOS.TARGET.POINT_OPTIONS.POINTS)),
+    targetInset: () => Settings.get(Settings.KEYS.LOS.TARGET.INSET) ?? 0.75,
+    targetPointIndex: () => pointIndexForSet(Settings.get(Settings.KEYS.LOS.TARGET.POINTS)),
   });
 }
 
@@ -231,13 +231,13 @@ export class CoverCalculator {
   // ----- NOTE: Settings ----- //
 
   /** @type {boolean} */
-  static get liveTokensBlock() { return Boolean(Settings.get(Settings.KEYS.COVER_EFFECTS.LIVE_TOKENS_BLOCK)); }
+  static get liveTokensBlock() { return Boolean(Settings.get(Settings.KEYS.LOS.BLOCKING.LIVE)); }
 
   /** @type {boolean} */
-  static get deadTokensBlock() { return Boolean(Settings.get(Settings.KEYS.COVER_EFFECTS.DEAD_TOKENS_BLOCK)); }
+  static get deadTokensBlock() { return Boolean(Settings.get(Settings.KEYS.LOS.BLOCKING.DEAD)); }
 
   /** @type {boolean} */
-  static get proneTokensBlock() { return Boolean(Settings.get(Settings.KEYS.COVER_EFFECTS.PRONE_TOKENS_BLOCK)); }
+  static get proneTokensBlock() { return Boolean(Settings.get(Settings.KEYS.LOS.BLOCKING.PRONE)); }
 
   /** @type {boolean} */
   static get includeTokens() { return this.liveTokensBlock || this.deadTokensBlock; }

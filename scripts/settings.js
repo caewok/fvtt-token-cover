@@ -10,7 +10,8 @@ ui
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, OTHER_MODULES, FA_ICONS, SETTINGS, CONTROLS, ENUMS, MENUS, pointIndicesLabels } from "./const.js";
+import { MODULE_ID, OTHER_MODULES, FA_ICONS, SETTINGS, CONTROLS, ENUMS, MENUS } from "./const.js";
+import { registerLOSSettings } from "./LOS/const.js";
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
 import { ATCSettingsSubmenu } from "./ATCSettingsSubmenu.js";
 import { registerTemplates, deregisterTemplates } from "./patching.js";
@@ -18,9 +19,6 @@ import { TokenCover } from "./TokenCover.js";
 import { renderTemplateSync } from "./geometry/util.js";
 import { CoverDefinitionsConfig } from "./CoverDefinitionsConfig.js";
 import { UniqueEffectDefinition } from "./UniqueEffectDefinition.js";
-
-// LOS folder
-import { ViewerLOS } from "./LOS/ViewerLOS.js";
 
 export const PATCHES_SidebarTab = {};
 export const PATCHES_ItemDirectory = {};
@@ -114,21 +112,9 @@ export class Settings extends ModuleSettingsAbstract {
    */
   static registerAll() {
     const { KEYS, register, registerMenu, localize } = this;
-    const PT_TYPES = ENUMS.POINT_TYPES;
-    const RTYPES = [PT_TYPES.CENTER, PT_TYPES.FIVE, PT_TYPES.NINE];
-    const PT_OPTS = KEYS.LOS.TARGET.POINT_OPTIONS;
-    const LTYPES = ENUMS.ALGORITHM_TYPES;
-    const losChoices = {};
-    const ptChoices = {};
-    const rangeChoices = {};
-
     const coverTypeUseChoices = {};
     const coverEffectUseChoices = {};
     const coverConfirmChoices = {};
-
-    Object.values(RTYPES).forEach(type => rangeChoices[type] = localize(type));
-    Object.values(LTYPES).forEach(type => losChoices[type] = localize(type));
-    Object.values(PT_TYPES).forEach(type => ptChoices[type] = localize(type));
 
     Object.values(ENUMS.USE_CHOICES).forEach(type => coverTypeUseChoices[type] = localize(type));
     Object.values(ENUMS.USE_CHOICES).forEach(type => coverEffectUseChoices[type] = localize(type));
@@ -234,123 +220,9 @@ export class Settings extends ModuleSettingsAbstract {
 
     // ----- NOTE: Submenu ---- //
 
-    // ----- NOTE: Line-of-sight viewer tab ----- //
-    const VIEWER = KEYS.LOS.VIEWER;
-    const PI = ViewerLOS.POINT_INDICES;
-    register(VIEWER.POINTS, {
-      name: localize(`${VIEWER.POINTS}.Name`),
-      hint: localize(`${VIEWER.POINTS}.Hint`),
-      scope: "world",
-      config: false,
-      tab: "losViewer",
-      default: [PI.CENTER],
-      type: new foundry.data.fields.SetField(new foundry.data.fields.StringField({
-        required: true,
-        blank: false,
-        initial: 0,
-        choices: pointIndicesLabels(MODULE_ID),
-      })),
-    });
+    // Do not use large target for now, until fixed.
+    registerLOSSettings(MODULE_ID, this, { threshold: false, largeTarget: false, tokenModifiers: !OTHER_MODULES.ATV });
 
-    register(VIEWER.INSETS.TOP, {
-      name: localize(`${VIEWER.INSETS.TOP}.Name`),
-      hint: localize(`${VIEWER.INSETS.TOP}.Hint`),
-      range: {
-        max: 0.99,
-        min: 0,
-        step: 0.01
-      },
-      scope: "world",
-      config: false,
-      default: 0,
-      type: Number,
-      tab: "losViewer",
-    });
-
-    register(VIEWER.INSETS.BOTTOM, {
-      name: localize(`${VIEWER.INSETS.BOTTOM}.Name`),
-      hint: localize(`${VIEWER.INSETS.BOTTOM}.Hint`),
-      range: {
-        max: 0.99,
-        min: 0,
-        step: 0.01
-      },
-      scope: "world",
-      config: false,
-      default: 0,
-      type: Number,
-      tab: "losViewer",
-    });
-
-    register(VIEWER.INSETS.SIDES, {
-      name: localize(`${VIEWER.INSETS.SIDES}.Name`),
-      hint: localize(`${VIEWER.INSETS.SIDES}.Hint`),
-      range: {
-        max: 0.99,
-        min: 0,
-        step: 0.01
-      },
-      scope: "world",
-      config: false,
-      default: 0,
-      type: Number,
-      tab: "losViewer",
-    });
-
-    // ----- NOTE: Line-of-sight target tab ----- //
-    const TARGET = KEYS.LOS.TARGET;
-
-    register(TARGET.ALGORITHM, {
-      name: localize(`${TARGET.ALGORITHM}.Name`),
-      hint: localize(`${TARGET.ALGORITHM}.Hint`),
-      scope: "world",
-      config: false,
-      type: String,
-      choices: losChoices,
-      default: LTYPES.POINTS,
-      tab: "losTarget",
-      onChange: value => Hooks.callAll(`${MODULE_ID}.losAlgorithmChanged`, value),
-    });
-
-    register(TARGET.LARGE, {
-      name: localize(`${TARGET.LARGE}.Name`),
-      hint: localize(`${TARGET.LARGE}.Hint`),
-      scope: "world",
-      config: false,
-      type: Boolean,
-      default: false,
-      tab: "losTarget",
-    });
-
-    register(PT_OPTS.POINTS, {
-      name: localize(`${PT_OPTS.POINTS}.Name`),
-      hint: localize(`${PT_OPTS.POINTS}.Hint`),
-      scope: "world",
-      config: false,
-      tab: "losTarget",
-      default: [PI.CENTER],
-      type: new foundry.data.fields.SetField(new foundry.data.fields.StringField({
-        required: true,
-        blank: false,
-        initial: 0,
-        choices: pointIndicesLabels(MODULE_ID),
-      })),
-    });
-
-    register(PT_OPTS.INSET, {
-      name: localize(`${PT_OPTS.INSET}.Name`),
-      hint: localize(`${PT_OPTS.INSET}.Hint`),
-      range: {
-        max: 0.99,
-        min: 0,
-        step: 0.01
-      },
-      scope: "world",
-      config: false, // () => getSetting(KEYS.LOS.ALGORITHM) !== LTYPES.POINTS,
-      default: 0.75,
-      type: Number,
-      tab: "losTarget",
-    });
 
     // ----- NOTE: Workflow tab ----- //
 
@@ -423,82 +295,7 @@ export class Settings extends ModuleSettingsAbstract {
 
     // ----- NOTE: Other cover settings tab ----- //
 
-    register(KEYS.COVER_EFFECTS.LIVE_TOKENS_BLOCK, {
-      name: localize(`${KEYS.COVER_EFFECTS.LIVE_TOKENS_BLOCK}.Name`),
-      hint: localize(`${KEYS.COVER_EFFECTS.LIVE_TOKENS_BLOCK}.Hint`),
-      scope: "world",
-      config: false,
-      type: Boolean,
-      default: false,
-      tab: "other",
-    });
-
-    register(KEYS.COVER_EFFECTS.DEAD_TOKENS_BLOCK, {
-      name: localize(`${KEYS.COVER_EFFECTS.DEAD_TOKENS_BLOCK}.Name`),
-      hint: localize(`${KEYS.COVER_EFFECTS.DEAD_TOKENS_BLOCK}.Hint`),
-      scope: "world",
-      config: false,
-      type: Boolean,
-      default: false,
-      tab: "other",
-    });
-
-    register(KEYS.COVER_EFFECTS.PRONE_TOKENS_BLOCK, {
-      name: localize(`${KEYS.COVER_EFFECTS.PRONE_TOKENS_BLOCK}.Name`),
-      hint: localize(`${KEYS.COVER_EFFECTS.PRONE_TOKENS_BLOCK}.Hint`),
-      scope: "world",
-      config: false,
-      type: Boolean,
-      default: false,
-      tab: "other",
-    });
-
-    if ( !OTHER_MODULES.ATV ) {
-      register(KEYS.PRONE_MULTIPLIER, {
-        name: localize(`${KEYS.PRONE_MULTIPLIER}.Name`),
-        hint: localize(`${KEYS.PRONE_MULTIPLIER}.Hint`),
-        scope: "world",
-        config: false,
-        type: Number,
-        range: {
-          max: 1,  // Prone equivalent to standing.
-          min: 0,  // Prone equivalent to (almost) not being there at all. Will set to a single pixel.
-          step: 0.1
-        },
-        default: CONFIG.GeometryLib.CONFIG.proneMultiplier ?? 0.33, // Same as Wall Height
-        tab: "other",
-        onChange: value => CONFIG.GeometryLib.CONFIG.proneMultiplier = value
-      });
-
-      register(KEYS.PRONE_STATUS_ID, {
-        name: localize(`${KEYS.PRONE_STATUS_ID}.Name`),
-        hint: localize(`${KEYS.PRONE_STATUS_ID}.Hint`),
-        scope: "world",
-        config: false,
-        type: String,
-        default: CONFIG.GeometryLib.CONFIG.proneStatusId || "prone",
-        tab: "other",
-        onChange: value => CONFIG.GeometryLib.CONFIG.proneMultiplier = value
-      });
-
-      register(KEYS.TOKEN_HP_ATTRIBUTE, {
-        name: localize(`${KEYS.TOKEN_HP_ATTRIBUTE}.Name`),
-        hint: localize(`${KEYS.TOKEN_HP_ATTRIBUTE}.Hint`),
-        scope: "world",
-        config: false,
-        type: String,
-        default: "system.attributes.hp.value",
-        tab: "other",
-        onChange: value => CONFIG.GeometryLib.CONFIG.tokenHPId = value
-      });
-
-
-      // Make sure these are linked at the start.
-      CONFIG.GeometryLib.CONFIG.proneMultiplier = this.get(KEYS.PRONE_MULTIPLIER);
-      CONFIG.GeometryLib.CONFIG.proneStatusId = this.get(KEYS.PRONE_STATUS_ID);
-      CONFIG.GeometryLib.CONFIG.tokenHPId = this.get(KEYS.TOKEN_HP_ATTRIBUTE);
-
-    } else {
+    if ( OTHER_MODULES.ATV ) {
       register(KEYS.ATV_SETTINGS_MESSAGE, {
         name: localize(`${KEYS.ATV_SETTINGS_MESSAGE}.Name`),
         hint: localize(`${KEYS.ATV_SETTINGS_MESSAGE}.Hint`),
@@ -506,19 +303,11 @@ export class Settings extends ModuleSettingsAbstract {
         config: false,
         type: Boolean,
         default: false,
-        // TODO: Open ATV settings? onChange: value => this.losSettingChange(KEYS.PRONE_TOKENS_BLOCK, value),
         tab: "other"
       });
     }
 
     // ----- NOTE: Hidden settings ----- //
-    register(KEYS.AREA3D_USE_SHADOWS, {
-      scope: "world",
-      config: false,
-      type: Boolean,
-      default: false
-    });
-
     register(KEYS.COVER_EFFECTS.DATA, {
       scope: "world",
       config: false,
@@ -546,16 +335,33 @@ export class Settings extends ModuleSettingsAbstract {
   }
 
   static migrate() {
+    if ( !game.user.isGM ) return;
     if ( !this.get(this.KEYS.MIGRATION.v0100) ) {
       let alg = this.get(this.KEYS.LOS.TARGET.ALGORITHM);
       switch ( alg ) {
+        // If current, can ignore.
+        case "los-algorithm-points":
+        case "los-algorithm-per-pixel":
+        case "los-algorithm-geometric":
+        case "los-algorithm-webgl2": return;
+
+        // Points
         case "los-points": alg = "los-algorithm-points"; break;
+
+        // Geometric
         case "los-area-3d":
         case "los-area-3d-geometric": alg = "los-algorithm-geometric"; break;
-        case "los-area-3d-hybrid": alg = "los-algorithm-hybrid"; break;
-        case "los-webgl2": alg = "los-algorithm-webgl2"; break;
-        case "los-webgpu": alg = "los-algorithm-webgpu"; break;
-        case "los-webgpu-async": alg = "los-algorithm-webgpu-async"; break;
+
+        // WebGL2
+        case "los-area-3d-hybrid":
+        case "los-algorithm-hybrid":
+        case "los-webgl2":
+        case "los-webgpu":
+        case "los-algorithm-webgpu":
+        case "los-webgpu-async":
+        case "los-algorithm-webgpu-async": alg = "los-algorithm-webgl2"; break;
+
+        default: alg = "los-algorithm-points";
       }
       this.set(this.KEYS.LOS.TARGET.ALGORITHM, alg);
       this.set(this.KEYS.MIGRATION.v0100, true);

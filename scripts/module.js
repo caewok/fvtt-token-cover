@@ -98,6 +98,10 @@ Hooks.once("setup", function() {
  */
 Hooks.once("ready", async function(_canvas) {
   Settings.migrate(); // Cannot be set until world is ready.
+
+  // Disable large target for now, until fixed.
+  if ( game.user.isGM ) Settings.set(Settings.KEYS.LOS.TARGET.LARGE, false);
+
 });
 
 
