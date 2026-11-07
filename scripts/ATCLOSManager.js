@@ -17,7 +17,6 @@ export class ATCLOSManager extends LOSManager {
   static registerHooks() {
     super.registerHooks();
     Hooks.on(`${MODULE_ID}.losAlgorithmChanged`, value => this.algorithmChange(value));
-    Hooks.on(`${MODULE_ID}.losDebugLOSChanged`, value => this.toggleLOSDebugGraphics(value));
   }
 
   static async initializeDebugViewer(type) {

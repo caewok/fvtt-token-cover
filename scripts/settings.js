@@ -3,7 +3,6 @@ canvas,
 CONFIG,
 foundry,
 game,
-Hooks,
 readTextFromFile
 ui
 */
@@ -11,7 +10,7 @@ ui
 "use strict";
 
 import { MODULE_ID, OTHER_MODULES, FA_ICONS, SETTINGS, CONTROLS, ENUMS, MENUS } from "./const.js";
-import { registerLOSSettings } from "./LOS/const.js";
+import { registerLOSSettings } from "./LOS/settings.js";
 import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
 import { ATCSettingsSubmenu } from "./ATCSettingsSubmenu.js";
 import { registerTemplates, deregisterTemplates } from "./patching.js";
@@ -111,7 +110,7 @@ export class Settings extends ModuleSettingsAbstract {
    * Register all settings
    */
   static registerAll() {
-    const { KEYS, register, registerMenu, localize } = this;
+    const { KEYS, registerMenu, localize } = this;
     const coverTypeUseChoices = {};
     const coverEffectUseChoices = {};
     const coverConfirmChoices = {};
@@ -135,9 +134,8 @@ export class Settings extends ModuleSettingsAbstract {
       restricted: true
     });
 
-    register(KEYS.COVER_DEFINITIONS, {
-      scope: "world",
-      config: false, // Edited only through the cover rules menu below.
+    // Edited only through the cover rules menu below.
+    this.registerHidden(KEYS.COVER_DEFINITIONS, {
       type: new ArrayField(ruleField),
       default: DEFAULT_PRESET_DEFINITIONS,
       onChange: async () => UniqueEffectDefinition.initialize()
@@ -170,11 +168,7 @@ export class Settings extends ModuleSettingsAbstract {
     });
     */
 
-    register(KEYS.DISPLAY_SECRET_COVER, {
-      name: localize(`${KEYS.DISPLAY_SECRET_COVER}.Name`),
-      hint: localize(`${KEYS.DISPLAY_SECRET_COVER}.Hint`),
-      scope: "world",
-      config: true,
+    this.registerWorld(KEYS.DISPLAY_SECRET_COVER, {
       type: Boolean,
       default: true,
       onChange: _value => canvas.tokens.placeables.forEach(token => {
@@ -183,31 +177,13 @@ export class Settings extends ModuleSettingsAbstract {
       })
     });
 
-    register(KEYS.TEMPLATES_USE_COVER, {
-      name: localize(`${KEYS.TEMPLATES_USE_COVER}.Name`),
-      hint: localize(`${KEYS.TEMPLATES_USE_COVER}.Hint`),
-      scope: "world",
-      config: true,
+    this.registerWorld(KEYS.TEMPLATES_USE_COVER, {
       type: Boolean,
       default: true,
       onChange: value => value ? registerTemplates() : deregisterTemplates()
     });
 
-    register(KEYS.DEBUG.LOS, {
-      name: localize(`${KEYS.DEBUG.LOS}.Name`),
-      hint: localize(`${KEYS.DEBUG.LOS}.Hint`),
-      scope: "world",
-      config: true,
-      type: Boolean,
-      default: false,
-      onChange: value => Hooks.callAll(`${MODULE_ID}.losDebugLOSChanged`, value),
-    });
-
-    register(KEYS.BACKEND_MODE, {
-      name: localize(`${KEYS.BACKEND_MODE}.Name`),
-      hint: localize(`${KEYS.BACKEND_MODE}.Hint`),
-      scope: "world",
-      config: true,
+    this.registerWorld(KEYS.BACKEND_MODE, {
       type: String,
       choices: {
         auto: localize(`${KEYS.BACKEND_MODE}.auto`),
@@ -226,109 +202,66 @@ export class Settings extends ModuleSettingsAbstract {
 
     // ----- NOTE: Workflow tab ----- //
 
-    register(KEYS.COVER_EFFECTS.USE, {
-      name: localize(`${KEYS.COVER_EFFECTS.USE}.Name`),
-      hint: localize(`${KEYS.COVER_EFFECTS.USE}.Hint`),
-      scope: "world",
-      config: false,
+    this.registerSubmenuSetting(KEYS.COVER_EFFECTS.USE, "workflow", {
       type: String,
       choices: coverEffectUseChoices,
       default: ENUMS.USE_CHOICES.NEVER,
-      tab: "workflow",
       onChange: _value => TokenCover._forceUpdateAllTokenCover()
     });
 
-    register(KEYS.COVER_EFFECTS.TARGETING, {
-      name: localize(`${KEYS.COVER_EFFECTS.TARGETING}.Name`),
-      hint: localize(`${KEYS.COVER_EFFECTS.TARGETING}.Hint`),
-      scope: "world",
-      config: false,
+    this.registerSubmenuSetting(KEYS.COVER_EFFECTS.TARGETING, "workflow", {
       type: Boolean,
       default: false,
-      tab: "workflow",
       onChange: _value => TokenCover._forceUpdateAllTokenCover()
     });
 
     if ( game.system.id === "dnd5e" ) {
-      register(KEYS.COVER_WORKFLOW.CHAT, {
-        name: localize(`${KEYS.COVER_WORKFLOW.CHAT}.Name`),
-        hint: localize(`${KEYS.COVER_WORKFLOW.CHAT}.Hint`),
-        scope: "world",
-        config: false,
+      this.registerSubmenuSetting(KEYS.COVER_WORKFLOW.CHAT, "workflow", {
         type: Boolean,
         default: false,
-        tab: "workflow"
       });
 
-      register(KEYS.COVER_WORKFLOW.CONFIRM, {
-        name: localize(`${KEYS.COVER_WORKFLOW.CONFIRM}.Name`),
-        hint: localize(`${KEYS.COVER_WORKFLOW.CONFIRM}.Hint`),
-        scope: "world",
-        config: false,
+      this.registerSubmenuSetting(KEYS.COVER_WORKFLOW.CONFIRM, "workflow", {
         type: String,
         choices: coverConfirmChoices,
         default: ENUMS.CONFIRM_CHOICES.AUTO,
         horizontalDivider: true,
-        tab: "workflow"
       });
 
-      register(KEYS.COVER_WORKFLOW.CONFIRM_NO_COVER, {
-        name: localize(`${KEYS.COVER_WORKFLOW.CONFIRM_NO_COVER}.Name`),
-        hint: localize(`${KEYS.COVER_WORKFLOW.CONFIRM_NO_COVER}.Hint`),
-        scope: "world",
-        config: false,
+      this.registerSubmenuSetting(KEYS.COVER_WORKFLOW.CONFIRM_NO_COVER, "workflow", {
         type: Boolean,
         default: false,
-        tab: "workflow"
       });
 
-      register(KEYS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY, {
-        name: localize(`${KEYS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY}.Name`),
-        hint: localize(`${KEYS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY}.Hint`),
-        scope: "world",
-        config: false,
+      this.registerSubmenuSetting(KEYS.COVER_WORKFLOW.CONFIRM_CHANGE_ONLY, "workflow", {
         type: Boolean,
         default: false,
-        tab: "workflow"
       });
     }
 
     // ----- NOTE: Other cover settings tab ----- //
 
     if ( OTHER_MODULES.ATV ) {
-      register(KEYS.ATV_SETTINGS_MESSAGE, {
-        name: localize(`${KEYS.ATV_SETTINGS_MESSAGE}.Name`),
-        hint: localize(`${KEYS.ATV_SETTINGS_MESSAGE}.Hint`),
-        scope: "world",
-        config: false,
+      this.registerSubmenuSetting(KEYS.ATV_SETTINGS_MESSAGE, "other", {
         type: Boolean,
         default: false,
-        tab: "other"
       });
     }
 
     // ----- NOTE: Hidden settings ----- //
-    register(KEYS.COVER_EFFECTS.DATA, {
-      scope: "world",
-      config: false,
+    this.registerHidden(KEYS.COVER_EFFECTS.DATA, {
       default: {}
     });
 
-    register(KEYS.COVER_EFFECTS.RULES, {
-      scope: "world",
-      config: false,
+    this.registerHidden(KEYS.COVER_EFFECTS.RULES, {
       default: {}
     });
 
-    this.register(KEYS.UNIQUE_EFFECTS_FLAGS_DATA, {
-      scope: "world",
-      config: false,
+    this.registerHidden(KEYS.UNIQUE_EFFECTS_FLAGS_DATA, {
       default: {}
     });
 
-    register(KEYS.MIGRATION.v0100, {
-      scope: "world",
-      config: false,
+    this.registerHidden(KEYS.MIGRATION.v0100, {
       default: false,
       type: Boolean
     });

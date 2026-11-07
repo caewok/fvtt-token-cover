@@ -5,11 +5,9 @@ canvas
 */
 "use strict";
 
-import { ENUMS as LOS_ENUMS, pointIndicesLabels, LOS_SETTINGS } from "./LOS/const.js";
+import { ENUMS as LOS_ENUMS, LOS_SETTINGS } from "./LOS/const.js";
 import { IgnoresCover } from "./IgnoresCover.js";
-
-
-export { pointIndicesLabels } from "./LOS/const.js";
+export { pointIndicesLabels } from "./LOS/settings.js";
 
 export const MODULE_ID = "tokencover";
 export const EPSILON = 1e-08;
