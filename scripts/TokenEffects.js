@@ -4,8 +4,13 @@ foundry
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
+import { FLAGS } from "./const.js";
+import { fastFlag } from "./util.js";
 import { getBackend, EFFECT_BACKENDS } from "./effect_backends.js";
 import { UniqueEffectDefinition } from "./UniqueEffectDefinition.js";
+
+export const PATCHES = {};
+PATCHES.BASIC = {};
 
 /**
  * Everything to do with putting a UniqueEffectDefinition on (or off) a token.
@@ -111,12 +116,15 @@ export class TokenEffects {
       const backend = getBackend(definition.category);
       const collection = backend.tokenCollection(actor);
       if ( !collection ) continue;
+
+      // Build the document data using the selected backend.
       const docData = backend.buildTokenData(definition, token, data);
-      // Assign the id manually: collection.createDocument() does not do this for us, and the
-      // field may be locked on a cloned template's data (see upstream PR #44 / issue #46).
-      docData._id = foundry.utils.randomID();
+      docData._id = foundry.utils.randomID()
+
+      // Create the appropriate Document (ActiveEffect or Item).
+      const DocumentClass = collection.documentClass;
       const doc = collection.createDocument(docData);
-      collection.set(doc.id, doc);
+      collection.set(doc.id, doc, { modifySource: true }); // Works, but modifies actor._source. modifySource: false results in AE not displaying.
     }
 
     actor.reset();
@@ -156,12 +164,17 @@ export class TokenEffects {
    * Helper to delete docs from a collection.
    * @param {EmbeddedCollection} collection
    * @param {Document[]} docs
+   * @returns {boolean} True if something was deleted.
    */
   static _deleteDocs(actor, docs) {
+    let changed = false;
     for ( const doc of docs ) {
+      if ( this.isManual(doc) ) continue; // Never removed stored documents.
       const collection = doc.documentName === "Item" ? actor.items : actor.effects;
-      collection.delete(doc.id);
+      collection.delete(doc.id); // This also removes it from _source.
+      changed = true;
     }
+    return changed;
   }
 
   // ----- NOTE: Refresh Token ----- //
@@ -203,4 +216,38 @@ export class TokenEffects {
     }
     refresh();
   }
+
+  // ----- NOTE: Manual override ----- //
+
+  /**
+   * Is this applied document a stored one (dragged on or toggled by a user) or a
+   * local one from this module?
+   * @param {Item|Actor} doc
+   */
+  static isLocal(doc) { return Boolean(fastFlag(doc, FLAGS.UNIQUE_EFFECT.IS_LOCAL) ?? fastFlag(doc, "isLocal")); }
+
+  static isManual(doc) { return !this.isLocal(doc); }
+
+  /**
+   * Get manually applied cover definitions.
+   * @returns {UniqueEffectDefinition[]} Definitions applied to a token by hand.
+   */
+  static manual(token, category = "cover") {
+    return [...this._appliedMap(token)]
+      .filter(([id, doc]) => this.isManual(doc) && UniqueEffectDefinition.get(id)?.category === category)
+      .map(([id]) => UniqueEffectDefinition.get(id));
+  }
 }
+
+/**
+ * One-time cleanup if something leaks from local to manual.
+ */
+function preCreateEffectOrItem(effectOrItem) {
+  if ( TokenEffects.isLocal(effectOrItem) ) return false;
+}
+
+PATCHES.BASIC.HOOKS = {
+  preCreateActiveEffect: preCreateEffectOrItem,
+  preCreateItem: preCreateEffectOrItem,
+};
+

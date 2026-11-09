@@ -13,6 +13,8 @@ import { Settings } from "./settings.js";
 import { PATCHES as PATCHES_Canvas } from "./Canvas.js";
 import { PATCHES as PATCHES_Combat } from "./Combat.js";
 import { PATCHES as PATCHES_Token } from "./Token.js";
+import { PATCHES as PATCHES_Actor } from "./Actor.js";
+import { PATCHES as PATCHES_TokenEffects } from "./TokenEffects.js"; // Hooks only.
 
 // Dnd5e
 import { PATCHES as PATCHES_AttackActivity } from "./AttackActivity.js";
@@ -32,12 +34,14 @@ import { TokenCover } from "./TokenCover.js";
 import { PATCHES as PATCHES_dnd5e } from "./dnd5e.js";
 
 const PATCHES = {
+  "foundry.documents.Actor": PATCHES_Actor,
   Canvas: PATCHES_Canvas,
   "foundry.helpers.ClientSettings": PATCHES_ClientSettings,
   Combat: PATCHES_Combat,
   "foundry.canvas.placeables.Token": PATCHES_Token,
   "foundry.applications.sheets.TokenConfig": PATCHES_TokenConfig,
   "foundry.applications.sheets.WallConfig": PATCHES_WallConfig,
+  TokenEffects: PATCHES_TokenEffects,
 };
 
 const PATCHES_DND5E = {
