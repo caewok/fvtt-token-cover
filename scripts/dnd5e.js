@@ -1,6 +1,6 @@
 /* globals
 canvas,
-ChatMessage
+ChatMessage,
 CONFIG,
 document,
 game,
@@ -64,9 +64,15 @@ export async function rollAttack(wrapper, config, dialog, message) {
   let actionType;
   const isRanged = this.attack.type.value === "ranged";
   switch ( this.attack.type.classification ) {
-    case "weapon": actionType = isRanged ? "mwak" : "rwak";
-    case "spell": actionType = isRanged ? "msak" : "rsak";
-    case "unarmed": actionType = isRanged ? "mwak" : "rwak";
+    case "weapon":
+    case "unarmed":
+      actionType = isRanged ? "rwak" : "mwak";
+      break;
+    case "spell":
+      actionType = isRanged ? "rsak" : "msak";
+      break;
+    default:
+      actionType = isRanged ? "rwak" : "mwak";
   }
   return _rollAttack.call(this, wrapper, actionType, config, dialog, message);
 }
