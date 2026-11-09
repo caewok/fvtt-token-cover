@@ -57,6 +57,7 @@ import "./geometry/registration.js";
 
 // Other self-executing hooks
 import "./changelog.js";
+import "./SettingsConfig.js"; // Issue and Documentation buttons
 
 Hooks.once("init", function() {
   initializeConfig();

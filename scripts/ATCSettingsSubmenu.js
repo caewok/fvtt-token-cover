@@ -1,4 +1,5 @@
 /* globals
+foundry,
 game,
 ui,
 */
@@ -7,6 +8,7 @@ ui,
 
 import { MODULE_ID, SETTINGS, ENUMS } from "./const.js";
 import { SettingsSubmenu } from "./SettingsSubmenu.js";
+import { ModuleSettingsAbstract } from "./ModuleSettingsAbstract.js";
 import { ViewerLOS } from "./LOS/ViewerLOS.js";
 
 export class ATCSettingsSubmenu extends SettingsSubmenu {
@@ -19,6 +21,7 @@ export class ATCSettingsSubmenu extends SettingsSubmenu {
       resetPF2e: ATCSettingsSubmenu.#onResetPF2e,
       resetDND5e: ATCSettingsSubmenu.#onResetDND5e,
       reset3d: ATCSettingsSubmenu.#onReset3d,
+      resetDefaults: ATCSettingsSubmenu.#onResetDefaults,
     },
   };
 
@@ -27,7 +30,7 @@ export class ATCSettingsSubmenu extends SettingsSubmenu {
     const targetTab = this.element.querySelectorAll('[data-tab="losTarget"]')[1];
     if ( targetTab ) {
       // Add data action to the algorithm selector.
-      const algSelector = targetTab.querySelector('[name="tokencover.los-algorithm"]');
+      const algSelector = targetTab.querySelector(`[name="${MODULE_ID}.${SETTINGS.LOS.TARGET.ALGORITHM}"]`);
       algSelector.addEventListener("change", ATCSettingsSubmenu._onAlgorithmSelect.bind(this));
       await ATCSettingsSubmenu._onAlgorithmSelect.call(this);
     }
@@ -44,12 +47,18 @@ export class ATCSettingsSubmenu extends SettingsSubmenu {
         [LOS.TARGET.ALGORITHM]: ENUMS.ALGORITHM_TYPES.POINTS,
         [LOS.TARGET.LARGE]: true,
 
-        [LOS.TARGET.POINTS]: [PI.CENTER, PI.CORNERS.FACING, PI.CORNERS.BACK, PI.MID.FACING, PI.MID.BACK],
+        [LOS.TARGET.POINTS]: [
+          PI.CENTER,
+          PI.CORNERS.FACING, PI.CORNERS.MID, PI.CORNERS.BACK,
+          PI.SIDES.FACING, PI.SIDE.MID, PI.SIDES.BACK
+        ],
         [LOS.TARGET.INSET]: 0.75,
       },
       losViewer: {
         [LOS.VIEWER.POINTS]: [PI.CENTER],
-        [LOS.VIEWER.INSET]: 0,
+        [LOS.VIEWER.INSETS.TOP]: 0,
+        [LOS.VIEWER.INSETS.BOTTOM]: 0,
+        [LOS.VIEWER.INSETS.SIDES]: 0,
       },
     };
     setOptionValues.call(this, opts);
@@ -69,12 +78,14 @@ export class ATCSettingsSubmenu extends SettingsSubmenu {
         [LOS.TARGET.ALGORITHM]: ENUMS.ALGORITHM_TYPES.POINTS,
         [LOS.TARGET.LARGE]: true,
 
-        [LOS.TARGET.POINTS]: [PI.CORNERS.FACING, PI.CORNERS.BACK],
+        [LOS.TARGET.POINTS]: [PI.CORNERS.FACING, PI.CORNERS.BACK, PI.CORNERS.MID],
         [LOS.TARGET.INSET]: 0,
       },
       losViewer: {
-        [LOS.VIEWER.POINTS]: [PI.CORNERS.FACING, PI.CORNERS.BACK],
-        [LOS.VIEWER.INSET]: 0,
+        [LOS.VIEWER.POINTS]: [PI.CORNERS.FACING, PI.CORNERS.MID], // Viewers have no back corners / sides.
+        [LOS.VIEWER.INSETS.TOP]: 0,
+        [LOS.VIEWER.INSETS.BOTTOM]: 0,
+        [LOS.VIEWER.INSETS.SIDES]: 0,
       },
     };
     setOptionValues.call(this, opts);
@@ -88,17 +99,22 @@ export class ATCSettingsSubmenu extends SettingsSubmenu {
 
     // Set each value in the application.
     const PI = ViewerLOS.POINT_INDICES;
-    const { LOS, RANGE, POINT_TYPES } = SETTINGS;
+    const { LOS } = SETTINGS;
     const opts = {
       losTarget: {
         [LOS.TARGET.ALGORITHM]: ENUMS.ALGORITHM_TYPES.WEBGL2,
+        [LOS.TARGET.PERCENT]: 0.2,
         [LOS.TARGET.LARGE]: false,
+        [LOS.TARGET.POINTS]: [PI.CENTER],
+        [LOS.TARGET.INSET]: 0,
       },
       losViewer: {
         [LOS.VIEWER.POINTS]: [PI.CENTER],
-        [LOS.VIEWER.INSET]: 0,
+        [LOS.VIEWER.INSETS.TOP]: 0,
+        [LOS.VIEWER.INSETS.BOTTOM]: 0,
+        [LOS.VIEWER.INSETS.SIDES]: 0,
       },
-    }
+    };
     setOptionValues.call(this, opts);
     await this.constructor._onAlgorithmSelect.call(this);
     const moduleName = game.i18n.localize(`${MODULE_ID}.name`);
@@ -106,17 +122,52 @@ export class ATCSettingsSubmenu extends SettingsSubmenu {
     ui.notifications.notify(`${moduleName} | ${message}`);
   }
 
+  static async #onResetDefaults() {
+    // Reset to module default settings defined in registration.
+    // Only keys specific to the LOS settings, range.
+    const opts = {
+      losTargets: {},
+      losViewer: {},
+      range: {},
+      other: {},
+    };
+
+    const losTargetKeys = Object.values(foundry.utils.flattenObject(SETTINGS.LOS.TARGET));
+    const losViewerKeys = Object.values(foundry.utils.flattenObject(SETTINGS.LOS.VIEWER));
+    const rangeKeys = Object.values(foundry.utils.flattenObject(SETTINGS.RANGE));
+    const otherKeys = Object.values(foundry.utils.flattenObject(SETTINGS.LOS.BLOCKING));
+
+    for ( const key of losTargetKeys ) opts.losTargets[key] = ModuleSettingsAbstract.getDefaultKey(key);
+    for ( const key of losViewerKeys ) opts.losViewer[key] = ModuleSettingsAbstract.getDefaultKey(key);
+    for ( const key of rangeKeys ) opts.range[key] = ModuleSettingsAbstract.getDefaultKey(key);
+    for ( const key of otherKeys ) opts.other[key] = ModuleSettingsAbstract.getDefaultKey(key);
+
+    setOptionValues.call(this, opts);
+    await this.constructor._onAlgorithmSelect.call(this);
+    const moduleName = game.i18n.localize(`${MODULE_ID}.name`);
+    const message = game.i18n.localize(`${MODULE_ID}.settings.submenu.notifyDefaults`)
+      || "Settings reset to defaults.";
+    ui.notifications.notify(`${moduleName} | ${message}`);
+  }
+
   static async _onAlgorithmSelect() {
     const losTab = this.element.querySelectorAll('[data-tab="losTarget"]')[1];
     if ( losTab ) {
-    // Add data action to the algorithm selector.
-      const algSelector = losTab.querySelector('[name="tokencover.los-algorithm"]');
-      const isPoints = algSelector.value === "los-algorithm-points";
-      const targetOptionsElem = losTab.querySelector('[name="tokencover.los-points-options-target"]');
-      targetOptionsElem.parentElement.parentElement.style.display = isPoints ? "block" : "none";
+      // Add data action to the algorithm selector.
+      const algSelector = losTab.querySelector(`[name="${MODULE_ID}.${SETTINGS.LOS.TARGET.ALGORITHM}"]`);
+      if ( !algSelector ) return;
+      const isPoints = algSelector.value === ENUMS.ALGORITHM_TYPES.POINTS;
 
-      const targetInsetElem = losTab.querySelector('[name="tokencover.los-inset-target"]');
-      targetInsetElem.parentElement.parentElement.style.display = isPoints ? "block" : "none";
+      const targetOptionsElem = losTab.querySelector(`[name="${MODULE_ID}.${SETTINGS.LOS.TARGET.POINTS}"]`);
+      if ( targetOptionsElem ) {
+        targetOptionsElem.parentElement.parentElement.style.display = isPoints ? "block" : "none";
+      }
+
+      const targetInsetElem = losTab.querySelector(`[name="${MODULE_ID}.${SETTINGS.LOS.TARGET.INSET}"]`);
+      if ( targetInsetElem ) {
+        targetInsetElem.parentElement.parentElement.style.display = isPoints ? "block" : "none";
+      }
+
     }
     this.setPosition(this.position); // Force display refresh.
   }
@@ -132,11 +183,19 @@ function setOptionValues(tabOpts) {
   for ( const tab of Object.keys(tabOpts) ) {
     const tabElem = this.element.querySelectorAll(`[data-tab="${tab}"]`)[1];
     if ( !tabElem ) continue; // Failsafe.
-    for ( const [key, value] of Object.entries(tabOpts[tab]) ) {
+    for ( let [key, value] of Object.entries(tabOpts[tab]) ) {
       const optionElem = tabElem.querySelector(`[name="${MODULE_ID}.${key}"]`);
       if ( !optionElem ) continue;
-      optionElem.value = value;
+
+      // Handle HTML input types properly (checkboxes vs values/selects)
+      if ( optionElem.type === "checkbox" ) {
+        optionElem.checked = Boolean(value);
+      } else {
+        if ( Array.isArray(value) ) value = value.map(v => String(v)); // Arrays are stored as string arrays.
+        optionElem.value = value;
+      }
     }
   }
 }
+
 
