@@ -7,26 +7,6 @@ game
 import { MODULE_ID, FLAGS, OTHER_MODULES } from "./const.js";
 import { fastFlag } from "./util.js";
 
-/**
- * For DND5e, add the cover to the Token Config
- */
-export function addDND5eCoverFeatFlags() {
-  // Leave this to Simbul's if active.
-  if ( game.system.id !== "dnd5e" || OTHER_MODULES.SIMBULS_CC ) return;
-
-  CONFIG.DND5E.characterFlags.helpersIgnoreCover = {
-    name: game.i18n.localize(`${MODULE_ID}.dnd5e.feats.cover.Name`),
-    hint: game.i18n.localize(`${MODULE_ID}.dnd5e.feats.cover.Hint`),
-    section: "Feats",
-    choices: {
-      0: game.i18n.localize(`${MODULE_ID}.dnd5e.feats.cover.OptionNone`),
-      1: game.i18n.localize(`${MODULE_ID}.dnd5e.feats.cover.OptionHalf`),
-      2: game.i18n.localize(`${MODULE_ID}.dnd5e.feats.cover.OptionThreeQuarters`),
-      3: game.i18n.localize(`${MODULE_ID}.dnd5e.feats.cover.OptionFull`)
-    },
-    type: Number
-  };
-}
 
 /* Getters/Setters for ignoring cover
 If the cover is less than or equal to the ignore value, cover can be ignored.
@@ -72,11 +52,8 @@ export class IgnoresCover {
    * @returns {number}
    */
   _getCoverFlag(flag) {
-    return this.actor ? fastFlag(this.actor, flag) : 0;
+    return this.actor ? (fastFlag(this.actor, flag) || 0) : 0;
   }
-
-  /**
-   * Helper to set a flag from the actor
 
   /**
    * Does the token ignore cover at all times?
@@ -140,16 +117,20 @@ export class IgnoresCover {
  */
 export class IgnoresCoverDND5e extends IgnoresCover {
 
+  static DND_COVER_MAP = { 1: 0.5, 2: 0.75, 3: 1.0 };
+
   /**
    * Return the maximum of this module's flag or the dnd5e flag.
    * @type {number}
    */
   get all() {
-    let dndFlag = this.actor?.getFlag("dnd5e", FLAGS.COVER.IGNORE_DND5E);
+    let dndFlag = this.actor?.getFlag("dnd5e", FLAGS.COVER.IGNORE_DND5E) ?? 0;
 
     // For backwards-compatibility, set to three quarters.
     // Aligned with how Simbul's handles it.
     if ( dndFlag === true || dndFlag === "true" ) dndFlag = 0.75;
+    else if ( dndFlag === "number"
+      && this.constructor.DND_COVER_MAP[dndFlag] ) dndFlag = this.constructor.DND_COVER_MAP[dndFlag];
 
     return Math.max(super.all, dndFlag);
   }
@@ -180,6 +161,8 @@ export class IgnoresCoverDND5e extends IgnoresCover {
     return Math.max(super.rwak, sharpShooter);
   }
 
+  set rwak(value) { super.rwak = value; }
+
   /**
    * Check dae flag; return maximum.
    * @type {number}
@@ -188,6 +171,8 @@ export class IgnoresCoverDND5e extends IgnoresCover {
     const spellSniper = this.actor?.flags?.dnd5e?.spellSniper ? 0.75 : 0;
     return Math.max(super.rsak, spellSniper);
   }
+
+  set rsak(value) { super.rsak = value; }
 }
 
 /**

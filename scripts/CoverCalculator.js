@@ -6,14 +6,11 @@ game,
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { WEAPON_ATTACK_TYPES, FLAGS, MODULE_ID, COVER_TYPES, ENUMS } from "./const.js";
+import { WEAPON_ATTACK_TYPES, MODULE_ID, COVER_TYPES, ENUMS } from "./const.js";
 import { Settings } from "./settings.js";
-import { Draw } from "./geometry/Draw.js"; // For debugging
-import { CoverDialog } from "./CoverDialog.js";
 import { ViewerLOS } from "./LOS/ViewerLOS.js";
 import { pointIndexForSet } from "./LOS/SmallBitSet.js";
 import { NULL_SET } from "./geometry/util.js";
-import { fastFlag } from "./util.js";
 import { ConfigHandler } from "./ConfigHandler.js";
 import { ObstacleOcclusionTest } from "./geometry/ObstacleOcclusionTest.js";
 import { TokenCover } from "./TokenCover.js";
@@ -31,7 +28,7 @@ let [target] = game.user.targets;
 
 // ViewerLOS = CachedViewerLOS;
 
-export function currentCalculator() { return CONFIG[MODULE_ID].losCalculator(); }
+export function currentCalculator() { return CONFIG[MODULE_ID].losCalculator; }
 
 export function currentDebugViewerClass(type) {
   const KEYS = Settings.KEYS;
@@ -192,10 +189,14 @@ export function buildLOSViewer(viewer, { calculator, ...losCfg } = {}) {
  * @returns {ViewerLOS}
  */
 export function buildCustomLOSViewer(viewer, calculator, occlusionTester, losCfg = {}) {
-  calculator ??= currentCalculator();
+  calculator ??= this.currentCalculator;
   occlusionTester ??= new ObstacleOcclusionTest();
-  const losConfig = foundry.utils.mergeObject(LOSViewerConfig(), losCfg, { inplace: false });
-  const viewerLOS = new ViewerLOS(viewer, calculator, losConfig);
+  calculator.config.set(losCfg);
+  calculator.occlusionTester = occlusionTester;
+  calculator.initialize();
+  const viewerLOS = new ViewerLOS(viewer, calculator);
+  viewerLOS.config = LOSViewerConfig();
+  viewerLOS.config.set(losCfg);
   return viewerLOS;
 }
 
@@ -225,8 +226,6 @@ export class CoverCalculator {
 
   /** @type {Token} */
   get viewer() { return this.losViewer.viewer; }
-
-  set viewer(value) { this.losViewer = value; }
 
   // ----- NOTE: Settings ----- //
 
@@ -262,25 +261,10 @@ export class CoverCalculator {
     const coverCalc = viewer.tokencover?.coverCalculator ?? new CoverCalculator(viewer);
 
     calcs ??= new Map();
-    for ( const target of targets ) calcs.set(target, coverCalc.coverEffects(target, opts));
+    for ( const target of targets ) calcs.set(target, coverCalc.coverDefinition(target, opts));
     return calcs;
   }
 
-  /**
-   * Construct an html table describing cover for various target(s) versus token(s).
-   * @param {Token} token       Token to measure cover from.
-   * @param {Token[]} targets   Target tokens that may have cover from one or more tokens.
-   * @param {object} [options]  Options that affect the html creation
-   * @param {boolean} [options.include3dDistance]   Include 3d distance calculation.
-   * @param {boolean} [options.includeZeroCover]  Include targets that have no cover in the resulting html.
-   * @returns {object {html: {string}, nCover: {number}, coverResults: {CoverEffect[][]}}}
-   *   String of html content that can be used in a Dialog or ChatMessage.
-   */
-  static htmlCoverTable(token, targets, opts) {
-    if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) Draw.clearDrawings();
-    const coverDialog = new CoverDialog(token, targets);
-    return coverDialog._htmlShowCover(opts);
-  }
 
   /**
    * Build a cover calculator for an attacking token at a defined location (not the token's current location).
@@ -291,7 +275,7 @@ export class CoverCalculator {
    * @returns {CoverCalculator}
    */
   static createCoverCalculatorForTokenLocation(token, position, elevation) {
-    return this.cloneForTokenLocation(token, position, elevation)?.coverCalculator;
+    return this.cloneForTokenLocation(token, position, elevation)?.tokencover.coverCalculator;
   }
 
   static cloneForTokenLocation(token, position, elevation) {
@@ -306,15 +290,12 @@ export class CoverCalculator {
 
   // ----- NOTE: Cover Effects ----- //
 
-  /**
-   * Determine cover effects.
-   * @param {Token} [target]    Optional target if not already set
-   * @param [object] opts       Options passed to coverForToken, such as actionType (dnd5e)
-   * @returns {Set<CoverEffect>}
-   */
-  coverEffects(target, opts) {
-    if ( target ) this.target = target;
-    return CONFIG[MODULE_ID].CoverEffect.coverForToken(this.viewer, this.target, opts);
+  effectiveCoverPercent(target) { return target.tokencover.minimumPercentCoverFromAttackers([this.viewer]); }
+
+  coverDefinition(target, { actionType } = {}) {
+    let def = TokenCover.coverAtPercent(this.effectiveCoverPercent(target)) ?? null;
+    if ( def && this.constructor.cannotIgnore(this.viewer, def, actionType) === false ) def = null;
+    return def;
   }
 
   /**
@@ -322,35 +303,37 @@ export class CoverCalculator {
    * Deprecated; used only for midiqol.
    * @returns {COVER.TYPES} Integer between 0 and 4
    */
-  targetCover(target) {
-    // Use the possibly cached cover types.
-    target ??= this.target;
-    const percentCover = target.tokencover.percentCoverFromAttacker(this.viewer);
-    const coverEffect = TokenCover.coverAtPercent(percentCover);
-
-    // Transform cover types into the deprecated COVER.TYPES values by comparing the min percent cover.
-    let coverValue = COVER_TYPES.NONE;
-    for ( const coverEffect of coverEffects ) {
-      const threshold = coverEffect.minPercent;
-      if ( threshold >= 1 ) return COVER_TYPES.HIGH; // Cannot do better than this.
-      if ( threshold >= 0.75 ) coverValue = Math.max(COVER_TYPES.MEDIUM, coverValue);
-      else if ( threshold >= 0.50 ) coverValue = Math.max(COVER_TYPES.LOW, coverValue);
-    }
-    return coverValue;
+  static legacyLevel(def) {
+    const t = def?.minPercent ?? 0;
+    return t >= 1 ? COVER_TYPES.HIGH : t >= 0.75 ? COVER_TYPES.MEDIUM : t >= 0.5 ? COVER_TYPES.LOW : COVER_TYPES.NONE;
   }
+
+  /** @returns {boolean} False if the attacker's ignores-cover rules remove this cover. */
+  static cannotIgnore(attacker, def, actionType) {
+    const ic = attacker.tokencover?.ignoresCover;
+    const ignored = Math.max(ic?.all ?? 0, ic?.[actionType] ?? 0);
+    return this.legacyLevel(def) > ignored;
+  }
+
+  /**
+   * Calculate the target's cover.
+   * Deprecated; used only for midiqol.
+   * @param {Token} target
+   * @returns {COVER.TYPES} Integer between 0 and 4
+   */
+  targetCover(target) { return this.constructor.legacyLevel(this.coverDefinition(target)); }
 
   // ----- NOTE: Percent Cover ----- //
 
   /**
    * Calculate the percentage cover over all viewer points if more than one in settings.
    * @param {Token} target                      Target
-   * @param {CalculatorConfig} [cfg]            Options passed to the los calculator
    * @returns {number} Percent between 0 and 1.
    */
-  percentCover(target, cfg) {
+  percentCover(target) {
     const losViewer = this.losViewer;
     losViewer.target = target;
-    losViewer.calculate()
+    losViewer.calculate();
     return 1 - losViewer.percentVisible;
   }
 

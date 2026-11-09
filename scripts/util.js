@@ -21,6 +21,25 @@ import { MODULE_ID } from "./const.js";
 export function fastFlag(placeableD, flag) { return placeableD.flags[MODULE_ID]?.[flag]; }
 
 /**
+ * Automatically resolve strings to be plural in various languages.
+ * @param {string} baseKey        Key found in, e.g., en.json
+ * @param {number} count          Nubmer of items
+ * @returns {string}
+ * @example
+ * "MYMODULE.CoverTarget_one": "{count} target may have cover.",
+ * console.log(getPluralizedString("MYMODULE.CoverTarget", 1)); // "1 target may have cover."
+ * console.log(getPluralizedString("MYMODULE.CoverTarget", 2)); // "2 targets may have cover."
+ */
+export function getPluralizedString(baseKey, count, opts = {}) {
+  // Automatically resolves to 'one', 'other', 'two', 'few', 'many', or 'zero' based on locale rules
+  const pluralRules = new Intl.PluralRules(game.i18n.lang);
+  const rule = pluralRules.select(count);
+
+  // Combines the base key with the active language rule (e.g., "MYMODULE.CoverTarget_other")
+  return game.i18n.localize(`${baseKey}-${rule}`, { count, ...opts });
+}
+
+/**
  * Remove in place multiple elements of an array that would meet a find test.
  * @param {Array} arr             The array to modify
  * @param {function} find         Test for whether an element should be removed

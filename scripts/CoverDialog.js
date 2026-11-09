@@ -12,11 +12,24 @@ ui
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, COVER, SOCKETS, FA_ICONS } from "./const.js";
+import { MODULE_ID, SOCKETS, FA_ICONS } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Settings } from "./settings.js";
-import { NULL_SET } from "./geometry/util.js";
+import { NULL_SET, pixelsToGridUnits} from "./geometry/util.js";
+import { UniqueEffectDefinition } from "./UniqueEffectDefinition.js";
+import { TokenEffects } from "./TokenEffects.js";
+import { TokenGeometry } from "./geometry/placeable_geometry/TokenGeometry.js";
+import { Draw } from "./geometry/Draw.js";
+import { getPluralizedString } from "./util.js";
+
+const esc = value => foundry.utils.escapeHTML(String(value ?? ""));   // Handles numbers and undefined.
+const coverName = def => game.i18n.localize(def ? def.name : `${MODULE_ID}.cover.None`);
+const NONE = "NONE";
+const coverDefinitions = () => UniqueEffectDefinition.all
+  .filter(d => d.category === "cover")
+  .sort((a, b) => a.minPercent - b.minPercent);
+
 
 // ----- NOTE: Set up sockets so GM can create or modify items ----- //
 Hooks.once("socketlib.ready", () => {
@@ -26,7 +39,7 @@ Hooks.once("socketlib.ready", () => {
 
 async function confirmCoverDialog(data) {
   const dialog = CoverDialog.fromJSON(data);
-  if ( !dialog ) return false;
+  if ( !dialog ) return null;
   return await dialog.confirmCover({ askGM: true });
 }
 
@@ -39,7 +52,7 @@ export class CoverDialog {
   /** @type {Set<Token>} */
   targets = new Set();
 
-  /** @type {Map<Token, Set<CoverEffect>>} */
+  /** @type {Map<Token, UniqueEffectDefinition|null} */
   #coverCalculations = new Map();
 
   /** @type {object} */
@@ -61,36 +74,155 @@ export class CoverDialog {
     if ( this.targets.size < 1 ) console.warn("CoverDialog|no targets provided.");
   }
 
+  // ----- NOTE: Data Model ---- //
+
+  /** @type {Set<Token>} */
+  get targetsWithCover() { return this.targets.filter(t => this.coverCalculations.get(t)); }
+
+  /**
+   * Update the cover calculations given different data set.
+   * Targets not in the underlying cover calculations will be ignored.
+   * @param {Map<Token, Set<CoverEffect>>} newCalcs
+   */
+  updateCoverCalculations(newCalcs) {
+    for ( const [token, def] of newCalcs ) {
+      if ( this.targets.has(token) ) this.coverCalculations.set(token, def ?? null);
+    }
+  }
+
+  /**
+   * Check if the cover calculations differ from the target tokens' cover types.
+   * @returns {boolean}
+   */
+  _coverDiffersFromCurrent() {
+    for ( const [token, def] of this.coverCalculations ) {
+      if ( (token.tokencover.currentCover?.id ?? null) !== (def?.id ?? null) ) return true;
+    }
+    return false;
+  }
+
+  // ----- NOTE: JSON ----- //
+
   toJSON() {
     return {
-      attacker: this.attacker.id,
+      attacker: this.attacker?.id || this.attacker.toString(),
       coverCalculations: this.constructor._coverCalculationsToJSON(this.coverCalculations), // Targets are the cover calc keys
       config: this.config
     };
   }
 
-  static fromJSON(data) {
-    const canvasTokens = new Map(canvas.tokens.placeables.map(t => [t.id, t]));
-    const attacker = canvasTokens.get(data.attacker);
-    if ( !attacker ) {
-      ui.notifications.error(`${game.i18n.localize("tokencover.name")}|Attacker for the GM dialog were not found.`);
-      console.error(`${MODULE_ID}|CoverDialog#fromJSON|Attacker not found. ${data.attacker}`);
-      return false;
-    }
-    const targets = new Set(Object.keys(data.coverCalculations).map(id => canvasTokens.get(id)));
-    if ( targets.has(undefined) || targets.has(null) ) {
-      ui.notifications.error(`${game.i18n.localize("tokencover.name")}|One or more targets for the GM dialog were not found.`);
-      console.error(`${MODULE_ID}|CoverDialog#fromJSON|Targets not found. ${data.targets.join(", ")}`);
-      return false;
-    }
+  static _coverCalculationsToJSON(calcs) {
+    const out = {};
+    for ( const [token, def] of calcs ) out[token.id] = def?.id ?? NONE;
+    return out;
+  }
 
-    const dialog = new this(attacker, targets, data.config);
-    if ( !dialog.constructor._coverCalculationsFromJSON(data.coverCalculations) ) return false;
+  static _coverCalculationsFromJSON(json) {
+    const tokens = new Map(canvas.tokens.placeables.map(t => [t.id, t]));
+    const out = new Map();
+    for ( const [tokenId, defId] of Object.entries(json ?? {}) ) {
+      const token = tokens.get(tokenId);
+      if ( !token ) { console.error(`${MODULE_ID}|Token ${tokenId} not found.`); continue; }
+      const id = Array.isArray(defId) ? defId[0] : defId; // Tolerate the old array format.
+      const def = id === NONE || id == null ? null : UniqueEffectDefinition.get(id);
+      if ( def === undefined ) { console.error(`${MODULE_ID}|Cover definition ${id} not found.`); continue; }
+      out.set(token, def);
+    }
+    return out;
+  }
+
+  static fromJSON(data) {
+    const tokens = new Map(canvas.tokens.placeables.map(t => [t.id, t]));
+    const attacker = tokens.get(data.attacker);
+    if ( !attacker ) return false;
+    const calcs = this._coverCalculationsFromJSON(data.coverCalculations);
+    const dialog = new this(attacker, [...calcs.keys()], data.config);
+    dialog.#coverCalculations = calcs;       // Reuse the player's result.
     return dialog;
   }
 
-  /** @type {Set<Token>} */
-  get targetsWithCover() { return this.targets.filter(t => this.coverCalculations.get(t).size); }
+  // ----- NOTE: Dialog ----- //
+
+  async confirmCover({ askGM = false } = {}) {
+    if ( askGM && !game.user.isGM ) {
+      ui.notifications.info(game.i18n.localize(`${MODULE_ID}.cover-dialog.checking-with-gm`));
+      try {
+        const res = await SOCKETS.socket.executeAsGM("confirmCoverDialog", this.toJSON());
+        if ( res !== null ) return res;
+      } catch(err) { console.warn(`${MODULE_ID}|No GM available; confirming locally.`, err); }
+    }
+    const read = (_event, _button, dialog) => CoverDialog._getDialogCoverSelections(dialog?.element ?? dialog);
+
+
+    return foundry.applications.api.DialogV2.wait({
+      window: { title: this.windowTitle({ confirm: true }) },
+      content: this._htmlConfirmCover(),
+      rejectClose: false,
+      modal: true,
+      position: { width: "auto" },
+      buttons: [
+        { action: "yes", label: `${MODULE_ID}.cover-dialog.yes`, icon: FA_ICONS.COVER_DIALOG.YES, default: true, callback: read },
+        { action: "no", label: `${MODULE_ID}.cover-dialog.no`, icon: FA_ICONS.COVER_DIALOG.NO,
+          callback: (...args) => Object.fromEntries(Object.keys(read(...args)).map(id => [id, NONE])) },
+      ],
+    });   // Resolves to the callback's object, or null if closed.
+  }
+
+  windowTitle({ confirm = false } = {}) {
+    const cfg = this.config?.attacker ?? {};
+    const img = cfg.img || this.attacker.document?.texture?.src || CONFIG.controlIcons.combat;
+    const name = cfg.name || this.attacker.name || game.i18n.localize("COMBAT.UnknownCombatant");
+    const titleKey = confirm ? "cover-dialog.confirm-cover-from" : "cover-dialog.cover-from";
+    const windowTitle = game.i18n.format(`${MODULE_ID}.${titleKey}`, { name });
+    return windowTitle;
+  }
+
+  static _getDialogCoverSelections(root) {
+    const out = {};
+    for ( const sel of root.querySelectorAll("select[data-target-id]") ) out[sel.dataset.targetId] = sel.value;
+    return out;
+  }
+
+  // ----- NOTE: Target Data ----- //
+
+  /**
+   * @typedef {Object} TargetData
+   * @prop {string} id
+   * @prop {string} name
+   * @prop {string} image       URL source
+   * @prop {UniqueEffectDefinition} definition
+   * @prop {number} percentCover
+   * @prop {number} distance
+   * @prop {boolean} hasOverride
+   */
+
+  /**
+   * @returns {TargetData[]}
+   */
+  _targetData() {
+    const calc = this.attacker.tokencover?.coverCalculator ?? new CoverCalculator(this.attacker);
+    using from = Point3d.tmp;
+    using to = Point3d.tmp;
+    TokenGeometry.tokenCenter(this.attacker.document, from);
+    return [...this.targets].map(target => ({
+      id: target.id,
+      name: target.name,
+      image: target.document.texture.src,
+      definition: this.coverCalculations.get(target) ?? null,
+      percentCover: calc.effectiveCoverPercent(target),   // Includes region covers, like the definition does
+      distance: Point3d.distanceBetween(from, TokenGeometry.tokenCenter(target.document, to)),
+      hasOverride: TokenEffects.manual(target).length > 0,
+    }));
+  }
+
+  _htmlCoverSelector(chosen, id) {
+    const options = [`<option value="${NONE}"${chosen ? "" : " selected"}>${game.i18n.localize(`${MODULE_ID}.cover.None`)}</option>`];
+    for ( const d of coverDefinitions() ) {
+      options.push(`<option value="${esc(d.id)}"${chosen?.id === d.id ? " selected" : ""}>${esc(game.i18n.localize(d.name))}</option>`);
+    }
+    return `<select data-target-id="${esc(id)}">${options.join("")}</select>`;
+  }
+
 
   /** @type {Map<Token, Set<CoverEffect>>} */
   get coverCalculations() {
@@ -100,76 +232,11 @@ export class CoverDialog {
   }
 
   /**
-   * Update the cover calculations given different data set.
-   * Targets not in the underlying cover calculations will be ignored.
-   * @param {Map<Token, Set<CoverEffect>>} newCalcs
-   */
-  updateCoverCalculations(newCalcs) {
-    newCalcs.forEach((coverEffects, token) => {
-      const existingEffects = this.coverCalculations.get(token);
-      if ( !existingEffects ) return;
-      if ( existingEffects.equals(coverEffects) ) return;
-      existingEffects.clear();
-      coverEffects.forEach(ct => existingEffects.add(ct)); // Copy so the newCalcs set is not tied to this one.
-    });
-  }
-
-  /**
-   * Check if the cover calculations differ from the target tokens' cover types.
-   * @returns {boolean}
-   */
-  _coverCalculationsDiffer() {
-    for ( const [token, coverEffects] of this.coverCalculations.entries() ) {
-      if ( !token.tokencover._currentCoverEffects.equals(coverEffects) ) return false;
-    }
-    return true;
-  }
-
-  /**
-   * Get JSON for the cover calculations.
-   */
-  static _coverCalculationsFromJSON(coverCalculations) {
-    const coverMap = CONFIG[MODULE_ID].CoverEffect._instances;
-    const canvasTokens = new Map(canvas.tokens.placeables.map(t => [t.id, t]));
-    const m = new Map();
-    for ( let [tokenId, coverIds] of Object.entries(coverCalculations) ) {
-      const token = canvasTokens.get(tokenId);
-      if ( !token ) {
-        ui.notifications.error(`${game.i18n.localize("tokencover.name")}|Token ID ${tokenId} not found.`);
-        console.error(`${MODULE_ID}|CoverDialog#_coverCalculationsFromJSON|Token ${tokenId} not found.`, coverCalculations);
-        continue;
-      }
-      let value;
-      if ( !(coverIds instanceof Array) ) coverIds = [coverIds];
-      if ( coverIds[0] === COVER.NONE || coverIds[0] === "NONE" ) value = NULL_SET;
-      else value = new Set([...coverIds].map(coverId => coverMap.get(coverId)));
-      if ( value == null ) {
-        ui.notifications.error(`${game.i18n.localize("tokencover.name")}|coverId not found.`);
-        console.error(`${MODULE_ID}|CoverDialog#_coverCalculationsFromJSON|coverId ${coverIds} not found.`, coverCalculations);
-        continue;
-      }
-      m.set(token, value);
-    }
-    return m;
-  }
-
-  /**
-   * Replace the cover calculations with JSON data
-   */
-  static _coverCalculationsToJSON(coverCalculations) {
-    const json = {};
-    coverCalculations.forEach((coverEffects, token) => json[token.id] = [...coverEffects].map(c => c.id));
-    return json;
-  }
-
-  /**
    * Create an independent copy of the cover calcs map.
    * @returns {Map<Token, Set<CoverEffect>>}
    */
   duplicateCoverCalculations() {
-    const copy = new Map(this.coverCalculations);
-    copy.forEach((cover, token) => copy.set(token, new Set(cover)));
-    return copy;
+    return new Map(this.coverCalculations); // Definitions are shared singletons.
   }
 
   /**
@@ -194,90 +261,17 @@ export class CoverDialog {
   }
 
   /**
-   * Request that the user or GM confirm cover for a given attacker and targets
-   * @param {object} [opts]   Optional parameters used to construct the dialog
-   * @param {boolean} [opts.askGM]      Should the GM get the cover confirmation dialog?
-   * @param {string} [opts.actionType]  "msak"|"mwak"|"rsak"|"rwak". Used to check if attacker ignores cover
-   * @returns {object|false} JSON of coverCalculations that can be converted to a Map using _coverCalcluationsFromJSON
-   */
-  async confirmCover({ askGM } = {}) {
-    askGM ||= false;
-    const html = this._htmlConfirmCover();
-    const dialogData = { title: game.i18n.localize(`${MODULE_ID}.phrases.ConfirmCover`), content: html };
-    if ( askGM && !game.user.isGM ) {
-      ui.notifications.info("Checking cover with GM...");
-      return await SOCKETS.socket.executeAsGM("confirmCoverDialog", this.toJSON());
-    } else {
-      return await foundry.applications.api.DialogV2.confirm({
-        title: game.i18n.localize(`${MODULE_ID}.phrases.ConfirmCover`),
-        content: html,
-        rejectClose: false,
-        modal: true,
-        position: { width: 500 },
-        buttons: [
-          {
-            action: "yes",
-            label: `${MODULE_ID}.cover-dialog.yes`,
-            icon: FA_ICONS.COVER_DIALOG.YES,
-            callback: (_event, _target, _app) => CoverDialog._getDialogCoverSelections(),
-            default: true,
-          },
-
-          {
-            action: "no",
-            label: `${MODULE_ID}.cover-dialog.no`,
-            icon: FA_ICONS.COVER_DIALOG.NO,
-            callback: (_event, _target, _app) => {
-              // Return the ids but mark cover as none for each.
-              const out = CoverDialog._getDialogCoverSelections();
-              Object.keys(out).forEach(key => out[key] = ["NONE"]);
-              return out;
-            }
-          }
-        ],
-      });
-    }
-  }
-
-  /**
-   * Pull the cover selections from the dialog results.
-   * @param {object} html    JQuery object returned from Dialog.
-   * @returns {object}  id: coverSelection[]. Returned as object so it works with sockets.
-   */
-  static _getDialogCoverSelections() {
-    const out = {};
-    const coverPrioritySelections = document.getElementsByClassName("CoverPrioritySelect"); // html.find("[class=CoverPrioritySelect]");
-    for ( const selection of coverPrioritySelections ) {
-      const id = selection.id.replace("CoverPrioritySelect.", "");
-      out[id] = [selection.value];
-    }
-
-    // Overlapping may have multiple
-    const coverOverlappingSelections = document.getElementsByClassName("CoverOverlappingSelect");// html.find("[class=CoverOverlappingSelect]");
-    for ( const selection of coverOverlappingSelections ) {
-      const id = selection.id.replace("CoverOverlappingSelect.", "");
-      const nSelections = selection.length;
-      const arr = out[id] ??= [];
-      for ( let i = 0; i < nSelections; i += 1 ) {
-        if ( selection[i].selected ) arr.push(selection.value);
-      }
-    }
-    return out;
-  }
-
-  /**
    * Based on settings, present user/GM with the cover calculations.
    * 1. GM confirms / cancels
    * 2. User confirms / cancels
    * 3. User accepts / cancels
-   * @returns {Map<Token, Set<CoverEffect>>|false|undefined}
-   *   Undefined if setting is to not calculate cover.
+   * @returns {Map<Token, definition|null>|false}
    *   False if the user/gm canceled by closing the dialog.
    */
   async workflow() {
     const WF = Settings.KEYS.COVER_WORKFLOW;
     if ( Settings.get(WF.CONFIRM_CHANGE_ONLY)
-      && !this._coverCalculationsDiffer() ) return this.coverCalculations;
+      && !this._coverDiffersFromCurrent() ) return this.coverCalculations;
 
     const coverCheckOption = Settings.get(WF.CONFIRM);
     const choices = Settings.ENUMS.CONFIRM_CHOICES;
@@ -290,7 +284,7 @@ export class CoverDialog {
         if ( !dialogRes ) return false;
         return this.coverCalculations;
       }
-      case choices.GM: askGM = true;
+      case choices.GM: askGM = true; // Fallthrough intended.
       case choices.USER: {
         coverCalculationsJSON = await this.confirmCover({ askGM });
         break;
@@ -338,10 +332,10 @@ ${html}
 <br>
 `;
     const dialogData = {
-      title: game.i18n.localize(`${MODULE_ID}.phrases.CoverByTarget`),
+      window: { title: this.windowTitle({ confirm: false }) },
       content,
-      default: game.i18n.localize(`${MODULE_ID}.phrases.Done`),
-      height: "100%"
+      position: {  width: "auto" },
+      rejectClose: false,
     };
     return foundry.applications.api.DialogV2.prompt(dialogData);
   }
@@ -357,11 +351,9 @@ ${html}
       allowSelection: true,
       targetData
     });
-    const nCover = targetData.filter(td => td.priorityType.size || td.overlappingTypes.size).length;
-    const htmlAttacker = this._htmlAttacker({ confirm: true, nCover });
+    const nCover = targetData.filter(td => td.definition).length;
     const html =
     `
-    ${htmlAttacker}
     ${htmlTable}
     <br>
     `;
@@ -385,7 +377,7 @@ ${html}
     imageWidth = 50,
     applied = false } = {}) {
 
-    const excludedColumns = include3dDistance ? NULL_SET : new Set("distance");
+    const excludedColumns = include3dDistance ? NULL_SET : new Set(["distance"]);
     const targetData = this._targetData();
     const htmlTable = this._htmlCoverTable({
       tableId: this.attacker.id,
@@ -397,8 +389,8 @@ ${html}
     });
 
     // State how many targets have cover prior to the cover table.
-    const nCover = targetData.filter(td => td.priorityType.size || td.overlappingTypes.size).length;
-    const htmlAttacker = this._htmlAttacker({ confirm: false, nCover, applied, imageWidth });
+    const nCover = targetData.filter(td => td.definition).length;
+    const htmlAttacker = this._htmlAttacker({ confirm: false, nCover, applied, imageWidth })
     const html =
     `
     ${htmlAttacker}
@@ -417,36 +409,29 @@ ${html}
    * @returns {string} html
    */
   _htmlAttacker({ imageWidth = 50, confirm = false, nCover = 0, applied = false } = {}) {
-    // Describe the type of action the attacker is taking and whether the attacker ignores certain cover.
-    const ignoresCoverLabel = this._htmlIgnoresCover(this.config.actionType);
-    const actionDescription = this.config.actionType ? `${CoverCalculator.attackNameForType(this.config.actionType)}.` : "";
-
-    let targetLabel = "Confirm cover for ";
-    let numCoverLabel = "";
-    if ( !confirm ) {
-      targetLabel = `${nCover} target${nCover === 1 ? " " : "s "}`;
-      numCoverLabel = applied
-        ? nCover === 1 ? " has" : " have"
-        : " may have";
-      numCoverLabel += " cover from ";
-    }
-
     const cfg = this.config?.attacker ?? {};
-    const img = cfg.img || (this.attacker.document?.texture?.src) || CONFIG.controlIcons.combat;
+    const img = cfg.img || this.attacker.document?.texture?.src || CONFIG.controlIcons.combat;
     const name = cfg.name || this.attacker.name || game.i18n.localize("COMBAT.UnknownCombatant");
-    const html =
-    `
-    <div class="flexrow">
-      <div class="flexcol" style="flex-grow: 8">
-        ${targetLabel}${numCoverLabel}<b>${name}</b>
-        ${actionDescription} ${ignoresCoverLabel}
-      </div
-      <div class="flexcol" style="flex-grow: 1">
-        <img src="${img}" alt="${name} image" width="${imageWidth}" style="border:0px">
-      </div
-    </div>
-    `;
-    return html;
+
+    // Localize phrases.
+    const ignoresCoverLabel = this._htmlIgnoresCover(this.config.actionType);   // Already safe HTML.
+    const actionDescription = this.config.actionType
+      ? `${CoverCalculator.attackNameForType(this.config.actionType)}.` : "";
+    const coverSummaryKey = confirm ? "cover-dialog.confirm-cover-for"
+      : applied ? "cover-dialog.have-cover-from" : "cover-dialog.may-have-cover-from";
+    const targetSummary = getPluralizedString(`${MODULE_ID}.${coverSummaryKey}`, nCover, { name });
+
+    // Build the html describing the attacker.
+    return `
+      <div class="flexrow">
+        <div class="flexcol" style="flex-grow: 8">
+          ${esc(targetSummary)}.
+          ${esc(actionDescription)} ${ignoresCoverLabel}
+        </div>
+        <div class="flexcol" style="flex-grow: 1">
+          <img src="${esc(img)}" alt="${esc(name)}" width="${Number(imageWidth)}" style="border:0px">
+        </div>
+      </div>`;
   }
 
   /**
@@ -456,70 +441,30 @@ ${html}
   _htmlIgnoresCover(actionType) {
     const ic = this.attacker.tokencover?.ignoresCover;
     if ( !ic ) return "";
-    const allCoverIgnored = ic.all;
-    const typeCoverIgnored = ic[actionType] || COVER.NONE;
-
-    // Build the html code.
-    let ignoresCoverLabel = "";
-    if ( allCoverIgnored > 0 ) ignoresCoverLabel += `<br> &le; ≤ ${allCoverIgnored} (${CoverCalculator.attackNameForType("all")})`;
-    if ( typeCoverIgnored > 0 && actionType !== "all" ) ignoresCoverLabel += `<br> &le; ≤ ${typeCoverIgnored} (${CoverCalculator.attackNameForType(actionType)}s)`;
-    if ( ignoresCoverLabel !== "" ) ignoresCoverLabel = ` <br><em>Ignores:${ignoresCoverLabel}</em>`;
-    return ignoresCoverLabel;
+    const lines = [];
+    const all = Number(ic.all) || 0;
+    const byType = actionType && actionType !== "all" ? Number(ic[actionType]) || 0 : 0;
+    if ( all > 0 ) lines.push(`≤ ${all} (${esc(CoverCalculator.attackNameForType("all"))})`);
+    if ( byType > 0 ) lines.push(`≤ ${byType} (${esc(CoverCalculator.attackNameForType(actionType))})`);
+    return lines.length
+      ? `<br><em>${esc(game.i18n.localize(`${MODULE_ID}.cover-dialog.ignores`))}<br>${lines.join("<br>")}</em>`
+      : "";
   }
 
   // ----- NOTE: Calculate cover data for html tables ----- //
 
-  /**
-   * Target data for each target, used in displaying cover information.
-   * @returns {object[]} Each object has properties:
-   *   - @prop {string} name
-   *   - @prop {string} image
-   *   - @prop {number} distance
-   *   - @prop {string} coverNames
-   *   - @prop {Set<CoverEffect>} priorityType
-   *   - @prop {Set<CoverEffect>} overlappingTypes
-   *   - @prop {number} percentCover
-   */
-  _targetData() {
-    const attackerCenter = this.attacker instanceof foundry.canvas.placeables.Token ? Point3d.fromToken(this.attacker).top // Measure from attacker vision point.
-      : new Point3d(this.attacker.document.x, this.attacker.document.y, this.attacker.elevationZ);
-    return [...this.targets].map(target => {
-      const data = {
-        name: target.name,
-        id: target.id,
-        image: target.document.texture.src, // Attacker canvas image
-      };
-
-      // Cover types.
-      const coverEffects = this.coverCalculations.get(target);
-      data.priorityType = coverEffects.filter(c => !c.canOverlap);
-      data.overlappingTypes = coverEffects.filter(c => c.canOverlap);
-
-      // Cover percentage
-      data.percentCover = target.tokencover.coverPercentFromAttacker(this.attacker);
-
-      // Distance between attacker and target
-      data.distance = Point3d.distanceBetween(attackerCenter, Point3d.fromTokenCenter(target));
-
-      // Target has manual override cover effects
-      data.hasOverrideEffects = CONFIG[MODULE_ID].CoverEffect.coverOverrideApplied(target);
-
-      return data;
-    });
-  }
 
   /**
    * Construct an html table that describes the cover calculations.
    * Table has no headers and one or more columns.
-   * Columns: icon, name, priorityCover, overlappingCover, percentCover, distance
+   * Columns: icon, name, percentCover, distance
    * ∆ My Token  | Three Quarters | Soft   | 75%     | 39 ft
    *
    * @param {object} [opts]       Options that affect how the table is displayed
    * @param {Set<string>} [opts.excludedColumns]    One or more columns to exclude
    * @param {number} [opts.imageWidth=50]           Width of the icon
    * @param {boolean} [opts.includeZeroCover=true]  Include targets without cover
-   * @param {boolean} [opts.allowSelection=false]   If true, drop-downs allow selection of
-   *    priorityCover and overlappingCover
+   * @param {boolean} [opts.allowSelection=false]
    */
   _htmlCoverTable({
     tableId = foundry.utils.randomID(),
@@ -531,151 +476,78 @@ ${html}
   } = {}) {
 
     targetData ??= this._targetData();
-    const allCover = new Set(CONFIG[MODULE_ID].CoverEffect._instances.values());
-    const overlappingCover = allCover.filter(ct => ct.canOverlap);
-    if ( !overlappingCover.size ) excludedColumns = new Set([...excludedColumns, "overlappingCover"]);
+    const width = Number(imageWidth);
+    const show = column => !excludedColumns.has(column);
+    const rows = [];
+    const overridden = [];
 
-    let htmlTable =
-    `
-    <table id="${tableId}_table" class="table table-striped">
-    <tbody>
-    `;
-
-    const tokensWithOverrideEffects = [];
     for ( const td of targetData ) {
-      if ( !includeZeroCover && !td.priorityType.size && !td.overlappingCover.size ) continue;
-      if ( td.hasOverrideEffects ) tokensWithOverrideEffects.push(td.name);
+      if ( !includeZeroCover && !td.definition ) continue;
+      if ( td.hasOverride ) overridden.push(td.name);
 
-      let htmlRow = "<tr>";
-
-      if ( !excludedColumns.has("icon") ) {
-        htmlRow +=
-        `
-        <td><img src="${td.image}" alt="${td.name} image" width="${imageWidth}" style="border:0px"></td>
-        `;
+      const cells = [];
+      if ( show("icon") ) cells.push(`<img src="${esc(td.image)}" alt="${esc(td.name)}" width="${width}" style="border:0px">`);
+      if ( show("name") ) cells.push(esc(td.name));
+      if ( show("cover") ) {
+        cells.push(allowSelection && !td.hasOverride
+          ? this._htmlCoverSelector(td.definition, td.id)    // Already HTML: not escaped again.
+          : esc(coverName(td.definition)));
       }
-
-      if ( !excludedColumns.has("name") ) {
-        htmlRow +=
-        `
-        <td>${td.name}</td>
-        `;
+      if ( show("percentCover") ) cells.push(`${Math.round(td.percentCover * 100)}%`);
+      if ( show("distance") ) {
+        const dist = pixelsToGridUnits(td.distance);
+        cells.push(`${Math.round(dist)} ${esc(canvas.scene.grid.units)}`);
       }
-
-      if ( !excludedColumns.has("priorityCover") ) {
-        const r = (allowSelection && !td.hasOverrideEffects)
-          ? this._htmlCoverSelector(td.priorityType, td.id, false)
-          : `${coverNames(td.priorityType)}`;
-
-        htmlRow +=
-        `
-        <td>${r}</td>
-        `;
-      }
-
-      if ( !excludedColumns.has("overlappingCover") ) {
-        const r = (allowSelection && !td.hasOverrideEffects)
-          ? this._htmlCoverSelector(td.overlappingTypes, td.id, true)
-          : `${coverNames(td.overlappingTypes)}`;
-
-        htmlRow +=
-        `
-        <td>${r}</td>
-        `;
-      }
-
-      if ( !excludedColumns.has("percentCover") ) {
-        htmlRow +=
-        `
-        <td>${Math.round(td.percentCover * 100)}%</td>
-        `;
-      }
-
-      if ( !excludedColumns.has("distance") ) {
-        htmlRow +=
-        `
-        <td>${Math.round(CONFIG.GeometryLib.utils.pixelsToGridUnits(td.distance))} ${canvas.scene.grid.units}</td>
-        `;
-      }
-
-      htmlRow +=
-      `
-      </tr>
-      `;
-
-      htmlTable += htmlRow;
+      rows.push(`<tr>${cells.map(c => `<td>${c}</td>`).join("")}</tr>`);
     }
 
-    htmlTable +=
-    `
-    </tbody>
-    </table>
-    `;
-
-    if ( tokensWithOverrideEffects.length ) {
-      htmlTable +=
-      `
-      <br>
-      <em>Some tokens have manual active effects applied: ${tokensWithOverrideEffects.join(", ")}
-      <br>
-      `;
-    }
-
-    return htmlTable;
+    const note = overridden.length
+      ? `<br><em>${esc(game.i18n.localize(`${MODULE_ID}.cover-dialog.manual-effects`))} ${esc(overridden.join(", "))}</em>`
+      : "";
+    return `<table id="${esc(tableId)}_table" class="table table-striped"><tbody>${rows.join("")}</tbody></table>${note}`;
   }
 
   /**
-   * Construct html selector that lets the user select from a drop-down of cover types.
-   * @param {Set<CoverEffect>} chosen         Chosen cover effect(s)
-   * @param {string} id                       Id of the selector; will be prefixed by "CoverSelect"
-   * @param {boolean} [overlapping=false]     Are these overlapping or priority cover types?
-   *   Overlapping uses a multiple selector
-   * @returns {string} HTML
+   * Construct an html table describing cover for various target(s) versus token(s).
+   * @param {Token} token       Token to measure cover from.
+   * @param {Token[]} targets   Target tokens that may have cover from one or more tokens.
+   * @param {object} [options]  Options that affect the html creation
+   * @param {boolean} [options.include3dDistance]   Include 3d distance calculation.
+   * @param {boolean} [options.includeZeroCover]  Include targets that have no cover in the resulting html.
+   * @returns {string} String of html content that can be used in a Dialog or ChatMessage.
    */
-  _htmlCoverSelector(chosen, id, overlapping = false) {
-    chosen ??= new Set();
-    id ??= foundry.utils.randomID();
-    id = overlapping ? `CoverOverlappingSelect.${id}` : `CoverPrioritySelect.${id}`;
-    const allCover = new Set(CONFIG[MODULE_ID].CoverEffect._instances.values());
-    const cover = overlapping
-      ? allCover.filter(c => c.canOverlap) : allCover.filter(c => !c.canOverlap);
+  static htmlCoverTable(token, targets, opts) {
+    if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) Draw.clearDrawings();
+    const coverDialog = new CoverDialog(token, targets);
+    return coverDialog._htmlShowCover(opts);
+  }
 
-    let coverOptions =
-    `
-    <option value="NONE" ${chosen.size ? "" : "selected"}>${game.i18n.localize("tokencover.cover.None")}</option>
-    `;
+  /**
+   * Update internal cover calculations and apply the resulting cover effects to target tokens.
+   * Respects manual overrides and module use settings.
+   * @param {Map<Token, UniqueEffectDefinition|null>|object} coverCalculations
+   * @returns {boolean} True if processed successfully.
+   */
+  async updateTargetsCover(coverCalculations) {
+    if ( !coverCalculations ) return false;
+    const calcs = coverCalculations instanceof Map
+      ? coverCalculations
+      : this.constructor._coverCalculationsFromJSON(coverCalculations);
 
-    for ( const c of cover ) {
-      coverOptions +=
-      `
-      <option value="${c.uniqueEffectId}"${chosen.has(c) ? " selected" : ""}>${game.i18n.localize(c.name)}</option>
-      `;
+    this.updateCoverCalculations(calcs);
+
+    const { KEYS, ENUMS } = Settings;
+    if ( Settings.get(KEYS.COVER_EFFECTS.USE) !== ENUMS.USE_CHOICES.NEVER ) {
+      for ( const [defender, def] of this.coverCalculations ) {
+        if ( TokenEffects.manual(defender).length ) continue; // Respect manually applied cover.
+        defender.tokencover.replaceCover(def ? [def] : []);
+      }
     }
-
-    const cl = overlapping ? "CoverOverlappingSelect" : "CoverPrioritySelect";
-    const coverSelector =
-    `
-    <select id="${id}" class="${cl}" ${overlapping && cover.size > 1 ? "multiple" : ""}>
-    ${coverOptions}
-    </select>
-    `;
-
-    return coverSelector;
+    return true;
   }
 }
 
 // NOTE: Helper functions
-
-/**
- * Return a comma-separated string of cover names for a set of cover effects.
- * @param {Set<CoverEffect>} coverEffects
- * @returns {string} String of cover types or None, localized.
- */
-function coverNames(coverEffects) {
-  return coverEffects.size
-    ? [...coverEffects].map(ct => game.i18n.localize(ct.name)).join(", ")
-    : game.i18n.localize("tokencover.cover.None");
-}
 
 /**
  * Workflow to process cover for given token and targets during attack.
@@ -689,7 +561,6 @@ export async function coverAttackWorkflow(attacker, targets, opts) {
   // Construct dialogs, if applicable
   // tokenCoverCalculations will be:
   // - false if user canceled
-  // - undefined if covercheck is set to NONE. NONE may still require chat display.
   // - Map otherwise
   const { KEYS, ENUMS } = Settings;
   const coverDialog = new CoverDialog(attacker, targets, opts);
@@ -698,10 +569,9 @@ export async function coverAttackWorkflow(attacker, targets, opts) {
 
   // Update the targets' cover effects.
   if ( Settings.get(KEYS.COVER_EFFECTS.USE) !== ENUMS.USE_CHOICES.NEVER ) {
-    const CoverEffect = CONFIG[MODULE_ID].CoverEffect;
-    for ( const [defender, coverEffects] of coverCalculations.entries() ) {
-      if ( CoverEffect.coverOverrideApplied(defender) ) continue;
-      defender.tokencover._replaceCover(coverEffects);
+    for ( const [defender, def] of coverCalculations ) {
+      if ( TokenEffects.manual(defender).length ) continue;       // Respect manually applied cover.
+      defender.tokencover.replaceCover(def ? [def] : []);
     }
   }
 

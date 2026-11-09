@@ -286,7 +286,7 @@ export class TokenCover {
    * @param {Viewer} attacker
    */
   static attackerMoved(attacker) {
-    if ( attacker instanceof foundry.canvas.placeables.Token ) return this.tokenMoved();
+    if ( attacker instanceof foundry.canvas.placeables.Token ) return this.tokenMoved(attacker);
     if ( !this.attackers.has(attacker) ) return;
 
     // Clear cover calculations from tokens.
@@ -349,12 +349,12 @@ export class TokenCover {
   static updateAttackers() {
     const newAttackers = new Set(canvas.tokens.placeables.filter(t => t.tokencover.isAttacker()));
     let change = false;
-    for ( const oldAttacker in this.attackers ) {
+    for ( const oldAttacker of [...this.attackers] ) {
       if ( newAttackers.has(oldAttacker) ) continue;
       const res = this.removeAttacker(oldAttacker, false);
       change ||= res;
     }
-    for ( const newAttacker in newAttackers ) {
+    for ( const newAttacker of [...newAttackers] ) {
       const res = this.addAttacker(newAttacker, false, false);
       change ||= res;
     }
@@ -429,15 +429,12 @@ export class TokenCover {
     return this.clearCover();
   }
 
-  /**
-   * Handle adding and removing cover effect.
-   * @param {Set<CoverEffect>} replacementCover
-   * @returns {boolean} True if a change was made.
-   */
-  replaceCover(replacementCover) {
-    log(`TokenCover#replacecover|Replacing cover for ${this.token.name}. ${replacementCover.name}`);
-    return TokenEffects.add(this.token, replacementCover, { exclusive: true });
+  replaceCover(definitions = []) {
+    if ( !definitions.length ) return this.clearCover();
+    return TokenEffects.add(this.token, definitions, { exclusive: true });
   }
+
+  _replaceCover(defs) { return this.replaceCover(defs); }   // Alias for midi-qol and other outside callers.
 
   // ----- NOTE: Static getters/setters/properties ----- //
 
@@ -549,13 +546,13 @@ function applicableRegionBehaviors(attacker, defendingToken, defendingRegions) {
   const behaviors = [];
   for ( const defendingRegion of defendingRegions ) {
     for ( const behavior of defendingRegion.document.behaviors ) {
-      if ( behavior.disabled || !behavior.type !== `${MODULE_ID}.setCover` ) continue;
+      if ( behavior.disabled || behavior.type !== `${MODULE_ID}.setCover` ) continue;
       behaviors.push(behavior);
     }
   }
   for ( const attackingRegion of attackingRegions ) {
     for ( const behavior of attackingRegion.document.behaviors ) {
-      if ( behavior.disabled || !behavior.type !== `${MODULE_ID}.setCover` || !behavior.system.appliesToAttackers ) continue;
+      if ( behavior.disabled || behavior.type !== `${MODULE_ID}.setCover` || !behavior.system.appliesToAttackers ) continue;
       behaviors.push(behavior);
     }
   }

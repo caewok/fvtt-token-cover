@@ -97,7 +97,7 @@ export class UniqueEffectDefinition {
    * The cover definition that applies at a given cover percent: the highest threshold met.
    * Synchronous; safe on the per-frame path. Returns undefined below every threshold.
    * (Sources are added/removed in the CoverRulesConfig menu, not through this class.)
-   * @param {number} percent   0-100
+   * @param {number} percent   0-1
    * @returns {UniqueEffectDefinition|undefined}
    */
   static forCoverPercent(percent) {

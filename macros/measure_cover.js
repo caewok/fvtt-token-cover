@@ -20,4 +20,4 @@ if ( !targets.size ) {
 // Display cover to user.
 const api = game.modules.get("tokencover").api;
 const coverDialog = new api.CoverDialog(token, targets);
-coverDialog.showCoverResults();
+await coverDialog.showCoverResults();

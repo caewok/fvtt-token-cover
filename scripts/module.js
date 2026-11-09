@@ -49,8 +49,7 @@ import { CoverDialog } from "./CoverDialog.js";
 import {
   IgnoresCover,
   IgnoresCoverSimbuls,
-  IgnoresCoverDND5e,
-  addDND5eCoverFeatFlags } from "./IgnoresCover.js";
+  IgnoresCoverDND5e } from "./IgnoresCover.js";
 
 // Load the geometry library.
 import { GEOMETRY_LIB_ID } from "./geometry/const.js";
@@ -62,7 +61,6 @@ import "./changelog.js";
 Hooks.once("init", function() {
   initializeConfig();
   initializeAPI();
-  addDND5eCoverFeatFlags();
 
   if ( game.system.id === "dnd5e" ) {
     setCoverIgnoreHandler(game.modules.get("simbuls-cover-calculator")?.active ? IgnoresCoverSimbuls : IgnoresCoverDND5e);
