@@ -6,13 +6,14 @@ foundry,
 fromUuidSync,
 game,
 Hooks,
+renderTemplate,
 socketlib,
 ui
 */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, SOCKETS, FA_ICONS } from "./const.js";
+import { MODULE_ID, SOCKETS, FA_ICONS, TEMPLATES } from "./const.js";
 import { CoverCalculator } from "./CoverCalculator.js";
 import { Point3d } from "./geometry/3d/Point3d.js";
 import { Settings } from "./settings.js";
@@ -23,7 +24,6 @@ import { TokenGeometry } from "./geometry/placeable_geometry/TokenGeometry.js";
 import { Draw } from "./geometry/Draw.js";
 import { getPluralizedString } from "./util.js";
 
-const esc = value => foundry.utils.escapeHTML(String(value ?? ""));   // Handles numbers and undefined.
 const coverName = def => game.i18n.localize(def ? def.name : `${MODULE_ID}.cover.None`);
 const NONE = "NONE";
 const coverDefinitions = () => UniqueEffectDefinition.all
@@ -153,10 +153,11 @@ export class CoverDialog {
     }
     const read = (_event, _button, dialog) => CoverDialog._getDialogCoverSelections(dialog?.element ?? dialog);
 
+    const content = await this._renderContent({ includeAttacker: false, allowSelection: true });
 
     return foundry.applications.api.DialogV2.wait({
       window: { title: this.windowTitle({ confirm: true }) },
-      content: this._htmlConfirmCover(),
+      content,
       rejectClose: false,
       modal: true,
       position: { width: "auto" },
@@ -170,11 +171,9 @@ export class CoverDialog {
 
   windowTitle({ confirm = false } = {}) {
     const cfg = this.config?.attacker ?? {};
-    const img = cfg.img || this.attacker.document?.texture?.src || CONFIG.controlIcons.combat;
     const name = cfg.name || this.attacker.name || game.i18n.localize("COMBAT.UnknownCombatant");
     const titleKey = confirm ? "cover-dialog.confirm-cover-from" : "cover-dialog.cover-from";
-    const windowTitle = game.i18n.format(`${MODULE_ID}.${titleKey}`, { name });
-    return windowTitle;
+    return game.i18n.format(`${MODULE_ID}.${titleKey}`, { name });
   }
 
   static _getDialogCoverSelections(root) {
@@ -214,15 +213,6 @@ export class CoverDialog {
       hasOverride: TokenEffects.manual(target).length > 0,
     }));
   }
-
-  _htmlCoverSelector(chosen, id) {
-    const options = [`<option value="${NONE}"${chosen ? "" : " selected"}>${game.i18n.localize(`${MODULE_ID}.cover.None`)}</option>`];
-    for ( const d of coverDefinitions() ) {
-      options.push(`<option value="${esc(d.id)}"${chosen?.id === d.id ? " selected" : ""}>${esc(game.i18n.localize(d.name))}</option>`);
-    }
-    return `<select data-target-id="${esc(id)}">${options.join("")}</select>`;
-  }
-
 
   /** @type {Map<Token, Set<CoverEffect>>} */
   get coverCalculations() {
@@ -300,12 +290,10 @@ export class CoverDialog {
 
   /**
    * Display a chat message with the cover calculations.
-   * @param {string} [html]   Html to display; defaults to this._htmlShowCover
-   * @param {object} [opts]   Options to pass to this._htmlShowCover
+   * @param {object} [opts]   Options to pass to renderContent
    * @returns Result from ChatMessage.create.
    */
   async sendCoverCalculationsToChat(opts = {}) {
-    // Reasonable defaults for a chat message
     opts.includeZeroCover ??= false; // Only display targets that have cover.
     opts.imageWidth ??= 30; // Smaller image for the chat.
     opts.applied ??= true; // Treat as applied instead of "may have".
@@ -314,124 +302,118 @@ export class CoverDialog {
 
     if ( !opts.includeZeroCover && !this.targetsWithCover.size ) return;
 
-    // Construct the chat message.
-    const html = this._htmlShowCover(opts);
+    const html = await this._renderContent({
+      includeAttacker: true,
+      confirm: false,
+      applied: opts.applied,
+      imageWidth: opts.imageWidth,
+      include3dDistance: opts.include3dDistance,
+      includeZeroCover: opts.includeZeroCover,
+      allowSelection: false
+    });
     return ChatMessage.create({ content: html });
   }
 
   /**
    * Display a dialog displaying cover tests to the user.
-   * @param {object} opts     Options passed to htmlCoverTable.
+   * @param {object} opts     Options passed to renderContent.
    */
-  async showCoverResults(opts) {
-    const html = this._htmlShowCover(opts);
-    const content =
-`
-${html}
-<br>
-<br>
-`;
+  async showCoverResults(opts = {}) {
+    const html = await this._renderContent({
+      includeAttacker: true,
+      confirm: false,
+      applied: opts.applied ?? false,
+      imageWidth: opts.imageWidth ?? 50,
+      include3dDistance: opts.include3dDistance ?? true,
+      includeZeroCover: opts.includeZeroCover ?? true,
+      allowSelection: false
+    });
+    const content = `\n${html}\n<br>\n<br>\n`;
     const dialogData = {
       window: { title: this.windowTitle({ confirm: false }) },
       content,
-      position: {  width: "auto" },
+      position: { width: "auto" },
       rejectClose: false,
     };
     return foundry.applications.api.DialogV2.prompt(dialogData);
   }
 
   /**
-   * Build html to ask user to confirm cover choices for targets.
-   * @returns {string}    HTML string
+   * Render template content using cover-dialog.html.
+   * @param {object} [opts]
+   * @returns {Promise<string>} HTML string
    */
-  _htmlConfirmCover() {
-    const targetData = this._targetData();
-    const htmlTable = this._htmlCoverTable({
-      tableId: this.attacker.id,
-      allowSelection: true,
-      targetData
-    });
-    const nCover = targetData.filter(td => td.definition).length;
-    const html =
-    `
-    ${htmlTable}
-    <br>
-    `;
-    return html;
-  }
-
-  /**
-   * Construct an html table describing cover for various target(s).
-   * @param {object} [opts]  Options that affect the html creation
-   * @param {boolean} [opts.include3dDistance]    Include 3d distance calculation
-   * @param {boolean} [opts.includeZeroCover]     Include targets that have no cover in the resulting html
-   * @param {number} [opts.imageWidth]            How wide to make the target images
-   * @param {string} [opts.actionType]            "msak"|"mwak"|"rsak"|"rwak". Used to check if attacker ignores cover
-   * @param {boolean} [opts.applied]              The cover is as-applied by user/GM versus calculated
-   * @param {boolean} [opts.displayIgnored]       Display cover results for cover ignored by attacker
-   * @returns {string}    HTML string
-   */
-  _htmlShowCover({
+  async _renderContent({
+    includeAttacker = false,
+    confirm = true,
+    applied = false,
+    imageWidth = 50,
     include3dDistance = true,
     includeZeroCover = true,
-    imageWidth = 50,
-    applied = false } = {}) {
-
-    const excludedColumns = include3dDistance ? NULL_SET : new Set(["distance"]);
+    allowSelection = false,
+    excludedColumns = NULL_SET
+  } = {}) {
     const targetData = this._targetData();
-    const htmlTable = this._htmlCoverTable({
-      tableId: this.attacker.id,
-      imageWidth,
-      includeZeroCover,
-      excludedColumns,
-      allowSelection: false,
-      targetData
+    const show = column => !excludedColumns.has(column);
+
+    const filteredTargets = targetData.filter(td => includeZeroCover || td.definition);
+    const nCover = targetData.filter(td => td.definition).length;
+
+    const overridden = [];
+    const targetRows = filteredTargets.map(td => {
+      if ( td.hasOverride ) overridden.push(td.name);
+      return {
+        id: td.id,
+        name: td.name,
+        image: td.image,
+        definition: td.definition,
+        coverName: coverName(td.definition),
+        percentCoverRounded: Math.round(td.percentCover * 100),
+        distanceFormatted: Math.round(pixelsToGridUnits(td.distance)),
+        hasOverride: td.hasOverride
+      };
     });
 
-    // State how many targets have cover prior to the cover table.
-    const nCover = targetData.filter(td => td.definition).length;
-    const htmlAttacker = this._htmlAttacker({ confirm: false, nCover, applied, imageWidth })
-    const html =
-    `
-    ${htmlAttacker}
-    ${htmlTable}
-    <br>
-    `;
-    return html;
-  }
+    let attackerData = null;
+    let targetSummary = "";
+    let actionDescription = "";
+    let ignoresCoverHtml = "";
 
-  /**
-   * Construct html to describe the attacker.
-   * Describe the type of action the attacker is taking and whether the attacker ignores certain cover.
-   * @param {boolean} confirm
-   * @param {number} nCover
-   * @param {boolean} applied
-   * @returns {string} html
-   */
-  _htmlAttacker({ imageWidth = 50, confirm = false, nCover = 0, applied = false } = {}) {
-    const cfg = this.config?.attacker ?? {};
-    const img = cfg.img || this.attacker.document?.texture?.src || CONFIG.controlIcons.combat;
-    const name = cfg.name || this.attacker.name || game.i18n.localize("COMBAT.UnknownCombatant");
+    if ( includeAttacker ) {
+      const cfg = this.config?.attacker ?? {};
+      const img = cfg.img || this.attacker.document?.texture?.src || CONFIG.controlIcons.combat;
+      const name = cfg.name || this.attacker.name || game.i18n.localize("COMBAT.UnknownCombatant");
+      attackerData = { name, img, imageWidth: Number(imageWidth) };
 
-    // Localize phrases.
-    const ignoresCoverLabel = this._htmlIgnoresCover(this.config.actionType);   // Already safe HTML.
-    const actionDescription = this.config.actionType
-      ? `${CoverCalculator.attackNameForType(this.config.actionType)}.` : "";
-    const coverSummaryKey = confirm ? "cover-dialog.confirm-cover-for"
-      : applied ? "cover-dialog.have-cover-from" : "cover-dialog.may-have-cover-from";
-    const targetSummary = getPluralizedString(`${MODULE_ID}.${coverSummaryKey}`, nCover, { name });
+      actionDescription = this.config.actionType ? `${CoverCalculator.attackNameForType(this.config.actionType)}.` : "";
+      ignoresCoverHtml = this._htmlIgnoresCover(this.config.actionType);
 
-    // Build the html describing the attacker.
-    return `
-      <div class="flexrow">
-        <div class="flexcol" style="flex-grow: 8">
-          ${esc(targetSummary)}.
-          ${esc(actionDescription)} ${ignoresCoverLabel}
-        </div>
-        <div class="flexcol" style="flex-grow: 1">
-          <img src="${esc(img)}" alt="${esc(name)}" width="${Number(imageWidth)}" style="border:0px">
-        </div>
-      </div>`;
+      const coverSummaryKey = confirm ? "cover-dialog.confirm-cover-for"
+        : applied ? "cover-dialog.have-cover-from" : "cover-dialog.may-have-cover-from";
+      targetSummary = getPluralizedString(`${MODULE_ID}.${coverSummaryKey}`, nCover, { name });
+    }
+
+    const context = {
+      tableId: this.attacker.id,
+      showIcon: show("icon"),
+      showName: show("name"),
+      showCover: show("cover"),
+      showPercent: show("percentCover"),
+      showDistance: show("distance"),
+      imageWidth: Number(imageWidth),
+      allowSelection,
+      targetRows,
+      coverDefs: coverDefinitions(),
+      overriddenNames: overridden.join(", "),
+      gridUnits: canvas.scene.grid.units,
+      includeAttacker,
+      attackerData,
+      targetSummary,
+      actionDescription,
+      ignoresCoverHtml
+    };
+
+    return renderTemplate(TEMPLATES.COVER_DIALOG, context);
   }
 
   /**
@@ -444,67 +426,11 @@ ${html}
     const lines = [];
     const all = Number(ic.all) || 0;
     const byType = actionType && actionType !== "all" ? Number(ic[actionType]) || 0 : 0;
-    if ( all > 0 ) lines.push(`≤ ${all} (${esc(CoverCalculator.attackNameForType("all"))})`);
-    if ( byType > 0 ) lines.push(`≤ ${byType} (${esc(CoverCalculator.attackNameForType(actionType))})`);
+    if ( all > 0 ) lines.push(`≤ ${all} (${game.i18n.localize(CoverCalculator.attackNameForType("all"))})`);
+    if ( byType > 0 ) lines.push(`≤ ${byType} (${game.i18n.localize(CoverCalculator.attackNameForType(actionType))})`);
     return lines.length
-      ? `<br><em>${esc(game.i18n.localize(`${MODULE_ID}.cover-dialog.ignores`))}<br>${lines.join("<br>")}</em>`
+      ? `<br><em>${game.i18n.localize(`${MODULE_ID}.cover-dialog.ignores`)}<br>${lines.join("<br>")}</em>`
       : "";
-  }
-
-  // ----- NOTE: Calculate cover data for html tables ----- //
-
-
-  /**
-   * Construct an html table that describes the cover calculations.
-   * Table has no headers and one or more columns.
-   * Columns: icon, name, percentCover, distance
-   * ∆ My Token  | Three Quarters | Soft   | 75%     | 39 ft
-   *
-   * @param {object} [opts]       Options that affect how the table is displayed
-   * @param {Set<string>} [opts.excludedColumns]    One or more columns to exclude
-   * @param {number} [opts.imageWidth=50]           Width of the icon
-   * @param {boolean} [opts.includeZeroCover=true]  Include targets without cover
-   * @param {boolean} [opts.allowSelection=false]
-   */
-  _htmlCoverTable({
-    tableId = foundry.utils.randomID(),
-    excludedColumns = NULL_SET,
-    imageWidth = 50,
-    includeZeroCover = true,
-    allowSelection = false,
-    targetData
-  } = {}) {
-
-    targetData ??= this._targetData();
-    const width = Number(imageWidth);
-    const show = column => !excludedColumns.has(column);
-    const rows = [];
-    const overridden = [];
-
-    for ( const td of targetData ) {
-      if ( !includeZeroCover && !td.definition ) continue;
-      if ( td.hasOverride ) overridden.push(td.name);
-
-      const cells = [];
-      if ( show("icon") ) cells.push(`<img src="${esc(td.image)}" alt="${esc(td.name)}" width="${width}" style="border:0px">`);
-      if ( show("name") ) cells.push(esc(td.name));
-      if ( show("cover") ) {
-        cells.push(allowSelection && !td.hasOverride
-          ? this._htmlCoverSelector(td.definition, td.id)    // Already HTML: not escaped again.
-          : esc(coverName(td.definition)));
-      }
-      if ( show("percentCover") ) cells.push(`${Math.round(td.percentCover * 100)}%`);
-      if ( show("distance") ) {
-        const dist = pixelsToGridUnits(td.distance);
-        cells.push(`${Math.round(dist)} ${esc(canvas.scene.grid.units)}`);
-      }
-      rows.push(`<tr>${cells.map(c => `<td>${c}</td>`).join("")}</tr>`);
-    }
-
-    const note = overridden.length
-      ? `<br><em>${esc(game.i18n.localize(`${MODULE_ID}.cover-dialog.manual-effects`))} ${esc(overridden.join(", "))}</em>`
-      : "";
-    return `<table id="${esc(tableId)}_table" class="table table-striped"><tbody>${rows.join("")}</tbody></table>${note}`;
   }
 
   /**
@@ -512,14 +438,20 @@ ${html}
    * @param {Token} token       Token to measure cover from.
    * @param {Token[]} targets   Target tokens that may have cover from one or more tokens.
    * @param {object} [options]  Options that affect the html creation
-   * @param {boolean} [options.include3dDistance]   Include 3d distance calculation.
-   * @param {boolean} [options.includeZeroCover]  Include targets that have no cover in the resulting html.
-   * @returns {string} String of html content that can be used in a Dialog or ChatMessage.
+   * @returns {Promise<string>} String of html content that can be used in a Dialog or ChatMessage.
    */
-  static htmlCoverTable(token, targets, opts) {
+  static async htmlCoverTable(token, targets, opts) {
     if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) Draw.clearDrawings();
     const coverDialog = new CoverDialog(token, targets);
-    return coverDialog._htmlShowCover(opts);
+    return coverDialog._renderContent({
+      includeAttacker: true,
+      confirm: false,
+      applied: opts?.applied ?? false,
+      imageWidth: opts?.imageWidth ?? 50,
+      include3dDistance: opts?.include3dDistance ?? true,
+      includeZeroCover: opts?.includeZeroCover ?? true,
+      allowSelection: false
+    });
   }
 
   /**
@@ -558,10 +490,6 @@ ${html}
  * @returns {boolean} True if attack should continue; false otherwise.
  */
 export async function coverAttackWorkflow(attacker, targets, opts) {
-  // Construct dialogs, if applicable
-  // tokenCoverCalculations will be:
-  // - false if user canceled
-  // - Map otherwise
   const { KEYS, ENUMS } = Settings;
   const coverDialog = new CoverDialog(attacker, targets, opts);
   const coverCalculations = await coverDialog.workflow();

@@ -1,0 +1,46 @@
+<div class="tokencover-dialog-content">
+  {{#if attackerData}}
+    <div class="flexrow" style="margin-bottom: 8px; align-items: center;">
+      <div class="flexcol" style="flex-grow: 8">
+        {{targetSummary}}.<br>
+        {{#if actionDescription}}<b>{{actionDescription}}</b>{{/if}}
+        {{#if ignoresCoverHtml}}{{{ignoresCoverHtml}}}{{/if}}
+      </div>
+      <div class="flexcol" style="flex-grow: 1; text-align: right;">
+        <img src="{{attackerData.img}}" alt="{{attackerData.name}}" width="{{attackerData.imageWidth}}" style="border:0px">
+      </div>
+    </div>
+  {{/if}}
+
+  <table id="{{tableId}}_table" class="table table-striped">
+    <tbody>
+      {{#each targetRows}}
+        <tr>
+          {{#if ../showIcon}}<td><img src="{{this.image}}" alt="{{this.name}}" width="{{../imageWidth}}" style="border:0px"></td>{{/if}}
+          {{#if ../showName}}<td>{{this.name}}</td>{{/if}}
+          {{#if ../showCover}}
+            <td>
+              {{#if (and ../allowSelection (not this.hasOverride))}}
+                <select data-target-id="{{this.id}}">
+                  <option value="NONE" {{#unless this.definition}}selected{{/unless}}>{{localize "tokencover.cover.None"}}</option>
+                  {{#each ../coverDefs}}
+                    <option value="{{this.id}}" {{#if (eq ../this.definition.id this.id)}}selected{{/if}}>{{localize this.name}}</option>
+                  {{/each}}
+                </select>
+              {{else}}
+                {{this.coverName}}
+              {{/if}}
+            </td>
+          {{/if}}
+          {{#if ../showPercent}}<td>{{this.percentCoverRounded}}%</td>{{/if}}
+          {{#if ../showDistance}}<td>{{this.distanceFormatted}} {{../gridUnits}}</td>{{/if}}
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  {{#if overriddenNames}}
+    <br><em>{{localize "tokencover.cover-dialog.manual-effects"}} {{overriddenNames}}</em>
+  {{/if}}
+  <br>
+</div>

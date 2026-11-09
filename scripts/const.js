@@ -97,6 +97,7 @@ export const TEMPLATES = {
   SETTINGS_MENU: `modules/${MODULE_ID}/templates/settings-menu.html`,
   SPELL_CONFIG_DND5E: `modules/${MODULE_ID}/templates/dnd5e-spell-config.html`,
   SETTINGS_COVER_RULES: `modules/${MODULE_ID}/templates/settings-cover-rules.html`,
+  COVER_DIALOG: `modules/${MODULE_ID}/templates/cover-dialog.html`,
 };
 
 export const ICONS = {
