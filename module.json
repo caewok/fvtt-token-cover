@@ -49,6 +49,14 @@
       "private": false
     },
     {
+      "name": "tokencover_activeeffects_dnd5e",
+      "label": "ATC Active Effects",
+      "path": "packs/activeeffects/dnd5e",
+      "type": "ActiveEffect",
+      "private": false,
+      "system": "dnd5e"
+    },
+    {
       "name": "tokencover_items_sfrpg",
       "label": "ATC Items",
       "path": "packs/items/sfrpg",
