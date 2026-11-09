@@ -11,19 +11,18 @@
     "nx29hoGineoQv9Bs": 3
   },
   "flags": {
-    "core": {
-      "sourceId": "Compendium.tokencover.tokencover_macros.Macro.DZUcw6UnqRN2m7Lq"
-    }
+    "core": {}
   },
   "_stats": {
     "compendiumSource": "Compendium.tokencover.tokencover_macros.Macro.DZUcw6UnqRN2m7Lq",
     "duplicateSource": null,
-    "coreVersion": "12.331",
+    "coreVersion": "14.368",
     "systemId": "dnd5e",
     "systemVersion": "3.3.1",
     "createdTime": 1725381594013,
     "modifiedTime": 1725381594013,
-    "lastModifiedBy": "nx29hoGineoQv9Bs"
+    "lastModifiedBy": "nx29hoGineoQv9Bs",
+    "exportSource": null
   },
   "_id": "ULHe0Bd3tiXJhlG5",
   "sort": 0,
