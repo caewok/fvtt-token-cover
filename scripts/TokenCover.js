@@ -97,7 +97,7 @@ Triggers:
 */
 
 /**
- * @typedef Viewer    Token|MeasuredTemplate|AmbientLight|AmbientSound|Point3d
+ * @typedef Viewer    Token|Region|AmbientLight|AmbientSound|Point3d
  * The object that is viewing / attacking.
  */
 

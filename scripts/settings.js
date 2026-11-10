@@ -18,6 +18,7 @@ import { TokenCover } from "./TokenCover.js";
 import { renderTemplateSync } from "./geometry/util.js";
 import { CoverDefinitionsConfig } from "./CoverDefinitionsConfig.js";
 import { UniqueEffectDefinition } from "./UniqueEffectDefinition.js";
+import { TokenEffects } from "./TokenEffects.js";
 
 export const PATCHES_SidebarTab = {};
 export const PATCHES_ItemDirectory = {};
@@ -173,7 +174,7 @@ export class Settings extends ModuleSettingsAbstract {
       default: true,
       onChange: _value => canvas.tokens.placeables.forEach(token => {
         token[MODULE_ID].updateCoverIconDisplay();
-        CONFIG[MODULE_ID].CoverEffect.refreshTokenDisplay(token);
+        TokenEffects.refreshTokenDisplay(token);
       })
     });
 
