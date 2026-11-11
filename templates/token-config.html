@@ -1,13 +1,14 @@
 <fieldset>
-  <legend>{{ localize "tokencover.name" }}</legend>
+  <legend>{{ localize "tokencover.name" }} </legend>
 
     <div class="form-group">
-      <label for="tokencover.maximumCoverGrant">{{ localize "tokencover.tokenconfig.maximum-cover.name" }}</label>
+      <label for="tokencover.opacity">{{ localize "tokencover.tokenconfig.opacity.name" }}</label>
       <div class="form-fields">
-        <range-picker name="flags.tokencover.maximumCoverGrant" value={{object.flags.tokencover.maximumCoverGrant}} min="0" max="1" step="0.05"></range-picker>
+        <range-picker class="tokencover-opacity-pct" id="tokencover.opacity" value="{{tokencover.opacityPercent}}" min="0" max="100" step="5"></range-picker>
+        <span class="tokencover-opacity-pct" style="flex: 0 0 3.5em; text-align: left;">%</span>
+        <input type="hidden" name="flags.tokencover.opacity" value="{{tokencover.opacity}}" data-dtype="Number">
       </div>
-      <p class="hint">{{ localize "tokencover.tokenconfig.maximum-cover.hint" }}</p>
+      <p class="hint">{{ localize "tokencover.tokenconfig.opacity.hint" }}</p>
     </div>
 
-  </legend>
 </fieldset>

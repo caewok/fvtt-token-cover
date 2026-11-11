@@ -14,19 +14,18 @@
     "combat-utility-belt": {
       "macroTrigger": ""
     },
-    "core": {
-      "sourceId": "Compendium.tokencover.tokencover_macros.Macro.A7hcgqVaVk0Ebm7U"
-    }
+    "core": {}
   },
   "_stats": {
     "compendiumSource": "Compendium.tokencover.tokencover_macros.Macro.A7hcgqVaVk0Ebm7U",
     "duplicateSource": null,
-    "coreVersion": "12.331",
+    "coreVersion": "14.368",
     "systemId": "dnd5e",
     "systemVersion": "3.3.1",
     "createdTime": 1725381604084,
     "modifiedTime": 1725381604084,
-    "lastModifiedBy": "nx29hoGineoQv9Bs"
+    "lastModifiedBy": "nx29hoGineoQv9Bs",
+    "exportSource": null
   },
   "_id": "SVsZb4mrnDa0BXIX",
   "sort": 0,

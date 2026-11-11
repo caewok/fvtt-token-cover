@@ -1,0 +1,30 @@
+{
+  "name": "Measure and Set Cover",
+  "type": "script",
+  "scope": "global",
+  "author": "nx29hoGineoQv9Bs",
+  "img": "icons/svg/mage-shield.svg",
+  "command": "// Macro to measure cover between selected tokens and targets.\n// And allow the user to set cover status.\nconst api = game.modules.get(\"tokencover\").api;\nconst CoverCalculator = api.CoverCalculator;\nconst CoverDialog = api.CoverDialog\n\n// Determine token and targets.\n// If Walled Templates is present, we can use its' last selected.\nconst last = fromUuidSync(game.user._lastSelected)?.token;\nconst token = last || canvas.tokens.controlled[0];\nconst targets = game.user.targets;\nif ( !token ) {\n  ui.notifications.error(\"Please select a token.\");\n  return;\n}\nif ( !targets.size ) {\n  ui.notifications.error(\"Please target at least one target.\");\n  return;\n}\n\n// Request the user confirm cover, and then update target statuses.\nconst coverDialog = new CoverDialog(token, targets)\nconst coverCalculations = await coverDialog.confirmCover()\nawait coverDialog.updateTargetsCover(coverCalculations);\n\n// Send cover message to chat.\nawait coverDialog.sendCoverCalculationsToChat({ coverCalculations })",
+  "folder": null,
+  "ownership": {
+    "default": 0,
+    "nx29hoGineoQv9Bs": 3
+  },
+  "flags": {
+    "core": {}
+  },
+  "_stats": {
+    "compendiumSource": "Compendium.tokencover.tokencover_macros.Macro.DZUcw6UnqRN2m7Lq",
+    "duplicateSource": null,
+    "coreVersion": "14.369",
+    "systemId": "dnd5e",
+    "systemVersion": "3.3.1",
+    "createdTime": 1725991621109,
+    "modifiedTime": 1794240453978,
+    "lastModifiedBy": "nx29hoGineoQv9Bs",
+    "exportSource": null
+  },
+  "_id": "D81XgVqRXE6oKuA3",
+  "sort": 0,
+  "_key": "!macros!D81XgVqRXE6oKuA3"
+}

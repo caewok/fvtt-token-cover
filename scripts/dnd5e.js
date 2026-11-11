@@ -1,6 +1,6 @@
 /* globals
 canvas,
-ChatMessage
+ChatMessage,
 CONFIG,
 document,
 game,
@@ -9,7 +9,7 @@ renderTemplate
 */
 "use strict";
 
-import { log } from "./util.js";
+import { log, fastFlag } from "./util.js";
 import { MODULE_ID, FLAGS, LABELS, TEMPLATES } from "./const.js";
 import { coverAttackWorkflow } from "./CoverDialog.js";
 
@@ -36,7 +36,7 @@ async function render5eSpellTemplateConfig(app, html, data) {
   const CONFIG = FLAGS.DND5E.SPELL_CONFIG;
 
   // Add the default flag and localized selections.
-  if (typeof data.document.getFlag(MODULE_ID, CONFIG.USE_COVER) === "undefined") {
+  if (typeof fastFlag(data.document, CONFIG.USE_COVER) === "undefined") {
     data.document.setFlag(MODULE_ID, CONFIG.USE_COVER, CONFIG.CHOICES.NO);
   }
   data[MODULE_ID] ??= {};
@@ -64,9 +64,15 @@ export async function rollAttack(wrapper, config, dialog, message) {
   let actionType;
   const isRanged = this.attack.type.value === "ranged";
   switch ( this.attack.type.classification ) {
-    case "weapon": actionType = isRanged ? "mwak" : "rwak";
-    case "spell": actionType = isRanged ? "msak" : "rsak";
-    case "unarmed": actionType = isRanged ? "mwak" : "rwak";
+    case "weapon":
+    case "unarmed":
+      actionType = isRanged ? "rwak" : "mwak";
+      break;
+    case "spell":
+      actionType = isRanged ? "rsak" : "msak";
+      break;
+    default:
+      actionType = isRanged ? "rwak" : "mwak";
   }
   return _rollAttack.call(this, wrapper, actionType, config, dialog, message);
 }

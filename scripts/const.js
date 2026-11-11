@@ -5,14 +5,34 @@ canvas
 */
 "use strict";
 
-// Ignores Cover
+import { ENUMS as LOS_ENUMS, LOS_SETTINGS } from "./LOS/const.js";
 import { IgnoresCover } from "./IgnoresCover.js";
+export { pointIndicesLabels } from "./LOS/settings.js";
 
 export const MODULE_ID = "tokencover";
 export const EPSILON = 1e-08;
 export const DOCUMENTATION_URL = "https://github.com/caewok/fvtt-token-cover/blob/master/README.md";
 export const ISSUE_URL = "https://github.com/caewok/fvtt-token-cover/issues";
 export const SOCKETS = { socket: null };
+
+/**
+ * Checks for libGeometery.
+ * @type {object}
+ */
+export const GEOMETRY_LIB_OPTS = {
+  // What geometries we need to track.
+  // All of these potentially provide cover.
+  placeableGeometries: [
+    "Tile",
+    "Token",
+    "Region",
+    "Wall",
+    "Level",
+  ],
+
+  wallHeightRequired: true,
+  tokenHeightRequired: true,
+};
 
 export const FLAGS = {
   DND5E: {
@@ -25,6 +45,7 @@ export const FLAGS = {
       }
     }
   },
+  OPACITY: "opacity",
 
   DRAWING: { IS_HOLE: "isHole" },
   COVER: {
@@ -39,7 +60,6 @@ export const FLAGS = {
     IGNORE_DND5E: "helpersIgnoreCover",
     SPELLSNIPER: "spellSniper",
     SHARPSHOOTER: "sharpShooter",
-    MAX_GRANT: "maximumCoverGrant"
   },
 
   UNIQUE_EFFECT: {
@@ -48,87 +68,6 @@ export const FLAGS = {
     DUPLICATES_ALLOWED: "duplicatesAllowed",
     IS_LOCAL: "isLocal",
     DISPLAY_ICON: "displayStatusIcon"
-  },
-
-  COVER_EFFECT: {
-    /**
-     * Store an identifier that links an active effect to its stored data.
-     * @type {string}
-     */
-    ID: "coverEffectId",
-
-    /**
-     * Identify a specific item as one that holds cover effects.
-     * @type {boolean}
-     */
-    ITEM: "coverEffectItem",
-
-    /**
-     * Cover effect has been applied locally.
-     * @param {boolean}
-     */
-    LOCAL: "coverEffectLocal",
-
-    /**
-     * Cover effect should be applied whenever this status is triggered.
-     * Will replace the status with application of this cover effect.
-     */
-    LINKED_STATUS: "linkedStatus",
-
-    // Rules that define how cover is applied.
-    RULES: {
-
-      /**
-       * Cover effect applies when cover equals or exceeds this threshold.
-       * @type {number}
-       */
-      PERCENT_THRESHOLD: "percentThreshold",
-
-      /**
-       * Cover effect priority, when multiple covers apply.
-       * @type {number}
-       */
-      PRIORITY: "priority",
-
-      /**
-       * Cover effect can overlap with another.
-       * @type {boolean}
-       */
-      CAN_OVERLAP: "canOverlap",
-
-      /**
-       * Cover effect includes walls in the cover calculation.
-       * @type {boolean}
-       */
-      INCLUDE_WALLS: "includeWalls",
-
-      // Options for tokens in the cover calculations
-
-      /**
-       * Cover effect includes tokens in the cover calculation.
-       * @type {boolean}
-       */
-      LIVE_TOKENS_BLOCK: "liveTokensBlock",
-
-      /**
-       * Cover effect includes dead tokens in the cover calculation.
-       * @type {boolean}
-       */
-      DEAD_TOKENS_BLOCK: "deadTokensBlock",
-
-      /**
-       * Cover effect includes prone tokens
-       * Further limited to live/dead depending on those values. Does nothing if neither
-       * live nor dead tokens provide cover.
-       * @type {boolean}
-       */
-      PRONE_TOKENS_BLOCK: "proneTokensBlock"
-    }
-  },
-
-  COVER_BOOK: {
-    FOLDER_COLOR: "folderColor",
-    FOLDERS: "folders",
   },
 
   /**
@@ -152,13 +91,13 @@ export const LABELS = {
 
 export const TEMPLATES = {
   TOKEN_CONFIG: `modules/${MODULE_ID}/templates/token-config.html`,
+  WALL_CONFIG: `modules/${MODULE_ID}/templates/wall-config.html`,
   SETTINGS_BUTTONS: `modules/${MODULE_ID}/templates/settings-buttons.html`,
   SETTINGS_MENU_PARTIAL: `modules/${MODULE_ID}/templates/settings-menu-tab-partial.html`,
   SETTINGS_MENU: `modules/${MODULE_ID}/templates/settings-menu.html`,
-  COVER_RULES_PARTIAL: `modules/${MODULE_ID}/templates/cover-rules-partial.html`,
-  ACTIVE_EFFECT: `modules/${MODULE_ID}/templates/active-effect-config.html`,
-  COVER_RULES_PF2E: `modules/${MODULE_ID}/templates/cover-rules-pf2e.html`,
-  SPELL_CONFIG_DND5E: `modules/${MODULE_ID}/templates/dnd5e-spell-config.html`
+  SPELL_CONFIG_DND5E: `modules/${MODULE_ID}/templates/dnd5e-spell-config.html`,
+  SETTINGS_COVER_RULES: `modules/${MODULE_ID}/templates/settings-cover-rules.html`,
+  COVER_DIALOG: `modules/${MODULE_ID}/templates/cover-dialog.html`,
 };
 
 export const ICONS = {
@@ -191,6 +130,12 @@ export const FA_ICONS = {
   COVER_DIALOG: {
     YES: "fa-solid fa-check",
     NO: "fa-solid fa-xmark",
+  },
+  MENUS: {
+    SUBMENU: "fa-solid fa-user-gear",
+    COVER_RULES: "fa-solid fas-shield-halved",
+    EXPORT_BUTTON: "far fa-file-arrow-down",
+    IMPORT_BUTTON: "far fa-file-arrow-up",
   },
 };
 
@@ -232,7 +177,7 @@ export const OTHER_MODULES = {
       ALLOW_SIGHT: "noCollision",
     },
   },
-  ATV: { KEY: "token_visibility" },
+  ATV: { KEY: "tokenvisibility" },
   SIMBULS_CC: { KEY: "simbuls-cover-calculator" },
   MIDI_QOL: { KEY: "midi-qol" },
 };
@@ -268,5 +213,82 @@ export function setCoverIgnoreHandler(handler) {
 }
 
 export const TRACKER_IDS = {
-  COVER: MODULE_ID,
+  COVER: "coverCalculator",
 };
+
+export const CONTROLS = {
+  COVER_EFFECTS: "cover-effects-control"
+};
+
+export const MENUS = {
+  SUBMENU: "submenu",
+  EXPORT_BUTTON: "exportButton",
+  IMPORT_BUTTON: "importButton",
+  COVER_DEFINITIONS: "coverDefinitionsMenu",
+};
+
+export const ENUMS = {
+  USE_CHOICES: {
+    NEVER: "never",
+    COMBAT: "combat",
+    COMBATANT: "combatant",
+    ATTACK: "attack",
+    ALWAYS: "always"
+  },
+  CONFIRM_CHOICES: {
+    USER: "cover-workflow-confirm-user",
+    USER_CANCEL: "cover-workflow-confirm-user-cancel",
+    GM: "cover-workflow-confirm-gm",
+    AUTO: "cover-workflow-confirm-automatic"
+  },
+
+  ...LOS_ENUMS,
+};
+
+export const SETTINGS = foundry.utils.mergeObject(foundry.utils.deepClone(LOS_SETTINGS), {
+  UNIQUE_EFFECTS_FLAGS_DATA: "uniqueEffectsFlagsData",
+
+  DISPLAY_SECRET_COVER: "display-secret-cover",
+
+  TEMPLATES_USE_COVER: "templates-use-cover",
+
+  /**
+   * @type {"auto"|"activeEffect"}
+   * - Auto: Uses the system's built-in cover mechanism, if any.
+   * - ActiveEffect: Always use dropped effects/items
+   */
+  BACKEND_MODE: "backend-mode",
+
+  COVER_DEFINITIONS: "cover-definitions",
+
+  COVER_EFFECTS: {
+    USE: "use-cover-effects",
+    // CHOICES: USE_CHOICES,
+    DATA: "cover-effects-data",
+    TARGETING: "cover-effects-targeting",
+    RULES: "cover-rules",
+  },
+
+  COVER_WORKFLOW: {
+    CHAT: "cover-chat-message",
+    CONFIRM: "cover-workflow-confirm",
+    CONFIRM_CHANGE_ONLY: "cover-workflow-confirm-change-only",
+    CONFIRM_NO_COVER: "cover-workflow-confirm-no-cover",
+  },
+
+  // Hidden settings
+  CHANGELOG: "changelog",
+  ATV_SETTINGS_MESSAGE: "atv-settings-message",
+
+  // Configuration of the application that controls the terrain listings.
+  CONTROL_APP: {
+    FAVORITES: "favorites", // Array of favorite terrains, by effect id.
+    EXPANDED_FOLDERS: "app_expanded_folders", // Array of folders that are expanded, by id
+    FOLDERS: "app_folders",
+  },
+
+  MIGRATION: {
+    v0100: "migration-v0.10.0",
+  },
+});
+

@@ -10,17 +10,34 @@ renderTemplate
 
 import { MODULE_ID } from "./const.js";
 
+
 /**
- * Define a null set class and null set which always contains 0 elements.
- * The class removes the add method.
+ * Faster version of PlaceableDocument#getFlag.
+ * Keyed to this module. Does not handle nested flag properties (use only the base flag property).
+ * @param {PlaceableDocument} placeableD
+ * @param {string} flag
+ * @returns {*} Flag at that position or undefined.
  */
-class NullSet extends Set {
-  add(value) {
-   console.error(`${MODULE_ID}|Attempted to add ${value} to a NullSet.`, value);
-   return this;
-  }
+export function fastFlag(placeableD, flag) { return placeableD.flags[MODULE_ID]?.[flag]; }
+
+/**
+ * Automatically resolve strings to be plural in various languages.
+ * @param {string} baseKey        Key found in, e.g., en.json
+ * @param {number} count          Nubmer of items
+ * @returns {string}
+ * @example
+ * "MYMODULE.CoverTarget_one": "{count} target may have cover.",
+ * console.log(getPluralizedString("MYMODULE.CoverTarget", 1)); // "1 target may have cover."
+ * console.log(getPluralizedString("MYMODULE.CoverTarget", 2)); // "2 targets may have cover."
+ */
+export function getPluralizedString(baseKey, count, opts = {}) {
+  // Automatically resolves to 'one', 'other', 'two', 'few', 'many', or 'zero' based on locale rules
+  const pluralRules = new Intl.PluralRules(game.i18n.lang);
+  const rule = pluralRules.select(count);
+
+  // Combines the base key with the active language rule (e.g., "MYMODULE.CoverTarget_other")
+  return game.i18n.localize(`${baseKey}-${rule}`, { count, ...opts });
 }
-export const NULL_SET = new NullSet();
 
 /**
  * Remove in place multiple elements of an array that would meet a find test.
@@ -84,21 +101,6 @@ export async function injectConfiguration(app, html, data, template, findString)
   app.setPosition(app.position);
 }
 
-/**
- * Synchronous version of renderTemplate.
- * Requires the template to be already loaded.
- * @param {string} path             The file path to the target HTML template
- * @param {Object} data             A data object against which to compile the template
- * @returns {string|undefined}      Returns the compiled and rendered template as a string
- */
-export function renderTemplateSync(path, data) {
-  if ( !Object.hasOwn(Handlebars.partials, path) ) return;
-  const template = Handlebars.partials[path];
-  return template(data || {}, {
-    allowProtoMethodsByDefault: true,
-    allowProtoPropertiesByDefault: true
-  });
-}
 
 /**
  * Locates a single active gm.

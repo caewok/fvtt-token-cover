@@ -110,7 +110,7 @@ export default [{
     "wrap-iife": ["warn", "inside"],
     "arrow-parens": ["warn", "as-needed", {"requireForBlockBody": false}],
     "capitalized-comments": ["warn", "always", {
-      "ignoreConsecutiveComments": true,
+	      "ignoreConsecutiveComments": true,
       "ignorePattern": "noinspection"
     }],
     "comma-spacing": "warn",

@@ -1,3 +1,16 @@
+## 14.0.0
+Change version numbering to follow Foundry versions.
+Update for Foundry v14.
+Use updated libGeometry v0.7.0, with better handling of placeable 3d geometry and scene levels.
+Various improvements to line-of-sight calculation from Alternative Token Visibility.
+Simplify cover effect handling; relying more on v14's Active Effect compendiums.
+
+### New Features
+Added opacity/transparency measure in walls, tokens, and the set cover region behavior.
+Replace key Wall Height module features if that module is not present.
+Measure cover for Terrain Mapper ramps, steps, and hills.
+Remove outdated Cover Book and allow GM to define cover effects in the module settings.
+
 ## 0.10.2
 Update to libGeometry v0.5.3.
 
