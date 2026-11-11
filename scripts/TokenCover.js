@@ -234,7 +234,8 @@ export class TokenCover {
       const regionCover = UniqueEffectDefinition.bestCover(coverBehaviors)?.minPercent || 0;
 
       // Attacker covers may exceed it, if defender has greater cover from every attacker.
-      const attackerCovers = Math.min(...attackers.map(attacker => this.percentCoverFromAttacker(attacker)));
+      // Attackers is a set; convert to array to avoid Set#map illegally modifying the size of the set.
+      const attackerCovers = Math.min(...[...attackers].map(attacker => this.percentCoverFromAttacker(attacker)));
 
       // Final cover is the best of either the region covers or the lowest attacker cover.
       minCover = Math.max(regionCover, attackerCovers);
