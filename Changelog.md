@@ -1,3 +1,8 @@
+# 14.0.1
+Update libGeometry to v0.7.1.
+- Fix for point los test in region holes.
+- Support for region grid shapes.
+
 ## 14.0.0
 Change version numbering to follow Foundry versions.
 Update for Foundry v14.
