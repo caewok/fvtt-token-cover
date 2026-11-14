@@ -30,7 +30,15 @@ let [target] = game.user.targets;
 
 export function currentCalculator() { return CONFIG[MODULE_ID].losCalculator; }
 
+export function effectiveAlgorithmType() {
+  const TYPES = ENUMS.ALGORITHM_TYPES;
+  const type = Settings.get(Settings.KEYS.LOS.TARGET.ALGORITHM);
+  return ( type === TYPES.WEBGL2 && CONFIG[MODULE_ID].webGL2Unavailable )
+    ? TYPES.GEOMETRIC : type;
+}
+
 export function currentDebugViewerClass(type) {
+  type ??= effectiveAlgorithmType();
   const KEYS = Settings.KEYS;
   const { TARGET } = KEYS.LOS;
   const debugViewers = CONFIG[MODULE_ID].debugViewerClasses;
@@ -141,7 +149,7 @@ export function buildOcclusionTester(otCfg = {}) {
  * @returns {class}
  */
 export function getCurrentCalculatorClass() {
-  const calcName = ViewerLOS.VIEWPOINT_ALGORITHM_SETTINGS[Settings.get(Settings.KEYS.LOS.TARGET.ALGORITHM)];
+  const calcName = ViewerLOS.VIEWPOINT_ALGORITHM_SETTINGS[effectiveAlgorithmType()];
   return CONFIG[MODULE_ID].calculatorClasses[calcName];
 }
 

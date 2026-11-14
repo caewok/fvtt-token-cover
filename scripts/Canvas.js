@@ -10,6 +10,8 @@ import { Settings } from "./settings.js";
 import { buildOcclusionTester, buildLOSCalculator } from "./CoverCalculator.js";
 import { log } from "./util.js";
 import { ATCLOSManager } from "./ATCLOSManager.js";
+import { PercentVisibleCalculatorWebGL2 } from "./LOS/calculators/WebGL2Calculator.js";
+
 
 // Patches for the Canvas class
 export const PATCHES = {};
@@ -47,7 +49,6 @@ function canvasReady(_canvas) {
   });
 
   // Render the debug viewer is debug is set.
-  ATCLOSManager.initializeDebugViewer();
   if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) ATCLOSManager.toggleLOSDebugGraphics(true);
 }
 
@@ -67,6 +68,7 @@ function canvasTearDown(_canvas) {
     CONFIG[MODULE_ID].losCalculator.destroy();
     CONFIG[MODULE_ID].losCalculator = null;
   }
+  PercentVisibleCalculatorWebGL2.clearSceneData();
 }
 
 PATCHES.BASIC.HOOKS = { canvasReady, canvasTearDown };
