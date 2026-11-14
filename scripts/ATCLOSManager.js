@@ -19,9 +19,8 @@ export class ATCLOSManager extends LOSManager {
     Hooks.on(`${MODULE_ID}.losAlgorithmChanged`, value => this.algorithmChange(value));
   }
 
-  static async initializeDebugViewer(type) {
-    type ??= Settings.get(Settings.KEYS.LOS.TARGET.ALGORITHM);
-    this.debugViewer ??= buildDebugViewer(currentDebugViewerClass(type));
+  static async initializeDebugViewer() {
+    this.debugViewer ??= buildDebugViewer(currentDebugViewerClass());
     return super.initializeDebugViewer();
   }
 
@@ -39,9 +38,10 @@ export class ATCLOSManager extends LOSManager {
       const losViewer = token[MODULE_ID]?.[TRACKER_IDS.COVER]?.losViewer;
       if ( losViewer ) losViewer.calculator = calc;
     }
-    if ( Settings.get(Settings.KEYS.DEBUG.LOS) ) {
-      await this.destroyDebugViewer();
-      await this.initializeDebugViewer();
-    }
+    if ( !Settings.get(Settings.KEYS.DEBUG.LOS) ) return;
+    const type = Settings.get(Settings.KEYS.LOS.TARGET.ALGORITHM);
+    if ( this.debugViewer?.constructor === currentDebugViewerClass(type) ) return this.debugViewer.render();
+    await this.destroyDebugViewer();
+    await this.initializeDebugViewer();
   }
 }
