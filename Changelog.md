@@ -1,11 +1,12 @@
-## 14.0.2
-Avoid infinite context loss loop when switching levels/scenes rapidly while debug viewer is present.
-Respect the debug los setting.
-
 # 14.0.1
 Update libGeometry to v0.7.1.
 - Fix for point los test in region holes.
 - Support for region grid shapes.
+
+Avoid infinite context loss loop when switching levels/scenes rapidly while debug viewer is present.
+Respect the debug los setting. Closes #59.
+Avoid infinite context loss loop when switching levels/scenes rapidly while debug viewer is present.
+Keep WebGL renderer on scene change; drop for algorithm change.
 
 ## 14.0.0
 Change version numbering to follow Foundry versions.
