@@ -6,18 +6,15 @@ Hooks,
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 "use strict";
 
-import { MODULE_ID, TRACKER_IDS } from "./const.js";
+import { MODULE_ID, TRACKER_IDS, ENUMS } from "./const.js";
 import { Settings } from "./settings.js";
 import { buildDebugViewer, currentDebugViewerClass, buildLOSCalculator } from "./CoverCalculator.js";
 import { LOSManager } from "./LOS/LOSManager.js";
+import { PercentVisibleCalculatorWebGL2 } from "./LOS/calculators/WebGL2Calculator.js";
+
 
 export class ATCLOSManager extends LOSManager {
   static debugViewer;
-
-  static registerHooks() {
-    super.registerHooks();
-    Hooks.on(`${MODULE_ID}.losAlgorithmChanged`, value => this.algorithmChange(value));
-  }
 
   static async initializeDebugViewer() {
     this.debugViewer ??= buildDebugViewer(currentDebugViewerClass());
@@ -26,8 +23,8 @@ export class ATCLOSManager extends LOSManager {
 
   static onGLContextChanged(lost) {
     CONFIG[MODULE_ID].webGL2Unavailable = lost;
-    const { ALGORITHM, TYPES } = Settings.KEYS.LOS.TARGET;
-    if ( Settings.get(ALGORITHM) !== TYPES.WEBGL2 ) return;
+    const ALGORITHM = Settings.KEYS.LOS.TARGET.ALGORITHM;
+    if ( Settings.get(ALGORITHM) !== ENUMS.TYPES.WEBGL2 ) return;
     super.onGLContextChanged(lost);
   }
 
