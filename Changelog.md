@@ -1,4 +1,7 @@
-# 14.0.1
+## 14.0.2
+Update libGeometry to v0.7.2
+
+## 14.0.1
 Update libGeometry to v0.7.1.
 - Fix for point los test in region holes.
 - Support for region grid shapes.
